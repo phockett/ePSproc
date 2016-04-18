@@ -7,7 +7,10 @@ ePSproc scripts are designed for photoionization studies, and specifically:
 - Plot MF-PADs
 - Plot X-sects
 
-The scripts are currently written for Matlab. The distribution currently contains a set of functions for processing (ePSproc*.m files), a script showing demo calculations (<a href="https://github.com/phockett/ePSproc/blob/master/ePSproc_NO2_MFPADs_demo.m">ePSproc_NO2_MFPADs_demo.m</a>, the benchmark results from these calculations (<a href="https://github.com/phockett/ePSproc/blob/master/ePSproc_NO2_testing_summary_250915.pdf">ePSproc_NO2_testing_summary_250915.pdf</a>) and some additional notes on ePS (<a href'"https://github.com/phockett/ePSproc/blob/master/ePSproc_scattering_theory_ePS_notes_011015.pdf">ePSproc_scattering_theory_ePS_notes_011015.pdf</a>).
+The scripts are currently written for Matlab. The distribution currently contains:
+- a set of functions for processing (ePSproc*.m files)
+- a script showing demo calculations (<a href="https://github.com/phockett/ePSproc/blob/master/ePSproc_NO2_MFPADs_demo.m">ePSproc_NO2_MFPADs_demo.m</a> and the benchmark results from these calculations (<a href="https://github.com/phockett/ePSproc/blob/master/ePSproc_NO2_testing_summary_250915.pdf">ePSproc_NO2_testing_summary_250915.pdf</a>) 
+- some additional notes on ePS (<a href="https://github.com/phockett/ePSproc/blob/master/ePSproc_scattering_theory_ePS_notes_011015.pdf">ePSproc_scattering_theory_ePS_notes_011015.pdf</a>).
 
 # ePolyScat
 For details about ePolyScat (ePS), a tool for computation of electron-molecule scattering, see:
@@ -18,5 +21,6 @@ For details about ePolyScat (ePS), a tool for computation of electron-molecule s
 # Future aims
 - Add capabilities, including more general processing, and for other phenomena (e.g. recombination matrix elements for high-harmonic generation, aligned-frame calculations)
 - Tidy and streamline code (yep)
+- Extend & update notes and benchmark calculations
 - Port to non-commercial run-time engines, e.g. python
 

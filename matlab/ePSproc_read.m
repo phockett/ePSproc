@@ -12,6 +12,7 @@
 %                       params  which contains various global properties & indexes
 %                       getCro  contains all cross-sections
 %
+% 13/02/19         Updated to allow for degenerate symmetry continua. Now checks full symmetries (Cont, Targ, Total), not just Cont. See lines 94, 108, 149 - 156
 % 13/04/16         ePSproc version for release, see notes below
 % 29/03/16         Added error checking and correction for case of blank DumpIdy segments, common issue when clipping of ScatEng line occurs with ePS input
 %                  Added some diagnostics to params output to track this.
@@ -86,9 +87,11 @@ fid=fopen(fileBase);
 for record=1:N
     
     eKE=textscan(fid,'%*s %*s %*s %*s %*c %n','HeaderLines',dumpSeg(record)+1); % Read in energy value. Set headerlines == line #, after segment read reset file position to beginning... maybe a little slow, but works OK.
-    textscan(fid,'%s',1,'Delimiter','\n'); %Skip lines
+    % textscan(fid,'%s',1,'Delimiter','\n'); %Skip lines
+    PE=textscan(fid,'%*s %*s %*s %*s %n %*s',1); %Read photon energy
     MbNorm=textscan(fid,'%*s %*s %*s %*s %*s %*s %*s %*c %n %n',1); % Read scale factor to sqrt(Mb)
-    symm=textscan(fid,'%*s %*s %s',1);      %Read continuum symmetry
+    % symm=textscan(fid,'%*s %*s %s',1)      %Read continuum symmetry
+    symm=textscan(fid,'%*s %*s %s %*s %s %*s %s',1);      %Read continuum, target & total symmetry
     textscan(fid,'%s',5,'Delimiter','\n'); %Skip some lines
     rlIn=textscan(fid,'%n %n %n %n %n %n %n'); %Read raw matrix elements
     
@@ -96,7 +99,9 @@ for record=1:N
         
     % Compile into Matlab structure for use
     rlAll(record).eKE=eKE{1};
+    rlAll(record).PE=PE{1};
     rlAll(record).symm=symm{1}{1}(2:end);
+    rlAll(record).symmSet={symm{1}{1}(2:end), symm{2}{1}(2:end), symm{3}{1}(2:end)};    % symmSet={Continum, Target, Total}
     rlAll(record).MbNorm=[MbNorm{1} MbNorm{2}];
        
     index=(rlIn{1,4}==1);   % Assign form 1 (length) and also reformat into mag/phase.
@@ -111,7 +116,7 @@ for record=1:N
     rlAll(record).rawIdy2=[rlIn{1,1}(index) rlIn{1,2}(index) rlIn{1,3}(index) rlIn{1,5}(index) rlIn{1,6}(index)+rlIn{1,7}(index)*1i];
     rlAll(record).rlnl2=[rlAll(record).rawIdy1(:,2) rlAll(record).rawIdy1(:,1) abs(rlAll(record).rawIdy1(:,5)) angle(rlAll(record).rawIdy1(:,5)) rlAll(record).rawIdy1(:,3) rlAll(record).rawIdy1(:,4)];
     
-    symmAll{record}=rlAll(record).symm;
+    symmAll{record}=rlAll(record).symmSet;  % Use symmSet to allow for degenerate continua
     eAll(record)=rlAll(record).eKE;
     
     if max(rlAll(record).rlnl1(:,1))>Lmax   % Track global Lmax for use later
@@ -141,10 +146,17 @@ disp(['Read ' num2str(N) ' sets of matrix elements (' num2str(sum(errFlag)) ' bl
 rInd=1;
 symmInd=1;
 while rInd<=N
-    index=find(strcmp(rlAll(rInd).symm,symmAll));  % Take reference symm and check which records it corresponds to
+    % index=find(strcmp(rlAll(rInd).symm,symmAll))  % Take reference symm and check which records it corresponds to - original version for testing continuum symmetry only
+    
+    % Extended symmetry test - checks all symmetries
+    indexTemp=[];
+    for symmTestInd=1:N
+        indexTemp(symmTestInd)=sum(strcmp(rlAll(rInd).symmSet,symmAll{symmTestInd})); % Compare all 3 symmetries (Cont, Targ, Total)
+    end
+    index=find(indexTemp==3);
     
     eInd(:,symmInd)=index.';  % Log index into energies
-    symmList{symmInd}=rlAll(rInd).symm; % Log unique symmetries
+    symmList{symmInd}=rlAll(rInd).symm; % Log unique symmetries, continuum only
     eKE=eAll(index);        % Set vector of energies
     
     rInd=rInd+length(index);

@@ -14,6 +14,8 @@ The scripts are currently written for Matlab. The distribution currently contain
  
 A software metapaper for ePSproc can be found on Authorea: https://www.authorea.com/users/71114/articles/122402/_show_article 
 
+An ongoing repository of ePS results can be found on OSF: https://osf.io/psjxt/
+
 # ePolyScat
 For details about ePolyScat (ePS), a tool for computation of electron-molecule scattering, see:
 - ePS website & manual, maintained by R.R. Lucchese, http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html

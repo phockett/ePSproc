@@ -5,9 +5,11 @@ dev branch: code under development.
 
 ePSproc scripts are designed for photoionization studies, and specifically:
 - Read raw photoionization matrix elements from ePS output files with "dumpIdy" segments
-- Calculate MF-PADs from the matrix elements
+- Calculate MF-PADs from the matrix elements (ePSproc_MFPAD.m, see also ePSproc_NO2_MFPADs_demo.m)
 - Plot MF-PADs
 - Plot X-sects
+- (Beta testing): Calculate MF-BLMs from matrix elements, see ePSproc_MFBLM.m
+- (Under development): Calculate AF-BLMs from matrix elements.
 
 The scripts are currently written for Matlab. The distribution currently contains:
 - a set of functions for processing (ePSproc*.m files)
@@ -15,6 +17,8 @@ The scripts are currently written for Matlab. The distribution currently contain
 - some additional notes on ePS photoionization matrix elements, <a href="https://github.com/phockett/ePSproc/blob/master/ePSproc_scattering_theory_ePS_notes_011015.pdf">ePSproc_scattering_theory_ePS_notes_011015.pdf</a>.
 
 A software metapaper for ePSproc can be found on Authorea: https://www.authorea.com/users/71114/articles/122402/_show_article
+
+An ongoing repository of ePS results can be found on OSF: https://osf.io/psjxt/
 
 # ePolyScat
 For details about ePolyScat (ePS), a tool for computation of electron-molecule scattering, see:

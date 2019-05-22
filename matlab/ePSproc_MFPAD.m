@@ -1,5 +1,5 @@
 %% function [Xsect, calcsAll, pWaves]=ePSproc_MFPAD(rlAll, varargin)
-% 
+%
 %   Function to calculate MF PADs from ePolyScat matrix elements
 %
 %   INPUTS (only rlAll is required):
@@ -16,6 +16,7 @@
 %       Xsect   Partial Xsects for each symmetry & E, from sum|partial waves|^2
 %       calcsAll    Full structure of calculation results, dimensions (Ns rows, Ne cols) + an extra row for sum over symmetries
 %
+%   22/05/19        Fixed bug with all symmetries Xsect output.
 %   13/04/16        ePSproc version for release, see notes below
 %   26/01/16        Small modification to 'it' to allow variable size.
 %   18/08/15    v1, consolidated from various old codes during NO2 calculations & verification
@@ -38,9 +39,9 @@
 %  For details about ePolyScat (ePS), a tool for computation of electron-molecule scattering, see:
 %   - ePS website & manual, maintained by R.R. Lucchese
 %       http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html)
-%   - F. A. Gianturco, R. R. Lucchese, and N. Sanna, J. Chem. Phys. 100, 6464 (1994).  
+%   - F. A. Gianturco, R. R. Lucchese, and N. Sanna, J. Chem. Phys. 100, 6464 (1994).
 %       http://dx.doi.org/10.1063/1.467237
-%   - A. P. P. Natalense and R. R. Lucchese, J. Chem. Phys. 111, 5344 (1999). 
+%   - A. P. P. Natalense and R. R. Lucchese, J. Chem. Phys. 111, 5344 (1999).
 %       http://dx.doi.org/10.1063/1.479794
 
 function [Xsect, calcsAll, pWaves]=ePSproc_MFPAD(rlAll, varargin)
@@ -65,7 +66,7 @@ else
     it=1; %[1 0];
 end
 
-if nargin>1   
+if nargin>1
     eAngs=varargin{2};
 else
     eAngs=[0 0 0];
@@ -76,7 +77,7 @@ if nargin>0
 else
     p=0;
 end
-    
+
 
 %% Set up frame
 pRot=eAngs(1);         % Set Euler angles (phi, theta, chi).  For circ pol rotation of LF z-axis (propagation axis) to MF z-axis (mol axis) requires tRot=pi/2
@@ -103,25 +104,25 @@ Lmax=0; % Use this for checking Lmax later
 
 [theta,phi]=meshgrid(linspace(0,pi,res),linspace(0,2*pi,res));
 
-for indE=1:nEnergies 
+for indE=1:nEnergies
     calcsAll(nSymms+1,indE).D=zeros(res,res);   % Set master outputs for symmetry-summed MFPADs to zero.
 end
 
 %% *** Calculate d=sum(d_l,m,mu*Y_lm*D) for each record
 
 % for n=1:nRecords  % Loop over energies - NOW REPLACED BY 2D indexing below
-%     
+%
 % %    Lmax=0;     % Use this to check Lmax when looping over mat. elements, should also be able to check vs. ePS input file
-%     
+%
 %     % Select column (energy) to add result to for para and perp components of d, and correct for case where n==nEnergies and rem returns 0
 %     col=rem(n,nEnergies);
 %     if col==0
 %        col=nEnergies;
 %     end
-%     
+%
 %     % for ip=ipComponents  % loop over components
 %     ip=ipComponents;    % Case for single ip component
-%     
+%
 %         % Switch on ip
 %         if ip==1
 %            rawIdy=rlAll(n).rawIdy1;
@@ -131,7 +132,7 @@ end
 
 for indSymm=1:nSymms
     for indE=1:nEnergies
-        
+
         ip=ipComponents;    % Case for single ip component
         % Switch on ip
         if ip==1
@@ -149,7 +150,7 @@ for indSymm=1:nSymms
         for m=find(index)'  % Loop over selected terms & sum
 
             l=rawIdy(m,2);
-            Mf=rawIdy(m,1);        
+            Mf=rawIdy(m,1);
             % for Mlf=-l:l    % Removed loop and second D in order to calculate MF (mu) terms for given polarization state (currently doesn't include summation over different polarization geometries p)
                 C(Cind,:)=[l Mf rawIdy(m,5).*ePSproc_wignerD(1,rawIdy(m,3),-p,pRot,tRot,cRot) rawIdy(m,3)];
                 Cind=Cind+1;
@@ -171,14 +172,14 @@ for indSymm=1:nSymms
     %             CsortInd=CsortInd+1;
     %         end
     %     end
-        % C2sort=[Csort(:,1:2) abs(Csort(:,3)) angle(Csort(:,3))];    % mag, phase form     
+        % C2sort=[Csort(:,1:2) abs(Csort(:,3)) angle(Csort(:,3))];    % mag, phase form
         Csort=Cthres;    % NO SORTING REQUIRED for MF version!
 
         if exist('Csort','var')&&(~isempty(Csort));
-%            Ylm=ePSproc_Ylm_calc(Csort,theta,phi);  % Calculate Ylm partial wave  
-                
+%            Ylm=ePSproc_Ylm_calc(Csort,theta,phi);  % Calculate Ylm partial wave
+
 %             % Alternate version with loop to check conj(Ylm) - tic-toc test shows no real difference to the above in any case.
-                Ylm=zeros(res,res); 
+                Ylm=zeros(res,res);
                 for cInd=1:size(Csort,1);
                     Ylm=Ylm+Csort(cInd,3).*conj(ePSproc_Ylm_calc([Csort(cInd,1:2) 1],theta,phi));
                     % Ylm=Ylm+Csort(cInd,3).*(ePSproc_Ylm_calc([Csort(cInd,1:2) 1],theta,phi));
@@ -198,24 +199,24 @@ for indSymm=1:nSymms
             % Dlmmu=conj(Ylm);
             Dlmmu=Ylm;
             %        Dlmmu=conj(Ylm).*ePSproc_wignerD(1,rawIdy(m,3),p,pRot,tRot,cRot).*ePSproc_wignerD(1,rawIdy(m,1),p,pRot,tRot,cRot);  % Calculate d(l,m,mu) for selected (l,m,mu)
-            
+
             calcsAll(indSymm,indE).C=C;    % Log partial waves, no thresholding
             calcsAll(indSymm,indE).Cthres=Cthres;    % Log partial waves, after thresholding
 
             % size(Csort)
         else
             Dlmmu=zeros(res,res);
-            
+
             % calcsAll(n).C=[];
             calcsAll(indSymm,indE).C=C;    % Log partial waves, no thresholding
-            
+
             sf=0;
         end
-        
+
         % Main calc. result is summed over symmetries, individual components also logged below to calcsAll structure
         % D(:,:,indE)=D(:,:,indE)+Dlmmu*sf;
         calcsAll(nSymms+1,indE).D=calcsAll(nSymms+1,indE).D+Dlmmu*sf;
-    
+
         % Log parameters to output structure - NOTE CURRENTLY ASSUMES ONLY ONE IP COMPONENT
         % calcsAll(n).Lmax=Lmax;
         Xsect(indSymm,indE)=sum(abs(Csort(:,3)).^2)*rlAll(indSymm,indE).MbNorm(ip);  % Total X-sect as sum |partial waves|^2
@@ -227,13 +228,13 @@ for indSymm=1:nSymms
         calcsAll(indSymm,indE).XsectD=sum(sum(abs(Dlmmu*sf).^2))./(res.^2);      % Total X-sect as sum over MFPAD, renormalized by number of points.
         calcsAll(indSymm,indE).Rlf=Rlf;
         calcsAll(indSymm,indE).p=p;
-        
+
         % Log global Lmax for later
         if max(calcsAll(indSymm,indE).C(:,1))>Lmax
             Lmax=max(calcsAll(indSymm,indE).C(:,1));
         end
     end
-    
+
 end
 
 %% Resort output & sum over symmetries
@@ -254,7 +255,7 @@ pWaveAll=zeros(size(LMallInd,1),nEnergies,nSymms);
 pWaveAllMb=pWaveAll;
 
 for indSymm=1:nSymms  % Loop over symmetries
-    for n=1:nEnergies                
+    for n=1:nEnergies
         % Loop over terms and extract for each energy & symmetry, summed over all other indicies (mu, it)
         clear pWaveTemp
         for m=1:size(LMallInd,1)
@@ -270,7 +271,7 @@ for indSymm=1:nSymms  % Loop over symmetries
 
         xSectAll(indSymm,n)=calcsAll(indSymm,n).Xsect;
         xSectAllD(indSymm,n)=calcsAll(indSymm,n).XsectD;
-        
+
     end
 end
 
@@ -291,16 +292,15 @@ pWave.LMallInd=LMallInd;
 
 %*** Set final row in output to sum over symmetries
 for n=1:nEnergies
-    
+
     % calcsAll(nSymms+1,n).Dlmmu=D(:,:,n);
-    
+
     calcsAll(nSymms+1,n).eKE=calcsAll(1,n).eKE;
     calcsAll(nSymms+1,n).symm='Sum';
     calcsAll(nSymms+1,n).euler=[pRot tRot cRot];
     calcsAll(nSymms+1,n).Xsect=sum(Xsect(:,n));  % Total X-sect as sum |partial waves|^2
-    calcsAll(nSymms+1,n).XsectD=sum(abs(calcsAll(nSymms+1,n).D).^2)./(res.^2);      % Total X-sect as sum over MFPAD, renormalized by number of points.
+    calcsAll(nSymms+1,n).XsectD=sum(sum(abs(calcsAll(nSymms+1,n).D).^2))./(res.^2);      % Total X-sect as sum over MFPAD, renormalized by number of points.
     calcsAll(nSymms+1,n).Rlf=Rlf;
     calcsAll(nSymms+1,n).p=p;
-    
+
 end
-    

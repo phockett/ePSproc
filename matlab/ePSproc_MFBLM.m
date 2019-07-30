@@ -3,16 +3,21 @@
 %   Function to calculate MF BLMs from ePolyScat matrix elements
 %
 %   INPUTS (only rlAll is required):
-%       rlAll   Stucture containing matrix elements, dimensions (Ns rows, Ne cols), where Ns is the number of symmetries and Ne the number of energies
-%               This struture is usually generated from ePSproc_read.m, which in turn requires a valid ePS results file.
-%       p       Light helicity, scalar.  Optional, default is linear, p=0
-%       eAngs   Eugler angles defining rotation of light into MF, vector [phi theta chi].  Optional, default =[0 0 0]
-%       it      Components to use in degenerate cases, vector. Optional, default =1
-%       ipComponents    Set ip components to use (1=length, 2=velocity gauge). Optional, default =1
-%       res     Resolution for angular grid, scalar.  Optional, default is 50.
+%       rlAll       Stucture containing matrix elements, dimensions (Ns rows, Ne cols), where Ns is the number of symmetries and Ne the number of energies
+%                   This struture is usually generated from ePSproc_read.m, which in turn requires a valid ePS results file.
+%       p           Light helicity, scalar.  Optional, default is linear, p=0
+%       eAngs       Eugler angles defining rotation of light into MF, vector [phi theta chi].  Optional, default =[0 0 0]
+%       it          Components to use in degenerate cases, vector. Optional, default =1
+%       ip          Set ip component to use (1=length, 2=velocity gauge). Optional, default =1
+%       res         Resolution for angular grid, scalar.  Optional, default is 50.
+%       rlThres     Threshold for value (abs) of matrix elements to be included in calculations, default = 1e-3. Note that this code is currently quite slow, and may be significantly slower with a lower threshold here.
+%       
 %
 %   OUTPUTS:
 %       calcsAll    Full structure of calculation results, dimensions (Ns rows, Ne cols) + an extra row for sum over symmetries
+%
+%   29/07/19        More extensive testing with NO2 matrix elements.
+%                   Added thresholding as input value.
 %
 %   25/04/19        Development version for ePSproc.
 %                   Based on old code family "pad_simple_MF.m", and recent updates/testing for ePS matrix elements "pad_simple_MF_ePS_2019.m", for direct BLM calculation with external gamma calcs.
@@ -46,6 +51,12 @@ function calcsAll=ePSproc_MFBLM_2019(rlAll, varargin)
 
 %% Parse input arguments, set defaults if not passed
 
+if nargin>5
+    rlThres=varargin{6};
+else
+    rlThres=1e-3;
+end  
+
 if nargin>4
     res=varargin{5};
 else
@@ -53,9 +64,9 @@ else
 end
 
 if nargin>3
-    ipComponents=varargin{4};
+    ip=varargin{4};
 else
-    ipComponents=1;
+    ip=1;
 end
 
 if nargin>2
@@ -100,7 +111,6 @@ cRot=eAngs(3);
 for indSymm=1:nSymms
     for indE=1:nEnergies
         
-        ip=ipComponents;    % Case for single ip component
         % Switch on ip
         if ip==1
            rawIdy=rlAll(indSymm,indE).rawIdy1;
@@ -113,7 +123,7 @@ for indSymm=1:nSymms
         sf=2*rlAll(indSymm,indE).MbNorm(ip);
         
         % index=sum(repmat(rawIdy(:,4),1,length(it))==repmat(it,length(rawIdy(:,4)),1),2)  % Select component, varible length it
-        index=sum((repmat(rawIdy(:,4),1,length(it))==repmat(it,length(rawIdy(:,4)),1)).*(abs(rawIdy(:,5))>1e-3),2);  % Select component, varible length it + thresholding
+        index=sum((repmat(rawIdy(:,4),1,length(it))==repmat(it,length(rawIdy(:,4)),1)).*(abs(rawIdy(:,5))>rlThres),2);  % Select component, varible length it + thresholding
 
         Cind=1;
         clear C;
@@ -143,7 +153,7 @@ for indSymm=1:nSymms
                     matEle = rawIdy(m,5)*conj(rawIdy(mp,5));  % Product of matrix elements for this set of QNs - TO DO CHECK INDEXING HERE
                     % matEle = conj(rawIdy(m,5))*(rawIdy(mp,5));
                     for P=0:2
-                        Rp=mup-mu;
+                        Rp= mup-mu;     % -(mu-mup);  % Includes Rp > -Rp for numerics.
                         if abs(Rp)<= P  % Check for allowed terms, otherwise wignerD() will throw an error
                             
                             % Sum over R,R' projections
@@ -153,7 +163,7 @@ for indSymm=1:nSymms
                             % for R=-P:P
                                % for Rp=-P:P
                                % Rp=mup-mu;
-                                    gammaP = gammaP + (2*P+1)*(-1)^(Rp-R)*ePSproc_3j(1,1,P,mu,-mup,Rp)*ePSproc_3j(1,1,P,-p,p,R)*ePSproc_wignerD(P,-Rp,-R,pRot,tRot,cRot)*matEle;   % Note polarization terms, here mu is MF, and p is LF.
+                                    gammaP = gammaP + (2*P+1)*(-1)^(Rp-R)*ePSproc_3j(1,1,P,mu,-mup,Rp)*ePSproc_3j(1,1,P,p,-p,R)*ePSproc_wignerD(P,-Rp,-R,pRot,tRot,cRot)*matEle;   % Note polarization terms, here mu is MF, and p is LF.
                                % end
                             % end
                             % gammaP = gammaP + (2*P+1)*ePSproc_3j(1,1,P,mu,-mup,mu-mup)*ePSproc_3j(1,1,P,-p,p,0)*ePSproc_wignerD(P,-mu+mup,0,pRot,tRot,cRot)*matEle;   % Note polarization terms, here mu is MF, and p is LF.
@@ -164,7 +174,7 @@ for indSymm=1:nSymms
                     %*** Final set of terms
                     % phase = (-1)^M*(-1)^Mf*(-1)^(mup+p)*(-1)^(mu-mup);
                     % phase = (-1)^Mf*(-1)^(mup+p)*(-1)^(mu-mup);
-                    phase = (-1)^M*(-1)^Mf*(-1)^(mup+p);
+                    phase = (-1)^M*(-1)^Mf*(-1)^(mup-p);
                     degen = sqrt(((2*l+1)*(2*lp+1)*(2*L+1))/(4*pi));
                     
                     gamma = gammaLM*gammaP*phase*degen;

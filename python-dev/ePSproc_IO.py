@@ -151,7 +151,7 @@ def dumpIdySegParse(dumpSeg):
     Parameters
     ----------
     dumpSeg : list
-        One dumpIdy segment, from dumpSegs[], as returned by ePSIdyParse()
+        One dumpIdy segment, from dumpSegs[], as returned by dumpIdyFileParse()
 
     Returns
     -------
@@ -222,7 +222,7 @@ def dumpIdySegsParseX(dumpSegs):
     Parameters
     ----------
     dumpSegs : list
-        Set of dumpIdy segments, i.e. dumpSegs, as returned by ePSIdyParse()
+        Set of dumpIdy segments, i.e. dumpSegs, as returned by dumpIdyFileParse()
 
     Returns
     -------

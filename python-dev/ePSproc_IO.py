@@ -249,6 +249,11 @@ def dumpIdySegsParseX(dumpSegs):
         if len(dumpSeg)>4:
             segBlock, attribs = dumpIdySegParse(dumpSeg)
             dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])
+            # Switch l,m - with advanced indexing, other methods faster...? https://stackoverflow.com/questions/4857927/swapping-columns-in-a-numpy-array
+            # Now done later via pd.MultiIndex.swaplevel()
+            # dataList[-1][0][[0,1],:] = dataList[-1][0][[1,0],:]
+            
+            # dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])
             # dataList.append([segBlock[:,0:5], segBlock[:,5]+1j*segBlock[:,6], attribs])
         else:
             blankSegs += 1
@@ -262,6 +267,7 @@ def dumpIdySegsParseX(dumpSegs):
     for data in dataList:
         attribs = data[2]
         QNs = pd.MultiIndex.from_arrays(data[0].astype('int8'), names = attribs[-1][1][0:-1])
+        QNs = QNs.swaplevel(0, 1)  # Switch l,m indexes
         #Esyms = pd.MultiIndex.from_arrays([np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]]], names=['E', 'Sym'])
         # pd.MultiIndex.from_tuples([(np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]])], names=['E', 'Sym'])
         Esyms = pd.MultiIndex.from_tuples([(attribs[0][1],attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[0][0],attribs[4][0],attribs[5][0],attribs[6][0]])

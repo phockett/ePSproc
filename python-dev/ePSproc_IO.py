@@ -9,6 +9,7 @@ Main function readMatEle(fileIn = None, fileBase = None, fType = '.out'):
 
 Also includes required ancillary functions for file IO tasks, and data parsing.
 
+19/08/19        Add functions for reading wavefunction files (3D data)
 07/08/19        Naming convention tweaks, and some changes to comments, following basic tests with Sphinx.
 05/08/19    v1  Initial python version.
                 Working, but little error checking as yet. Needs some tidying.
@@ -17,7 +18,7 @@ TODO
 ----
 - Add IO for other file segments (only DumpIdy supported so far).
 - Better logic & flexibility for file scanning.
-
+- Restructure as class for brevity...?
 
 """
 
@@ -28,6 +29,7 @@ import numpy as np
 import pandas as pd
 from io import StringIO
 import xarray as xr
+from pyevtk.hl import gridToVTK
 
 # ***** Ancillary functions
 
@@ -252,7 +254,7 @@ def dumpIdySegsParseX(dumpSegs):
             # Switch l,m - with advanced indexing, other methods faster...? https://stackoverflow.com/questions/4857927/swapping-columns-in-a-numpy-array
             # Now done later via pd.MultiIndex.swaplevel()
             # dataList[-1][0][[0,1],:] = dataList[-1][0][[1,0],:]
-            
+
             # dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])
             # dataList.append([segBlock[:,0:5], segBlock[:,5]+1j*segBlock[:,6], attribs])
         else:
@@ -289,7 +291,71 @@ def dumpIdySegsParseX(dumpSegs):
 
     return daOut, blankSegs
 
+# Function for grabbing files or scanning dir for files.
+def getFiles(fileIn = None, fileBase = None, fType = '.out'):
+    """
+    Read ePS file(s) and return results as Xarray data structures.
+    File endings specified by fType, default *.out.
 
+    Parameters
+    ----------
+    fileIn : str, list of strs, optional.
+        File(s) to read (file in working dir, or full path).
+        Defaults to current working dir if only a file name is supplied.
+        For consistent results, pass raw strings, e.g.
+        fileIn = r"C:\share\code\ePSproc\python_dev\no2_demo_ePS.out"
+
+    fileBase : str, optional.
+        Dir to scan for files.
+        Currently only accepts a single dir.
+        Defaults to current working dir if no other parameters are passed.
+
+    fType : str, optional
+        File ending for ePS output files, default '.out'
+
+
+    Returns
+    -------
+    list
+        List of Xarray data arrays, containing matrix elements etc. from each file scanned.
+    """
+
+
+    currDir = os.getcwd()
+
+    if fileBase is None:
+        fileBase = currDir
+
+    if fileIn is not None:
+        # Wrap in list if only single file passed
+        if type(fileIn) is str:
+            fileIn = [fileIn]
+
+        fList = []
+        for file in fileIn:
+            # Check file & path are valid
+            fTest = os.path.split(file)
+            if not fTest[0]:
+                fList.append(os.path.join(currDir, file))
+            else:
+                fList.append(file)
+
+        # Display message
+        print('\n*** Scanning file(s)')
+        print(fList)
+
+    else:
+        # Filenames only
+        # fList = [f for f in os.listdir(fileBase) if f.endswith(fType)]
+        # With full path
+        fList = [os.path.join(fileBase, f) for f in os.listdir(fileBase) if f.endswith(fType)]
+
+        # Display message
+        print('\n*** Scanning dir')
+        print(fileBase)
+        print('Found {0} {1} file(s)\n'.format(len(fList), fType))
+
+    return fList
 
 #****** Master function to read a file, or dir, of ePS outputs.
 
@@ -348,42 +414,10 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
     #   - file(s) and add to list with full path
     #   - default case is scan current working dir.
 
-    currDir = os.getcwd()
-
     print('*** ePSproc readMatEle(): scanning files for DumpIdy segments (matrix elements)')
 
-    if fileBase is None:
-        fileBase = currDir
-
-    if fileIn is not None:
-        # Wrap in list if only single file passed
-        if type(fileIn) is str:
-            fileIn = [fileIn]
-
-        fList = []
-        for file in fileIn:
-            # Check file & path are valid
-            fTest = os.path.split(file)
-            if not fTest[0]:
-                fList.append(os.path.join(currDir, file))
-            else:
-                fList.append(file)
-
-        # Display message
-        print('\n*** Scanning file(s)')
-        print(fList)
-
-    else:
-        # Filenames only
-        # fList = [f for f in os.listdir(fileBase) if f.endswith(fType)]
-        # With full path
-        fList = [os.path.join(fileBase, f) for f in os.listdir(fileBase) if f.endswith(fType)]
-
-        # Display message
-        print('\n*** Scanning dir')
-        print(fileBase)
-        print('Found {0} ePS.out file(s)\n'.format(len(fList)))
-
+    # Call function to check files or scan dir.
+    fList = getFiles(fileIn = fileIn, fileBase = fileBase, fType = fType)
 
     # Loop over fList and scan ePS files
     dataSet = []
@@ -408,3 +442,194 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
 
 
     return dataSet
+
+
+# **************** Functions for wavefunction (3D data) files
+# Based on previous Matlab code, readOrb3D.m
+# Helped by Scipy Cookbook LAS reader example: https://scipy-cookbook.readthedocs.io/items/LASReader.html
+#
+# See:
+#   - ePSproc_dev_IOfun_260519.py
+#   - ePSproc_dev_3Dvis_290519.property
+# for development notes (Finn E:\ePS_paraview_proc\scripts).
+#
+# TODO: rename & integrate with functions above.
+
+# Read header lines into a list & convert to int
+def readOrbHeader(f):
+    headerLines=[]
+    for i in range(5):
+        headerLines.append(f.readline())
+        # headerLines.append(f.readline().split()) # Split at whitespace
+
+        if i>0:
+            headerLines[i] = int(headerLines[i])  # Convert to int
+
+    return headerLines
+
+# Read a specified number of floats from file, return as numpy array type
+def readOrbElements(f,n):
+    data = []
+
+    while len(data) < n:
+        data.extend([float(s) for s in f.readline().split()])
+
+    return np.array(data)
+
+# Read coords from file, based on params in headerLines
+def readOrbCoords(f, headerLines):
+    coords = []
+    for n in range(np.abs(headerLines[1])):
+        coords.append(readOrbElements(f,headerLines[n+2]))
+
+    return coords
+
+# Read data from file, based on params in headerLines
+def readOrbData(f, headerLines):
+
+    # Determine size of grid
+    nData = 1
+    nGrid = []
+    # [j=j*headerLines[k] for k in range(np.abs(headerLines[1]))]  # FAIL
+    # Set number of elements
+    for n in range(np.abs(headerLines[1])):
+        nData = nData*headerLines[n+2]
+        nGrid.append(headerLines[n+2])
+
+
+    # Read elements
+    dataRaw = readOrbElements(f,nData)
+
+    # Resort to 3D array - adapted from Matlab code, so might be a +/-1 index offset mix-up here...
+    C = 0
+    data = np.zeros(nGrid)
+    for z in range(nGrid[2]):
+        for y in range(nGrid[1]):
+           # data[0:(nGrid[0]-1),y,z] = dataRaw[C:(C+nGrid[0]-1)]  # Incorrect offset?
+           data[:,y,z] = dataRaw[C:(C+nGrid[0])]  # Should be correct... implicit (-1) in dataRaw range setting
+           C = C+nGrid[0]
+
+
+    return data
+
+# *************** Master function for reading a set of 3D data files from ePS
+def readOrb3D(fileIn = None, fileBase = None, fType = '_Orb.dat'):
+    """
+    Read ePS 3D data file(s) and return results.
+    File endings specified by fType, default *_Orb.dat.
+
+    Parameters
+    ----------
+    fileIn : str, list of strs, optional.
+        File(s) to read (file in working dir, or full path).
+        Defaults to current working dir if only a file name is supplied.
+        For consistent results, pass raw strings, e.g.
+        fileIn = r"C:\share\code\ePSproc\python_dev\no2_demo_ePS.out"
+
+    fileBase : str, optional.
+        Dir to scan for files.
+        Currently only accepts a single dir.
+        Defaults to current working dir if no other parameters are passed.
+
+    fType : str, optional
+        File ending for ePS output files, default '_Orb.dat'
+
+
+    Returns
+    -------
+    list
+        List of data arrays, containing matrix elements etc. from each file scanned.
+
+    # TODO: Change output to Xarray?
+
+    Examples
+    --------
+
+    >>> dataSet = readOrb3D()  # Scan current dir
+
+    >>> fileIn = r'C:\share\code\ePSproc\python_dev\DABCOSA2PPCA2PP_10.5eV_Orb.dat'
+    >>> dataSet = readOrb3D(fileIn)  # Scan single file
+
+    >>> dataSet = readOrb3D(fileBase = r'C:\share\code\ePSproc\python_dev') # Scan dir
+
+
+    """
+
+    # Populate file list
+    fList = getFiles(fileIn = fileIn, fileBase = fileBase, fType = fType)
+
+    dataSet = []
+    for fileName in fList:
+        with open(fileName,'r') as f:
+            # Check eof
+            f.seek(0,2)
+            fEnd = f.tell()
+            f.seek(0)
+
+            # Read file segments until eof
+            # TODO: add eof checking here, can have 3 or 6 segments depending on symmetry.
+            data = []
+            # for seg in range(3):
+            while f.tell() < fEnd - 100:    # Scan until eof minus arb small offset.
+                headerLines = readOrbHeader(f)
+                coords = readOrbCoords(f,headerLines)
+                data.append(readOrbData(f, headerLines))
+
+        dataSet.append([fileName, headerLines, coords, data])
+
+    return dataSet
+
+
+def writeOrb3Dvtk(dataSet):
+    """
+    Write ePS 3D data file(s) to vtk format.
+    This can be opened in, e.g., Paraview.
+
+    Parameters
+    ----------
+    dataSet : list
+        List of data arrays, containing matrix elements etc. from each file scanned.
+        Assumes format as output by readOrb3D(), [fileName, headerLines, coords, data]
+
+    # TODO: Change to Xarray?
+
+    Returns
+    -------
+    list
+        List of output files.
+
+    Notes
+    -----
+    Uses Paulo Herrera's eVTK, see:
+    https://pyscience.wordpress.com/2014/09/06/numpy-to-vtk-converting-your-numpy-arrays-to-vtk-arrays-and-files/
+    https://bitbucket.org/pauloh/pyevtk/src/default/
+
+    """
+    fOut = []
+    for file in dataSet:
+        # Set grid, convert to Cart if necessary, assuming that grid won't be larger than 10 Angs
+        if (len(file[2][0]) > 50):
+            # Convert to Cart grid for plotting
+            # TODO: Investigate use of sph grid here - should be cleaner.
+            # TODO: Investigate recreating mesh in Paraview, rather than saving to file.
+            [T,R,P] = np.meshgrid(file[2][1], file[2][0], file[2][2])
+            T = (T*np.pi/180) #-np.pi/2
+            P = P*np.pi/180
+            x = R*np.sin(P)*np.cos(T)
+            z = R*np.cos(P)
+            y = R*np.sin(P)*np.sin(T)
+        else:
+            [x,y,z] = np.meshgrid(file[2][1], file[2][0], file[2][2])
+
+        # Save single dataset
+        # Function info: https://bitbucket.org/pauloh/pyevtk/src/default/src/hl.py
+        # gridToVTK("./ePStest3", x, y, z, pointData = {'data': data[0]})
+
+        # Save full dataset
+        # TODO: Check number of segments and save multiple
+        # segs = round(len(file[3])/3)
+        fOut.append(gridToVTK(file[0][:-4], x, y, z, pointData = {'Re': file[3][0], 'Im': file[3][1], 'Abs': file[3][2]}))
+
+    print("{0} files written to vtk format.".format(len(fOut)))
+
+    return fOut

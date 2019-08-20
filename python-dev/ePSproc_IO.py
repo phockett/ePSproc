@@ -29,7 +29,14 @@ import numpy as np
 import pandas as pd
 from io import StringIO
 import xarray as xr
-from pyevtk.hl import gridToVTK
+
+try:
+    from pyevtk.hl import gridToVTK
+except ImportError as e:
+    if e.msg != "No module named 'pyevtk'":
+        raise
+    print('* pyevtk not found, VTK export not available. ')
+
 
 # ***** Ancillary functions
 

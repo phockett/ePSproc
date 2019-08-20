@@ -10,7 +10,7 @@ ePSproc scripts are designed for photoionization studies, and specifically:
 - (Under development): Calculate AF-BLMs from matrix elements.
 
 The scripts are currently written for Matlab & Python. The distribution currently contains:
-- ./matlab: stable matlab code (as per release v1.0.1).
+- ./matlab: stable matlab code (as per [https://github.com/phockett/ePSproc/releases](release v1.0.1)).
 - ./python-dev: basic python version, code still under development.
 
 The Matlab distro contains:

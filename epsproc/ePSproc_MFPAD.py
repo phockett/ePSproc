@@ -92,6 +92,11 @@ from scipy.special import sph_harm
 import spherical_functions as sf
 import quaternion
 
+# Package fns.  
+# TODO: tidy this up!
+from epsproc.ePSproc_util import matEleSelector
+from epsproc.ePSproc_sphCalc import sphCalc
+
 def mfpad(dataIn, thres = 1e-2, inds = {'ip':1,'it':1}, res = 50, R = None, p = 0):
     """
     Inputs

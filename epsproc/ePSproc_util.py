@@ -8,6 +8,7 @@ Collection of small functions for sorting etc.
 
 """
 
+import numpy as np
 
 # Selector function for matrix elements in Xarray
 def matEleSelector(da, thres = 1e-2, inds = None):

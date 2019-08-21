@@ -1,0 +1,53 @@
+Metadata-Version: 2.1
+Name: ePSproc
+Version: 0.0.1
+Summary: UNKNOWN
+Home-page: https://github.com/_/ePSproc
+Author: U.N. Owen
+Author-email: me@un.known
+Maintainer: U.N. Owen
+Maintainer-email: me@un.known
+License: MIT/Apache-2.0
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+
+ePSproc
+=======
+
+-----
+
+.. contents:: **Table of Contents**
+    :backlinks: none
+
+Installation
+------------
+
+ePSproc is distributed on `PyPI <https://pypi.org>`_ as a universal
+wheel and is available on Linux/macOS and Windows and supports
+Python 2.7/3.5+ and PyPy.
+
+.. code-block:: bash
+
+    $ pip install ePSproc
+
+License
+-------
+
+ePSproc is distributed under the terms of both
+
+- `MIT License <https://choosealicense.com/licenses/mit>`_
+- `Apache License, Version 2.0 <https://choosealicense.com/licenses/apache-2.0>`_
+
+at your option.
+
+

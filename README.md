@@ -1,6 +1,8 @@
 # ePSproc
 Post-processing suite for ePolyScat calculations.
 
+PKG branch - testing package structure.
+
 ePSproc scripts are designed for photoionization studies, and specifically:
 - Read raw photoionization matrix elements from ePS output files with "dumpIdy" segments
 - Calculate MF-PADs from the matrix elements (ePSproc_MFPAD.m, see also ePSproc_NO2_MFPADs_demo.m)

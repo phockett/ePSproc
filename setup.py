@@ -20,11 +20,11 @@ setup(
     version=version,
     description='',
     long_description=readme,
-    author='U.N. Owen',
-    author_email='me@un.known',
-    maintainer='U.N. Owen',
-    maintainer_email='me@un.known',
-    url='https://github.com/_/ePSproc',
+    author='Paul Hockett',
+    author_email='paul@femtolab.ca',
+    maintainer='Paul Hockett',
+    maintainer_email='paul@femtolab.ca',
+    url='https://github.com/phockett/ePSproc',
     license='MIT/Apache-2.0',
 
     keywords=[

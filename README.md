@@ -1,7 +1,7 @@
 # ePSproc
 Post-processing suite for ePolyScat calculations.
 
-PKG branch - testing package structure.
+PKG branch - testing package structure (Hatch), docs (Sphinx) and modules.
 
 ePSproc scripts are designed for photoionization studies, and specifically:
 - Read raw photoionization matrix elements from ePS output files with "dumpIdy" segments

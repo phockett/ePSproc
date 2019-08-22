@@ -88,11 +88,11 @@ import numpy as np
 import pandas as pd
 
 # Special functions
-from scipy.special import sph_harm
+# from scipy.special import sph_harm
 import spherical_functions as sf
 import quaternion
 
-# Package fns.  
+# Package fns.
 # TODO: tidy this up!
 from epsproc.ePSproc_util import matEleSelector
 from epsproc.ePSproc_sphCalc import sphCalc

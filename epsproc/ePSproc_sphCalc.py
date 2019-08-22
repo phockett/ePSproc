@@ -8,11 +8,17 @@ Collection of functions for calculating Ylm, wignerD etc.
 
 """
 
+# Imports
+import numpy as np
+import pandas as pd
+import xarray as xr
+from scipy.special import sph_harm
+
 # Calculate a set of sph function
 def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
     '''
     Calculate set of spherical harmonics Ylm(theta,phi) on a grid.
-    
+
     Parameters
     ----------
     Lmax : int
@@ -25,9 +31,9 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
         If passed, use these grids for calculation
     XFlag : bool, optional, default True
         Flag for output. If true, output is Xarray. If false, np.arrays
-        
+
     Note that either res OR angs needs to be passed.
-        
+
     Outputs
     -------
     - if XFlag -
@@ -36,13 +42,17 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
     - else -
     Ylm, lm
         3D np.array of values, dims (lm,theta,phi), plus list of lm pairs
-    
+
+    Methods
+    -------
+    Currently set for scipy.special.sph_harm as calculation routine.
+
     Example
     -------
     >>> YlmX = sphCalc(2, res = 50)
-    
+
     '''
-    
+
     # Set coords based on inputs
     # TODO: better code here (try/fail?)
     if angs is None and res:
@@ -61,7 +71,7 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
         for m in np.arange(-l,l+1):
             lm.append([l, m])
             Ylm.append(sph_harm(m,l,theta,phi))
-    
+
     # Return as Xarray or np arrays.
     if XFlag:
         # Set indexes

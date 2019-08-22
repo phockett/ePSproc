@@ -86,7 +86,7 @@ but here expanded in terms of symmetries of the light-matter system.
 # Imports
 import numpy as np
 import pandas as pd
-
+import xarray as xr
 # Special functions
 # from scipy.special import sph_harm
 import spherical_functions as sf
@@ -101,9 +101,18 @@ def mfpad(dataIn, thres = 1e-2, inds = {'ip':1,'it':1}, res = 50, R = None, p = 
     """
     Inputs
     ------
+    dataIn : Xarray
+        Contains set(s) of matrix elements to use, as output by epsproc.readMatEle().
+
+    thres : float, optional, default 1e-2
+        Threshold value for matrix elements to use in calculation.
+
     ind : dictionary, optional.
         Used for sub-selection of matrix elements from Xarrays.
         Default set for length gauage, single it component only, inds = {'ip':1,'it':'1'}.
+
+    res : int, optional, default 50
+        Resolution for output (theta,phi) grids.
 
     R : list of Euler angles or quaternions, optional.
         Define LF > MF polarization geometry/rotations.
@@ -113,6 +122,14 @@ def mfpad(dataIn, thres = 1e-2, inds = {'ip':1,'it':1}, res = 50, R = None, p = 
     p : int, optional.
         Defines LF polarization state, p = -1...1, default p = 0 (linearly pol light along z-axis).
         TODO: add summation over p for multiple pol states in LF.
+
+    Outputs
+    -------
+    Ta
+        Xarray (theta, phi, E, Sym) of MFPADs, summed over (l,m)
+
+    Tlm
+        Xarray (theta, phi, E, Sym, lm) of MFPAD components, expanded over all (l,m)
 
     """
 
@@ -141,6 +158,8 @@ def mfpad(dataIn, thres = 1e-2, inds = {'ip':1,'it':1}, res = 50, R = None, p = 
         pRot = [0, 0, np.pi/2]
         tRot = [0, np.pi/2, np.pi/2]
         cRot = [0, 0, 0]
+        eAngs = np.array([pRot, tRot, cRot])   # List form to use later
+        Euler = pd.MultiIndex.from_arrays(eAngs, names = ['P','T','C'])
 
         # Convert to quaternions
         R =  quaternion.from_euler_angles(pRot, tRot, cRot)
@@ -148,10 +167,12 @@ def mfpad(dataIn, thres = 1e-2, inds = {'ip':1,'it':1}, res = 50, R = None, p = 
 
     #**************** Calculate MFPADs
 
-    T = []
+    Tlm = []
+    Ta = []
 
     # Loop over pol geoms R
-    for Rcalc in R:
+    for n, Rcalc in enumerate(R):
+        T = []
         # Loop over mu terms and multiply
         for mu in np.arange(-1,2):
 
@@ -169,6 +190,22 @@ def mfpad(dataIn, thres = 1e-2, inds = {'ip':1,'it':1}, res = 50, R = None, p = 
             YlmXre = YlmX.reindex_like(daTemp)
             T.append(YlmXre.conj() * daTemp)  # Output full (l,m,mu) expansion
 
+        # Concat & sum over symmetries
+        Ts = xr.combine_nested([T[0], T[1], T[2]], concat_dim=['QN'])
 
+        # Add dims - currently set for Euler angles only.
+        # Can't seem to add mutiindex as a single element, so set dummy coord here and replace below.
+        Ts = Ts.expand_dims({'Euler':[n]})  # Set as index
+        # Ts = Ts.expand_dims({'p':[eAngs[0,n]], 't':[eAngs[1,n]], 'c':[eAngs[2,n]]})
 
-    return T
+        Tlm.append(Ts)
+        Ta.append(Ts.sum(dim = 'QN'))
+
+    TlmX = xr.combine_nested(Tlm, concat_dim=['Euler'])
+    TaX = xr.combine_nested(Ta, concat_dim=['Euler'])
+
+    # Assign Euler angles to dummy dim
+    TlmX = TlmX.assign_coords(Euler = Euler)
+    TaX = TaX.assign_coords(Euler = Euler)
+
+    return TaX, TlmX  # , Ta, Tlm  # For debug also return lists 

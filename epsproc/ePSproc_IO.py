@@ -275,6 +275,7 @@ def dumpIdySegsParseX(dumpSegs):
     dataArrays = []
     for data in dataList:
         attribs = data[2]
+        #TODO: consider setting mu as a separate dim. Maybe also (ip,it)...?
         QNs = pd.MultiIndex.from_arrays(data[0].astype('int8'), names = attribs[-1][1][0:-1])
         QNs = QNs.swaplevel(0, 1)  # Switch l,m indexes
         #Esyms = pd.MultiIndex.from_arrays([np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]]], names=['E', 'Sym'])
@@ -283,6 +284,7 @@ def dumpIdySegsParseX(dumpSegs):
 
         #dataArrays.append(xr.DataArray(data[1], coords={'ES': Esyms, 'QN':QNs}, dims = ['ES','QN']))
         # AH - issue is number of labels - can't lable singleton dim it seems, but can expand
+        #TODO: consider setting E as a separate dim, will be singleton for each set of syms. Might make more sense for later manipulations (sum over sym or E).
         tmp = xr.DataArray(np.asarray(data[1]), coords={'QN':QNs}, dims = ['QN'])
         tmp = tmp.expand_dims({'ES':Esyms})
 

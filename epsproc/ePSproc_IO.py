@@ -280,13 +280,15 @@ def dumpIdySegsParseX(dumpSegs):
         QNs = QNs.swaplevel(0, 1)  # Switch l,m indexes
         #Esyms = pd.MultiIndex.from_arrays([np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]]], names=['E', 'Sym'])
         # pd.MultiIndex.from_tuples([(np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]])], names=['E', 'Sym'])
-        Esyms = pd.MultiIndex.from_tuples([(attribs[0][1],attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[0][0],attribs[4][0],attribs[5][0],attribs[6][0]])
+        # Esyms = pd.MultiIndex.from_tuples([(attribs[0][1],attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[0][0],attribs[4][0],attribs[5][0],attribs[6][0]])
+        Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])
 
         #dataArrays.append(xr.DataArray(data[1], coords={'ES': Esyms, 'QN':QNs}, dims = ['ES','QN']))
         # AH - issue is number of labels - can't lable singleton dim it seems, but can expand
         #TODO: consider setting E as a separate dim, will be singleton for each set of syms. Might make more sense for later manipulations (sum over sym or E).
         tmp = xr.DataArray(np.asarray(data[1]), coords={'QN':QNs}, dims = ['QN'])
-        tmp = tmp.expand_dims({'ES':Esyms})
+        # tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})  # This is OK, but still ties Eke and Sym coords (same number of elements)
+        tmp = tmp.expand_dims({'Sym':Syms})
 
         # Assign any other attributes - note that some attributes may be dropped when combining arrays below
         for a in attribs:
@@ -296,7 +298,13 @@ def dumpIdySegsParseX(dumpSegs):
 
     # Combine to single xarray
     # Note xarray > v0.12.1
-    daOut = xr.combine_nested(dataArrays, concat_dim=['ES'])
+    # daOut = xr.combine_nested(dataArrays, concat_dim=['Eke'])
+    daOut = xr.combine_nested(dataArrays, concat_dim=['Sym'])
+    # daOut = xr.combine_nested(dataArrays, concat_dim=['Sym','Eke'])
+    # daOut = xr.combine_nested(dataArrays, concat_dim=[None])
+    # daOut = xr.merge(dataArrays)
+    # daOut = dataArrays
+    daOut = daOut.expand_dims({'Eke':[attribs[0][1]]})  
 
     return daOut, blankSegs
 

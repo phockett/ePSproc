@@ -37,6 +37,8 @@ except ImportError as e:
         raise
     print('* pyevtk not found, VTK export not available. ')
 
+# Package fns.
+from epsproc.ePSproc_util import matEleSelector, dataGroupSel
 
 # ***** Ancillary functions
 
@@ -272,41 +274,153 @@ def dumpIdySegsParseX(dumpSegs):
     #   - be able to loop more cleanly over attribs - set as dict?
     #   - integrate with above loop
     #   - compile into dataSet or dataArray more directly...?
+    #   - Check and compile against Eke list (muliple symetries per Eke), and keep this as a separate coord.
+    # dataArrays = []
+    # for data in dataList:
+    #     attribs = data[2]
+        # V1 - EASIEST WAY, but leads to dimensional issues later!
+        #TODO: consider setting mu as a separate dim. Maybe also (ip,it)...?
+        # QNs = pd.MultiIndex.from_arrays(data[0].astype('int8'), names = attribs[-1][1][0:-1])
+        # QNs = QNs.swaplevel(0, 1)  # Switch l,m indexes
+        # Esyms = pd.MultiIndex.from_arrays([np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]]], names=['E', 'Sym'])
+        # pd.MultiIndex.from_tuples([(np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]])], names=['E', 'Sym'])
+        # Esyms = pd.MultiIndex.from_tuples([(attribs[0][1],attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[0][0],attribs[4][0],attribs[5][0],attribs[6][0]])
+        #dataArrays.append(xr.DataArray(data[1], coords={'ES': Esyms, 'QN':QNs}, dims = ['ES','QN']))
+
+        # AH - issue is number of labels - can't lable singleton dim it seems, but can expand
+        #TODO: consider setting E as a separate dim, will be singleton for each set of syms. Might make more sense for later manipulations (sum over sym or E).
+        # tmp = xr.DataArray(np.asarray(data[1]), coords={'QN':QNs}, dims = ['QN'])
+        # tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})  # This is OK, but still ties Eke and Sym coords (same number of elements)
+        # # tmp = tmp.expand_dims({'Sym':Syms})
+
+
+        # # v2 - separate dims, (LM, E, Syms, ip, it)
+        # LM = pd.MultiIndex.from_arrays(data[0][0:2,:].astype('int8'), names = attribs[-1][1][0:2])
+        # LM = LM.swaplevel(0, 1)  # Switch l,m indexes
+        # mu = data[0][2,:]
+        # ip = data[0][3,:]
+        # it = data[0][4,:]
+        # Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])
+        #
+        # # tmp =  xr.DataArray(np.asarray(data[1]), coords={'LM':LM, 'mu':mu, 'ip':ip, 'it':it}, dims = ['LM','mu','it','ip'])
+        # # This works... but still keeps full lenght for additional label coords.
+        # # Should be able to reduce on these... but can't work out how (tried groupby etc.)
+        # # Instead, try manually sorting input data first, then sending to Xarray.
+        # tmp =  xr.DataArray(np.asarray(data[1]), coords={'LM':LM}, dims = ['LM'])
+        # tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})
+        # tmp = tmp.expand_dims({'mu':mu, 'ip':ip, 'it':it})
+
+        # v3 manually sort data first...
+        # SEE CODE BELOW, matEleGroupDim()
+
+        # Assign any other attributes - note that some attributes may be dropped when combining arrays below
+        # for a in attribs:
+        #     tmp.attrs[a[0]] = a[1] # Currently set without units, multiple values here give combine issues below.
+        #
+        # dataArrays.append(tmp)
+
+    # Combine to single xarray
+    # Note xarray > v0.12.1
+    # daOut = xr.combine_nested(dataArrays, concat_dim=['Eke'])
+    # daOut = xr.combine_nested(dataArrays, concat_dim=['Sym'])
+    # daOut = xr.combine_nested(dataArrays, concat_dim=['Sym','Eke'])
+    # daOut = xr.combine_nested(dataArrays, concat_dim=[None])
+    # daOut = xr.merge(dataArrays)
+    # daOut = xr.combine_by_coords(dataArrays)
+    # daOut = dataArrays
+    # daOut = daOut.expand_dims({'Eke':[attribs[0][1]]})
+
     dataArrays = []
     for data in dataList:
         attribs = data[2]
-        #TODO: consider setting mu as a separate dim. Maybe also (ip,it)...?
-        QNs = pd.MultiIndex.from_arrays(data[0].astype('int8'), names = attribs[-1][1][0:-1])
-        QNs = QNs.swaplevel(0, 1)  # Switch l,m indexes
-        #Esyms = pd.MultiIndex.from_arrays([np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]]], names=['E', 'Sym'])
-        # pd.MultiIndex.from_tuples([(np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]])], names=['E', 'Sym'])
-        # Esyms = pd.MultiIndex.from_tuples([(attribs[0][1],attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[0][0],attribs[4][0],attribs[5][0],attribs[6][0]])
+        tmp = matEleGroupDim(data)
+        dataArrays.append(tmp)
+
+    # Can only concat over it at the moment due to duplicate values issue
+    # THIS WILL BREAK LATER!!!!
+    # TODO: fix use of Xarrays and dimension issues.
+    daOut = xr.combine_nested(dataArrays, concat_dim=['it'])
+
+    return daOut, blankSegs
+
+# UGH THIS IS SO UGLY, please make it better.
+# Should be a neat recursive tree method here, probably also something canned!
+# Or with native Xarray functionality, but in testing couldn't get this to work properly.
+def matEleGroupDim(data, dimGroups = [3, 4, 2]):
+    """
+    Group ePS matrix elements by redundant labels.
+
+    Default is to group by ['ip', 'it', 'mu'] terms, all have only a few values.
+
+    TODO: better ways to do this?  Shoud be possible at Xarray level.
+
+    Inputs
+    ------
+    data : list
+        Sections from dumpIdy segment, as created in dumpIdySegsParseX()
+        Ordering is [labels, matElements, attribs].
+
+    """
+
+    # Basic version assuming dims
+
+#    # Split on ip
+    dataIP = []
+    dInd = 3
+    dataIP = dataGroupSel(data, dInd)
+
+    # Split on IT
+    dInd = 4
+    dataIT = []
+    for dataSub in dataIP:
+        temp = dataSub
+        dataIT.extend(dataGroupSel(dataSub, dInd))
+
+
+    # Split on mu
+    dInd = 2
+    dataMU = []
+    for dataSub in dataIT:
+        dataMU.extend(dataGroupSel(dataSub, dInd))
+
+
+    # Put into Xarray (code from dumpIdySegsParseX)
+    # Label singleton dims directly, then stack.
+    dataArrays = []
+    attribs = data[2]   # Shared attribs
+    for dataSub in dataMU:
+        LM = pd.MultiIndex.from_arrays(dataSub[0][0:2,:].astype('int8'), names = attribs[-1][1][0:2])
+        LM = LM.swaplevel(0, 1)  # Switch l,m indexes
+        mu = [dataSub[0][2,0].astype('int8')]    # Already set to single values above.
+        ip = [dataSub[0][3,0].astype('int8')]
+        it = [dataSub[0][4,0].astype('int8')]
         Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])
 
         #dataArrays.append(xr.DataArray(data[1], coords={'ES': Esyms, 'QN':QNs}, dims = ['ES','QN']))
         # AH - issue is number of labels - can't lable singleton dim it seems, but can expand
         #TODO: consider setting E as a separate dim, will be singleton for each set of syms. Might make more sense for later manipulations (sum over sym or E).
-        tmp = xr.DataArray(np.asarray(data[1]), coords={'QN':QNs}, dims = ['QN'])
+        # tmp = xr.DataArray(np.asarray(data[1]), coords={'QN':QNs}, dims = ['QN'])
         # tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})  # This is OK, but still ties Eke and Sym coords (same number of elements)
-        tmp = tmp.expand_dims({'Sym':Syms})
+        # # tmp = tmp.expand_dims({'Sym':Syms})
 
-        # Assign any other attributes - note that some attributes may be dropped when combining arrays below
+        # tmp =  xr.DataArray(np.asarray(data[1]), coords={'LM':LM, 'mu':mu, 'ip':ip, 'it':it}, dims = ['LM','mu','it','ip'])
+        tmp =  xr.DataArray(np.asarray(dataSub[1]), coords={'LM':LM}, dims = ['LM'])
+        tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})
+        tmp = tmp.expand_dims({'mu':mu, 'ip':ip, 'it':it})
+
+         # Assign any other attributes - note that some attributes may be dropped when combining arrays below
         for a in attribs:
             tmp.attrs[a[0]] = a[1] # Currently set without units, multiple values here give combine issues below.
 
         dataArrays.append(tmp)
 
-    # Combine to single xarray
-    # Note xarray > v0.12.1
-    # daOut = xr.combine_nested(dataArrays, concat_dim=['Eke'])
-    daOut = xr.combine_nested(dataArrays, concat_dim=['Sym'])
-    # daOut = xr.combine_nested(dataArrays, concat_dim=['Sym','Eke'])
-    # daOut = xr.combine_nested(dataArrays, concat_dim=[None])
-    # daOut = xr.merge(dataArrays)
-    # daOut = dataArrays
-    daOut = daOut.expand_dims({'Eke':[attribs[0][1]]})  
+    # Recombine along it
+    da = xr.combine_nested(dataArrays, concat_dim = ['it'])
 
-    return daOut, blankSegs
+    return da
+
+
+
 
 # Function for grabbing files or scanning dir for files.
 def getFiles(fileIn = None, fileBase = None, fType = '.out'):

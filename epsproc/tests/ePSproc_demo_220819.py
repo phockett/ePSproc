@@ -42,4 +42,4 @@ TaX, TlmX = ep.mfpad(dataSet[0])
 # Plot for each set of Euler angles, assuing they are top-level index
 # Should be a neater way to do this...?
 for n in range(0,3):
-    ep.sphSumPlotX(TaX[n].sum(dim = 'ES'))
+    ep.sphSumPlotX(TaX[n].sum(dim = 'Sym'))

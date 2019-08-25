@@ -275,9 +275,10 @@ def dumpIdySegsParseX(dumpSegs):
     #   - integrate with above loop
     #   - compile into dataSet or dataArray more directly...?
     #   - Check and compile against Eke list (muliple symetries per Eke), and keep this as a separate coord.
-    # dataArrays = []
-    # for data in dataList:
-    #     attribs = data[2]
+    dataArrays = []
+    for data in dataList:
+        attribs = data[2]
+
         # V1 - EASIEST WAY, but leads to dimensional issues later!
         #TODO: consider setting mu as a separate dim. Maybe also (ip,it)...?
         # QNs = pd.MultiIndex.from_arrays(data[0].astype('int8'), names = attribs[-1][1][0:-1])
@@ -295,22 +296,26 @@ def dumpIdySegsParseX(dumpSegs):
 
 
         # # v2 - separate dims, (LM, E, Syms, ip, it)
-        # LM = pd.MultiIndex.from_arrays(data[0][0:2,:].astype('int8'), names = attribs[-1][1][0:2])
-        # LM = LM.swaplevel(0, 1)  # Switch l,m indexes
-        # mu = data[0][2,:]
-        # ip = data[0][3,:]
-        # it = data[0][4,:]
-        # Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])
-        #
-        # # tmp =  xr.DataArray(np.asarray(data[1]), coords={'LM':LM, 'mu':mu, 'ip':ip, 'it':it}, dims = ['LM','mu','it','ip'])
-        # # This works... but still keeps full lenght for additional label coords.
-        # # Should be able to reduce on these... but can't work out how (tried groupby etc.)
-        # # Instead, try manually sorting input data first, then sending to Xarray.
-        # tmp =  xr.DataArray(np.asarray(data[1]), coords={'LM':LM}, dims = ['LM'])
-        # tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})
-        # tmp = tmp.expand_dims({'mu':mu, 'ip':ip, 'it':it})
+        LM = pd.MultiIndex.from_arrays(data[0][0:2,:].astype('int8'), names = attribs[-1][1][0:2])
+        LM = LM.swaplevel(0, 1)  # Switch l,m indexes
+        mu = data[0][2,:]
+        ip = data[0][3,:]
+        it = data[0][4,:]
+        Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])
+        
+        # tmp =  xr.DataArray(np.asarray(data[1]), coords={'LM':LM, 'mu':mu, 'ip':ip, 'it':it}, dims = ['LM','mu','it','ip'])
+        # This works... but still keeps full lenght for additional label coords.
+        # Should be able to reduce on these... but can't work out how (tried groupby etc.)
+        tmp =  xr.DataArray(np.asarray(data[1]), coords={'LM':LM}, dims = ['LM'])
+        tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})
+        tmp = tmp.expand_dims({'mu':mu, 'ip':ip, 'it':it})
+        
+        # *** v2b - as v2, then sort Xarrays before restacking
+        # dataArrays.append(matEleGroupDimX(tmp))  # Broken?
+        # dataArrays.append(matEleGroupDimXnested(tmp.copy()))  # Broken...?
+        dataArrays.append(tmp)
 
-        # v3 manually sort data first...
+        # **** v3 manually sort data first...
         # SEE CODE BELOW, matEleGroupDim()
 
         # Assign any other attributes - note that some attributes may be dropped when combining arrays below
@@ -321,7 +326,7 @@ def dumpIdySegsParseX(dumpSegs):
 
     # Combine to single xarray
     # Note xarray > v0.12.1
-    # daOut = xr.combine_nested(dataArrays, concat_dim=['Eke'])
+    daOut = xr.combine_nested(dataArrays, concat_dim=['Eke'])
     # daOut = xr.combine_nested(dataArrays, concat_dim=['Sym'])
     # daOut = xr.combine_nested(dataArrays, concat_dim=['Sym','Eke'])
     # daOut = xr.combine_nested(dataArrays, concat_dim=[None])
@@ -330,18 +335,119 @@ def dumpIdySegsParseX(dumpSegs):
     # daOut = dataArrays
     # daOut = daOut.expand_dims({'Eke':[attribs[0][1]]})
 
-    dataArrays = []
-    for data in dataList:
-        attribs = data[2]
-        tmp = matEleGroupDim(data)
-        dataArrays.append(tmp)
-
-    # Can only concat over it at the moment due to duplicate values issue
-    # THIS WILL BREAK LATER!!!!
-    # TODO: fix use of Xarrays and dimension issues.
-    daOut = xr.combine_nested(dataArrays, concat_dim=['it'])
+#    # v3 - Sort data before putting into Xarray
+#    # NOW REPLACED ABOVE by sorting of Xarrays - code here may be faster, but less robust.
+#    dataArrays = []
+#    for data in dataList:
+#        attribs = data[2]
+#        tmp = matEleGroupDim(data)
+#        dataArrays.append(tmp)
+#
+#    # Can only concat over it at the moment due to duplicate values issue
+#    # THIS WILL BREAK LATER!!!!
+#    # TODO: fix use of Xarrays and dimension issues.
+#    daOut = xr.combine_nested(dataArrays, concat_dim=['it'])
 
     return daOut, blankSegs
+
+# Linear version of code, for very specific cases.
+# Linear tree ip > mu >it
+# UGLY... also not working now?  May have passed Xarray dataset in testing by mistake?
+def matEleGroupDimX(daIn):
+    """
+    Group ePS matrix elements by redundant labels (Xarray version).
+
+    Group by ['ip', 'it', 'mu'] terms, all have only a few values.
+
+    TODO: better ways to do this?
+    See also tests in funcTests_210819.py for more versions/tests.
+
+    Inputs
+    ------
+    data : Xarray
+        Data array with matrix elements to be split and recombined by dims.
+        
+    """
+
+    daRedList = []
+    
+    # Split on 'ip' - will always be (1,2), and split matEle into two
+    ipLabel = ['L','V']
+    for n, val in enumerate(range(1,3)):
+        tmp = matEleSelector(daIn, inds = {'ip':val})
+        tmp = tmp.expand_dims({'Type':[ipLabel[n]]})
+        daRedList.append(tmp)
+    
+    # Restack
+    daRed = xr.combine_nested(daRedList, concat_dim = 'Type')
+    
+    # Split on mu - values from set {-1,0,1} depending on symmetry
+    daRedList = []
+    uVals = np.unique(daRed.mu)
+    for n, val in enumerate(uVals):
+        tmp = matEleSelector(daRed, inds = {'mu':val})
+        tmp = tmp.expand_dims({'mu':[val]})
+        daRedList.append(tmp)
+    
+    # Restack
+    daRed = xr.combine_nested(daRedList, concat_dim = 'mu')    
+    
+    # Split on it
+    daRedList = []
+    uVals = np.unique(daRed.it)
+    for n, val in enumerate(uVals):
+        tmp = matEleSelector(daRed, inds = {'it':val})
+        tmp = tmp.expand_dims({'it':[val]})
+        daRedList.append(tmp)
+    
+    # Restack
+    daRed = xr.combine_nested(daRedList, concat_dim = 'it')    
+    
+    return daRed
+
+#   Subselections using matEleSelector
+#   THIS IS UGLY, but seems to work consistently - get da of correct dims out (with multilevel coords in).
+#   Could also try dataset to array for split and recombine...?
+#   http://xarray.pydata.org/en/v0.12.3/reshaping.html
+def matEleGroupDimXnested(da):
+    """
+    Group ePS matrix elements by redundant labels (Xarray version).
+
+    Group by ['ip', 'it', 'mu'] terms, all have only a few values.
+
+    TODO: better ways to do this?
+    See also tests in funcTests_210819.py for more versions/tests.
+
+    Inputs
+    ------
+    data : Xarray
+        Data array with matrix elements to be split and recombined by dims.
+        
+    """
+
+    indList = ['ip','it','mu']
+    
+    daRedList = []
+    for x in np.unique(da[indList[0]]):
+        daRedList0 = []
+        for y in np.unique(da[indList[1]]):
+            daRedList1 = []
+            for z in np.unique(da[indList[2]]):
+                red = matEleSelector(da, inds = {indList[0]:x, indList[1]:y, indList[2]:z})
+                
+                red = red.expand_dims({indList[0]:[x], indList[1]:[y], indList[2]:[z]})
+                
+                daRedList1.append(red)
+                
+            daOut1 = xr.combine_nested(daRedList1, concat_dim = indList[2])
+            daRedList0.append(daOut1)    
+            
+        daOut2 = xr.combine_nested(daRedList0, concat_dim = indList[1])
+        daRedList.append(daOut2)
+    
+    daOut =  xr.combine_nested(daRedList, concat_dim = indList[0])
+    
+    return daOut
 
 # UGH THIS IS SO UGLY, please make it better.
 # Should be a neat recursive tree method here, probably also something canned!

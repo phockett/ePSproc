@@ -22,7 +22,9 @@ dataSet = ep.readMatEle()
 ep.mfpad(dataSet[0])
 
 #%% Subselections using matEleSelector
-#   THIS IS UGLY, but seems to work - get da of correct dims out.
+#   THIS IS UGLY, but seems to work - get da of correct dims out (with multilevel coords in).
+#   Could also try dataset to array for split and recombine...?
+#   http://xarray.pydata.org/en/v0.12.3/reshaping.html
 
 
 indList = ['ip','it','mu']
@@ -48,11 +50,18 @@ for x in np.unique(da[indList[0]]):
     daRedList.append(daOut2)
 
 daOut =  xr.combine_nested(daRedList, concat_dim = indList[0])
-    
+
+#%% Test E reorg
+tmp = daOut.sel({'E':0.81})
+tmp2 = tmp.copy()
+tmp = tmp.expand_dims({'Eke':[1]})
+tmp2 = tmp2.expand_dims({'Eke':[2]})
+
+daE = xr.combine_nested([tmp,tmp2], concat_dim = 'Eke')
+
+
 #%% Test dataset
 
-daOut2 = daOut.copy()
+ds1 = xr.Dataset({'matE':daE})
 
-
-test = xr.Dataset(daOut, daOut2)
-        
+ds2 = xr.Dataset({'E1':tmp,'E2':tmp2})

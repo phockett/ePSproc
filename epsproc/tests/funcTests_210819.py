@@ -65,3 +65,7 @@ daE = xr.combine_nested([tmp,tmp2], concat_dim = 'Eke')
 ds1 = xr.Dataset({'matE':daE})
 
 ds2 = xr.Dataset({'E1':tmp,'E2':tmp2})
+
+# Seems to autostack - lists all Eke here.
+# May be able to use for sorting above...?
+ds2['E2']

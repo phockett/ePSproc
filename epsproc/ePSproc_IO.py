@@ -45,7 +45,7 @@ from epsproc.ePSproc_util import matEleSelector, dataGroupSel
 # File parsing function - scan file for keywords & read segments
 #   Following above idiomatic solution, with full IO
 #   https://stackoverflow.com/questions/3961265/get-line-number-of-certain-phrase-in-file-python
-def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None):
+def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, verbose = False):
     """
     Parse a file, return segment(s) from startPhrase:endPhase, excluding comments.
 
@@ -83,10 +83,12 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None):
 
             # If line matches startPhrase, print line & append to list.
             if startPhrase in line:
-               print('Found "', startPhrase, '" at line: ', i)
-               lineStart.append(i)
+                if verbose:
+                    print('Found "', startPhrase, '" at line: ', i)
+               
+                lineStart.append(i)
 
-               readFlag = True
+                readFlag = True
 
             # Read lines into segment[] until endPhrase found
             if readFlag:
@@ -108,6 +110,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None):
 
                 segments[n].append([n, i, line])    # Store line if part  of defined segment
 
+    print('Found {0} segments.'.format(n-1))
 
     return ([lineStart, lineStop], segments[:-1])
 
@@ -188,7 +191,7 @@ def dumpIdySegParse(dumpSeg):
     attribs = []
     rawIdy = []
 
-    print(len(dumpSeg))
+    # print(len(dumpSeg))
     # Parse data block
     # Use native python, or np.genfromtxt
     for testLine in dumpSeg[12:-1]:
@@ -252,6 +255,7 @@ def dumpIdySegsParseX(dumpSegs):
     """
 
     dataList = []
+    ekeList = []
     blankSegs = 0
 
     # Loop over DumpIdy segments, extract data & reformat
@@ -266,8 +270,12 @@ def dumpIdySegsParseX(dumpSegs):
 
             # dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])
             # dataList.append([segBlock[:,0:5], segBlock[:,5]+1j*segBlock[:,6], attribs])
+            
+            ekeList.append(attribs[0][1])
+            
         else:
             blankSegs += 1
+            ekeList.append(np.nan)
 
     # Convert to xarray - ugly loop version, probably a better way to do this!
     #TODO Should:
@@ -276,7 +284,10 @@ def dumpIdySegsParseX(dumpSegs):
     #   - compile into dataSet or dataArray more directly...?
     #   - Check and compile against Eke list (muliple symetries per Eke), and keep this as a separate coord.
     dataArrays = []
-    for data in dataList:
+    dataSym = []
+    ekeVal = ekeList[0]
+    
+    for n, data in enumerate(dataList):
         attribs = data[2]
 
         # V1 - EASIEST WAY, but leads to dimensional issues later!
@@ -296,25 +307,49 @@ def dumpIdySegsParseX(dumpSegs):
 
 
         # # v2 - separate dims, (LM, E, Syms, ip, it)
-        LM = pd.MultiIndex.from_arrays(data[0][0:2,:].astype('int8'), names = attribs[-1][1][0:2])
-        LM = LM.swaplevel(0, 1)  # Switch l,m indexes
-        mu = data[0][2,:]
-        ip = data[0][3,:]
-        it = data[0][4,:]
-        Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])
-        
+#        LM = pd.MultiIndex.from_arrays(data[0][0:2,:].astype('int8'), names = attribs[-1][1][0:2])
+#        LM = LM.swaplevel(0, 1)  # Switch l,m indexes
+#        mu = data[0][2,:]
+#        ip = data[0][3,:]
+#        it = data[0][4,:]
+#        Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])
+#        
         # tmp =  xr.DataArray(np.asarray(data[1]), coords={'LM':LM, 'mu':mu, 'ip':ip, 'it':it}, dims = ['LM','mu','it','ip'])
         # This works... but still keeps full lenght for additional label coords.
         # Should be able to reduce on these... but can't work out how (tried groupby etc.)
-        tmp =  xr.DataArray(np.asarray(data[1]), coords={'LM':LM}, dims = ['LM'])
-        tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})
-        tmp = tmp.expand_dims({'mu':mu, 'ip':ip, 'it':it})
+#        tmp =  xr.DataArray(np.asarray(data[1]), coords={'LM':LM}, dims = ['LM'])
+#        tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})
+#        tmp = tmp.expand_dims({'mu':mu, 'ip':ip, 'it':it})
         
-        # *** v2b - as v2, then sort Xarrays before restacking
-        # dataArrays.append(matEleGroupDimX(tmp))  # Broken?
+        # *** v2b - assign as v1/v2, then sort Xarrays before restacking
+        # This works, but note assumption of stacking order (E, then Syms)
+        QNs = pd.MultiIndex.from_arrays(data[0].astype('int8'), names = attribs[-1][1][0:-1])
+        QNs = QNs.swaplevel(0, 1)  # Switch l,m indexes
+        Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])
+        
+        tmp = xr.DataArray(np.asarray(data[1]), coords={'LM':QNs}, dims = ['LM'])
+        tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]}) 
+        
+#        tmp = matEleGroupDimX(tmp)  # Broken?
+        dataArrays.append(matEleGroupDimX(tmp))
         # dataArrays.append(matEleGroupDimXnested(tmp.copy()))  # Broken...?
-        dataArrays.append(tmp)
-
+        # dataArrays.append(tmp)
+        
+        #TODO: UGLY - need to check and combine according to number of Syms (check matlab code)
+        # ALSO NOT WORKING PROPERLY - might be issue with equality?
+        # BETTER TO JUST SET 2D arrays here!
+#        if n == (len(ekeList)/2 - 1):
+#            dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
+#            dataArrays = []
+#            
+#        if n == len(ekeList)-1:
+#            dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
+#        
+        if n == (len(ekeList)/2 - 1):
+            # dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
+            dataArrays1 = dataArrays.copy()
+            dataArrays = []
+        
         # **** v3 manually sort data first...
         # SEE CODE BELOW, matEleGroupDim()
 
@@ -323,12 +358,22 @@ def dumpIdySegsParseX(dumpSegs):
         #     tmp.attrs[a[0]] = a[1] # Currently set without units, multiple values here give combine issues below.
         #
         # dataArrays.append(tmp)
+        
+        # Stack by syms (per eke) as necessary
+#        if ekeList[n] == ekeVal:
+#            # daOut = xr.combine_nested(dataArrays, concat_dim=['Sym'])
+#            dataArrays.append(tmp)
+#        else:
+#            dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Sym']))
+#            dataArrays = []
+#            dataArrays.append(tmp)
+#            ekeVal = ekeList[n]
 
     # Combine to single xarray
     # Note xarray > v0.12.1
-    daOut = xr.combine_nested(dataArrays, concat_dim=['Eke'])
+    # daOut = xr.combine_nested(dataSym, concat_dim=['Sym'])
     # daOut = xr.combine_nested(dataArrays, concat_dim=['Sym'])
-    # daOut = xr.combine_nested(dataArrays, concat_dim=['Sym','Eke'])
+    daOut = xr.combine_nested([dataArrays1, dataArrays], concat_dim=['Sym','Eke'])
     # daOut = xr.combine_nested(dataArrays, concat_dim=[None])
     # daOut = xr.merge(dataArrays)
     # daOut = xr.combine_by_coords(dataArrays)

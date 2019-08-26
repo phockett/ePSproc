@@ -281,9 +281,9 @@ def parseDumpSegsX(dumpSegs):
         # pd.MultiIndex.from_tuples([(np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]])], names=['E', 'Sym'])
         Esyms = pd.MultiIndex.from_tuples([(attribs[0][1],attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[0][0],attribs[4][0],attribs[5][0],attribs[6][0]])
 
-        #dataArrays.append(xr.DataArray(data[1], coords={'ES': Esyms, 'QN':QNs}, dims = ['ES','QN']))
+        #dataArrays.append(xr.DataArray(data[1], coords={'ES': Esyms, 'LM':QNs}, dims = ['ES','LM']))
         # AH - issue is number of labels - can't lable singleton dim it seems, but can expand
-        tmp = xr.DataArray(np.asarray(data[1]), coords={'QN':QNs}, dims = ['QN'])
+        tmp = xr.DataArray(np.asarray(data[1]), coords={'LM':QNs}, dims = ['LM'])
         tmp = tmp.expand_dims({'ES':Esyms})
 
         # Assign any other attributes - note that some attributes may be dropped when combining arrays below

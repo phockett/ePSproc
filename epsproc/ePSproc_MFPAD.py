@@ -97,7 +97,7 @@ import quaternion
 from epsproc.ePSproc_util import matEleSelector
 from epsproc.ePSproc_sphCalc import sphCalc
 
-def mfpad(dataIn, thres = 1e-2, inds = {'ip':1,'it':1}, res = 50, R = None, p = 0):
+def mfpad(dataIn, thres = 1e-2, inds = {'Type':'L','it':1}, res = 50, R = None, p = 0):
     """
     Inputs
     ------
@@ -109,7 +109,7 @@ def mfpad(dataIn, thres = 1e-2, inds = {'ip':1,'it':1}, res = 50, R = None, p = 
 
     ind : dictionary, optional.
         Used for sub-selection of matrix elements from Xarrays.
-        Default set for length gauage, single it component only, inds = {'ip':1,'it':'1'}.
+        Default set for length gauage, single it component only, inds = {'Type':'L','it':'1'}.
 
     res : int, optional, default 50
         Resolution for output (theta,phi) grids.
@@ -191,7 +191,7 @@ def mfpad(dataIn, thres = 1e-2, inds = {'ip':1,'it':1}, res = 50, R = None, p = 
             T.append(YlmXre.conj() * daTemp)  # Output full (l,m,mu) expansion
 
         # Concat & sum over symmetries
-        Ts = xr.combine_nested([T[0], T[1], T[2]], concat_dim=['QN'])
+        Ts = xr.combine_nested([T[0], T[1], T[2]], concat_dim=['LM'])
 
         # Add dims - currently set for Euler angles only.
         # Can't seem to add mutiindex as a single element, so set dummy coord here and replace below.
@@ -199,7 +199,7 @@ def mfpad(dataIn, thres = 1e-2, inds = {'ip':1,'it':1}, res = 50, R = None, p = 
         # Ts = Ts.expand_dims({'p':[eAngs[0,n]], 't':[eAngs[1,n]], 'c':[eAngs[2,n]]})
 
         Tlm.append(Ts)
-        Ta.append(Ts.sum(dim = 'QN'))
+        Ta.append(Ts.sum(dim = 'LM'))
 
     TlmX = xr.combine_nested(Tlm, concat_dim=['Euler'])
     TaX = xr.combine_nested(Ta, concat_dim=['Euler'])
@@ -208,4 +208,4 @@ def mfpad(dataIn, thres = 1e-2, inds = {'ip':1,'it':1}, res = 50, R = None, p = 
     TlmX = TlmX.assign_coords(Euler = Euler)
     TaX = TaX.assign_coords(Euler = Euler)
 
-    return TaX, TlmX  # , Ta, Tlm  # For debug also return lists 
+    return TaX, TlmX  # , Ta, Tlm  # For debug also return lists

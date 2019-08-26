@@ -24,7 +24,7 @@ def matEleSelector(da, thres = None, inds = None):
     inds : dict, optional
         Dicitonary of additional selection criteria, in name:value format.
         These correspond to parameter dimensions in the Xarray structure.
-        E.g. inds = {'ip':1,'Cont':'A2'}
+        E.g. inds = {'Type':'L','Cont':'A2'}
 
     Returns
     -------
@@ -34,7 +34,7 @@ def matEleSelector(da, thres = None, inds = None):
 
     Example
     -------
-    >>> daOut = matEleSelector(da, inds = {'ip':1,'Cont':'A2'})
+    >>> daOut = matEleSelector(da, inds = {'Type':'L','Cont':'A2'})
 
     """
 
@@ -42,7 +42,7 @@ def matEleSelector(da, thres = None, inds = None):
     # This may return view or copy - TBC - but seems to work as expected.
     # http://xarray.pydata.org/en/v0.12.3/indexing.html#copies-vs-views
     if inds is not None:
-        da = da.sel(inds)    # Fors inds as dict, e.g. {'ip':1,'it':1,'Cont':'A2'}
+        da = da.sel(inds)    # Fors inds as dict, e.g. {'Type':'L','it':1,'Cont':'A2'}
                                 # May want to send as list, or automate vs. dim names?
 
 

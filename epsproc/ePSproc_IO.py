@@ -9,6 +9,11 @@ Main function readMatEle(fileIn = None, fileBase = None, fType = '.out'):
 
 Also includes required ancillary functions for file IO tasks, and data parsing.
 
+26/08/19        Added parsing for E, sym parameters from head of ePS file.
+                Added error checking by comparing read mat elements to expected list.
+                Changed & fixed Xarray indexing - matrix elements now output with dims (LM, Eke, Sym, mu, it, Type)
+                Current code rather ugly however.
+
 19/08/19        Add functions for reading wavefunction files (3D data)
 07/08/19        Naming convention tweaks, and some changes to comments, following basic tests with Sphinx.
 05/08/19    v1  Initial python version.
@@ -80,12 +85,13 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
     # Open file & scan each line.
     with open(fileName,'r') as f:
         for (i, line) in enumerate(f):  # Note enumerate() here gives lines with numbers, e.g. fullFile=enumerate(f) will read in file with numbers
-
+            i = i + 1  # Offset for file line numbers (1 indexed)
             # If line matches startPhrase, print line & append to list.
-            if startPhrase in line:
+            # if startPhrase in line:
+            if line.startswith(startPhrase):
                 if verbose:
                     print('Found "', startPhrase, '" at line: ', i)
-               
+
                 lineStart.append(i)
 
                 readFlag = True
@@ -110,9 +116,10 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
 
                 segments[n].append([n, i, line])    # Store line if part  of defined segment
 
-    print('Found {0} segments.'.format(n-1))
+    if verbose:
+        print('Found {0} segments.'.format(n+1))
 
-    return ([lineStart, lineStop], segments[:-1])
+    return ([lineStart, lineStop], segments) # [:-1])
 
 
 # Simple wrapper for general fileParse function, ePS dumpIdy segments
@@ -141,7 +148,73 @@ def dumpIdyFileParse(fileName):
 
     (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase) # , '>')
 
+    # NOTE - with current code dumpSegs is correct length, as file ends with "Time Now", not "+ Command"
+    # This may become an issue at some point.
+    #TODO: fix this.
+    print('Found {0} dumpIdy segments (sets of matrix elements).'.format(len(dumpSegs)))
+
     return lines, dumpSegs
+
+# Simple wrapper for general fileParse function, check ScatEng and return Eke list
+def scatEngFileParse(fileName):
+    """
+    Parse an ePS file for ScatEng list.
+
+    Parameters
+    ----------
+    fileName : str
+        File to read (file in working dir, or full path)
+
+    Returns
+    -------
+    list
+        ekeList, np array of energies set in the ePS file.
+
+    Lists contain entries for each dumpIdy segment found in the file.
+
+    """
+    startPhrase = "ScatEng"
+    endPhrase = "#"
+    comment = "+"
+
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, comment) # , '>')
+
+    # Grab E list, assuming just first segment scanned is relevant
+    ekeList = np.genfromtxt(StringIO(dumpSegs[0][0][2][7:]))
+
+    print('Expecting {0} energy points.'.format(len(ekeList)))
+
+    return ekeList
+
+# Simple wrapper for general fileParse function, check symmetries and return list
+def symFileParse(fileName):
+    """
+    Parse an ePS file for ScatEng list.
+
+    Parameters
+    ----------
+    fileName : str
+        File to read (file in working dir, or full path)
+
+    Returns
+    -------
+    list
+        symSegs, raw lines from the ePS file.
+
+    Lists contain entries for each dumpIdy segment found in the file.
+
+    """
+    startPhrase = "ScatSym"
+    endPhrase = "#"
+    comment = "+"
+
+    (lines, symSegs) = fileParse(fileName, startPhrase, endPhrase, comment) # , '>')
+
+    # Grab E list, assuming just first segment scanned is relevant
+    print('Expecting {0} symmetries.'.format(len(symSegs) - 1))
+
+    return symSegs[:-1]
+
 
 
 # Parse digits from a line using re
@@ -229,7 +302,7 @@ def dumpIdySegParse(dumpSeg):
 
 
 # Functional form for parsing full set of mat elements and putting in xarray
-def dumpIdySegsParseX(dumpSegs):
+def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
     """
     Extract data from ePS dumpIdy segments into usable form.
 
@@ -242,6 +315,7 @@ def dumpIdySegsParseX(dumpSegs):
     -------
     xr.array
         Xarray data array, containing matrix elements etc.
+        Dimensions (LM, Eke, Sym, mu, it, Type)
 
     int
         Number of blank segments found.
@@ -270,14 +344,23 @@ def dumpIdySegsParseX(dumpSegs):
 
             # dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])
             # dataList.append([segBlock[:,0:5], segBlock[:,5]+1j*segBlock[:,6], attribs])
-            
+
             ekeList.append(attribs[0][1])
-            
+
         else:
             blankSegs += 1
             ekeList.append(np.nan)
 
-    # Convert to xarray - ugly loop version, probably a better way to do this!
+    # Check energies vs. input list, and number of symmetries
+    ekeTest = np.unique(ekeList)
+    if len(ekeTest) != len(ekeListUn):
+        print("*** Warning: Found {0} energies, expected {1}".format(len(ekeTest),len(ekeListUn)))
+
+    # Check here according to expected input, but should also be logged in blankSegs above.
+    if len(ekeList) != len(ekeTest) * len(symSegs):
+        print("*** Warning: Missing records, expected {0}, found {1}.".format(len(ekeTest) * len(symSegs),len(ekeList)))
+
+    #**** Convert to xarray - ugly loop version, probably a better way to do this!
     #TODO Should:
     #   - be able to loop more cleanly over attribs - set as dict?
     #   - integrate with above loop
@@ -286,8 +369,9 @@ def dumpIdySegsParseX(dumpSegs):
     dataArrays = []
     dataSym = []
     ekeVal = ekeList[0]
-    
-    print('\nProcessing segments...')
+
+    print('\nProcessing segments to Xarrays...')
+    eLoop = 0   # For logging E vs. sym segments and looping output.
     for n, data in enumerate(dataList):
         attribs = data[2]
 
@@ -298,11 +382,11 @@ def dumpIdySegsParseX(dumpSegs):
         # Esyms = pd.MultiIndex.from_arrays([np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]]], names=['E', 'Sym'])
         # pd.MultiIndex.from_tuples([(np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]])], names=['E', 'Sym'])
         # Esyms = pd.MultiIndex.from_tuples([(attribs[0][1],attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[0][0],attribs[4][0],attribs[5][0],attribs[6][0]])
-        #dataArrays.append(xr.DataArray(data[1], coords={'ES': Esyms, 'QN':QNs}, dims = ['ES','QN']))
+        #dataArrays.append(xr.DataArray(data[1], coords={'ES': Esyms, 'LM':QNs}, dims = ['ES','LM']))
 
         # AH - issue is number of labels - can't lable singleton dim it seems, but can expand
         #TODO: consider setting E as a separate dim, will be singleton for each set of syms. Might make more sense for later manipulations (sum over sym or E).
-        # tmp = xr.DataArray(np.asarray(data[1]), coords={'QN':QNs}, dims = ['QN'])
+        # tmp = xr.DataArray(np.asarray(data[1]), coords={'LM':QNs}, dims = ['LM'])
         # tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})  # This is OK, but still ties Eke and Sym coords (same number of elements)
         # # tmp = tmp.expand_dims({'Sym':Syms})
 
@@ -314,51 +398,64 @@ def dumpIdySegsParseX(dumpSegs):
 #        ip = data[0][3,:]
 #        it = data[0][4,:]
 #        Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])
-#        
+#
         # tmp =  xr.DataArray(np.asarray(data[1]), coords={'LM':LM, 'mu':mu, 'ip':ip, 'it':it}, dims = ['LM','mu','it','ip'])
         # This works... but still keeps full lenght for additional label coords.
         # Should be able to reduce on these... but can't work out how (tried groupby etc.)
 #        tmp =  xr.DataArray(np.asarray(data[1]), coords={'LM':LM}, dims = ['LM'])
 #        tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})
 #        tmp = tmp.expand_dims({'mu':mu, 'ip':ip, 'it':it})
-        
+
         # *** v2b - assign as v1/v2, then sort Xarrays before restacking
         # This works, but note assumption of stacking order (E, then Syms)
         QNs = pd.MultiIndex.from_arrays(data[0].astype('int8'), names = attribs[-1][1][0:-1])
         QNs = QNs.swaplevel(0, 1)  # Switch l,m indexes
         Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])
-        
+
         tmp = xr.DataArray(np.asarray(data[1]), coords={'LM':QNs}, dims = ['LM'])
-        tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]}) 
-        
+        tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})
+
 #        tmp = matEleGroupDimX(tmp)  # Broken?
         dataArrays.append(matEleGroupDimX(tmp))
         # dataArrays.append(matEleGroupDimXnested(tmp.copy()))  # Broken...?
         # dataArrays.append(tmp)
-        
+
         #TODO: UGLY - need to check and combine according to number of Syms (check matlab code)
         # ALSO NOT WORKING PROPERLY - might be issue with equality?
         # BETTER TO JUST SET 2D arrays here!
 #        if n == (len(ekeList)/2 - 1):
 #            dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
 #            dataArrays = []
-#            
+#
 #        if n == len(ekeList)-1:
 #            dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
-#        
+#
 #        if n == (len(ekeList)/2 - 1):
 #            # dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
 #            dataArrays1 = dataArrays.copy()
 #            dataArrays = []
 
-        if n == (len(ekeList)/2 - 1):
-            dataSym.append(dataArrays)
+        # if n == (len(ekeList)/2 - 1):
+        #     dataSym.append(dataArrays)
+        #     dataArrays = []
+        #
+        # if n == len(ekeList)-1:
+        #     dataSym.append(dataArrays)
+
+        # if (n > 1) and (attribs[0][1] == ekeVal):
+        #     print('Found {0} energies'.format(n+1))
+        #     dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
+
+
+        # Now with loop on known energy list.
+        if eLoop == len(ekeListUn)-1:
+            dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
             dataArrays = []
-            
-        if n == len(ekeList)-1:
-            dataSym.append(dataArrays)
-     
-        
+            eLoop = 0
+        else:
+            eLoop = eLoop+1
+
+
         # **** v3 manually sort data first...
         # SEE CODE BELOW, matEleGroupDim()
 
@@ -367,7 +464,7 @@ def dumpIdySegsParseX(dumpSegs):
         #     tmp.attrs[a[0]] = a[1] # Currently set without units, multiple values here give combine issues below.
         #
         # dataArrays.append(tmp)
-        
+
         # Stack by syms (per eke) as necessary
 #        if ekeList[n] == ekeVal:
 #            # daOut = xr.combine_nested(dataArrays, concat_dim=['Sym'])
@@ -381,9 +478,9 @@ def dumpIdySegsParseX(dumpSegs):
     # Combine to single xarray
     # Note xarray > v0.12.1
     # daOut = xr.combine_nested(dataSym, concat_dim=['Sym'])
-    # daOut = xr.combine_nested(dataArrays, concat_dim=['Sym'])
+    daOut = xr.combine_nested(dataSym, concat_dim=['Sym'])
     # daOut = xr.combine_nested([dataArrays1, dataArrays], concat_dim=['Sym','Eke'])
-    daOut = xr.combine_nested(np.array(dataArrays), concat_dim=['Sym','Eke'])  # Dim issues here - try np.array... NOPE.
+    # daOut = xr.combine_nested(np.array(dataArrays), concat_dim=['Sym','Eke'])  # Dim issues here - try np.array... NOPE.
     # daOut = xr.combine_nested(dataArrays, concat_dim=[None])
     # daOut = xr.merge(dataArrays)
     # daOut = xr.combine_by_coords(dataArrays)
@@ -403,7 +500,7 @@ def dumpIdySegsParseX(dumpSegs):
 #    # TODO: fix use of Xarrays and dimension issues.
 #    daOut = xr.combine_nested(dataArrays, concat_dim=['it'])
 
-    return daOut, blankSegs
+    return daOut.transpose(), blankSegs     # NOTE transpose to reverse ordering of dims.
 
 # Linear version of code, for very specific cases.
 # Linear tree ip > mu >it
@@ -413,6 +510,7 @@ def matEleGroupDimX(daIn):
     Group ePS matrix elements by redundant labels (Xarray version).
 
     Group by ['ip', 'it', 'mu'] terms, all have only a few values.
+    Rename 'ip':1,2 as 'Type':'L','V'
 
     TODO: better ways to do this?
     See also tests in funcTests_210819.py for more versions/tests.
@@ -421,21 +519,17 @@ def matEleGroupDimX(daIn):
     ------
     data : Xarray
         Data array with matrix elements to be split and recombined by dims.
-        
+
+    Outputs
+    ------
+    data : Xarray
+        Data array with reordered matrix elements (dimensions).
+
     """
 
     daRedList = []
-    
-    # Split on 'ip' - will always be (1,2), and split matEle into two
-    ipLabel = ['L','V']
-    for n, val in enumerate(range(1,3)):
-        tmp = matEleSelector(daIn, inds = {'ip':val})
-        tmp = tmp.expand_dims({'Type':[ipLabel[n]]})
-        daRedList.append(tmp)
-    
-    # Restack
-    daRed = xr.combine_nested(daRedList, concat_dim = 'Type')
-    
+    daRed = daIn
+
     # Split on mu - values from set {-1,0,1} depending on symmetry
     daRedList = []
     uVals = np.unique(daRed.mu)
@@ -443,10 +537,10 @@ def matEleGroupDimX(daIn):
         tmp = matEleSelector(daRed, inds = {'mu':val})
         tmp = tmp.expand_dims({'mu':[val]})
         daRedList.append(tmp)
-    
+
     # Restack
-    daRed = xr.combine_nested(daRedList, concat_dim = 'mu')    
-    
+    daRed = xr.combine_nested(daRedList, concat_dim = 'mu')
+
     # Split on it
     daRedList = []
     uVals = np.unique(daRed.it)
@@ -454,10 +548,21 @@ def matEleGroupDimX(daIn):
         tmp = matEleSelector(daRed, inds = {'it':val})
         tmp = tmp.expand_dims({'it':[val]})
         daRedList.append(tmp)
-    
+
     # Restack
-    daRed = xr.combine_nested(daRedList, concat_dim = 'it')    
-    
+    daRed = xr.combine_nested(daRedList, concat_dim = 'it')
+
+    # Split on 'ip' - will always be (1,2), and split matEle into two
+    ipLabel = ['L','V']
+    daRedList = []
+    for n, val in enumerate(range(1,3)):
+        tmp = matEleSelector(daRed, inds = {'ip':val})
+        tmp = tmp.expand_dims({'Type':[ipLabel[n]]})
+        daRedList.append(tmp)
+
+    # Restack
+    daRed = xr.combine_nested(daRedList, concat_dim = 'Type')
+
     return daRed
 
 #   Subselections using matEleSelector
@@ -477,11 +582,11 @@ def matEleGroupDimXnested(da):
     ------
     data : Xarray
         Data array with matrix elements to be split and recombined by dims.
-        
+
     """
 
     indList = ['ip','it','mu']
-    
+
     daRedList = []
     for x in np.unique(da[indList[0]]):
         daRedList0 = []
@@ -489,19 +594,19 @@ def matEleGroupDimXnested(da):
             daRedList1 = []
             for z in np.unique(da[indList[2]]):
                 red = matEleSelector(da, inds = {indList[0]:x, indList[1]:y, indList[2]:z})
-                
+
                 red = red.expand_dims({indList[0]:[x], indList[1]:[y], indList[2]:[z]})
-                
+
                 daRedList1.append(red)
-                
+
             daOut1 = xr.combine_nested(daRedList1, concat_dim = indList[2])
-            daRedList0.append(daOut1)    
-            
+            daRedList0.append(daOut1)
+
         daOut2 = xr.combine_nested(daRedList0, concat_dim = indList[1])
         daRedList.append(daOut2)
-    
+
     daOut =  xr.combine_nested(daRedList, concat_dim = indList[0])
-    
+
     return daOut
 
 # UGH THIS IS SO UGLY, please make it better.
@@ -557,10 +662,10 @@ def matEleGroupDim(data, dimGroups = [3, 4, 2]):
         it = [dataSub[0][4,0].astype('int8')]
         Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])
 
-        #dataArrays.append(xr.DataArray(data[1], coords={'ES': Esyms, 'QN':QNs}, dims = ['ES','QN']))
+        #dataArrays.append(xr.DataArray(data[1], coords={'ES': Esyms, 'LM':QNs}, dims = ['ES','LM']))
         # AH - issue is number of labels - can't lable singleton dim it seems, but can expand
         #TODO: consider setting E as a separate dim, will be singleton for each set of syms. Might make more sense for later manipulations (sum over sym or E).
-        # tmp = xr.DataArray(np.asarray(data[1]), coords={'QN':QNs}, dims = ['QN'])
+        # tmp = xr.DataArray(np.asarray(data[1]), coords={'LM':QNs}, dims = ['LM'])
         # tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})  # This is OK, but still ties Eke and Sym coords (same number of elements)
         # # tmp = tmp.expand_dims({'Sym':Syms})
 
@@ -718,8 +823,11 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
 
         # Scan the file and parse segments
         #lines, dumpSegs = dumpIdyFileParse(os.path.join(fileBase, file))
+        ekeList = scatEngFileParse(file)
+        symSegs = symFileParse(file)
+        print('Expecting {0} dumpIdy segments.'.format(len(ekeList) * (len(symSegs) - 1)))
         lines, dumpSegs = dumpIdyFileParse(file)
-        data, blankSegs = dumpIdySegsParseX(dumpSegs)
+        data, blankSegs = dumpIdySegsParseX(dumpSegs, ekeList, symSegs)
 
         # Add some additional properties to the output
         fName = os.path.split(file)
@@ -727,7 +835,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
         data.attrs['file'] = fName[1]
         data.attrs['fileBase'] = fName[0]
 
-        print('Found {0} sets of matrix elements ({1} blank)'.format(len(dumpSegs),blankSegs))
+        print('Processed {0} sets of matrix elements ({1} blank)'.format(len(dumpSegs),blankSegs))
 
         # Put in a list for now, might want to use Xarray dataset here, and/or combine results from multiple files.
         dataSet.append(data)

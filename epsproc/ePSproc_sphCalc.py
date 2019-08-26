@@ -76,7 +76,7 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
     if XFlag:
         # Set indexes
         QNs = pd.MultiIndex.from_arrays(np.asarray(lm).T, names = ['l','m'])
-        YlmX = xr.DataArray(np.asarray(Ylm), coords=[('QN',QNs), ('Theta',theta[0,:]), ('Phi',phi[:,0])])
+        YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta',theta[0,:]), ('Phi',phi[:,0])])
         return YlmX
     else:
         return np.asarray(Ylm), np.asarray(lm)

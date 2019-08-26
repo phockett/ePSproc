@@ -71,7 +71,8 @@ dataSet = ep.readMatEle(fileIn = file)
 #%% Test sph multiplication over all dims
 
 res = 50
-daRed = ep.matEleSelector(dataSet[0], thres = 1e-2, inds = {'Type':'L','it':1})
+# daRed = ep.matEleSelector(dataSet[0], thres = 1e-2, inds = {'Type':'L','it':1})
+daRed = ep.matEleSelector(dataSet[0], thres = 1e-2, inds = {})
 
 # Generate spherical harmonics
 Lmax = daRed.l.max()
@@ -91,3 +92,18 @@ daRed.sel(inds)
 
 test.sel(inds)
 ep.sphSumPlotX(test.sel(inds).squeeze(dim = 'Sym'))
+
+#%% Test Xarray image plot with faceting
+# http://xarray.pydata.org/en/stable/plotting.html#dimensional
+
+# Facet by E
+inds = {'mu':0, 'Type':'L', 'Cont':'SU'}
+testPlot = np.abs(test.sel(inds).squeeze(dim = 'Sym').squeeze(dim = 'it').sum(dim='LM'))
+testPlot = testPlot.isel(Eke=slice(0, 50, 5))   # Slice data
+testFacet = testPlot.plot(x='Theta', y='Phi', col='Eke', col_wrap=5)
+
+# Facet by (E, type)
+inds = {'mu':0, 'Cont':'SU'}
+testPlot = np.abs(test.sel(inds).squeeze(dim = 'Sym').squeeze(dim = 'it').sum(dim='LM'))
+testPlot = testPlot.isel(Eke=slice(0, 50, 10))   # Slice data
+testFacet = testPlot.plot(x='Theta', y='Phi', col='Eke', row='Type', col_wrap=5)

@@ -415,8 +415,15 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
         tmp = xr.DataArray(np.asarray(data[1]), coords={'LM':QNs}, dims = ['LM'])
         tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})
 
+        # Assign any other attributes - note that some attributes may be dropped when combining arrays below
+        for a in attribs:
+            tmp.attrs[a[0]] = a[1] # Currently set without units, multiple values here give combine issues below.
+
+        # dataArrays.append(tmp)
+
 #        tmp = matEleGroupDimX(tmp)  # Broken?
         dataArrays.append(matEleGroupDimX(tmp))
+        #TODO: Fix scale-factor propagation... this is currently dropped as an inconsistent attrib value.
         # dataArrays.append(matEleGroupDimXnested(tmp.copy()))  # Broken...?
         # dataArrays.append(tmp)
 

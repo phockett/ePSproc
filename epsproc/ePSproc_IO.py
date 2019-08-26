@@ -287,6 +287,7 @@ def dumpIdySegsParseX(dumpSegs):
     dataSym = []
     ekeVal = ekeList[0]
     
+    print('\nProcessing segments...')
     for n, data in enumerate(dataList):
         attribs = data[2]
 
@@ -345,10 +346,18 @@ def dumpIdySegsParseX(dumpSegs):
 #        if n == len(ekeList)-1:
 #            dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
 #        
+#        if n == (len(ekeList)/2 - 1):
+#            # dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
+#            dataArrays1 = dataArrays.copy()
+#            dataArrays = []
+
         if n == (len(ekeList)/2 - 1):
-            # dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
-            dataArrays1 = dataArrays.copy()
+            dataSym.append(dataArrays)
             dataArrays = []
+            
+        if n == len(ekeList)-1:
+            dataSym.append(dataArrays)
+     
         
         # **** v3 manually sort data first...
         # SEE CODE BELOW, matEleGroupDim()
@@ -373,7 +382,8 @@ def dumpIdySegsParseX(dumpSegs):
     # Note xarray > v0.12.1
     # daOut = xr.combine_nested(dataSym, concat_dim=['Sym'])
     # daOut = xr.combine_nested(dataArrays, concat_dim=['Sym'])
-    daOut = xr.combine_nested([dataArrays1, dataArrays], concat_dim=['Sym','Eke'])
+    # daOut = xr.combine_nested([dataArrays1, dataArrays], concat_dim=['Sym','Eke'])
+    daOut = xr.combine_nested(np.array(dataArrays), concat_dim=['Sym','Eke'])  # Dim issues here - try np.array... NOPE.
     # daOut = xr.combine_nested(dataArrays, concat_dim=[None])
     # daOut = xr.merge(dataArrays)
     # daOut = xr.combine_by_coords(dataArrays)

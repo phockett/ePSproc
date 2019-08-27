@@ -423,6 +423,7 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
 #        tmp = matEleGroupDimX(tmp)  # Broken?
         dataArrays.append(matEleGroupDimX(tmp))
         #TODO: Fix scale-factor propagation... this is currently dropped as an inconsistent attrib value.
+        # Something like: dataSF.append(dataArrays[-1].SF)
         # dataArrays.append(matEleGroupDimXnested(tmp.copy()))  # Broken...?
         # dataArrays.append(tmp)
 

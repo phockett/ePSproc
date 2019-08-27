@@ -79,7 +79,7 @@ eAngs = np.array([pRot, tRot, cRot])
 wDX = ep.wDcalc(eAngs = eAngs)
 wDXre = wDX.sel({'lp':1, 'mu0':0})
 
-testRe = wDXre.conjugate() * daRed * YlmX
+testRe = wDXre.conjugate() * daRed * YlmX.conjugate()
 
 testPlot = testRe.sel({'Type':'L','it':1}) # Select on remaining dims
 

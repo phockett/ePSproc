@@ -35,11 +35,11 @@ dataSet = ep.readMatEle(fileBase = dataPath)  # Scan data dir
 
 #%% Calculate MFPADs
 
-TaX, TlmX = ep.mfpad(dataSet[0])
+TaX, TlmX = ep.mfpad(dataSet[1])  # HERE SET FOR [0] for N2 multi-E data, [1] for NO2 single E test set.
 
 #%% Plot
 
 # Plot for each set of Euler angles, assuing they are top-level index
 # Should be a neater way to do this...?
-for n in range(0,2):
-    ep.sphSumPlotX(TaX[n].sum(dim = 'Sym'))
+for n in range(0,3):
+    ep.sphSumPlotX(TaX[n].sum(dim = 'Sym').squeeze(dim = 'Eke'))

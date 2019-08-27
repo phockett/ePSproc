@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-File for testing ePSproc basic IO
+Script for testing ePSproc basic IO
 
-Created on Mon Aug 26 14:36:29 2019
+26/08/19
 
-@author: femto
 """
 
 #%% Package imports
@@ -40,7 +39,7 @@ fList = ep.getFiles(fileBase = dataPath)
 
 #%% Read file
 
-file = fList[0]  # HERE SET FOR N2 multi-E data
+file = fList[1]  # HERE SET FOR [0] for N2 multi-E data, [1] for NO2 single E test set.
 lines, dumpSegs = ep.dumpIdyFileParse(file)
 
 #%% Check parameters

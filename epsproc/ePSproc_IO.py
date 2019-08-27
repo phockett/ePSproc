@@ -99,7 +99,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
             # Read lines into segment[] until endPhrase found
             if readFlag:
                 # Check for end of segment (start of next Command sequence)
-                if endPhrase and line.startswith(endPhrase):
+                if endPhrase and ([line.startswith(endP) for endP in endPhrase].count(True) > 0):  # This allows for multiple endPhases
                     # Log stop line and list
                     lineStop.append(i)
                     readFlag = False
@@ -117,7 +117,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
                 segments[n].append([n, i, line])    # Store line if part  of defined segment
 
     if verbose:
-        print('Found {0} segments.'.format(n+1))
+        print('Found {0} segments.'.format(n))
 
     return ([lineStart, lineStop], segments) # [:-1])
 
@@ -144,16 +144,14 @@ def dumpIdyFileParse(fileName):
     """
 
     startPhrase = "DumpIdy - dump"
-    endPhrase = "+ Command"
+    endPhrase = ["+ Command", "Time Now"]  # In this case may have multiple end phrases
 
     (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase) # , '>')
 
-    # NOTE - with current code dumpSegs is correct length, as file ends with "Time Now", not "+ Command"
-    # This may become an issue at some point.
-    #TODO: fix this.
-    print('Found {0} dumpIdy segments (sets of matrix elements).'.format(len(dumpSegs)))
+    # NOTE - with current code dumpSegs has one final blank segment
+    print('Found {0} dumpIdy segments (sets of matrix elements).'.format(len(dumpSegs) - 1))
 
-    return lines, dumpSegs
+    return lines, dumpSegs[:-1]
 
 # Simple wrapper for general fileParse function, check ScatEng and return Eke list
 def scatEngFileParse(fileName):
@@ -182,7 +180,8 @@ def scatEngFileParse(fileName):
     # Grab E list, assuming just first segment scanned is relevant
     ekeList = np.genfromtxt(StringIO(dumpSegs[0][0][2][7:]))
 
-    print('Expecting {0} energy points.'.format(len(ekeList)))
+    # print('Expecting {0} energy points.'.format(len(ekeList)))  # For np.array, this will fail for singleton dim.
+    print('Expecting {0} energy points.'.format(ekeList.size))
 
     return ekeList
 
@@ -205,7 +204,7 @@ def symFileParse(fileName):
 
     """
     startPhrase = "ScatSym"
-    endPhrase = "#"
+    endPhrase = "FileName"
     comment = "+"
 
     (lines, symSegs) = fileParse(fileName, startPhrase, endPhrase, comment) # , '>')
@@ -353,12 +352,12 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
 
     # Check energies vs. input list, and number of symmetries
     ekeTest = np.unique(ekeList)
-    if len(ekeTest) != len(ekeListUn):
-        print("*** Warning: Found {0} energies, expected {1}".format(len(ekeTest),len(ekeListUn)))
+    if ekeTest.size != ekeListUn.size:
+        print("*** Warning: Found {0} energies, expected {1}".format(ekeTest.size,ekeListUn.size))
 
     # Check here according to expected input, but should also be logged in blankSegs above.
-    if len(ekeList) != len(ekeTest) * len(symSegs):
-        print("*** Warning: Missing records, expected {0}, found {1}.".format(len(ekeTest) * len(symSegs),len(ekeList)))
+    if len(ekeList) != ekeTest.size * len(symSegs):
+        print("*** Warning: Missing records, expected {0}, found {1}.".format(ekeTest.size * len(symSegs),len(ekeList)))
 
     #**** Convert to xarray - ugly loop version, probably a better way to do this!
     #TODO Should:
@@ -455,7 +454,7 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
 
 
         # Now with loop on known energy list.
-        if eLoop == len(ekeListUn)-1:
+        if eLoop == ekeListUn.size-1:
             dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
             dataArrays = []
             eLoop = 0
@@ -832,7 +831,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
         #lines, dumpSegs = dumpIdyFileParse(os.path.join(fileBase, file))
         ekeList = scatEngFileParse(file)
         symSegs = symFileParse(file)
-        print('Expecting {0} dumpIdy segments.'.format(len(ekeList) * (len(symSegs) - 1)))
+        print('Expecting {0} dumpIdy segments.'.format(ekeList.size * len(symSegs)))
         lines, dumpSegs = dumpIdyFileParse(file)
         data, blankSegs = dumpIdySegsParseX(dumpSegs, ekeList, symSegs)
 

@@ -48,7 +48,8 @@ def sphSumPlotX(dataIn, pType = 'a'):
     '''
 
     # Sum over QNs if necessary
-    if (dataIn.LM.shape[0]) > 1:
+    # if (dataIn.LM.shape[0]) > 1:
+    if 'LM' in dataIn.dims:
         dataPlot = dataIn.sum(dim='LM')
     else:
         dataPlot = dataIn

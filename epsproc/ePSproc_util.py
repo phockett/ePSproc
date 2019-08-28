@@ -11,7 +11,7 @@ Collection of small functions for sorting etc.
 import numpy as np
 
 # Selector function for matrix elements in Xarray
-def matEleSelector(da, thres = None, inds = None):
+def matEleSelector(da, thres = None, inds = None, sq = False):
     """
     Select & threshold raw matrix elements in an Xarray
 
@@ -21,10 +21,12 @@ def matEleSelector(da, thres = None, inds = None):
         Set of matrix elements to sub-select
     thres : float, optional, default None
         Threshold value for abs(matElement), keep only elements > thres.
-    inds : dict, optional
+    inds : dict, optional, default None
         Dicitonary of additional selection criteria, in name:value format.
         These correspond to parameter dimensions in the Xarray structure.
         E.g. inds = {'Type':'L','Cont':'A2'}
+    sq : bool, optional, default False
+        Squeeze output singleton dimensions.
 
     Returns
     -------
@@ -44,6 +46,7 @@ def matEleSelector(da, thres = None, inds = None):
     if inds is not None:
         da = da.sel(inds)    # Fors inds as dict, e.g. {'Type':'L','it':1,'Cont':'A2'}
                                 # May want to send as list, or automate vs. dim names?
+                                # NOTE - in current dev code this is used to reindex, so .squeeze() casuses issues!
 
 
     # Reduce dims by thesholding on abs values
@@ -52,6 +55,9 @@ def matEleSelector(da, thres = None, inds = None):
         daOut = da.where(np.abs(da) > thres, drop=True)
     else:
         daOut = da
+
+    if sq:
+        daOut = daOut.squeeze()  # Squeeze dims.
 
     return daOut
 

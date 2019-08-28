@@ -15,6 +15,66 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm, colors
 
+# Plotly
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+# Plot a set of mfpads using Holoviews
+# TODO: finish this!!!
+def mfpadPlotHV(dataIn):
+    # Remove multilevel indexes, these casuse issues with HV
+    dataPlot = dataIn.copy()
+    if 'Sym' in dataPlot.dims:      # This is a bit dodgy, and may fail in some cases.
+        dataPlot['Sym'] = dataPlot['Cont']
+
+    if 'Euler' in dataPlot.dims:
+        dataPlot['Euler'] =  np.arange(0,dataPlot.Euler.size)
+
+    # Convert sph to cart coords
+    # ACTUALLY, this will be a bit tricky at da level - best to set a new da for (x,y,z) outputs...?
+    # dataPlot = dataPlot * dataPlot.conj()
+    # theta, phi = np.meshgrid(dataPlot.Theta, dataPlot.Phi)
+    # X = dataPlot * np.sin(theta) * np.cos(phi)
+    # Y = dataPlot * np.sin(phi) * np.sin(theta)
+    # Z = dataPlot * np.cos(phi)
+
+# Plot as Plotly subplots, as function of selected dim.
+# Currently set for subplotting over facetDim, but assumes over dim (theta,phi)
+def mfpadPlotPL(dataIn, facetDim = 'Eke', rc = None):
+
+    # Set data
+    dataPlot = dataIn * dataIn.conj()
+    theta, phi = np.meshgrid(dataPlot.Theta, dataPlot.Phi)
+
+    # Set up subplots
+    nData = dataIn[facetDim].size
+
+    if rc is None:
+        rc = [3,5]
+
+    pType = {'type':'surface'}
+    specs = [[pType] * rc[1] for i in range(rc[0])]  # Set specs as 2D list of dicts.
+
+    fig = make_subplots(rows=rc[0], cols=rc[1], specs=specs)
+    nPlots = rc[0] * rc[1]
+
+    # Add surfaces
+    # From https://plot.ly/python/3d-subplots/
+
+    n=0
+    for rInd in range(1,rc[0]+1):
+        for cInd in range(1,rc[1]+1):
+            X,Y,Z = sphToCart(dataPlot.sel({facetDim:dataPlot[facetDim][n]}),theta,phi)  # Bit ugly, probably a better way to select here.
+            fig.add_trace(
+                go.Surface(x=X, y=Y, z=Z, colorscale='Viridis', showscale=False),
+                row=rInd, col=cInd) # , title=[facetDim + '=' + str(dataPlot[facetDim][n].data)])  # Needs some work here...
+            n=n+1
+            if n > nData:
+                continue
+
+    fig.show()
+
+
 # Sum and plot spherical functions from an Xarray.
 # TODO: This currently assumes matplotlib cm is already loaded.
 # TODO: More plot types.

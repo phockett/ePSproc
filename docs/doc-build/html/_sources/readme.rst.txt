@@ -5,10 +5,10 @@
    https://stackoverflow.com/questions/46278683/include-my-markdown-readme-into-sphinx
 
 
-.. include:: ../../README.rst
+.. .. include:: ../../README.rst
 
-Readme.md
-=========
+Readme.md (old)
+---------------
 
 .. include:: ../../README.md
 

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>epsproc.IO module &mdash; ePSproc 1.5.0 documentation</title>
+  <title>epsproc.IO module &mdash; ePSproc 1.1.0 documentation</title>
   
 
   
@@ -60,6 +60,10 @@
           
             
             
+              <div class="version">
+                1.1.0
+              </div>
+            
           
 
           
@@ -83,7 +87,7 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../readme.html">ePSproc Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">Readme.md (old)</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="epsproc.html">epsproc package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="epsproc.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">epsproc.IO module</a><ul>
@@ -201,7 +205,7 @@ Current code rather ugly however.</p>
 </ul>
 <dl class="function">
 <dt id="epsproc.IO.dumpIdyFileParse">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">dumpIdyFileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.dumpIdyFileParse" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">dumpIdyFileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#dumpIdyFileParse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.dumpIdyFileParse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse an ePS file for dumpIdy segments.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -220,7 +224,7 @@ Current code rather ugly however.</p>
 
 <dl class="function">
 <dt id="epsproc.IO.dumpIdySegParse">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">dumpIdySegParse</code><span class="sig-paren">(</span><em class="sig-param">dumpSeg</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.dumpIdySegParse" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">dumpIdySegParse</code><span class="sig-paren">(</span><em class="sig-param">dumpSeg</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#dumpIdySegParse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.dumpIdySegParse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extract values from dumpIdy file segments.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -246,7 +250,7 @@ Not yet reading all attribs.</p>
 
 <dl class="function">
 <dt id="epsproc.IO.dumpIdySegsParseX">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">dumpIdySegsParseX</code><span class="sig-paren">(</span><em class="sig-param">dumpSegs</em>, <em class="sig-param">ekeListUn</em>, <em class="sig-param">symSegs</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.dumpIdySegsParseX" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">dumpIdySegsParseX</code><span class="sig-paren">(</span><em class="sig-param">dumpSegs</em>, <em class="sig-param">ekeListUn</em>, <em class="sig-param">symSegs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#dumpIdySegsParseX"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.dumpIdySegsParseX" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extract data from ePS dumpIdy segments into usable form.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -269,7 +273,7 @@ Dimensions (LM, Eke, Sym, mu, it, Type)</p></li>
 
 <dl class="function">
 <dt id="epsproc.IO.fileParse">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">fileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em>, <em class="sig-param">startPhrase=None</em>, <em class="sig-param">endPhrase=None</em>, <em class="sig-param">comment=None</em>, <em class="sig-param">verbose=False</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.fileParse" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">fileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em>, <em class="sig-param">startPhrase=None</em>, <em class="sig-param">endPhrase=None</em>, <em class="sig-param">comment=None</em>, <em class="sig-param">verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#fileParse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.fileParse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse a file, return segment(s) from startPhrase:endPhase, excluding comments.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -293,7 +297,7 @@ Dimensions (LM, Eke, Sym, mu, it, Type)</p></li>
 
 <dl class="function">
 <dt id="epsproc.IO.getFiles">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">getFiles</code><span class="sig-paren">(</span><em class="sig-param">fileIn=None</em>, <em class="sig-param">fileBase=None</em>, <em class="sig-param">fType='.out'</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.getFiles" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">getFiles</code><span class="sig-paren">(</span><em class="sig-param">fileIn=None</em>, <em class="sig-param">fileBase=None</em>, <em class="sig-param">fType='.out'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#getFiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.getFiles" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read ePS file(s) and return results as Xarray data structures.
 File endings specified by fType, default .out.</p>
 <dl class="field-list simple">
@@ -320,7 +324,7 @@ Defaults to current working dir if no other parameters are passed.</p></li>
 
 <dl class="function">
 <dt id="epsproc.IO.matEleGroupDim">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">matEleGroupDim</code><span class="sig-paren">(</span><em class="sig-param">data, dimGroups=[3, 4, 2]</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.matEleGroupDim" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">matEleGroupDim</code><span class="sig-paren">(</span><em class="sig-param">data, dimGroups=[3, 4, 2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#matEleGroupDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.matEleGroupDim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Group ePS matrix elements by redundant labels.</p>
 <p>Default is to group by [‘ip’, ‘it’, ‘mu’] terms, all have only a few values.</p>
 <p>TODO: better ways to do this?  Shoud be possible at Xarray level.</p>
@@ -334,7 +338,7 @@ Ordering is [labels, matElements, attribs].</p>
 
 <dl class="function">
 <dt id="epsproc.IO.matEleGroupDimX">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">matEleGroupDimX</code><span class="sig-paren">(</span><em class="sig-param">daIn</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.matEleGroupDimX" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">matEleGroupDimX</code><span class="sig-paren">(</span><em class="sig-param">daIn</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#matEleGroupDimX"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.matEleGroupDimX" title="Permalink to this definition">¶</a></dt>
 <dd><p>Group ePS matrix elements by redundant labels (Xarray version).</p>
 <p>Group by [‘ip’, ‘it’, ‘mu’] terms, all have only a few values.
 Rename ‘ip’:1,2 as ‘Type’:’L’,’V’</p>
@@ -355,7 +359,7 @@ See also tests in funcTests_210819.py for more versions/tests.</p>
 
 <dl class="function">
 <dt id="epsproc.IO.matEleGroupDimXnested">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">matEleGroupDimXnested</code><span class="sig-paren">(</span><em class="sig-param">da</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.matEleGroupDimXnested" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">matEleGroupDimXnested</code><span class="sig-paren">(</span><em class="sig-param">da</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#matEleGroupDimXnested"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.matEleGroupDimXnested" title="Permalink to this definition">¶</a></dt>
 <dd><p>Group ePS matrix elements by redundant labels (Xarray version).</p>
 <p>Group by [‘ip’, ‘it’, ‘mu’] terms, all have only a few values.</p>
 <p>TODO: better ways to do this?
@@ -369,14 +373,14 @@ See also tests in funcTests_210819.py for more versions/tests.</p>
 
 <dl class="function">
 <dt id="epsproc.IO.parseLineDigits">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">parseLineDigits</code><span class="sig-paren">(</span><em class="sig-param">testLine</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.parseLineDigits" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">parseLineDigits</code><span class="sig-paren">(</span><em class="sig-param">testLine</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#parseLineDigits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.parseLineDigits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Use regular expressions to extract digits from a string.
 <a class="reference external" href="https://stackoverflow.com/questions/4289331/how-to-extract-numbers-from-a-string-in-python">https://stackoverflow.com/questions/4289331/how-to-extract-numbers-from-a-string-in-python</a></p>
 </dd></dl>
 
 <dl class="function">
 <dt id="epsproc.IO.readMatEle">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readMatEle</code><span class="sig-paren">(</span><em class="sig-param">fileIn=None</em>, <em class="sig-param">fileBase=None</em>, <em class="sig-param">fType='.out'</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.readMatEle" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readMatEle</code><span class="sig-paren">(</span><em class="sig-param">fileIn=None</em>, <em class="sig-param">fileBase=None</em>, <em class="sig-param">fType='.out'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#readMatEle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.readMatEle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read ePS file(s) and return results as Xarray data structures.
 File endings specified by fType, default <a href="#id1"><span class="problematic" id="id2">*</span></a>.out.</p>
 <dl class="field-list simple">
@@ -422,7 +426,7 @@ Defaults to current working dir if no other parameters are passed.</p></li>
 
 <dl class="function">
 <dt id="epsproc.IO.readOrb3D">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readOrb3D</code><span class="sig-paren">(</span><em class="sig-param">fileIn=None</em>, <em class="sig-param">fileBase=None</em>, <em class="sig-param">fType='_Orb.dat'</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.readOrb3D" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readOrb3D</code><span class="sig-paren">(</span><em class="sig-param">fileIn=None</em>, <em class="sig-param">fileBase=None</em>, <em class="sig-param">fType='_Orb.dat'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#readOrb3D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.readOrb3D" title="Permalink to this definition">¶</a></dt>
 <dd><blockquote>
 <div><p>Read ePS 3D data file(s) and return results.
 File endings specified by fType, default <a href="#id3"><span class="problematic" id="id4">*</span></a>_Orb.dat.</p>
@@ -464,27 +468,27 @@ Defaults to current working dir if no other parameters are passed.</p>
 
 <dl class="function">
 <dt id="epsproc.IO.readOrbCoords">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readOrbCoords</code><span class="sig-paren">(</span><em class="sig-param">f</em>, <em class="sig-param">headerLines</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.readOrbCoords" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readOrbCoords</code><span class="sig-paren">(</span><em class="sig-param">f</em>, <em class="sig-param">headerLines</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#readOrbCoords"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.readOrbCoords" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="epsproc.IO.readOrbData">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readOrbData</code><span class="sig-paren">(</span><em class="sig-param">f</em>, <em class="sig-param">headerLines</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.readOrbData" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readOrbData</code><span class="sig-paren">(</span><em class="sig-param">f</em>, <em class="sig-param">headerLines</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#readOrbData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.readOrbData" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="epsproc.IO.readOrbElements">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readOrbElements</code><span class="sig-paren">(</span><em class="sig-param">f</em>, <em class="sig-param">n</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.readOrbElements" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readOrbElements</code><span class="sig-paren">(</span><em class="sig-param">f</em>, <em class="sig-param">n</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#readOrbElements"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.readOrbElements" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="epsproc.IO.readOrbHeader">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readOrbHeader</code><span class="sig-paren">(</span><em class="sig-param">f</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.readOrbHeader" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readOrbHeader</code><span class="sig-paren">(</span><em class="sig-param">f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#readOrbHeader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.readOrbHeader" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="epsproc.IO.scatEngFileParse">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">scatEngFileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.scatEngFileParse" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">scatEngFileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#scatEngFileParse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.scatEngFileParse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse an ePS file for ScatEng list.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -502,7 +506,7 @@ Defaults to current working dir if no other parameters are passed.</p>
 
 <dl class="function">
 <dt id="epsproc.IO.symFileParse">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">symFileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.symFileParse" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">symFileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#symFileParse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.symFileParse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse an ePS file for ScatEng list.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -520,7 +524,7 @@ Defaults to current working dir if no other parameters are passed.</p>
 
 <dl class="function">
 <dt id="epsproc.IO.writeOrb3Dvtk">
-<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">writeOrb3Dvtk</code><span class="sig-paren">(</span><em class="sig-param">dataSet</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.IO.writeOrb3Dvtk" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">writeOrb3Dvtk</code><span class="sig-paren">(</span><em class="sig-param">dataSet</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#writeOrb3Dvtk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.writeOrb3Dvtk" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write ePS 3D data file(s) to vtk format.
 This can be opened in, e.g., Paraview.</p>
 <dl class="field-list simple">

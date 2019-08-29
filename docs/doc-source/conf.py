@@ -13,7 +13,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
-# sys.path.insert(0, os.path.abspath('..\\..\\'))    # Add module path (relative to docs path)
+sys.path.insert(0, os.path.abspath('..\\..\\'))    # Add module path (relative to docs path)
 # print(sys.path)
 
 # -- Project information -----------------------------------------------------
@@ -22,8 +22,11 @@ project = 'ePSproc'
 copyright = '2019, Paul Hockett'
 author = 'Paul Hockett'
 
+# Version from package https://stackoverflow.com/questions/26141851/let-sphinx-use-version-from-setup-py
+from epsproc import __version__
+version = __version__
 # The full version, including alpha/beta/rc tags
-release = '1.5.0'
+release = version
 
 
 # -- General configuration ---------------------------------------------------
@@ -32,7 +35,8 @@ release = '1.5.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
-                'sphinxcontrib.apidoc', 'recommonmark']
+                'sphinxcontrib.apidoc', 'recommonmark',
+                'sphinx.ext.viewcode']
 
 # api doc settings
 apidoc_module_dir = '../../epsproc'

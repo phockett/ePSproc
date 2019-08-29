@@ -8,9 +8,9 @@ Welcome to ePSproc's documentation!
 
 .. toctree::
    :maxdepth: 2
+   :caption: Contents:
 
-
-   readme
+   
    modules/epsproc
 
 

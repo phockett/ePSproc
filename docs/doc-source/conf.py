@@ -32,8 +32,7 @@ release = '1.5.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
-#                'sphinxcontrib.apidoc', 
-                'recommonmark']
+                'sphinxcontrib.apidoc', 'recommonmark']
 
 # api doc settings
 apidoc_module_dir = '../../epsproc'
@@ -49,6 +48,8 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+# For Read the Docs, see https://stackoverflow.com/questions/56336234/build-fail-sphinx-error-contents-rst-not-found
+master_doc = 'index'
 
 # -- Options for HTML output -------------------------------------------------
 

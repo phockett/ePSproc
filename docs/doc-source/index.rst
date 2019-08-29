@@ -10,7 +10,7 @@ Welcome to ePSproc's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   
+   readme
    modules/epsproc
 
 

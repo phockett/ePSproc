@@ -32,7 +32,8 @@ release = '1.5.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
-                'sphinxcontrib.apidoc', 'recommonmark']
+#                'sphinxcontrib.apidoc', 
+                'recommonmark']
 
 # api doc settings
 apidoc_module_dir = '../../epsproc'

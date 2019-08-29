@@ -10,8 +10,8 @@ Welcome to ePSproc's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   intro
-   modules/ePSproc_IO
+   readme
+   modules/modules 
 
 
 Indices and tables

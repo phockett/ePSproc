@@ -1,0 +1,304 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>ePSproc_IO module listing &#8212; ePSproc 1.5.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-ePSproc_IO">
+<span id="epsproc-io-module-listing"></span><h1>ePSproc_IO module listing<a class="headerlink" href="#module-ePSproc_IO" title="Permalink to this headline">¶</a></h1>
+<p>ePSproc IO functions.</p>
+<p>Main function ePSread(fileIn = None, fileBase = None, fType = ‘.out’):</p>
+<blockquote>
+<div><p>Read ePS file(s) and return results as Xarray data structures containing matrix elements.
+File endings specified by fType, default <a href="#id1"><span class="problematic" id="id2">*</span></a>.out.</p>
+</div></blockquote>
+<p>Also includes required ancillary functions for file IO tasks, and data parsing.</p>
+<dl class="simple">
+<dt>05/08/19    v1  Initial python version.</dt><dd><p>Working, but little error checking as yet. Needs some tidying.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>ePSproc: Post-processing code for ePolyScat calculations
+<a class="reference external" href="https://github.com/phockett/ePSproc">https://github.com/phockett/ePSproc</a>
+Released under a GNU General Public License (v3)</p>
+<p>ePSproc code:
+Paul Hockett
+<a class="reference external" href="mailto:paul&#37;&#52;&#48;femtolab&#46;ca">paul<span>&#64;</span>femtolab<span>&#46;</span>ca</a>
+femtolab.ca
+github.com/phockett</p>
+<dl>
+<dt>For details about ePolyScat (ePS), a tool for computation of electron-molecule scattering, see:</dt><dd><ul>
+<li><dl class="simple">
+<dt>ePS website &amp; manual, maintained by R.R. Lucchese</dt><dd><p><a class="reference external" href="http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html">http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html</a>)</p>
+</dd>
+</dl>
+</li>
+<li><ol class="upperalpha simple" start="6">
+<li><ol class="upperalpha simple">
+<li><p>Gianturco, R. R. Lucchese, and N. Sanna, J. Chem. Phys. 100, 6464 (1994).</p></li>
+</ol>
+</li>
+</ol>
+<blockquote>
+<div><p><a class="reference external" href="http://dx.doi.org/10.1063/1.467237">http://dx.doi.org/10.1063/1.467237</a></p>
+</div></blockquote>
+</li>
+<li><ol class="upperalpha simple">
+<li><ol class="upperalpha simple" start="16">
+<li><ol class="upperalpha simple" start="16">
+<li><p>Natalense and R. R. Lucchese, J. Chem. Phys. 111, 5344 (1999).</p></li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+<blockquote>
+<div><p><a class="reference external" href="http://dx.doi.org/10.1063/1.479794">http://dx.doi.org/10.1063/1.479794</a></p>
+</div></blockquote>
+</li>
+</ul>
+</dd>
+</dl>
+<dl class="function">
+<dt id="ePSproc_IO.ePSIdyfileParse">
+<code class="sig-prename descclassname">ePSproc_IO.</code><code class="sig-name descname">ePSIdyfileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="headerlink" href="#ePSproc_IO.ePSIdyfileParse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse an ePS file for dumpIdy segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>fileName</strong> (<em>str</em>) – File to read (file in working dir, or full path)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>list</em> – [lineStart, lineStop], ints for line #s found from start and end phrases.</p></li>
+<li><p><em>list</em> – dumpSegs, list of lines read from file.</p></li>
+<li><p><em>Lists contain entries for each dumpIdy segment found in the file.</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ePSproc_IO.ePSread">
+<code class="sig-prename descclassname">ePSproc_IO.</code><code class="sig-name descname">ePSread</code><span class="sig-paren">(</span><em class="sig-param">fileIn=None</em>, <em class="sig-param">fileBase=None</em>, <em class="sig-param">fType='.out'</em><span class="sig-paren">)</span><a class="headerlink" href="#ePSproc_IO.ePSread" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Read ePS file(s) and return results as Xarray data structures.
+File endings specified by fType, default <a href="#id3"><span class="problematic" id="id4">*</span></a>.out.</p>
+<dl class="simple">
+<dt>fileIn<span class="classifier">str, list of strs, optional.</span></dt><dd><p>File(s) to read (file in working dir, or full path).
+Defaults to current working dir if only a file name is supplied.
+For consistent results, pass raw strings, e.g.
+fileIn = r”C:sharecodeePSprocpython_dev</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>o2_demo_ePS.out”</p>
+<blockquote>
+<div><dl class="simple">
+<dt>fileBase<span class="classifier">str, optional.</span></dt><dd><p>Dir to scan for files.
+Currently only accepts a single dir.
+Defaults to current working dir if no other parameters are passed.</p>
+</dd>
+<dt>fType<span class="classifier">str, optional</span></dt><dd><p>File ending for ePS output files, default ‘.out’</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>list</dt><dd><p>List of Xarray data arrays, containing matrix elements etc. from each file scanned.</p>
+</dd>
+</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataSet</span> <span class="o">=</span> <span class="n">ePSread</span><span class="p">()</span>  <span class="c1"># Scan current dir</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fileIn</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;C:\share\code\ePSproc\python_dev</span>
+</pre></div>
+</div>
+</div></blockquote>
+<dl>
+<dt>o2_demo_ePS.out’</dt><dd><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataSet</span> <span class="o">=</span> <span class="n">ePSread</span><span class="p">(</span><span class="n">fileIn</span><span class="p">)</span>  <span class="c1"># Scan single file</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataSet</span> <span class="o">=</span> <span class="n">ePSread</span><span class="p">(</span><span class="n">fileBase</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;C:\share\code\ePSproc\python_dev&#39;</span><span class="p">)</span> <span class="c1"># Scan dir</span>
+</pre></div>
+</div>
+<p>Files are scanned for matrix element output flagged by “DumpIdy” headers.
+Each segment found is parsed for attributes and data (set of matrix elements).
+Matrix elements and attributes are combined and output as an Xarray array.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ePSproc_IO.fileParse">
+<code class="sig-prename descclassname">ePSproc_IO.</code><code class="sig-name descname">fileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em>, <em class="sig-param">startPhrase=None</em>, <em class="sig-param">endPhrase=None</em>, <em class="sig-param">comment=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ePSproc_IO.fileParse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a file, return segment(s) from startPhrase:endPhase, excluding comments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fileName</strong> (<em>str</em>) – File to read (file in working dir, or full path)</p></li>
+<li><p><strong>startPhrase</strong> (<em>str</em><em>, </em><em>optional</em>) – Phrase denoting start of section to read. Default = None</p></li>
+<li><p><strong>endPhase</strong> (<em>str</em><em>, </em><em>optional</em>) – Phrase denoting end of section to read. Default = None</p></li>
+<li><p><strong>comment</strong> (<em>str</em><em>, </em><em>optional</em>) – Phrase denoting comment lines, which are skipped. Default = None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>list</em> – [lineStart, lineStop], ints for line #s found from start and end phrases.</p></li>
+<li><p><em>list</em> – segments, list of lines read from file.</p></li>
+<li><p><em>All lists can contain multiple entries, if more than one segment matches the search criteria.</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ePSproc_IO.parseDigits">
+<code class="sig-prename descclassname">ePSproc_IO.</code><code class="sig-name descname">parseDigits</code><span class="sig-paren">(</span><em class="sig-param">testLine</em><span class="sig-paren">)</span><a class="headerlink" href="#ePSproc_IO.parseDigits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use regular expressions to extract digits from a string.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="ePSproc_IO.parseDumpIDY">
+<code class="sig-prename descclassname">ePSproc_IO.</code><code class="sig-name descname">parseDumpIDY</code><span class="sig-paren">(</span><em class="sig-param">dumpSeg</em><span class="sig-paren">)</span><a class="headerlink" href="#ePSproc_IO.parseDumpIDY" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract values from dumpIdy file segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dumpSeg</strong> (<em>list</em>) – One dumpIdy segment, from dumpSegs[], as returned by ePSIdyParse()</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>np.array</em> – rawIdy, array of matrix elements, [m,l,mu,ip,it,Re,Im]</p></li>
+<li><p><em>list</em> – attribs, list [Label, value, units]</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Currently this is a bit messy, and relies on fixed DumpIDY format.
+No error checking as yet.
+Not yet reading all attribs.</p>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">matEle</span><span class="p">,</span> <span class="n">attribs</span> <span class="o">=</span> <span class="n">parseDumpIDY</span><span class="p">(</span><span class="n">dumpSegs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="ePSproc_IO.parseDumpSegsX">
+<code class="sig-prename descclassname">ePSproc_IO.</code><code class="sig-name descname">parseDumpSegsX</code><span class="sig-paren">(</span><em class="sig-param">dumpSegs</em><span class="sig-paren">)</span><a class="headerlink" href="#ePSproc_IO.parseDumpSegsX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract data from ePS dumpIdy segments into usable form.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dumpSegs</strong> (<em>list</em>) – Set of dumpIdy segments, i.e. dumpSegs, as returned by ePSIdyParse()</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>xr.array</em> – Xarray data array, containing matrix elements etc.</p></li>
+<li><p><em>int</em> – Number of blank segments found.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">parseDumpSegX</span><span class="p">(</span><span class="n">dumpSegs</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">ePSproc</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">ePSproc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">epsproc</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, Paul Hockett.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/modules/ePSproc_IO.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

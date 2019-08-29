@@ -1,0 +1,54 @@
+epsproc package
+===============
+
+Submodules
+----------
+
+epsproc.ePSproc\_IO module
+--------------------------
+
+.. automodule:: epsproc.ePSproc_IO
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+epsproc.ePSproc\_MFPAD module
+-----------------------------
+
+.. automodule:: epsproc.ePSproc_MFPAD
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+epsproc.ePSproc\_sphCalc module
+-------------------------------
+
+.. automodule:: epsproc.ePSproc_sphCalc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+epsproc.ePSproc\_sphPlot module
+-------------------------------
+
+.. automodule:: epsproc.ePSproc_sphPlot
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+epsproc.ePSproc\_util module
+----------------------------
+
+.. automodule:: epsproc.ePSproc_util
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: epsproc
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,330 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>epsproc.ePSproc_sphCalc module &mdash; ePSproc 1.5.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="epsproc.ePSproc_sphPlot module" href="epsproc.ePSproc_sphPlot.html" />
+    <link rel="prev" title="epsproc.ePSproc_MFPAD module" href="epsproc.ePSproc_MFPAD.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ePSproc
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">ePSproc</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">epsproc</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="epsproc.html">epsproc package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="epsproc.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="epsproc.ePSproc_IO.html">epsproc.ePSproc_IO module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="epsproc.ePSproc_MFPAD.html">epsproc.ePSproc_MFPAD module</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">epsproc.ePSproc_sphCalc module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="epsproc.ePSproc_sphPlot.html">epsproc.ePSproc_sphPlot module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="epsproc.ePSproc_util.html">epsproc.ePSproc_util module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.html#module-epsproc">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ePSproc</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="modules.html">epsproc</a> &raquo;</li>
+        
+          <li><a href="epsproc.html">epsproc package</a> &raquo;</li>
+        
+      <li>epsproc.ePSproc_sphCalc module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/modules/epsproc.ePSproc_sphCalc.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-epsproc.ePSproc_sphCalc">
+<span id="epsproc-epsproc-sphcalc-module"></span><h1>epsproc.ePSproc_sphCalc module<a class="headerlink" href="#module-epsproc.ePSproc_sphCalc" title="Permalink to this headline">¶</a></h1>
+<p>ePSproc spherical function calculations.</p>
+<p>Collection of functions for calculating Ylm, wignerD etc.</p>
+<p>For spherical harmonics, currently using scipy.special.sph_harm</p>
+<p>For other functions, using Moble’s spherical_functions package
+<a class="reference external" href="https://github.com/moble/spherical_functions">https://github.com/moble/spherical_functions</a></p>
+<p>See tests/Spherical function testing Aug 2019.ipynb</p>
+<p>27/08/19        Added wDcalc for Wigner D functions.
+14/08/19    v1  Implmented sphCalc</p>
+<dl class="function">
+<dt id="epsproc.ePSproc_sphCalc.sphCalc">
+<code class="sig-prename descclassname">epsproc.ePSproc_sphCalc.</code><code class="sig-name descname">sphCalc</code><span class="sig-paren">(</span><em class="sig-param">Lmax</em>, <em class="sig-param">Lmin=0</em>, <em class="sig-param">res=None</em>, <em class="sig-param">angs=None</em>, <em class="sig-param">XFlag=True</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphCalc.sphCalc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate set of spherical harmonics Ylm(theta,phi) on a grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Lmax</strong> (<em>int</em>) – Maximum L for the set. Ylm calculated for Lmin:Lmax, all m.</p></li>
+<li><p><strong>Lmin</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default 0</em>) – Min L for the set. Ylm calculated for Lmin:Lmax, all m.</p></li>
+<li><p><strong>res</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – (Theta, Phi) grid resolution, outputs will be of dim [res,res].</p></li>
+<li><p><strong>angs</strong> (<em>list of 2D np.arrays</em><em>, </em><em>[</em><em>thetea</em><em>, </em><em>phi</em><em>]</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – If passed, use these grids for calculation</p></li>
+<li><p><strong>XFlag</strong> (<em>bool</em><em>, </em><em>optional</em><em>, </em><em>default True</em>) – Flag for output. If true, output is Xarray. If false, np.arrays</p></li>
+<li><p><strong>that either res OR angs needs to be passed.</strong> (<em>Note</em>) – </p></li>
+<li><p><strong>Outputs</strong> – </p></li>
+<li><p><strong>-------</strong> – </p></li>
+<li><p><strong>if XFlag -</strong> (<em>-</em>) – </p></li>
+<li><p><strong>YlmX</strong> – 3D Xarray, dims (lm,theta,phi)</p></li>
+<li><p><strong>else -</strong> (<em>-</em>) – </p></li>
+<li><p><strong>lm</strong> (<em>Ylm</em><em>,</em>) – 3D np.array of values, dims (lm,theta,phi), plus list of lm pairs</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt>
+<code class="sig-name descname">Currently set for scipy.special.sph_harm as calculation routine.</code></dt>
+<dd></dd></dl>
+
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">YlmX</span> <span class="o">=</span> <span class="n">sphCalc</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="mi">50</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_sphCalc.wDcalc">
+<code class="sig-prename descclassname">epsproc.ePSproc_sphCalc.</code><code class="sig-name descname">wDcalc</code><span class="sig-paren">(</span><em class="sig-param">Lrange=[0, 1], Nangs=None, eAngs=None, R=None, XFlag=True</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphCalc.wDcalc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate set of Wigner D functions D(l,m,mp,R) on a grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Lrange</strong> (<em>list</em><em>, </em><em>optional</em><em>, </em><em>default</em><em> [</em><em>0</em><em>, </em><em>1</em><em>]</em>) – Range of L to calculate parameters for.
+If len(Lrange) == 2 assumed to be of form [Lmin, Lmax], otherwise list is used directly.
+For a given l, all (m, mp) combinations are calculated.</p></li>
+<li><p><strong>for setting angles</strong><strong> (</strong><strong>use one only</strong><strong>)</strong> (<em>Options</em>) – </p></li>
+<li><p><strong>Nangs</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – If passed, use this to define Euler angles sampled.
+Ranges will be set as (theta, phi, chi) = (0:pi, 0:pi/2, 0:pi) in Nangs steps.</p></li>
+<li><p><strong>eAngs</strong> (<em>np.array</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – If passed, use this to define Euler angles sampled.
+Array of angles, [theta,phi,chi], in radians</p></li>
+<li><p><strong>R</strong> (<em>np.array</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – If passed, use this to define Euler angles sampled.
+Array of quaternions, as given by quaternion.from_euler_angles(eAngs).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>XFlag<span class="classifier">bool, optional, default True</span></dt><dd><p>Flag for output. If true, output is Xarray. If false, np.arrays</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>if XFlag -</p></li>
+</ul>
+<dl class="simple">
+<dt>wDX</dt><dd><p>Xarray, dims (lmmp,Euler)</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>else -</p></li>
+</ul>
+<dl class="simple">
+<dt>wD, R, lmmp</dt><dd><p>np.arrays of values, dims (lmmp,Euler), plus list of angles and lmmp sets.</p>
+</dd>
+</dl>
+<dl class="method">
+<dt>
+<code class="sig-name descname">Uses Moble's spherical_functions package for wigner D function.</code></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<code class="sig-name descname">https://github.com/moble/spherical_functions</code></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<code class="sig-name descname">Moble's quaternion package for angles and conversions.</code></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<code class="sig-name descname">https://github.com/moble/quaternion</code></dt>
+<dd></dd></dl>
+
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wDX1</span> <span class="o">=</span> <span class="n">wDcalc</span><span class="p">(</span><span class="n">eAngs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wDX2</span> <span class="o">=</span> <span class="n">wDcalc</span><span class="p">(</span><span class="n">Nangs</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="epsproc.ePSproc_sphPlot.html" class="btn btn-neutral float-right" title="epsproc.ePSproc_sphPlot module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="epsproc.ePSproc_MFPAD.html" class="btn btn-neutral float-left" title="epsproc.ePSproc_MFPAD module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Paul Hockett
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

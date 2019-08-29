@@ -13,7 +13,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('..\\..\\'))    # Add module path (relative to docs path)
+# sys.path.insert(0, os.path.abspath('..\\..\\'))    # Add module path (relative to docs path)
 # print(sys.path)
 
 # -- Project information -----------------------------------------------------
@@ -32,8 +32,7 @@ release = '1.5.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
-                'sphinxcontrib.apidoc'
-]
+                'sphinxcontrib.apidoc', 'recommonmark']
 
 # api doc settings
 apidoc_module_dir = '../../epsproc'

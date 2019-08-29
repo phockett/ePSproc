@@ -11,7 +11,7 @@ Welcome to ePSproc's documentation!
    :caption: Contents:
 
    readme
-   modules/epsproc  
+   modules/epsproc
 
 
 Indices and tables

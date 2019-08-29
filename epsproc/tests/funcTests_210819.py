@@ -19,6 +19,7 @@ dataSet = ep.readMatEle()
 #%% MFPADs
 
 #ep.MF.mfpad(dataSet[0])
+
 TX, TlmX = ep.mfpad(dataSet[1])
 
 # Plot for each pol geom (symmetry)
@@ -64,3 +65,4 @@ TX, TlmX = ep.mfpad(dataSet[0])
 
 TXplot = TX.sum('Sym').squeeze().isel(Eke=slice(0,50,10))
 TXplot.pipe(np.abs).plot(x='Theta',y='Phi', row='Euler', col='Eke')
+

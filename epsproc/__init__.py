@@ -24,11 +24,11 @@ __version__ = '1.1.0'
 #import epsproc.ePSproc_MFPAD as MF
 
 # Direct * import for modules - probably a bad idea.
-from epsproc.ePSproc_IO import *
-from epsproc.ePSproc_util import *
-from epsproc.ePSproc_sphCalc import *
-from epsproc.ePSproc_sphPlot import *
-from epsproc.ePSproc_MFPAD import *
+from epsproc.IO import *
+from epsproc.util import *
+from epsproc.sphCalc import *
+from epsproc.sphPlot import *
+from epsproc.MFPAD import *
 
 
 

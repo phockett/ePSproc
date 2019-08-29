@@ -6,11 +6,11 @@ Submodules
 
 .. toctree::
 
-   epsproc.ePSproc_IO
-   epsproc.ePSproc_MFPAD
-   epsproc.ePSproc_sphCalc
-   epsproc.ePSproc_sphPlot
-   epsproc.ePSproc_util
+   epsproc.IO
+   epsproc.MFPAD
+   epsproc.sphCalc
+   epsproc.sphPlot
+   epsproc.util
 
 Module contents
 ---------------

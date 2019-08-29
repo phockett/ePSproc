@@ -1,13 +1,22 @@
 # -*- coding: utf-8 -*-
 """
 ePSproc IO functions.
+=====================
 
-Main function readMatEle(fileIn = None, fileBase = None, fType = '.out'):
+Module for file IO and data parsing.
+
+Main function: :py:func:`epsproc.IO.readMatEle`:
+
+    readMatEle(fileIn = None, fileBase = None, fType = '.out'):
 
     Read ePS file(s) and return results as Xarray data structures containing matrix elements.
-    File endings specified by fType, default *.out.
+    File endings specified by fType, default .out.
 
-Also includes required ancillary functions for file IO tasks, and data parsing.
+
+History
+-------
+
+29/08/19        Updating docs to rst.
 
 26/08/19        Added parsing for E, sym parameters from head of ePS file.
                 Added error checking by comparing read mat elements to expected list.
@@ -15,15 +24,20 @@ Also includes required ancillary functions for file IO tasks, and data parsing.
                 Current code rather ugly however.
 
 19/08/19        Add functions for reading wavefunction files (3D data)
+
 07/08/19        Naming convention tweaks, and some changes to comments, following basic tests with Sphinx.
+
 05/08/19    v1  Initial python version.
                 Working, but little error checking as yet. Needs some tidying.
 
-TODO
-----
-- Add IO for other file segments (only DumpIdy supported so far).
-- Better logic & flexibility for file scanning.
-- Restructure as class for brevity...?
+
+To do
+-----
+* Add IO for other file segments (only DumpIdy supported so far).
+* Better logic & flexibility for file scanning.
+* Restructure as class for brevity...?
+
+
 
 """
 
@@ -43,7 +57,7 @@ except ImportError as e:
     print('* pyevtk not found, VTK export not available. ')
 
 # Package fns.
-from epsproc.ePSproc_util import matEleSelector, dataGroupSel
+from epsproc.util import matEleSelector, dataGroupSel
 
 # ***** Ancillary functions
 
@@ -237,7 +251,7 @@ def dumpIdySegParse(dumpSeg):
     Parameters
     ----------
     dumpSeg : list
-        One dumpIdy segment, from dumpSegs[], as returned by dumpIdyFileParse()
+        One dumpIdy segment, from dumpSegs[], as returned by :py:func:`epsproc.IO.dumpIdyFileParse()`
 
     Returns
     -------
@@ -522,13 +536,13 @@ def matEleGroupDimX(daIn):
     TODO: better ways to do this?
     See also tests in funcTests_210819.py for more versions/tests.
 
-    Inputs
-    ------
+    Parameters
+    ----------
     data : Xarray
         Data array with matrix elements to be split and recombined by dims.
 
-    Outputs
-    ------
+    Returns
+    -------
     data : Xarray
         Data array with reordered matrix elements (dimensions).
 
@@ -585,8 +599,8 @@ def matEleGroupDimXnested(da):
     TODO: better ways to do this?
     See also tests in funcTests_210819.py for more versions/tests.
 
-    Inputs
-    ------
+    Parameters
+    ----------
     data : Xarray
         Data array with matrix elements to be split and recombined by dims.
 
@@ -627,8 +641,8 @@ def matEleGroupDim(data, dimGroups = [3, 4, 2]):
 
     TODO: better ways to do this?  Shoud be possible at Xarray level.
 
-    Inputs
-    ------
+    Parameters
+    ----------
     data : list
         Sections from dumpIdy segment, as created in dumpIdySegsParseX()
         Ordering is [labels, matElements, attribs].
@@ -696,10 +710,11 @@ def matEleGroupDim(data, dimGroups = [3, 4, 2]):
 
 
 # Function for grabbing files or scanning dir for files.
+# Note raw string for docstring as one method of keeping raw string in example.
 def getFiles(fileIn = None, fileBase = None, fType = '.out'):
-    """
+    r"""
     Read ePS file(s) and return results as Xarray data structures.
-    File endings specified by fType, default *.out.
+    File endings specified by fType, default .out.
 
     Parameters
     ----------
@@ -707,7 +722,7 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out'):
         File(s) to read (file in working dir, or full path).
         Defaults to current working dir if only a file name is supplied.
         For consistent results, pass raw strings, e.g.
-        fileIn = r"C:\share\code\ePSproc\python_dev\no2_demo_ePS.out"
+        ``fileIn = r"C:\share\code\ePSproc\python_dev\no2_demo_ePS.out"``
 
     fileBase : str, optional.
         Dir to scan for files.
@@ -722,6 +737,8 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out'):
     -------
     list
         List of Xarray data arrays, containing matrix elements etc. from each file scanned.
+
+
     """
 
 
@@ -768,7 +785,7 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out'):
 #TODO: Check/fix paths if incorrectly passed, e.g. https://stackoverflow.com/a/21605790
 
 def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
-    """
+    r"""
     Read ePS file(s) and return results as Xarray data structures.
     File endings specified by fType, default *.out.
 
@@ -778,7 +795,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
         File(s) to read (file in working dir, or full path).
         Defaults to current working dir if only a file name is supplied.
         For consistent results, pass raw strings, e.g.
-        fileIn = r"C:\share\code\ePSproc\python_dev\no2_demo_ePS.out"
+        ``fileIn = r"C:\share\code\ePSproc\python_dev\no2_demo_ePS.out"``
 
     fileBase : str, optional.
         Dir to scan for files.
@@ -805,11 +822,10 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
 
     >>> dataSet = readMatEle(fileBase = r'C:\share\code\ePSproc\python_dev') # Scan dir
 
-    Notes
-    -----
-    Files are scanned for matrix element output flagged by "DumpIdy" headers.
-    Each segment found is parsed for attributes and data (set of matrix elements).
-    Matrix elements and attributes are combined and output as an Xarray array.
+    .. note::
+        * Files are scanned for matrix element output flagged by "DumpIdy" headers.
+        * Each segment found is parsed for attributes and data (set of matrix elements).
+        * Matrix elements and attributes are combined and output as an Xarray array.
 
     """
 
@@ -1005,11 +1021,13 @@ def writeOrb3Dvtk(dataSet):
     list
         List of output files.
 
-    Notes
-    -----
-    Uses Paulo Herrera's eVTK, see:
-    https://pyscience.wordpress.com/2014/09/06/numpy-to-vtk-converting-your-numpy-arrays-to-vtk-arrays-and-files/
-    https://bitbucket.org/pauloh/pyevtk/src/default/
+
+    .. note::
+        Uses Paulo Herrera's eVTK, see:
+
+        * https://pyscience.wordpress.com/2014/09/06/numpy-to-vtk-converting-your-numpy-arrays-to-vtk-arrays-and-files/
+        * https://bitbucket.org/pauloh/pyevtk/src/default/
+
 
     """
     fOut = []

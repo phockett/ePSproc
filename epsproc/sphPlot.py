@@ -16,8 +16,15 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm, colors
 
 # Plotly
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+try:
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+except ImportError as e:
+    if e.msg != "No module named 'plotly'":
+        raise
+    print('* plotly not found, plotly plots not available. ')
+
+
 
 # Plot a set of mfpads using Holoviews
 # TODO: finish this!!!

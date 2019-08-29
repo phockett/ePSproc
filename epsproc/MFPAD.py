@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-ePSproc MFPAD functions.
+r"""
+ePSproc MFPAD functions
+-----------------------
 
 
 05/08/19    v1  Initial python version.
@@ -13,73 +14,46 @@ Use fast functions, pre-calculate if possible.
 Data in Xarray, use selection functions and multiplications based on relevant quantum numbers, other axes summed over.
 
 Choices for functions...
-- Moble's spherical functions (quaternion based)
-     https://github.com/moble/spherical_functions
-     conda install -c conda-forge spherical_functions
+    * `Moble's spherical functions (quaternion based) <https://github.com/moble/spherical_functions>`_
 
-     wignerD and Ylm functions, quaternion-based
+      Provides fast wignerD, 3j and Ylm functions, uses Numba.
 
-- Scipy
-    Ylm: https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.sph_harm.html#scipy.special.sph_harm
+      Install with:
 
-TODO
-----
-- Benchmark on NO2 reference results.
-- Test over multiple E.
-- Test over multiple R.
+      >>> conda install -c conda-forge spherical_functions
+
+    * `Scipy special.sph_harm <https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.sph_harm.html#scipy.special.sph_harm>`_
+
+
+
+To Do
+-----
+* Propagate scale-factor to Mb.
+* Benchmark on NO2 reference results.
+* Test over multiple E.
+* Test over multiple R.
 
 Formalism
 ---------
-(From `ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations <https://www.authorea.com/users/71114/articles/122402/_show_article>`).
+From `ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations <https://www.authorea.com/users/71114/articles/122402/_show_article>`_.
 
 .. math::
+    I_{\mu_{0}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})=\frac{4\pi^{2}E}{cg_{p_{i}}}\sum_{\mu_{i},\mu_{f}}|T_{\mu_{0}}^{p_{i}\mu_{i},p_{f}\mu_{f}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})|^{2}\label{eq:MFPAD}
 
-\begin{equation}
-I_{\mu_{0}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})=\frac{4\pi^{2}E}{cg_{p_{i}}}\sum_{\mu_{i},\mu_{f}}|T_{\mu_{0}}^{p_{i}\mu_{i},p_{f}\mu_{f}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})|^{2}\label{eq:MFPAD}
-\end{equation}
+    T_{\mu_{0}}^{p_{i}\mu_{i},p_{f}\mu_{f}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})=\sum_{l,m,\mu}I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)Y_{lm}^{*}(\theta_{\hat{k}},\phi_{\hat{k}})D_{\mu,\mu_{0}}^{1}(R_{\hat{n}})\label{eq:TMF}
 
-\begin{equation}
-T_{\mu_{0}}^{p_{i}\mu_{i},p_{f}\mu_{f}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})=\sum_{l,m,\mu}I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)Y_{lm}^{*}(\theta_{\hat{k}},\phi_{\hat{k}})D_{\mu,\mu_{0}}^{1}(R_{\hat{n}})\label{eq:TMF}
-\end{equation}
+    I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)=\langle\Psi_{i}^{p_{i},\mu_{i}}|\hat{d_{\mu}}|\Psi_{f}^{p_{f},\mu_{f}}\varphi_{klm}^{(-)}\rangle\label{eq:I}
 
-\begin{equation}
-I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)=\langle\Psi_{i}^{p_{i},\mu_{i}}|\hat{d_{\mu}}|\Psi_{f}^{p_{f},\mu_{f}}\varphi_{klm}^{(-)}\rangle\label{eq:I}
-\end{equation}
 
 In this formalism:
-\begin{itemize}
-\item $I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)$ is the radial part of
-the dipole matrix element, determined from the initial and final state
-electronic wavefunctions $\Psi_{i}^{p_{i},\mu_{i}}$and $\Psi_{f}^{p_{f},\mu_{f}}$,
-photoelectron wavefunction $\varphi_{klm}^{(-)}$ and dipole operator
-$\hat{d_{\mu}}$. Here the wavefunctions are indexed by irreducible
-representation (i.e. symmetry) by the labels $p_{i}$ and $p_{f}$,
-with components $\mu_{i}$ and $\mu_{f}$ respectively; $l,m$ are
-angular momentum components, $\mu$ is the projection of the polarization
-into the MF (from a value $\mu_{0}$ in the LF). Each energy and irreducible
-representation corresponds to a calculation in ePolyScat.
-\item $T_{\mu_{0}}^{p_{i}\mu_{i},p_{f}\mu_{f}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})$
-is the full matrix element (expanded in polar coordinates) in the
-MF, where $\hat{k}$ denotes the direction of the photoelectron $\mathbf{k}$-vector,
-and $\hat{n}$ the direction of the polarization vector $\mathbf{n}$
-of the ionizing light. Note that the summation over components $\{l,m,\mu\}$
-is coherent, and hence phase sensitive.
-\item $Y_{lm}^{*}(\theta_{\hat{k}},\phi_{\hat{k}})$ is a spherical harmonic.
-\item $D_{\mu,\mu_{0}}^{1}(R_{\hat{n}})$ is a Wigner rotation matrix element,
-with a set of Euler angles $R_{\hat{n}}=(\phi_{\hat{n}},\theta_{\hat{n}},\chi_{\hat{n}})$,
-which rotates/projects the polarization into the MF .
-\item $I_{\mu_{0}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})$
-is the final (observable) MFPAD, for a polarization $\mu_{0}$ and
-summed over all symmetry components of the initial and final states,
-$\mu_{i}$ and $\mu_{f}$. Note that this sum can be expressed as
-an incoherent summation, since these components are (by definition)
-orthogonal.
-\item $g_{p_{i}}$ is the degeneracy of the state $p_{i}$.
-\end{itemize}
-The dipole matrix element of eqn. \ref{eq:I} - the radial part of
-the dipole matrix element - effectively defines the final state amplitude
-and phase. Hence, is equivalent to the general form of eqn. \ref{eq:dipole-int},
-but here expanded in terms of symmetries of the light-matter system.
+
+* :math:`I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)` is the radial part of the dipole matrix element, determined from the initial and final state electronic wavefunctions :math:`\Psi_{i}^{p_{i},\mu_{i}}` and :math:`\Psi_{f}^{p_{f},\mu_{f}}`, photoelectron wavefunction :math:`\varphi_{klm}^{(-)}` and dipole operator :math:`\hat{d_{\mu}}`. Here the wavefunctions are indexed by irreducible representation (i.e. symmetry) by the labels :math:`p_{i}` and :math:`p_{f}`, with components :math:`\mu_{i}` and :math:`\mu_{f}` respectively; :math:`l,m` are angular momentum components, :math:`\mu` is the projection of the polarization into the MF (from a value :math:`\mu_{0}` in the LF). Each energy and irreducible representation corresponds to a calculation in ePolyScat.
+* :math:`T_{\mu_{0}}^{p_{i}\mu_{i},p_{f}\mu_{f}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})` is the full matrix element (expanded in polar coordinates) in the MF, where :math:`\hat{k}` denotes the direction of the photoelectron :math:`\mathbf{k}`-vector, and :math:`\hat{n}` the direction of the polarization vector :math:`\mathbf{n}` of the ionizing light. Note that the summation over components :math:`\{l,m,\mu\}` is coherent, and hence phase sensitive.
+* :math:`Y_{lm}^{*}(\theta_{\hat{k}},\phi_{\hat{k}})` is a spherical harmonic.
+* :math:`D_{\mu,\mu_{0}}^{1}(R_{\hat{n}})` is a Wigner rotation matrix element, with a set of Euler angles :math:`R_{\hat{n}}=(\phi_{\hat{n}},\theta_{\hat{n}},\chi_{\hat{n}})`, which rotates/projects the polarization into the MF.
+* :math:`I_{\mu_{0}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})` is the final (observable) MFPAD, for a polarization :math:`\mu_{0}` and summed over all symmetry components of the initial and final states, :math:`\mu_{i}` and :math:`\mu_{f}`. Note that this sum can be expressed as an incoherent summation, since these components are (by definition) orthogonal.
+* :math:`g_{p_{i}}` is the degeneracy of the state :math:`p_{i}`.
+
 
 """
 
@@ -94,13 +68,14 @@ import quaternion
 
 # Package fns.
 # TODO: tidy this up!
-from epsproc.ePSproc_util import matEleSelector
-from epsproc.ePSproc_sphCalc import sphCalc
+from epsproc.util import matEleSelector
+from epsproc.sphCalc import sphCalc
 
 def mfpad(dataIn, thres = 1e-2, inds = {'Type':'L','it':1}, res = 50, R = None, p = 0):
     """
-    Inputs
-    ------
+
+    Parameters
+    ----------
     dataIn : Xarray
         Contains set(s) of matrix elements to use, as output by epsproc.readMatEle().
 
@@ -123,7 +98,7 @@ def mfpad(dataIn, thres = 1e-2, inds = {'Type':'L','it':1}, res = 50, R = None, 
         Defines LF polarization state, p = -1...1, default p = 0 (linearly pol light along z-axis).
         TODO: add summation over p for multiple pol states in LF.
 
-    Outputs
+    Returns
     -------
     Ta
         Xarray (theta, phi, E, Sym) of MFPADs, summed over (l,m)

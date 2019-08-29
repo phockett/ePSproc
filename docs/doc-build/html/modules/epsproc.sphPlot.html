@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>epsproc.ePSproc_sphPlot module &mdash; ePSproc 1.5.0 documentation</title>
+  <title>epsproc.sphPlot module &mdash; ePSproc 1.5.0 documentation</title>
   
 
   
@@ -35,8 +35,8 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="epsproc.ePSproc_util module" href="epsproc.ePSproc_util.html" />
-    <link rel="prev" title="epsproc.ePSproc_sphCalc module" href="epsproc.ePSproc_sphCalc.html" /> 
+    <link rel="next" title="epsproc.util module" href="epsproc.util.html" />
+    <link rel="prev" title="epsproc.sphCalc module" href="epsproc.sphCalc.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -83,19 +83,16 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../readme.html">ePSproc</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">epsproc</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="epsproc.html">epsproc package</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="epsproc.html#submodules">Submodules</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="epsproc.ePSproc_IO.html">epsproc.ePSproc_IO module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="epsproc.ePSproc_MFPAD.html">epsproc.ePSproc_MFPAD module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="epsproc.ePSproc_sphCalc.html">epsproc.ePSproc_sphCalc module</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">epsproc.ePSproc_sphPlot module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="epsproc.ePSproc_util.html">epsproc.ePSproc_util module</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="epsproc.html">epsproc package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="epsproc.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="epsproc.IO.html">epsproc.IO module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.MFPAD.html">epsproc.MFPAD module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.sphCalc.html">epsproc.sphCalc module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">epsproc.sphPlot module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.util.html">epsproc.util module</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="epsproc.html#module-epsproc">Module contents</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="epsproc.html#module-epsproc">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -143,17 +140,15 @@
     
       <li><a href="../index.html">Docs</a> &raquo;</li>
         
-          <li><a href="modules.html">epsproc</a> &raquo;</li>
-        
           <li><a href="epsproc.html">epsproc package</a> &raquo;</li>
         
-      <li>epsproc.ePSproc_sphPlot module</li>
+      <li>epsproc.sphPlot module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/modules/epsproc.ePSproc_sphPlot.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/modules/epsproc.sphPlot.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -166,24 +161,24 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-epsproc.ePSproc_sphPlot">
-<span id="epsproc-epsproc-sphplot-module"></span><h1>epsproc.ePSproc_sphPlot module<a class="headerlink" href="#module-epsproc.ePSproc_sphPlot" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-epsproc.sphPlot">
+<span id="epsproc-sphplot-module"></span><h1>epsproc.sphPlot module<a class="headerlink" href="#module-epsproc.sphPlot" title="Permalink to this headline">¶</a></h1>
 <p>ePSproc spherical polar plotting functions</p>
 <p>Collection of functions for plotting I(theta, phi) type data.</p>
 <p>14/08/19    v1</p>
 <dl class="function">
-<dt id="epsproc.ePSproc_sphPlot.mfpadPlotHV">
-<code class="sig-prename descclassname">epsproc.ePSproc_sphPlot.</code><code class="sig-name descname">mfpadPlotHV</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphPlot.mfpadPlotHV" title="Permalink to this definition">¶</a></dt>
+<dt id="epsproc.sphPlot.mfpadPlotHV">
+<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">mfpadPlotHV</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.sphPlot.mfpadPlotHV" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="epsproc.ePSproc_sphPlot.mfpadPlotPL">
-<code class="sig-prename descclassname">epsproc.ePSproc_sphPlot.</code><code class="sig-name descname">mfpadPlotPL</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em>, <em class="sig-param">facetDim='Eke'</em>, <em class="sig-param">rc=None</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphPlot.mfpadPlotPL" title="Permalink to this definition">¶</a></dt>
+<dt id="epsproc.sphPlot.mfpadPlotPL">
+<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">mfpadPlotPL</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em>, <em class="sig-param">facetDim='Eke'</em>, <em class="sig-param">rc=None</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.sphPlot.mfpadPlotPL" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="epsproc.ePSproc_sphPlot.sphPlot">
-<code class="sig-prename descclassname">epsproc.ePSproc_sphPlot.</code><code class="sig-name descname">sphPlot</code><span class="sig-paren">(</span><em class="sig-param">dataPlot</em>, <em class="sig-param">theta</em>, <em class="sig-param">phi</em>, <em class="sig-param">pType='a'</em>, <em class="sig-param">backend='matplotlib'</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphPlot.sphPlot" title="Permalink to this definition">¶</a></dt>
+<dt id="epsproc.sphPlot.sphPlot">
+<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphPlot</code><span class="sig-paren">(</span><em class="sig-param">dataPlot</em>, <em class="sig-param">theta</em>, <em class="sig-param">phi</em>, <em class="sig-param">pType='a'</em>, <em class="sig-param">backend='matplotlib'</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.sphPlot.sphPlot" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Matplotlib.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -209,8 +204,8 @@ Some functionality may end up being pushed to plotting library, e.g. Holoviews, 
 </dd></dl>
 
 <dl class="function">
-<dt id="epsproc.ePSproc_sphPlot.sphSumPlotX">
-<code class="sig-prename descclassname">epsproc.ePSproc_sphPlot.</code><code class="sig-name descname">sphSumPlotX</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em>, <em class="sig-param">pType='a'</em>, <em class="sig-param">backend='matplotlib'</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphPlot.sphSumPlotX" title="Permalink to this definition">¶</a></dt>
+<dt id="epsproc.sphPlot.sphSumPlotX">
+<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphSumPlotX</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em>, <em class="sig-param">pType='a'</em>, <em class="sig-param">backend='matplotlib'</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.sphPlot.sphSumPlotX" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot sum of spherical harmonics from an Xarray.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -249,8 +244,8 @@ In the latter case (lm) dimension is summed.</p></li>
 </dd></dl>
 
 <dl class="function">
-<dt id="epsproc.ePSproc_sphPlot.sphToCart">
-<code class="sig-prename descclassname">epsproc.ePSproc_sphPlot.</code><code class="sig-name descname">sphToCart</code><span class="sig-paren">(</span><em class="sig-param">R</em>, <em class="sig-param">theta</em>, <em class="sig-param">phi</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphPlot.sphToCart" title="Permalink to this definition">¶</a></dt>
+<dt id="epsproc.sphPlot.sphToCart">
+<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphToCart</code><span class="sig-paren">(</span><em class="sig-param">R</em>, <em class="sig-param">theta</em>, <em class="sig-param">phi</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.sphPlot.sphToCart" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert spherical polar coords (R,theta,phi) to Cartesian (X,Y,Z).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -274,10 +269,10 @@ In the latter case (lm) dimension is summed.</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="epsproc.ePSproc_util.html" class="btn btn-neutral float-right" title="epsproc.ePSproc_util module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="epsproc.util.html" class="btn btn-neutral float-right" title="epsproc.util module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="epsproc.ePSproc_sphCalc.html" class="btn btn-neutral float-left" title="epsproc.ePSproc_sphCalc module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="epsproc.sphCalc.html" class="btn btn-neutral float-left" title="epsproc.sphCalc module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

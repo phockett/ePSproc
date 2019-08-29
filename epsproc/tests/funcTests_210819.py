@@ -7,7 +7,7 @@ Script for testing ePSproc packaged functions.
 """
 
 #%% Import
-
+import matplotlib.pyplot as plt
 import epsproc as ep
 
 #%% Read (from /data)
@@ -19,157 +19,50 @@ dataSet = ep.readMatEle()
 #%% MFPADs
 
 #ep.MF.mfpad(dataSet[0])
-ep.mfpad(dataSet[0])
 
-#%% Subselections using matEleSelector
-#   THIS IS UGLY, but seems to work - get da of correct dims out (with multilevel coords in).
-#   Could also try dataset to array for split and recombine...?
-#   http://xarray.pydata.org/en/v0.12.3/reshaping.html
+TX, TlmX = ep.mfpad(dataSet[1])
 
+# Plot for each pol geom (symmetry)
+for n in range(0,3):      
+    # ep.sphSumPlotX(testPlot[n].squeeze().sum('Sym').sum('mu'), pType = 'a') # This runs for Euler as final dim, although not getting all correct results?
+    ep.sphSumPlotX(TX[n].sum('Sym').squeeze(), pType = 'a')
 
-indList = ['ip','it','mu']
+# Plot abs(TX) images using Xarray functionality
+TX.squeeze().pipe(np.abs).plot(x='Theta',y='Phi', col='Euler', row='Sym')
 
-da = dataSet[0].copy()
+#%% Plot matrix elements using Xarray functionality
 
-daRedList = []
-for x in np.unique(da[indList[0]]):
-    daRedList0 = []
-    for y in np.unique(da[indList[1]]):
-        daRedList1 = []
-        for z in np.unique(da[indList[2]]):
-            red = ep.UT.matEleSelector(da, inds = {indList[0]:x, indList[1]:y, indList[2]:z})
-            
-            red = red.expand_dims({indList[0]:[x], indList[1]:[y], indList[2]:[z]})
-            
-            daRedList1.append(red)
-            
-        daOut1 = xr.combine_nested(daRedList1, concat_dim = indList[2])
-        daRedList0.append(daOut1)    
-        
-    daOut2 = xr.combine_nested(daRedList0, concat_dim = indList[1])
-    daRedList.append(daOut2)
+# daRed = ep.matElementSelector(dataSet[1], inds = {})
+# daPlot = np.abs(dataSet[0].sum('mu').sum('Sym').sel({'Type':'L'}).squeeze())
+daPlot = dataSet[0].sum('mu').sum('Sym').sel({'Type':'L'}).squeeze()
 
-daOut =  xr.combine_nested(daRedList, concat_dim = indList[0])
+fig, axes = plt.subplots(nrows=2)
 
-#%% Tidier version (maybe) with reduced nesting
-#   Linear tree ip > mu >it
+daPlot.pipe(np.abs).plot.line(x='Eke', ax=axes[0])
 
-# def matEleSplit(da, indList)
-daIn = dataSet[0].copy()
-daRedList = []
+# Doesn't work for angle - outputs np.array
+# daPlot.pipe(np.angle).plot.line(x='Eke', ax=axes[1])
 
+#%% As colourmap - doens't work for category data?
 
-# Split on 'ip' - will always be (1,2), and split matEle into two
-ipLabel = ['L','V']
-for n, val in enumerate(range(1,3)):
-    tmp = ep.UT.matEleSelector(daIn, inds = {'ip':val})
-    tmp = tmp.expand_dims({'Type':[ipLabel[n]]})
-    daRedList.append(tmp)
+daPlot.plot.pcolormesh('LM', 'Eke')
 
-# Restack
-daRed = xr.combine_nested(daRedList, concat_dim = 'Type')
+#%% Plot with faceting on type
 
-# Split on mu - values from set {-1,0,1} depending on symmetry
-daRedList = []
-uVals = np.unique(daRed.mu)
-for n, val in enumerate(uVals):
-    tmp = ep.UT.matEleSelector(daRed, inds = {'mu':val})
-    tmp = tmp.expand_dims({'mu':[val]})
-    daRedList.append(tmp)
+daPlot = dataSet[0].sum('mu').sum('Sym').squeeze()
 
-# Restack
-daRed = xr.combine_nested(daRedList, concat_dim = 'mu')    
+daPlot.pipe(np.abs).plot.line(x='Eke', row='Type')
 
-# Split on it
-daRedList = []
-uVals = np.unique(daRed.it)
-for n, val in enumerate(uVals):
-    tmp = ep.UT.matEleSelector(daRed, inds = {'it':val})
-    tmp = tmp.expand_dims({'it':[val]})
-    daRedList.append(tmp)
+#%% Plot with faceting on symmetry
 
-# Restack
-daRed = xr.combine_nested(daRedList, concat_dim = 'it')    
+daPlot = dataSet[0].sum('mu').squeeze()
 
+daPlot.pipe(np.abs).plot.line(x='Eke', col='Sym', row='Type')
 
+#%% Plot MFPAD surfaces vs E
 
-#%% Using datasets
-#   Should work... but notation gets ugly(er)
-#   Actually - used arrays for all coords which will be used in a sum.
-#   The datasets to hold remaining dims (ip)...?
-#   WAIT -- in this construction will still require knowldege of dims.
+TX, TlmX = ep.mfpad(dataSet[0])
 
-indList = ['ip','it','mu']
+TXplot = TX.sum('Sym').squeeze().isel(Eke=slice(0,50,10))
+TXplot.pipe(np.abs).plot(x='Theta',y='Phi', row='Euler', col='Eke')
 
-da = dataSet[0].copy()
-
-daRedList = []
-for x in np.unique(da[indList[0]]):
-    daRedList0 = []
-    for y in np.unique(da[indList[1]]):
-        daRedList1 = []
-        for z in np.unique(da[indList[2]]):
-            red = ep.UT.matEleSelector(da, inds = {indList[0]:x, indList[1]:y, indList[2]:z})
-           
-            red = red.expand_dims({indList[0]:[x], indList[1]:[y], indList[2]:[z]})
-            
-            daRedList1.append(red)
-            
-        # daOut1 = xr.Dataset({'mu0':daRedList1[0], 'mu1':daRedList1[1]})
-        daOut1 = xr.combine_nested(daRedList1, concat_dim = indList[2])
-        daRedList0.append(daOut1)    
-        
-    daOut2 = xr.combine_nested(daRedList0, concat_dim = indList[1])
-    daRedList.append(daOut2)
-
-daOut =  xr.combine_nested(daRedList, concat_dim = indList[0])
-# daOut = xr.Dataset({})
-
-#%% Recursive form...
-
-# Define multi-level selector to recursively parse inds and concat dims
-# ALMOST WORKS... issue is what to pass recursively, once there are multiple arrays created.
-def matEleSelectorRec(da, inds):
-    
-    indRed = inds.copy()
-    level = indRed.pop()
-    daRedList = []
-    
-    if len(indRed)>0:
-        daRedList.append(matEleSelectorRec(da, indRed))
-        
-    else:
-        for daRedIn in daRedList:
-            for val in np.unique(daRedIn[level]):
-                daRed = ep.UT.matEleSelector(daRedIn, inds = {level:val})
-                daRed = daRed.expand_dims({level:[val]})
-                
-                daRedList.append(daRed)
-
-    return daRedList
-
-indList = ['ip','it','mu']
-
-da = dataSet[0].copy()
-
-daRedList = matEleSelectorRec(da,indList)
-
-
-#%% Test E reorg
-tmp = daOut.sel({'E':0.81})
-tmp2 = tmp.copy()
-tmp = tmp.expand_dims({'Eke':[1]})
-tmp2 = tmp2.expand_dims({'Eke':[2]})
-
-daE = xr.combine_nested([tmp,tmp2], concat_dim = 'Eke')
-
-
-#%% Test dataset
-
-ds1 = xr.Dataset({'matE':daE})
-
-ds2 = xr.Dataset({'E1':tmp,'E2':tmp2})
-
-# Seems to autostack - lists all Eke here.
-# May be able to use for sorting above...?
-ds2['E2']

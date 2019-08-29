@@ -1,0 +1,400 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>epsproc.sphCalc &mdash; ePSproc 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> ePSproc
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">Readme.md (old)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/epsproc.html">epsproc package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ePSproc</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>epsproc.sphCalc</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for epsproc.sphCalc</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">ePSproc spherical function calculations.</span>
+
+<span class="sd">Collection of functions for calculating Ylm, wignerD etc.</span>
+
+<span class="sd">For spherical harmonics, currently using scipy.special.sph_harm</span>
+
+<span class="sd">For other functions, using Moble&#39;s spherical_functions package</span>
+<span class="sd">https://github.com/moble/spherical_functions</span>
+
+<span class="sd">See tests/Spherical function testing Aug 2019.ipynb</span>
+
+<span class="sd">27/08/19        Added wDcalc for Wigner D functions.</span>
+<span class="sd">14/08/19    v1  Implmented sphCalc</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Imports</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="k">import</span> <span class="n">sph_harm</span>
+<span class="kn">import</span> <span class="nn">spherical_functions</span> <span class="k">as</span> <span class="nn">sf</span>
+<span class="kn">import</span> <span class="nn">quaternion</span>
+
+<span class="c1"># Calculate a set of sph function</span>
+<div class="viewcode-block" id="sphCalc"><a class="viewcode-back" href="../../modules/epsproc.sphCalc.html#epsproc.sphCalc.sphCalc">[docs]</a><span class="k">def</span> <span class="nf">sphCalc</span><span class="p">(</span><span class="n">Lmax</span><span class="p">,</span> <span class="n">Lmin</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">angs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">XFlag</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Calculate set of spherical harmonics Ylm(theta,phi) on a grid.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Lmax : int</span>
+<span class="sd">        Maximum L for the set. Ylm calculated for Lmin:Lmax, all m.</span>
+<span class="sd">    Lmin : int, optional, default 0</span>
+<span class="sd">        Min L for the set. Ylm calculated for Lmin:Lmax, all m.</span>
+<span class="sd">    res : int, optional, default None</span>
+<span class="sd">        (Theta, Phi) grid resolution, outputs will be of dim [res,res].</span>
+<span class="sd">    angs : list of 2D np.arrays, [thetea, phi], optional, default None</span>
+<span class="sd">        If passed, use these grids for calculation</span>
+<span class="sd">    XFlag : bool, optional, default True</span>
+<span class="sd">        Flag for output. If true, output is Xarray. If false, np.arrays</span>
+
+<span class="sd">    Note that either res OR angs needs to be passed.</span>
+
+<span class="sd">    Outputs</span>
+<span class="sd">    -------</span>
+<span class="sd">    - if XFlag -</span>
+<span class="sd">    YlmX</span>
+<span class="sd">        3D Xarray, dims (lm,theta,phi)</span>
+<span class="sd">    - else -</span>
+<span class="sd">    Ylm, lm</span>
+<span class="sd">        3D np.array of values, dims (lm,theta,phi), plus list of lm pairs</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    Currently set for scipy.special.sph_harm as calculation routine.</span>
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+<span class="sd">    &gt;&gt;&gt; YlmX = sphCalc(2, res = 50)</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Set coords based on inputs</span>
+    <span class="c1"># TODO: better code here (try/fail?)</span>
+    <span class="k">if</span> <span class="n">angs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">res</span><span class="p">:</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="n">res</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="n">res</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">angs</span><span class="p">:</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">angs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="n">angs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Need to pass either res or angs.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># Loop over lm and calculate</span>
+    <span class="n">lm</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">Ylm</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">Lmin</span><span class="p">,</span><span class="n">Lmax</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">l</span><span class="p">,</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">lm</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">l</span><span class="p">,</span> <span class="n">m</span><span class="p">])</span>
+            <span class="n">Ylm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sph_harm</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">l</span><span class="p">,</span><span class="n">theta</span><span class="p">,</span><span class="n">phi</span><span class="p">))</span>
+
+    <span class="c1"># Return as Xarray or np arrays.</span>
+    <span class="k">if</span> <span class="n">XFlag</span><span class="p">:</span>
+        <span class="c1"># Set indexes</span>
+        <span class="n">QNs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lm</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">,</span><span class="s1">&#39;m&#39;</span><span class="p">])</span>
+        <span class="n">YlmX</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Ylm</span><span class="p">),</span> <span class="n">coords</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;LM&#39;</span><span class="p">,</span><span class="n">QNs</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Theta&#39;</span><span class="p">,</span><span class="n">theta</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]),</span> <span class="p">(</span><span class="s1">&#39;Phi&#39;</span><span class="p">,</span><span class="n">phi</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])])</span>
+        <span class="k">return</span> <span class="n">YlmX</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Ylm</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lm</span><span class="p">)</span></div>
+
+
+<span class="c1"># Calculate wignerD functions</span>
+<span class="c1">#   Adapted directly from Matlab code,</span>
+<span class="c1">#   via Jupyter test Notebook &quot;Spherical function testing Aug 2019.ipynb&quot;</span>
+<div class="viewcode-block" id="wDcalc"><a class="viewcode-back" href="../../modules/epsproc.sphCalc.html#epsproc.sphCalc.wDcalc">[docs]</a><span class="k">def</span> <span class="nf">wDcalc</span><span class="p">(</span><span class="n">Lrange</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">Nangs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">eAngs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">R</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">XFlag</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Calculate set of Wigner D functions D(l,m,mp,R) on a grid.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Lrange : list, optional, default [0, 1]</span>
+<span class="sd">        Range of L to calculate parameters for.</span>
+<span class="sd">        If len(Lrange) == 2 assumed to be of form [Lmin, Lmax], otherwise list is used directly.</span>
+<span class="sd">        For a given l, all (m, mp) combinations are calculated.</span>
+
+<span class="sd">    Options for setting angles (use one only):</span>
+<span class="sd">    Nangs : int, optional, default None</span>
+<span class="sd">        If passed, use this to define Euler angles sampled.</span>
+<span class="sd">        Ranges will be set as (theta, phi, chi) = (0:pi, 0:pi/2, 0:pi) in Nangs steps.</span>
+<span class="sd">    eAngs : np.array, optional, default None</span>
+<span class="sd">        If passed, use this to define Euler angles sampled.</span>
+<span class="sd">        Array of angles, [theta,phi,chi], in radians</span>
+<span class="sd">    R : np.array, optional, default None</span>
+<span class="sd">        If passed, use this to define Euler angles sampled.</span>
+<span class="sd">        Array of quaternions, as given by quaternion.from_euler_angles(eAngs).</span>
+
+
+<span class="sd">    XFlag : bool, optional, default True</span>
+<span class="sd">        Flag for output. If true, output is Xarray. If false, np.arrays</span>
+
+
+<span class="sd">    Outputs</span>
+<span class="sd">    -------</span>
+<span class="sd">    - if XFlag -</span>
+<span class="sd">    wDX</span>
+<span class="sd">        Xarray, dims (lmmp,Euler)</span>
+<span class="sd">    - else -</span>
+<span class="sd">    wD, R, lmmp</span>
+<span class="sd">        np.arrays of values, dims (lmmp,Euler), plus list of angles and lmmp sets.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    Uses Moble&#39;s spherical_functions package for wigner D function.</span>
+<span class="sd">    https://github.com/moble/spherical_functions</span>
+
+<span class="sd">    Moble&#39;s quaternion package for angles and conversions.</span>
+<span class="sd">    https://github.com/moble/quaternion</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; wDX1 = wDcalc(eAngs = np.array([0,0,0]))</span>
+
+<span class="sd">    &gt;&gt;&gt; wDX2 = wDcalc(Nangs = 10)</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># Set QNs for calculation, (l,m,mp)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">Lrange</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">Ls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">Lrange</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Lrange</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">Ls</span> <span class="o">=</span> <span class="n">Lrange</span>
+
+    <span class="n">QNs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">Ls</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">l</span><span class="p">,</span> <span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">mp</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">l</span><span class="p">,</span> <span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">QNs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">l</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">mp</span><span class="p">])</span>
+
+    <span class="n">QNs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">QNs</span><span class="p">)</span>
+
+    <span class="c1"># Set angles - either input as a range, a set or as quaternions</span>
+    <span class="k">if</span> <span class="n">Nangs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Set a range of Eugler angles for testing</span>
+        <span class="n">pRot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="n">Nangs</span><span class="p">)</span>
+        <span class="n">tRot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span><span class="n">Nangs</span><span class="p">)</span>
+        <span class="n">cRot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="n">Nangs</span><span class="p">)</span>
+        <span class="n">eAngs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pRot</span><span class="p">,</span> <span class="n">tRot</span><span class="p">,</span> <span class="n">cRot</span><span class="p">,])</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">if</span> <span class="n">eAngs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">eAngs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>    <span class="c1"># Check dims, should be (N X 3) for quaternion... but transpose for pd.MultiIndex</span>
+            <span class="n">eAngs</span> <span class="o">=</span> <span class="n">eAngs</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">if</span> <span class="n">R</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Convert to quaternions</span>
+        <span class="n">R</span> <span class="o">=</span>  <span class="n">quaternion</span><span class="o">.</span><span class="n">from_euler_angles</span><span class="p">(</span><span class="n">eAngs</span><span class="p">)</span>
+
+
+    <span class="c1"># Calculate WignerDs</span>
+    <span class="c1"># sf.Wigner_D_element is vectorised for QN OR angles</span>
+    <span class="c1"># Here loop over QNs for a set of angles R</span>
+    <span class="n">wD</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">lmmp</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">QNs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">lmmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">QNs</span><span class="p">[</span><span class="n">n</span><span class="p">,:])</span>
+        <span class="n">wD</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sf</span><span class="o">.</span><span class="n">Wigner_D_element</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">QNs</span><span class="p">[</span><span class="n">n</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">QNs</span><span class="p">[</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">QNs</span><span class="p">[</span><span class="n">n</span><span class="p">,</span><span class="mi">2</span><span class="p">]))</span>
+
+    <span class="c1"># Return values as Xarray or np.arrays</span>
+    <span class="k">if</span> <span class="n">XFlag</span><span class="p">:</span>
+        <span class="c1"># Put into Xarray</span>
+        <span class="c1">#TODO: this will currently fail for a single set of QNs.</span>
+        <span class="n">QNs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lmmp</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lp&#39;</span><span class="p">,</span><span class="s1">&#39;mu&#39;</span><span class="p">,</span><span class="s1">&#39;mu0&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">eAngs</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>  <span class="c1"># Ugh, special case for only one set of angles.</span>
+            <span class="n">Euler</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">([[</span><span class="n">eAngs</span><span class="p">[</span><span class="mi">0</span><span class="p">]],[</span><span class="n">eAngs</span><span class="p">[</span><span class="mi">1</span><span class="p">]],[</span><span class="n">eAngs</span><span class="p">[</span><span class="mi">2</span><span class="p">]]],</span> <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;P&#39;</span><span class="p">,</span><span class="s1">&#39;T&#39;</span><span class="p">,</span><span class="s1">&#39;C&#39;</span><span class="p">])</span>
+            <span class="n">wDX</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">wD</span><span class="p">),</span> <span class="n">coords</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;QN&#39;</span><span class="p">,</span><span class="n">QNs</span><span class="p">)])</span>
+            <span class="n">wDX</span> <span class="o">=</span> <span class="n">wDX</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">({</span><span class="s1">&#39;Euler&#39;</span><span class="p">:</span><span class="n">Euler</span><span class="p">})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Euler</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">(</span><span class="n">eAngs</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;P&#39;</span><span class="p">,</span><span class="s1">&#39;T&#39;</span><span class="p">,</span><span class="s1">&#39;C&#39;</span><span class="p">])</span>
+            <span class="n">wDX</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">wD</span><span class="p">),</span> <span class="n">coords</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;QN&#39;</span><span class="p">,</span><span class="n">QNs</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Euler&#39;</span><span class="p">,</span><span class="n">Euler</span><span class="p">)])</span>
+
+        <span class="k">return</span> <span class="n">wDX</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">wD</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lmmp</span><span class="p">)</span><span class="o">.</span><span class="n">T</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Paul Hockett
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

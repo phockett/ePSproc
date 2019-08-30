@@ -1,0 +1,1262 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>epsproc.IO &mdash; ePSproc 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> ePSproc
+          
+
+          
+            
+            <img src="../../_static/ePSproc_logo.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Intro:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">ePSproc Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Function ref:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/epsproc.html">epsproc package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ePSproc</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>epsproc.IO</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for epsproc.IO</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">ePSproc IO functions.</span>
+<span class="sd">=====================</span>
+
+<span class="sd">Module for file IO and data parsing.</span>
+
+<span class="sd">Main function: :py:func:`epsproc.IO.readMatEle`:</span>
+
+<span class="sd">    readMatEle(fileIn = None, fileBase = None, fType = &#39;.out&#39;):</span>
+
+<span class="sd">    Read ePS file(s) and return results as Xarray data structures containing matrix elements.</span>
+<span class="sd">    File endings specified by fType, default .out.</span>
+
+
+<span class="sd">History</span>
+<span class="sd">-------</span>
+
+<span class="sd">29/08/19        Updating docs to rst.</span>
+
+<span class="sd">26/08/19        Added parsing for E, sym parameters from head of ePS file.</span>
+<span class="sd">                Added error checking by comparing read mat elements to expected list.</span>
+<span class="sd">                Changed &amp; fixed Xarray indexing - matrix elements now output with dims (LM, Eke, Sym, mu, it, Type)</span>
+<span class="sd">                Current code rather ugly however.</span>
+
+<span class="sd">19/08/19        Add functions for reading wavefunction files (3D data)</span>
+
+<span class="sd">07/08/19        Naming convention tweaks, and some changes to comments, following basic tests with Sphinx.</span>
+
+<span class="sd">05/08/19    v1  Initial python version.</span>
+<span class="sd">                Working, but little error checking as yet. Needs some tidying.</span>
+
+
+<span class="sd">To do</span>
+<span class="sd">-----</span>
+<span class="sd">* Add IO for other file segments (only DumpIdy supported so far).</span>
+<span class="sd">* Better logic &amp; flexibility for file scanning.</span>
+<span class="sd">* Restructure as class for brevity...?</span>
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Imports</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">StringIO</span>
+<span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">pyevtk.hl</span> <span class="k">import</span> <span class="n">gridToVTK</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">msg</span> <span class="o">!=</span> <span class="s2">&quot;No module named &#39;pyevtk&#39;&quot;</span><span class="p">:</span>
+        <span class="k">raise</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;* pyevtk not found, VTK export not available. &#39;</span><span class="p">)</span>
+
+<span class="c1"># Package fns.</span>
+<span class="kn">from</span> <span class="nn">epsproc.util</span> <span class="k">import</span> <span class="n">matEleSelector</span><span class="p">,</span> <span class="n">dataGroupSel</span>
+
+<span class="c1"># ***** Ancillary functions</span>
+
+<span class="c1"># File parsing function - scan file for keywords &amp; read segments</span>
+<span class="c1">#   Following above idiomatic solution, with full IO</span>
+<span class="c1">#   https://stackoverflow.com/questions/3961265/get-line-number-of-certain-phrase-in-file-python</span>
+<div class="viewcode-block" id="fileParse"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.fileParse">[docs]</a><span class="k">def</span> <span class="nf">fileParse</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">startPhrase</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">endPhrase</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">comment</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse a file, return segment(s) from startPhrase:endPhase, excluding comments.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fileName : str</span>
+<span class="sd">        File to read (file in working dir, or full path)</span>
+<span class="sd">    startPhrase : str, optional</span>
+<span class="sd">        Phrase denoting start of section to read. Default = None</span>
+<span class="sd">    endPhase : str, optional</span>
+<span class="sd">        Phrase denoting end of section to read. Default = None</span>
+<span class="sd">    comment : str, optional</span>
+<span class="sd">        Phrase denoting comment lines, which are skipped. Default = None</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        [lineStart, lineStop], ints for line #s found from start and end phrases.</span>
+<span class="sd">    list</span>
+<span class="sd">        segments, list of lines read from file.</span>
+
+<span class="sd">    All lists can contain multiple entries, if more than one segment matches the search criteria.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">lineStart</span> <span class="o">=</span> <span class="p">[]</span>    <span class="c1"># Create empty list to hold line #s</span>
+    <span class="n">lineStop</span> <span class="o">=</span> <span class="p">[]</span>     <span class="c1"># Create empty list to hold line #s</span>
+    <span class="n">segments</span> <span class="o">=</span> <span class="p">[[]]</span>   <span class="c1"># Possible to create empty multi-dim array here without knowing # of segments? Otherwise might be easier to use np textscan functions</span>
+    <span class="n">readFlag</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Open file &amp; scan each line.</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>  <span class="c1"># Note enumerate() here gives lines with numbers, e.g. fullFile=enumerate(f) will read in file with numbers</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># Offset for file line numbers (1 indexed)</span>
+            <span class="c1"># If line matches startPhrase, print line &amp; append to list.</span>
+            <span class="c1"># if startPhrase in line:</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">startPhrase</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Found &quot;&#39;</span><span class="p">,</span> <span class="n">startPhrase</span><span class="p">,</span> <span class="s1">&#39;&quot; at line: &#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+
+                <span class="n">lineStart</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+                <span class="n">readFlag</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="c1"># Read lines into segment[] until endPhrase found</span>
+            <span class="k">if</span> <span class="n">readFlag</span><span class="p">:</span>
+                <span class="c1"># Check for end of segment (start of next Command sequence)</span>
+                <span class="k">if</span> <span class="n">endPhrase</span> <span class="ow">and</span> <span class="p">([</span><span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">endP</span><span class="p">)</span> <span class="k">for</span> <span class="n">endP</span> <span class="ow">in</span> <span class="n">endPhrase</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>  <span class="c1"># This allows for multiple endPhases</span>
+                    <span class="c1"># Log stop line and list</span>
+                    <span class="n">lineStop</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    <span class="n">readFlag</span> <span class="o">=</span> <span class="kc">False</span>
+
+                    <span class="c1"># Log segment and create next</span>
+                    <span class="n">segments</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+                    <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                    <span class="k">continue</span>            <span class="c1"># Continue will skip rest of loop</span>
+
+                 <span class="c1"># Check for comments, skip line but keep reading</span>
+                <span class="k">elif</span> <span class="n">comment</span> <span class="ow">and</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">comment</span><span class="p">):</span>
+                    <span class="k">continue</span>            <span class="c1"># Continue will skip rest of loop</span>
+
+                <span class="n">segments</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span><span class="p">])</span>    <span class="c1"># Store line if part  of defined segment</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Found </span><span class="si">{0}</span><span class="s1"> segments.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="p">([</span><span class="n">lineStart</span><span class="p">,</span> <span class="n">lineStop</span><span class="p">],</span> <span class="n">segments</span><span class="p">)</span> <span class="c1"># [:-1])</span></div>
+
+
+<span class="c1"># Simple wrapper for general fileParse function, ePS dumpIdy segments</span>
+<div class="viewcode-block" id="dumpIdyFileParse"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.dumpIdyFileParse">[docs]</a><span class="k">def</span> <span class="nf">dumpIdyFileParse</span><span class="p">(</span><span class="n">fileName</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse an ePS file for dumpIdy segments.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fileName : str</span>
+<span class="sd">        File to read (file in working dir, or full path)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        [lineStart, lineStop], ints for line #s found from start and end phrases.</span>
+<span class="sd">    list</span>
+<span class="sd">        dumpSegs, list of lines read from file.</span>
+
+<span class="sd">    Lists contain entries for each dumpIdy segment found in the file.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">startPhrase</span> <span class="o">=</span> <span class="s2">&quot;DumpIdy - dump&quot;</span>
+    <span class="n">endPhrase</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;+ Command&quot;</span><span class="p">,</span> <span class="s2">&quot;Time Now&quot;</span><span class="p">]</span>  <span class="c1"># In this case may have multiple end phrases</span>
+
+    <span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">dumpSegs</span><span class="p">)</span> <span class="o">=</span> <span class="n">fileParse</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">startPhrase</span><span class="p">,</span> <span class="n">endPhrase</span><span class="p">)</span> <span class="c1"># , &#39;&gt;&#39;)</span>
+
+    <span class="c1"># NOTE - with current code dumpSegs has one final blank segment</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Found </span><span class="si">{0}</span><span class="s1"> dumpIdy segments (sets of matrix elements).&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dumpSegs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">lines</span><span class="p">,</span> <span class="n">dumpSegs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+<span class="c1"># Simple wrapper for general fileParse function, check ScatEng and return Eke list</span>
+<div class="viewcode-block" id="scatEngFileParse"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.scatEngFileParse">[docs]</a><span class="k">def</span> <span class="nf">scatEngFileParse</span><span class="p">(</span><span class="n">fileName</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse an ePS file for ScatEng list.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fileName : str</span>
+<span class="sd">        File to read (file in working dir, or full path)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        ekeList, np array of energies set in the ePS file.</span>
+
+<span class="sd">    Lists contain entries for each dumpIdy segment found in the file.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">startPhrase</span> <span class="o">=</span> <span class="s2">&quot;ScatEng&quot;</span>
+    <span class="n">endPhrase</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span>
+    <span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot;+&quot;</span>
+
+    <span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">dumpSegs</span><span class="p">)</span> <span class="o">=</span> <span class="n">fileParse</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">startPhrase</span><span class="p">,</span> <span class="n">endPhrase</span><span class="p">,</span> <span class="n">comment</span><span class="p">)</span> <span class="c1"># , &#39;&gt;&#39;)</span>
+
+    <span class="c1"># Grab E list, assuming just first segment scanned is relevant</span>
+    <span class="n">ekeList</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">StringIO</span><span class="p">(</span><span class="n">dumpSegs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">][</span><span class="mi">7</span><span class="p">:]))</span>
+
+    <span class="c1"># print(&#39;Expecting {0} energy points.&#39;.format(len(ekeList)))  # For np.array, this will fail for singleton dim.</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Expecting </span><span class="si">{0}</span><span class="s1"> energy points.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ekeList</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">ekeList</span></div>
+
+<span class="c1"># Simple wrapper for general fileParse function, check symmetries and return list</span>
+<div class="viewcode-block" id="symFileParse"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.symFileParse">[docs]</a><span class="k">def</span> <span class="nf">symFileParse</span><span class="p">(</span><span class="n">fileName</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse an ePS file for ScatEng list.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fileName : str</span>
+<span class="sd">        File to read (file in working dir, or full path)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        symSegs, raw lines from the ePS file.</span>
+
+<span class="sd">    Lists contain entries for each dumpIdy segment found in the file.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">startPhrase</span> <span class="o">=</span> <span class="s2">&quot;ScatSym&quot;</span>
+    <span class="n">endPhrase</span> <span class="o">=</span> <span class="s2">&quot;FileName&quot;</span>
+    <span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot;+&quot;</span>
+
+    <span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">symSegs</span><span class="p">)</span> <span class="o">=</span> <span class="n">fileParse</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">startPhrase</span><span class="p">,</span> <span class="n">endPhrase</span><span class="p">,</span> <span class="n">comment</span><span class="p">)</span> <span class="c1"># , &#39;&gt;&#39;)</span>
+
+    <span class="c1"># Grab E list, assuming just first segment scanned is relevant</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Expecting </span><span class="si">{0}</span><span class="s1"> symmetries.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">symSegs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">symSegs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+
+<span class="c1"># Parse digits from a line using re</span>
+<span class="c1"># https://stackoverflow.com/questions/4289331/how-to-extract-numbers-from-a-string-in-python</span>
+<div class="viewcode-block" id="parseLineDigits"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.parseLineDigits">[docs]</a><span class="k">def</span> <span class="nf">parseLineDigits</span><span class="p">(</span><span class="n">testLine</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Use regular expressions to extract digits from a string.</span>
+<span class="sd">    https://stackoverflow.com/questions/4289331/how-to-extract-numbers-from-a-string-in-python</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?&quot;</span><span class="p">,</span> <span class="n">testLine</span><span class="p">)</span></div>
+
+<span class="c1"># Parse a DumpIdy segment</span>
+<span class="c1">#TODO: More attribs, and convert attribs to dict, or other more structured format.</span>
+<span class="c1">#TODO: Error checking for missing matrix elements or IO issues - see Matlab code.</span>
+<span class="c1">#TODO: Convert attribs to dict for simpler assignments later</span>
+<div class="viewcode-block" id="dumpIdySegParse"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.dumpIdySegParse">[docs]</a><span class="k">def</span> <span class="nf">dumpIdySegParse</span><span class="p">(</span><span class="n">dumpSeg</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract values from dumpIdy file segments.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dumpSeg : list</span>
+<span class="sd">        One dumpIdy segment, from dumpSegs[], as returned by :py:func:`epsproc.IO.dumpIdyFileParse()`</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        rawIdy, array of matrix elements, [m,l,mu,ip,it,Re,Im]</span>
+<span class="sd">    list</span>
+<span class="sd">        attribs, list [Label, value, units]</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Currently this is a bit messy, and relies on fixed DumpIDY format.</span>
+<span class="sd">    No error checking as yet.</span>
+<span class="sd">    Not yet reading all attribs.</span>
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    &gt;&gt;&gt; matEle, attribs = dumpIdySegParse(dumpSegs[0])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Use lists to collect data, and convert format at the end</span>
+    <span class="n">attribs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">rawIdy</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># print(len(dumpSeg))</span>
+    <span class="c1"># Parse data block</span>
+    <span class="c1"># Use native python, or np.genfromtxt</span>
+    <span class="k">for</span> <span class="n">testLine</span> <span class="ow">in</span> <span class="n">dumpSeg</span><span class="p">[</span><span class="mi">12</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+
+<span class="c1">#        vals = parseLineDigits(testLine[2])</span>
+<span class="c1">#        lineOut = []</span>
+<span class="c1">#        [lineOut.append(float(val)) for val in vals] # Convert to float</span>
+<span class="c1">#        rawIdy.append(lineOut)</span>
+
+        <span class="n">tmp</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">StringIO</span><span class="p">(</span><span class="n">testLine</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+        <span class="n">rawIdy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+
+    <span class="c1"># Parse header lines (structured, selected by line #)</span>
+    <span class="n">attribs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">parseLineDigits</span><span class="p">(</span><span class="n">dumpSeg</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="mi">2</span><span class="p">])[</span><span class="mi">0</span><span class="p">]),</span> <span class="s1">&#39;eV&#39;</span><span class="p">])</span>
+    <span class="n">attribs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;Ehv&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">parseLineDigits</span><span class="p">(</span><span class="n">dumpSeg</span><span class="p">[</span><span class="mi">4</span><span class="p">][</span><span class="mi">2</span><span class="p">])[</span><span class="mi">0</span><span class="p">]),</span> <span class="s1">&#39;eV&#39;</span><span class="p">])</span>
+    <span class="n">SF</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">parseLineDigits</span><span class="p">(</span><span class="n">dumpSeg</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="mi">2</span><span class="p">]))</span>
+    <span class="n">SF</span> <span class="o">=</span> <span class="n">SF</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">SF</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mi">1</span><span class="n">j</span>
+    <span class="n">attribs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;SF&#39;</span><span class="p">,</span> <span class="n">SF</span><span class="p">,</span> <span class="s1">&#39;sqrt(MB)&#39;</span><span class="p">])</span>
+    <span class="n">attribs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;Lmax&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">parseLineDigits</span><span class="p">(</span><span class="n">dumpSeg</span><span class="p">[</span><span class="mi">10</span><span class="p">][</span><span class="mi">2</span><span class="p">])[</span><span class="mi">0</span><span class="p">]),</span> <span class="s1">&#39;&#39;</span><span class="p">])</span>
+
+    <span class="c1"># Parse symmetries - multiple .spilt(), or use re?</span>
+    <span class="c1"># attribs.append([&#39;Syms&#39;, parseLineDigits(dumpSeg[7][2]), &#39;&#39;])</span>
+    <span class="n">symList</span> <span class="o">=</span> <span class="n">dumpSeg</span><span class="p">[</span><span class="mi">7</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+    <span class="c1"># Append as nested lists</span>
+<span class="c1">#    sym = []</span>
+<span class="c1">#    [sym.append([symList[n], symList[n+1].strip(&#39;=&#39;)]) for n in range(1,6,2)]</span>
+<span class="c1">#    attribs.append([&#39;Syms&#39;, sym, &#39;&#39;])</span>
+    <span class="c1"># Append as indendent lists</span>
+    <span class="p">[</span><span class="n">attribs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">symList</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="n">symList</span><span class="p">[</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">2</span><span class="p">)]</span>
+
+    <span class="n">attribs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;QNs&#39;</span><span class="p">,</span> <span class="n">dumpSeg</span><span class="p">[</span><span class="mi">11</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rawIdy</span><span class="p">),</span> <span class="n">attribs</span></div>
+
+
+
+<span class="c1"># Functional form for parsing full set of mat elements and putting in xarray</span>
+<div class="viewcode-block" id="dumpIdySegsParseX"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.dumpIdySegsParseX">[docs]</a><span class="k">def</span> <span class="nf">dumpIdySegsParseX</span><span class="p">(</span><span class="n">dumpSegs</span><span class="p">,</span> <span class="n">ekeListUn</span><span class="p">,</span> <span class="n">symSegs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract data from ePS dumpIdy segments into usable form.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dumpSegs : list</span>
+<span class="sd">        Set of dumpIdy segments, i.e. dumpSegs, as returned by dumpIdyFileParse()</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    xr.array</span>
+<span class="sd">        Xarray data array, containing matrix elements etc.</span>
+<span class="sd">        Dimensions (LM, Eke, Sym, mu, it, Type)</span>
+
+<span class="sd">    int</span>
+<span class="sd">        Number of blank segments found.</span>
+
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    &gt;&gt;&gt; data = parseDumpSegX(dumpSegs)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">dataList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ekeList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">blankSegs</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Loop over DumpIdy segments, extract data &amp; reformat</span>
+    <span class="c1"># If blank, skip parser and append blankSegs.</span>
+    <span class="k">for</span> <span class="n">dumpSeg</span> <span class="ow">in</span> <span class="n">dumpSegs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dumpSeg</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">4</span><span class="p">:</span>
+            <span class="n">segBlock</span><span class="p">,</span> <span class="n">attribs</span> <span class="o">=</span> <span class="n">dumpIdySegParse</span><span class="p">(</span><span class="n">dumpSeg</span><span class="p">)</span>
+            <span class="n">dataList</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">segBlock</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">segBlock</span><span class="p">[:,</span><span class="mi">5</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">segBlock</span><span class="p">[:,</span><span class="mi">6</span><span class="p">],</span> <span class="n">attribs</span><span class="p">])</span>
+            <span class="c1"># Switch l,m - with advanced indexing, other methods faster...? https://stackoverflow.com/questions/4857927/swapping-columns-in-a-numpy-array</span>
+            <span class="c1"># Now done later via pd.MultiIndex.swaplevel()</span>
+            <span class="c1"># dataList[-1][0][[0,1],:] = dataList[-1][0][[1,0],:]</span>
+
+            <span class="c1"># dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])</span>
+            <span class="c1"># dataList.append([segBlock[:,0:5], segBlock[:,5]+1j*segBlock[:,6], attribs])</span>
+
+            <span class="n">ekeList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attribs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">blankSegs</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">ekeList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+    <span class="c1"># Check energies vs. input list, and number of symmetries</span>
+    <span class="n">ekeTest</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ekeList</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ekeTest</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">ekeListUn</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;*** Warning: Found </span><span class="si">{0}</span><span class="s2"> energies, expected </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ekeTest</span><span class="o">.</span><span class="n">size</span><span class="p">,</span><span class="n">ekeListUn</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
+
+    <span class="c1"># Check here according to expected input, but should also be logged in blankSegs above.</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ekeList</span><span class="p">)</span> <span class="o">!=</span> <span class="n">ekeTest</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">symSegs</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;*** Warning: Missing records, expected </span><span class="si">{0}</span><span class="s2">, found </span><span class="si">{1}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ekeTest</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">symSegs</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">ekeList</span><span class="p">)))</span>
+
+    <span class="c1">#**** Convert to xarray - ugly loop version, probably a better way to do this!</span>
+    <span class="c1">#TODO Should:</span>
+    <span class="c1">#   - be able to loop more cleanly over attribs - set as dict?</span>
+    <span class="c1">#   - integrate with above loop</span>
+    <span class="c1">#   - compile into dataSet or dataArray more directly...?</span>
+    <span class="c1">#   - Check and compile against Eke list (muliple symetries per Eke), and keep this as a separate coord.</span>
+    <span class="n">dataArrays</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">dataSym</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ekeVal</span> <span class="o">=</span> <span class="n">ekeList</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Processing segments to Xarrays...&#39;</span><span class="p">)</span>
+    <span class="n">eLoop</span> <span class="o">=</span> <span class="mi">0</span>   <span class="c1"># For logging E vs. sym segments and looping output.</span>
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dataList</span><span class="p">):</span>
+        <span class="n">attribs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="c1"># V1 - EASIEST WAY, but leads to dimensional issues later!</span>
+        <span class="c1">#TODO: consider setting mu as a separate dim. Maybe also (ip,it)...?</span>
+        <span class="c1"># QNs = pd.MultiIndex.from_arrays(data[0].astype(&#39;int8&#39;), names = attribs[-1][1][0:-1])</span>
+        <span class="c1"># QNs = QNs.swaplevel(0, 1)  # Switch l,m indexes</span>
+        <span class="c1"># Esyms = pd.MultiIndex.from_arrays([np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]]], names=[&#39;E&#39;, &#39;Sym&#39;])</span>
+        <span class="c1"># pd.MultiIndex.from_tuples([(np.array(attribs[0][1]), [attribs[3][1], attribs[5][1]])], names=[&#39;E&#39;, &#39;Sym&#39;])</span>
+        <span class="c1"># Esyms = pd.MultiIndex.from_tuples([(attribs[0][1],attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[0][0],attribs[4][0],attribs[5][0],attribs[6][0]])</span>
+        <span class="c1">#dataArrays.append(xr.DataArray(data[1], coords={&#39;ES&#39;: Esyms, &#39;LM&#39;:QNs}, dims = [&#39;ES&#39;,&#39;LM&#39;]))</span>
+
+        <span class="c1"># AH - issue is number of labels - can&#39;t lable singleton dim it seems, but can expand</span>
+        <span class="c1">#TODO: consider setting E as a separate dim, will be singleton for each set of syms. Might make more sense for later manipulations (sum over sym or E).</span>
+        <span class="c1"># tmp = xr.DataArray(np.asarray(data[1]), coords={&#39;LM&#39;:QNs}, dims = [&#39;LM&#39;])</span>
+        <span class="c1"># tmp = tmp.expand_dims({&#39;Sym&#39;:Syms, &#39;Eke&#39;:[attribs[0][1]]})  # This is OK, but still ties Eke and Sym coords (same number of elements)</span>
+        <span class="c1"># # tmp = tmp.expand_dims({&#39;Sym&#39;:Syms})</span>
+
+
+        <span class="c1"># # v2 - separate dims, (LM, E, Syms, ip, it)</span>
+<span class="c1">#        LM = pd.MultiIndex.from_arrays(data[0][0:2,:].astype(&#39;int8&#39;), names = attribs[-1][1][0:2])</span>
+<span class="c1">#        LM = LM.swaplevel(0, 1)  # Switch l,m indexes</span>
+<span class="c1">#        mu = data[0][2,:]</span>
+<span class="c1">#        ip = data[0][3,:]</span>
+<span class="c1">#        it = data[0][4,:]</span>
+<span class="c1">#        Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])</span>
+<span class="c1">#</span>
+        <span class="c1"># tmp =  xr.DataArray(np.asarray(data[1]), coords={&#39;LM&#39;:LM, &#39;mu&#39;:mu, &#39;ip&#39;:ip, &#39;it&#39;:it}, dims = [&#39;LM&#39;,&#39;mu&#39;,&#39;it&#39;,&#39;ip&#39;])</span>
+        <span class="c1"># This works... but still keeps full lenght for additional label coords.</span>
+        <span class="c1"># Should be able to reduce on these... but can&#39;t work out how (tried groupby etc.)</span>
+<span class="c1">#        tmp =  xr.DataArray(np.asarray(data[1]), coords={&#39;LM&#39;:LM}, dims = [&#39;LM&#39;])</span>
+<span class="c1">#        tmp = tmp.expand_dims({&#39;Sym&#39;:Syms, &#39;Eke&#39;:[attribs[0][1]]})</span>
+<span class="c1">#        tmp = tmp.expand_dims({&#39;mu&#39;:mu, &#39;ip&#39;:ip, &#39;it&#39;:it})</span>
+
+        <span class="c1"># *** v2b - assign as v1/v2, then sort Xarrays before restacking</span>
+        <span class="c1"># This works, but note assumption of stacking order (E, then Syms)</span>
+        <span class="n">QNs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int8&#39;</span><span class="p">),</span> <span class="n">names</span> <span class="o">=</span> <span class="n">attribs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">QNs</span> <span class="o">=</span> <span class="n">QNs</span><span class="o">.</span><span class="n">swaplevel</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># Switch l,m indexes</span>
+        <span class="n">Syms</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">([(</span><span class="n">attribs</span><span class="p">[</span><span class="mi">4</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span><span class="n">attribs</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span><span class="n">attribs</span><span class="p">[</span><span class="mi">6</span><span class="p">][</span><span class="mi">1</span><span class="p">])],</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="n">attribs</span><span class="p">[</span><span class="mi">4</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span><span class="n">attribs</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span><span class="n">attribs</span><span class="p">[</span><span class="mi">6</span><span class="p">][</span><span class="mi">0</span><span class="p">]])</span>
+
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">coords</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;LM&#39;</span><span class="p">:</span><span class="n">QNs</span><span class="p">},</span> <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;LM&#39;</span><span class="p">])</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">({</span><span class="s1">&#39;Sym&#39;</span><span class="p">:</span><span class="n">Syms</span><span class="p">,</span> <span class="s1">&#39;Eke&#39;</span><span class="p">:[</span><span class="n">attribs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]]})</span>
+
+        <span class="c1"># Assign any other attributes - note that some attributes may be dropped when combining arrays below</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attribs</span><span class="p">:</span>
+            <span class="n">tmp</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># Currently set without units, multiple values here give combine issues below.</span>
+
+        <span class="c1"># dataArrays.append(tmp)</span>
+
+<span class="c1">#        tmp = matEleGroupDimX(tmp)  # Broken?</span>
+        <span class="n">dataArrays</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">matEleGroupDimX</span><span class="p">(</span><span class="n">tmp</span><span class="p">))</span>
+        <span class="c1">#TODO: Fix scale-factor propagation... this is currently dropped as an inconsistent attrib value.</span>
+        <span class="c1"># Something like: dataSF.append(dataArrays[-1].SF)</span>
+        <span class="c1"># dataArrays.append(matEleGroupDimXnested(tmp.copy()))  # Broken...?</span>
+        <span class="c1"># dataArrays.append(tmp)</span>
+
+        <span class="c1">#TODO: UGLY - need to check and combine according to number of Syms (check matlab code)</span>
+        <span class="c1"># ALSO NOT WORKING PROPERLY - might be issue with equality?</span>
+        <span class="c1"># BETTER TO JUST SET 2D arrays here!</span>
+<span class="c1">#        if n == (len(ekeList)/2 - 1):</span>
+<span class="c1">#            dataSym.append(xr.combine_nested(dataArrays, concat_dim=[&#39;Eke&#39;]))</span>
+<span class="c1">#            dataArrays = []</span>
+<span class="c1">#</span>
+<span class="c1">#        if n == len(ekeList)-1:</span>
+<span class="c1">#            dataSym.append(xr.combine_nested(dataArrays, concat_dim=[&#39;Eke&#39;]))</span>
+<span class="c1">#</span>
+<span class="c1">#        if n == (len(ekeList)/2 - 1):</span>
+<span class="c1">#            # dataSym.append(xr.combine_nested(dataArrays, concat_dim=[&#39;Eke&#39;]))</span>
+<span class="c1">#            dataArrays1 = dataArrays.copy()</span>
+<span class="c1">#            dataArrays = []</span>
+
+        <span class="c1"># if n == (len(ekeList)/2 - 1):</span>
+        <span class="c1">#     dataSym.append(dataArrays)</span>
+        <span class="c1">#     dataArrays = []</span>
+        <span class="c1">#</span>
+        <span class="c1"># if n == len(ekeList)-1:</span>
+        <span class="c1">#     dataSym.append(dataArrays)</span>
+
+        <span class="c1"># if (n &gt; 1) and (attribs[0][1] == ekeVal):</span>
+        <span class="c1">#     print(&#39;Found {0} energies&#39;.format(n+1))</span>
+        <span class="c1">#     dataSym.append(xr.combine_nested(dataArrays, concat_dim=[&#39;Eke&#39;]))</span>
+
+
+        <span class="c1"># Now with loop on known energy list.</span>
+        <span class="k">if</span> <span class="n">eLoop</span> <span class="o">==</span> <span class="n">ekeListUn</span><span class="o">.</span><span class="n">size</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">dataSym</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xr</span><span class="o">.</span><span class="n">combine_nested</span><span class="p">(</span><span class="n">dataArrays</span><span class="p">,</span> <span class="n">concat_dim</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Eke&#39;</span><span class="p">]))</span>
+            <span class="n">dataArrays</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">eLoop</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">eLoop</span> <span class="o">=</span> <span class="n">eLoop</span><span class="o">+</span><span class="mi">1</span>
+
+
+        <span class="c1"># **** v3 manually sort data first...</span>
+        <span class="c1"># SEE CODE BELOW, matEleGroupDim()</span>
+
+        <span class="c1"># Assign any other attributes - note that some attributes may be dropped when combining arrays below</span>
+        <span class="c1"># for a in attribs:</span>
+        <span class="c1">#     tmp.attrs[a[0]] = a[1] # Currently set without units, multiple values here give combine issues below.</span>
+        <span class="c1">#</span>
+        <span class="c1"># dataArrays.append(tmp)</span>
+
+        <span class="c1"># Stack by syms (per eke) as necessary</span>
+<span class="c1">#        if ekeList[n] == ekeVal:</span>
+<span class="c1">#            # daOut = xr.combine_nested(dataArrays, concat_dim=[&#39;Sym&#39;])</span>
+<span class="c1">#            dataArrays.append(tmp)</span>
+<span class="c1">#        else:</span>
+<span class="c1">#            dataSym.append(xr.combine_nested(dataArrays, concat_dim=[&#39;Sym&#39;]))</span>
+<span class="c1">#            dataArrays = []</span>
+<span class="c1">#            dataArrays.append(tmp)</span>
+<span class="c1">#            ekeVal = ekeList[n]</span>
+
+    <span class="c1"># Combine to single xarray</span>
+    <span class="c1"># Note xarray &gt; v0.12.1</span>
+    <span class="c1"># daOut = xr.combine_nested(dataSym, concat_dim=[&#39;Sym&#39;])</span>
+    <span class="n">daOut</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">combine_nested</span><span class="p">(</span><span class="n">dataSym</span><span class="p">,</span> <span class="n">concat_dim</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Sym&#39;</span><span class="p">])</span>
+    <span class="c1"># daOut = xr.combine_nested([dataArrays1, dataArrays], concat_dim=[&#39;Sym&#39;,&#39;Eke&#39;])</span>
+    <span class="c1"># daOut = xr.combine_nested(np.array(dataArrays), concat_dim=[&#39;Sym&#39;,&#39;Eke&#39;])  # Dim issues here - try np.array... NOPE.</span>
+    <span class="c1"># daOut = xr.combine_nested(dataArrays, concat_dim=[None])</span>
+    <span class="c1"># daOut = xr.merge(dataArrays)</span>
+    <span class="c1"># daOut = xr.combine_by_coords(dataArrays)</span>
+    <span class="c1"># daOut = dataArrays</span>
+    <span class="c1"># daOut = daOut.expand_dims({&#39;Eke&#39;:[attribs[0][1]]})</span>
+
+<span class="c1">#    # v3 - Sort data before putting into Xarray</span>
+<span class="c1">#    # NOW REPLACED ABOVE by sorting of Xarrays - code here may be faster, but less robust.</span>
+<span class="c1">#    dataArrays = []</span>
+<span class="c1">#    for data in dataList:</span>
+<span class="c1">#        attribs = data[2]</span>
+<span class="c1">#        tmp = matEleGroupDim(data)</span>
+<span class="c1">#        dataArrays.append(tmp)</span>
+<span class="c1">#</span>
+<span class="c1">#    # Can only concat over it at the moment due to duplicate values issue</span>
+<span class="c1">#    # THIS WILL BREAK LATER!!!!</span>
+<span class="c1">#    # TODO: fix use of Xarrays and dimension issues.</span>
+<span class="c1">#    daOut = xr.combine_nested(dataArrays, concat_dim=[&#39;it&#39;])</span>
+
+    <span class="k">return</span> <span class="n">daOut</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">blankSegs</span>     <span class="c1"># NOTE transpose to reverse ordering of dims.</span></div>
+
+<span class="c1"># Linear version of code, for very specific cases.</span>
+<span class="c1"># Linear tree ip &gt; mu &gt;it</span>
+<span class="c1"># UGLY... also not working now?  May have passed Xarray dataset in testing by mistake?</span>
+<div class="viewcode-block" id="matEleGroupDimX"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.matEleGroupDimX">[docs]</a><span class="k">def</span> <span class="nf">matEleGroupDimX</span><span class="p">(</span><span class="n">daIn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Group ePS matrix elements by redundant labels (Xarray version).</span>
+
+<span class="sd">    Group by [&#39;ip&#39;, &#39;it&#39;, &#39;mu&#39;] terms, all have only a few values.</span>
+<span class="sd">    Rename &#39;ip&#39;:1,2 as &#39;Type&#39;:&#39;L&#39;,&#39;V&#39;</span>
+
+<span class="sd">    TODO: better ways to do this?</span>
+<span class="sd">    See also tests in funcTests_210819.py for more versions/tests.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : Xarray</span>
+<span class="sd">        Data array with matrix elements to be split and recombined by dims.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    data : Xarray</span>
+<span class="sd">        Data array with reordered matrix elements (dimensions).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">daRedList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">daRed</span> <span class="o">=</span> <span class="n">daIn</span>
+
+    <span class="c1"># Split on mu - values from set {-1,0,1} depending on symmetry</span>
+    <span class="n">daRedList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">uVals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">daRed</span><span class="o">.</span><span class="n">mu</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">uVals</span><span class="p">):</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">matEleSelector</span><span class="p">(</span><span class="n">daRed</span><span class="p">,</span> <span class="n">inds</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;mu&#39;</span><span class="p">:</span><span class="n">val</span><span class="p">})</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">({</span><span class="s1">&#39;mu&#39;</span><span class="p">:[</span><span class="n">val</span><span class="p">]})</span>
+        <span class="n">daRedList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+
+    <span class="c1"># Restack</span>
+    <span class="n">daRed</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">combine_nested</span><span class="p">(</span><span class="n">daRedList</span><span class="p">,</span> <span class="n">concat_dim</span> <span class="o">=</span> <span class="s1">&#39;mu&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Split on it</span>
+    <span class="n">daRedList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">uVals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">daRed</span><span class="o">.</span><span class="n">it</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">uVals</span><span class="p">):</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">matEleSelector</span><span class="p">(</span><span class="n">daRed</span><span class="p">,</span> <span class="n">inds</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;it&#39;</span><span class="p">:</span><span class="n">val</span><span class="p">})</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">({</span><span class="s1">&#39;it&#39;</span><span class="p">:[</span><span class="n">val</span><span class="p">]})</span>
+        <span class="n">daRedList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+
+    <span class="c1"># Restack</span>
+    <span class="n">daRed</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">combine_nested</span><span class="p">(</span><span class="n">daRedList</span><span class="p">,</span> <span class="n">concat_dim</span> <span class="o">=</span> <span class="s1">&#39;it&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Split on &#39;ip&#39; - will always be (1,2), and split matEle into two</span>
+    <span class="n">ipLabel</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;L&#39;</span><span class="p">,</span><span class="s1">&#39;V&#39;</span><span class="p">]</span>
+    <span class="n">daRedList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)):</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">matEleSelector</span><span class="p">(</span><span class="n">daRed</span><span class="p">,</span> <span class="n">inds</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ip&#39;</span><span class="p">:</span><span class="n">val</span><span class="p">})</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">({</span><span class="s1">&#39;Type&#39;</span><span class="p">:[</span><span class="n">ipLabel</span><span class="p">[</span><span class="n">n</span><span class="p">]]})</span>
+        <span class="n">daRedList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+
+    <span class="c1"># Restack</span>
+    <span class="n">daRed</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">combine_nested</span><span class="p">(</span><span class="n">daRedList</span><span class="p">,</span> <span class="n">concat_dim</span> <span class="o">=</span> <span class="s1">&#39;Type&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">daRed</span></div>
+
+<span class="c1">#   Subselections using matEleSelector</span>
+<span class="c1">#   THIS IS UGLY, but seems to work consistently - get da of correct dims out (with multilevel coords in).</span>
+<span class="c1">#   Could also try dataset to array for split and recombine...?</span>
+<span class="c1">#   http://xarray.pydata.org/en/v0.12.3/reshaping.html</span>
+<div class="viewcode-block" id="matEleGroupDimXnested"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.matEleGroupDimXnested">[docs]</a><span class="k">def</span> <span class="nf">matEleGroupDimXnested</span><span class="p">(</span><span class="n">da</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Group ePS matrix elements by redundant labels (Xarray version).</span>
+
+<span class="sd">    Group by [&#39;ip&#39;, &#39;it&#39;, &#39;mu&#39;] terms, all have only a few values.</span>
+
+<span class="sd">    TODO: better ways to do this?</span>
+<span class="sd">    See also tests in funcTests_210819.py for more versions/tests.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : Xarray</span>
+<span class="sd">        Data array with matrix elements to be split and recombined by dims.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">indList</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ip&#39;</span><span class="p">,</span><span class="s1">&#39;it&#39;</span><span class="p">,</span><span class="s1">&#39;mu&#39;</span><span class="p">]</span>
+
+    <span class="n">daRedList</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">da</span><span class="p">[</span><span class="n">indList</span><span class="p">[</span><span class="mi">0</span><span class="p">]]):</span>
+        <span class="n">daRedList0</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">da</span><span class="p">[</span><span class="n">indList</span><span class="p">[</span><span class="mi">1</span><span class="p">]]):</span>
+            <span class="n">daRedList1</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">da</span><span class="p">[</span><span class="n">indList</span><span class="p">[</span><span class="mi">2</span><span class="p">]]):</span>
+                <span class="n">red</span> <span class="o">=</span> <span class="n">matEleSelector</span><span class="p">(</span><span class="n">da</span><span class="p">,</span> <span class="n">inds</span> <span class="o">=</span> <span class="p">{</span><span class="n">indList</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">x</span><span class="p">,</span> <span class="n">indList</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span><span class="n">y</span><span class="p">,</span> <span class="n">indList</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span><span class="n">z</span><span class="p">})</span>
+
+                <span class="n">red</span> <span class="o">=</span> <span class="n">red</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">({</span><span class="n">indList</span><span class="p">[</span><span class="mi">0</span><span class="p">]:[</span><span class="n">x</span><span class="p">],</span> <span class="n">indList</span><span class="p">[</span><span class="mi">1</span><span class="p">]:[</span><span class="n">y</span><span class="p">],</span> <span class="n">indList</span><span class="p">[</span><span class="mi">2</span><span class="p">]:[</span><span class="n">z</span><span class="p">]})</span>
+
+                <span class="n">daRedList1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">red</span><span class="p">)</span>
+
+            <span class="n">daOut1</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">combine_nested</span><span class="p">(</span><span class="n">daRedList1</span><span class="p">,</span> <span class="n">concat_dim</span> <span class="o">=</span> <span class="n">indList</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">daRedList0</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">daOut1</span><span class="p">)</span>
+
+        <span class="n">daOut2</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">combine_nested</span><span class="p">(</span><span class="n">daRedList0</span><span class="p">,</span> <span class="n">concat_dim</span> <span class="o">=</span> <span class="n">indList</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">daRedList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">daOut2</span><span class="p">)</span>
+
+    <span class="n">daOut</span> <span class="o">=</span>  <span class="n">xr</span><span class="o">.</span><span class="n">combine_nested</span><span class="p">(</span><span class="n">daRedList</span><span class="p">,</span> <span class="n">concat_dim</span> <span class="o">=</span> <span class="n">indList</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">daOut</span></div>
+
+<span class="c1"># UGH THIS IS SO UGLY, please make it better.</span>
+<span class="c1"># Should be a neat recursive tree method here, probably also something canned!</span>
+<span class="c1"># Or with native Xarray functionality, but in testing couldn&#39;t get this to work properly.</span>
+<div class="viewcode-block" id="matEleGroupDim"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.matEleGroupDim">[docs]</a><span class="k">def</span> <span class="nf">matEleGroupDim</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dimGroups</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Group ePS matrix elements by redundant labels.</span>
+
+<span class="sd">    Default is to group by [&#39;ip&#39;, &#39;it&#39;, &#39;mu&#39;] terms, all have only a few values.</span>
+
+<span class="sd">    TODO: better ways to do this?  Shoud be possible at Xarray level.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : list</span>
+<span class="sd">        Sections from dumpIdy segment, as created in dumpIdySegsParseX()</span>
+<span class="sd">        Ordering is [labels, matElements, attribs].</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Basic version assuming dims</span>
+
+<span class="c1">#    # Split on ip</span>
+    <span class="n">dataIP</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">dInd</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">dataIP</span> <span class="o">=</span> <span class="n">dataGroupSel</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dInd</span><span class="p">)</span>
+
+    <span class="c1"># Split on IT</span>
+    <span class="n">dInd</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">dataIT</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">dataSub</span> <span class="ow">in</span> <span class="n">dataIP</span><span class="p">:</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="n">dataSub</span>
+        <span class="n">dataIT</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">dataGroupSel</span><span class="p">(</span><span class="n">dataSub</span><span class="p">,</span> <span class="n">dInd</span><span class="p">))</span>
+
+
+    <span class="c1"># Split on mu</span>
+    <span class="n">dInd</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">dataMU</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">dataSub</span> <span class="ow">in</span> <span class="n">dataIT</span><span class="p">:</span>
+        <span class="n">dataMU</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">dataGroupSel</span><span class="p">(</span><span class="n">dataSub</span><span class="p">,</span> <span class="n">dInd</span><span class="p">))</span>
+
+
+    <span class="c1"># Put into Xarray (code from dumpIdySegsParseX)</span>
+    <span class="c1"># Label singleton dims directly, then stack.</span>
+    <span class="n">dataArrays</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">attribs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>   <span class="c1"># Shared attribs</span>
+    <span class="k">for</span> <span class="n">dataSub</span> <span class="ow">in</span> <span class="n">dataMU</span><span class="p">:</span>
+        <span class="n">LM</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">(</span><span class="n">dataSub</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">,:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int8&#39;</span><span class="p">),</span> <span class="n">names</span> <span class="o">=</span> <span class="n">attribs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">LM</span> <span class="o">=</span> <span class="n">LM</span><span class="o">.</span><span class="n">swaplevel</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># Switch l,m indexes</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataSub</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int8&#39;</span><span class="p">)]</span>    <span class="c1"># Already set to single values above.</span>
+        <span class="n">ip</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataSub</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int8&#39;</span><span class="p">)]</span>
+        <span class="n">it</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataSub</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int8&#39;</span><span class="p">)]</span>
+        <span class="n">Syms</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">([(</span><span class="n">attribs</span><span class="p">[</span><span class="mi">4</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span><span class="n">attribs</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span><span class="n">attribs</span><span class="p">[</span><span class="mi">6</span><span class="p">][</span><span class="mi">1</span><span class="p">])],</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="n">attribs</span><span class="p">[</span><span class="mi">4</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span><span class="n">attribs</span><span class="p">[</span><span class="mi">5</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span><span class="n">attribs</span><span class="p">[</span><span class="mi">6</span><span class="p">][</span><span class="mi">0</span><span class="p">]])</span>
+
+        <span class="c1">#dataArrays.append(xr.DataArray(data[1], coords={&#39;ES&#39;: Esyms, &#39;LM&#39;:QNs}, dims = [&#39;ES&#39;,&#39;LM&#39;]))</span>
+        <span class="c1"># AH - issue is number of labels - can&#39;t lable singleton dim it seems, but can expand</span>
+        <span class="c1">#TODO: consider setting E as a separate dim, will be singleton for each set of syms. Might make more sense for later manipulations (sum over sym or E).</span>
+        <span class="c1"># tmp = xr.DataArray(np.asarray(data[1]), coords={&#39;LM&#39;:QNs}, dims = [&#39;LM&#39;])</span>
+        <span class="c1"># tmp = tmp.expand_dims({&#39;Sym&#39;:Syms, &#39;Eke&#39;:[attribs[0][1]]})  # This is OK, but still ties Eke and Sym coords (same number of elements)</span>
+        <span class="c1"># # tmp = tmp.expand_dims({&#39;Sym&#39;:Syms})</span>
+
+        <span class="c1"># tmp =  xr.DataArray(np.asarray(data[1]), coords={&#39;LM&#39;:LM, &#39;mu&#39;:mu, &#39;ip&#39;:ip, &#39;it&#39;:it}, dims = [&#39;LM&#39;,&#39;mu&#39;,&#39;it&#39;,&#39;ip&#39;])</span>
+        <span class="n">tmp</span> <span class="o">=</span>  <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">dataSub</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">coords</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;LM&#39;</span><span class="p">:</span><span class="n">LM</span><span class="p">},</span> <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;LM&#39;</span><span class="p">])</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">({</span><span class="s1">&#39;Sym&#39;</span><span class="p">:</span><span class="n">Syms</span><span class="p">,</span> <span class="s1">&#39;Eke&#39;</span><span class="p">:[</span><span class="n">attribs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]]})</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">({</span><span class="s1">&#39;mu&#39;</span><span class="p">:</span><span class="n">mu</span><span class="p">,</span> <span class="s1">&#39;ip&#39;</span><span class="p">:</span><span class="n">ip</span><span class="p">,</span> <span class="s1">&#39;it&#39;</span><span class="p">:</span><span class="n">it</span><span class="p">})</span>
+
+         <span class="c1"># Assign any other attributes - note that some attributes may be dropped when combining arrays below</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attribs</span><span class="p">:</span>
+            <span class="n">tmp</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># Currently set without units, multiple values here give combine issues below.</span>
+
+        <span class="n">dataArrays</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+
+    <span class="c1"># Recombine along it</span>
+    <span class="n">da</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">combine_nested</span><span class="p">(</span><span class="n">dataArrays</span><span class="p">,</span> <span class="n">concat_dim</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;it&#39;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">da</span></div>
+
+
+
+
+<span class="c1"># Function for grabbing files or scanning dir for files.</span>
+<span class="c1"># Note raw string for docstring as one method of keeping raw string in example.</span>
+<div class="viewcode-block" id="getFiles"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.getFiles">[docs]</a><span class="k">def</span> <span class="nf">getFiles</span><span class="p">(</span><span class="n">fileIn</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fileBase</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fType</span> <span class="o">=</span> <span class="s1">&#39;.out&#39;</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read ePS file(s) and return results as Xarray data structures.</span>
+<span class="sd">    File endings specified by fType, default .out.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fileIn : str, list of strs, optional.</span>
+<span class="sd">        File(s) to read (file in working dir, or full path).</span>
+<span class="sd">        Defaults to current working dir if only a file name is supplied.</span>
+<span class="sd">        For consistent results, pass raw strings, e.g.</span>
+<span class="sd">        ``fileIn = r&quot;C:\share\code\ePSproc\python_dev\no2_demo_ePS.out&quot;``</span>
+
+<span class="sd">    fileBase : str, optional.</span>
+<span class="sd">        Dir to scan for files.</span>
+<span class="sd">        Currently only accepts a single dir.</span>
+<span class="sd">        Defaults to current working dir if no other parameters are passed.</span>
+
+<span class="sd">    fType : str, optional</span>
+<span class="sd">        File ending for ePS output files, default &#39;.out&#39;</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        List of Xarray data arrays, containing matrix elements etc. from each file scanned.</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+
+    <span class="n">currDir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">fileBase</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fileBase</span> <span class="o">=</span> <span class="n">currDir</span>
+
+    <span class="k">if</span> <span class="n">fileIn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Wrap in list if only single file passed</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">fileIn</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">fileIn</span> <span class="o">=</span> <span class="p">[</span><span class="n">fileIn</span><span class="p">]</span>
+
+        <span class="n">fList</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">fileIn</span><span class="p">:</span>
+            <span class="c1"># Check file &amp; path are valid</span>
+            <span class="n">fTest</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">fTest</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">fList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">currDir</span><span class="p">,</span> <span class="n">file</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+
+        <span class="c1"># Display message</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">*** Scanning file(s)&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">fList</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Filenames only</span>
+        <span class="c1"># fList = [f for f in os.listdir(fileBase) if f.endswith(fType)]</span>
+        <span class="c1"># With full path</span>
+        <span class="n">fList</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fileBase</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">fileBase</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">fType</span><span class="p">)]</span>
+
+        <span class="c1"># Display message</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">*** Scanning dir&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">fileBase</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Found </span><span class="si">{0}</span><span class="s1"> </span><span class="si">{1}</span><span class="s1"> file(s)</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fList</span><span class="p">),</span> <span class="n">fType</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">fList</span></div>
+
+<span class="c1">#****** Master function to read a file, or dir, of ePS outputs.</span>
+
+<span class="c1"># Some of the logic and methods could do with a revisit/tidy-up here...</span>
+<span class="c1">#TODO: Add error checking on paths using os.path.isdir/isfile etc.</span>
+<span class="c1">#TODO: Check/fix paths if incorrectly passed, e.g. https://stackoverflow.com/a/21605790</span>
+
+<div class="viewcode-block" id="readMatEle"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.readMatEle">[docs]</a><span class="k">def</span> <span class="nf">readMatEle</span><span class="p">(</span><span class="n">fileIn</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fileBase</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fType</span> <span class="o">=</span> <span class="s1">&#39;.out&#39;</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read ePS file(s) and return results as Xarray data structures.</span>
+<span class="sd">    File endings specified by fType, default *.out.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fileIn : str, list of strs, optional.</span>
+<span class="sd">        File(s) to read (file in working dir, or full path).</span>
+<span class="sd">        Defaults to current working dir if only a file name is supplied.</span>
+<span class="sd">        For consistent results, pass raw strings, e.g.</span>
+<span class="sd">        ``fileIn = r&quot;C:\share\code\ePSproc\python_dev\no2_demo_ePS.out&quot;``</span>
+
+<span class="sd">    fileBase : str, optional.</span>
+<span class="sd">        Dir to scan for files.</span>
+<span class="sd">        Currently only accepts a single dir.</span>
+<span class="sd">        Defaults to current working dir if no other parameters are passed.</span>
+
+<span class="sd">    fType : str, optional</span>
+<span class="sd">        File ending for ePS output files, default &#39;.out&#39;</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        List of Xarray data arrays, containing matrix elements etc. from each file scanned.</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; dataSet = readMatEle()  # Scan current dir</span>
+
+<span class="sd">    &gt;&gt;&gt; fileIn = r&#39;C:\share\code\ePSproc\python_dev\no2_demo_ePS.out&#39;</span>
+<span class="sd">    &gt;&gt;&gt; dataSet = readMatEle(fileIn)  # Scan single file</span>
+
+<span class="sd">    &gt;&gt;&gt; dataSet = readMatEle(fileBase = r&#39;C:\share\code\ePSproc\python_dev&#39;) # Scan dir</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        * Files are scanned for matrix element output flagged by &quot;DumpIdy&quot; headers.</span>
+<span class="sd">        * Each segment found is parsed for attributes and data (set of matrix elements).</span>
+<span class="sd">        * Matrix elements and attributes are combined and output as an Xarray array.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Set files to read, either:</span>
+    <span class="c1">#   - dir (one only) to scan using os</span>
+    <span class="c1">#   - file(s) and add to list with full path</span>
+    <span class="c1">#   - default case is scan current working dir.</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;*** ePSproc readMatEle(): scanning files for DumpIdy segments (matrix elements)&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Call function to check files or scan dir.</span>
+    <span class="n">fList</span> <span class="o">=</span> <span class="n">getFiles</span><span class="p">(</span><span class="n">fileIn</span> <span class="o">=</span> <span class="n">fileIn</span><span class="p">,</span> <span class="n">fileBase</span> <span class="o">=</span> <span class="n">fileBase</span><span class="p">,</span> <span class="n">fType</span> <span class="o">=</span> <span class="n">fType</span><span class="p">)</span>
+
+    <span class="c1"># Loop over fList and scan ePS files</span>
+    <span class="n">dataSet</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">fList</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">*** Reading ePS output file: &#39;</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+
+        <span class="c1"># Scan the file and parse segments</span>
+        <span class="c1">#lines, dumpSegs = dumpIdyFileParse(os.path.join(fileBase, file))</span>
+        <span class="n">ekeList</span> <span class="o">=</span> <span class="n">scatEngFileParse</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="n">symSegs</span> <span class="o">=</span> <span class="n">symFileParse</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Expecting </span><span class="si">{0}</span><span class="s1"> dumpIdy segments.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ekeList</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">symSegs</span><span class="p">)))</span>
+        <span class="n">lines</span><span class="p">,</span> <span class="n">dumpSegs</span> <span class="o">=</span> <span class="n">dumpIdyFileParse</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">blankSegs</span> <span class="o">=</span> <span class="n">dumpIdySegsParseX</span><span class="p">(</span><span class="n">dumpSegs</span><span class="p">,</span> <span class="n">ekeList</span><span class="p">,</span> <span class="n">symSegs</span><span class="p">)</span>
+
+        <span class="c1"># Add some additional properties to the output</span>
+        <span class="n">fName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">fName</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fName</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;fileBase&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fName</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Processed </span><span class="si">{0}</span><span class="s1"> sets of matrix elements (</span><span class="si">{1}</span><span class="s1"> blank)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dumpSegs</span><span class="p">),</span><span class="n">blankSegs</span><span class="p">))</span>
+
+        <span class="c1"># Put in a list for now, might want to use Xarray dataset here, and/or combine results from multiple files.</span>
+        <span class="n">dataSet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+
+    <span class="k">return</span> <span class="n">dataSet</span></div>
+
+
+<span class="c1"># **************** Functions for wavefunction (3D data) files</span>
+<span class="c1"># Based on previous Matlab code, readOrb3D.m</span>
+<span class="c1"># Helped by Scipy Cookbook LAS reader example: https://scipy-cookbook.readthedocs.io/items/LASReader.html</span>
+<span class="c1">#</span>
+<span class="c1"># See:</span>
+<span class="c1">#   - ePSproc_dev_IOfun_260519.py</span>
+<span class="c1">#   - ePSproc_dev_3Dvis_290519.property</span>
+<span class="c1"># for development notes (Finn E:\ePS_paraview_proc\scripts).</span>
+<span class="c1">#</span>
+<span class="c1"># TODO: rename &amp; integrate with functions above.</span>
+
+<span class="c1"># Read header lines into a list &amp; convert to int</span>
+<div class="viewcode-block" id="readOrbHeader"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.readOrbHeader">[docs]</a><span class="k">def</span> <span class="nf">readOrbHeader</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="n">headerLines</span><span class="o">=</span><span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+        <span class="n">headerLines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+        <span class="c1"># headerLines.append(f.readline().split()) # Split at whitespace</span>
+
+        <span class="k">if</span> <span class="n">i</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">headerLines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">headerLines</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>  <span class="c1"># Convert to int</span>
+
+    <span class="k">return</span> <span class="n">headerLines</span></div>
+
+<span class="c1"># Read a specified number of floats from file, return as numpy array type</span>
+<div class="viewcode-block" id="readOrbElements"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.readOrbElements">[docs]</a><span class="k">def</span> <span class="nf">readOrbElements</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">n</span><span class="p">):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">:</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()])</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
+
+<span class="c1"># Read coords from file, based on params in headerLines</span>
+<div class="viewcode-block" id="readOrbCoords"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.readOrbCoords">[docs]</a><span class="k">def</span> <span class="nf">readOrbCoords</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">headerLines</span><span class="p">):</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">headerLines</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
+        <span class="n">coords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">readOrbElements</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">headerLines</span><span class="p">[</span><span class="n">n</span><span class="o">+</span><span class="mi">2</span><span class="p">]))</span>
+
+    <span class="k">return</span> <span class="n">coords</span></div>
+
+<span class="c1"># Read data from file, based on params in headerLines</span>
+<div class="viewcode-block" id="readOrbData"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.readOrbData">[docs]</a><span class="k">def</span> <span class="nf">readOrbData</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">headerLines</span><span class="p">):</span>
+
+    <span class="c1"># Determine size of grid</span>
+    <span class="n">nData</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">nGrid</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># [j=j*headerLines[k] for k in range(np.abs(headerLines[1]))]  # FAIL</span>
+    <span class="c1"># Set number of elements</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">headerLines</span><span class="p">[</span><span class="mi">1</span><span class="p">])):</span>
+        <span class="n">nData</span> <span class="o">=</span> <span class="n">nData</span><span class="o">*</span><span class="n">headerLines</span><span class="p">[</span><span class="n">n</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">nGrid</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">headerLines</span><span class="p">[</span><span class="n">n</span><span class="o">+</span><span class="mi">2</span><span class="p">])</span>
+
+
+    <span class="c1"># Read elements</span>
+    <span class="n">dataRaw</span> <span class="o">=</span> <span class="n">readOrbElements</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">nData</span><span class="p">)</span>
+
+    <span class="c1"># Resort to 3D array - adapted from Matlab code, so might be a +/-1 index offset mix-up here...</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nGrid</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nGrid</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nGrid</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+           <span class="c1"># data[0:(nGrid[0]-1),y,z] = dataRaw[C:(C+nGrid[0]-1)]  # Incorrect offset?</span>
+           <span class="n">data</span><span class="p">[:,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataRaw</span><span class="p">[</span><span class="n">C</span><span class="p">:(</span><span class="n">C</span><span class="o">+</span><span class="n">nGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>  <span class="c1"># Should be correct... implicit (-1) in dataRaw range setting</span>
+           <span class="n">C</span> <span class="o">=</span> <span class="n">C</span><span class="o">+</span><span class="n">nGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+<span class="c1"># *************** Master function for reading a set of 3D data files from ePS</span>
+<div class="viewcode-block" id="readOrb3D"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.readOrb3D">[docs]</a><span class="k">def</span> <span class="nf">readOrb3D</span><span class="p">(</span><span class="n">fileIn</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fileBase</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fType</span> <span class="o">=</span> <span class="s1">&#39;_Orb.dat&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read ePS 3D data file(s) and return results.</span>
+<span class="sd">    File endings specified by fType, default *_Orb.dat.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fileIn : str, list of strs, optional.</span>
+<span class="sd">        File(s) to read (file in working dir, or full path).</span>
+<span class="sd">        Defaults to current working dir if only a file name is supplied.</span>
+<span class="sd">        For consistent results, pass raw strings, e.g.</span>
+<span class="sd">        fileIn = r&quot;C:\share\code\ePSproc\python_dev\no2_demo_ePS.out&quot;</span>
+
+<span class="sd">    fileBase : str, optional.</span>
+<span class="sd">        Dir to scan for files.</span>
+<span class="sd">        Currently only accepts a single dir.</span>
+<span class="sd">        Defaults to current working dir if no other parameters are passed.</span>
+
+<span class="sd">    fType : str, optional</span>
+<span class="sd">        File ending for ePS output files, default &#39;_Orb.dat&#39;</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        List of data arrays, containing matrix elements etc. from each file scanned.</span>
+
+<span class="sd">    # TODO: Change output to Xarray?</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; dataSet = readOrb3D()  # Scan current dir</span>
+
+<span class="sd">    &gt;&gt;&gt; fileIn = r&#39;C:\share\code\ePSproc\python_dev\DABCOSA2PPCA2PP_10.5eV_Orb.dat&#39;</span>
+<span class="sd">    &gt;&gt;&gt; dataSet = readOrb3D(fileIn)  # Scan single file</span>
+
+<span class="sd">    &gt;&gt;&gt; dataSet = readOrb3D(fileBase = r&#39;C:\share\code\ePSproc\python_dev&#39;) # Scan dir</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Populate file list</span>
+    <span class="n">fList</span> <span class="o">=</span> <span class="n">getFiles</span><span class="p">(</span><span class="n">fileIn</span> <span class="o">=</span> <span class="n">fileIn</span><span class="p">,</span> <span class="n">fileBase</span> <span class="o">=</span> <span class="n">fileBase</span><span class="p">,</span> <span class="n">fType</span> <span class="o">=</span> <span class="n">fType</span><span class="p">)</span>
+
+    <span class="n">dataSet</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fileName</span> <span class="ow">in</span> <span class="n">fList</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="c1"># Check eof</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">fEnd</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># Read file segments until eof</span>
+            <span class="c1"># TODO: add eof checking here, can have 3 or 6 segments depending on symmetry.</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="c1"># for seg in range(3):</span>
+            <span class="k">while</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">fEnd</span> <span class="o">-</span> <span class="mi">100</span><span class="p">:</span>    <span class="c1"># Scan until eof minus arb small offset.</span>
+                <span class="n">headerLines</span> <span class="o">=</span> <span class="n">readOrbHeader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="n">coords</span> <span class="o">=</span> <span class="n">readOrbCoords</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">headerLines</span><span class="p">)</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">readOrbData</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">headerLines</span><span class="p">))</span>
+
+        <span class="n">dataSet</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">fileName</span><span class="p">,</span> <span class="n">headerLines</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">data</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">dataSet</span></div>
+
+
+<div class="viewcode-block" id="writeOrb3Dvtk"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.writeOrb3Dvtk">[docs]</a><span class="k">def</span> <span class="nf">writeOrb3Dvtk</span><span class="p">(</span><span class="n">dataSet</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write ePS 3D data file(s) to vtk format.</span>
+<span class="sd">    This can be opened in, e.g., Paraview.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dataSet : list</span>
+<span class="sd">        List of data arrays, containing matrix elements etc. from each file scanned.</span>
+<span class="sd">        Assumes format as output by readOrb3D(), [fileName, headerLines, coords, data]</span>
+
+<span class="sd">    # TODO: Change to Xarray?</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        List of output files.</span>
+
+
+<span class="sd">    .. note::</span>
+<span class="sd">        Uses Paulo Herrera&#39;s eVTK, see:</span>
+
+<span class="sd">        * https://pyscience.wordpress.com/2014/09/06/numpy-to-vtk-converting-your-numpy-arrays-to-vtk-arrays-and-files/</span>
+<span class="sd">        * https://bitbucket.org/pauloh/pyevtk/src/default/</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fOut</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">dataSet</span><span class="p">:</span>
+        <span class="c1"># Set grid, convert to Cart if necessary, assuming that grid won&#39;t be larger than 10 Angs</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">file</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">50</span><span class="p">):</span>
+            <span class="c1"># Convert to Cart grid for plotting</span>
+            <span class="c1"># TODO: Investigate use of sph grid here - should be cleaner.</span>
+            <span class="c1"># TODO: Investigate recreating mesh in Paraview, rather than saving to file.</span>
+            <span class="p">[</span><span class="n">T</span><span class="p">,</span><span class="n">R</span><span class="p">,</span><span class="n">P</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">file</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">file</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">file</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span><span class="p">)</span> <span class="c1">#-np.pi/2</span>
+            <span class="n">P</span> <span class="o">=</span> <span class="n">P</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">180</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">R</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">P</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">R</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">R</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">P</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="p">[</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">file</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">file</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">file</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span>
+
+        <span class="c1"># Save single dataset</span>
+        <span class="c1"># Function info: https://bitbucket.org/pauloh/pyevtk/src/default/src/hl.py</span>
+        <span class="c1"># gridToVTK(&quot;./ePStest3&quot;, x, y, z, pointData = {&#39;data&#39;: data[0]})</span>
+
+        <span class="c1"># Save full dataset</span>
+        <span class="c1"># TODO: Check number of segments and save multiple</span>
+        <span class="c1"># segs = round(len(file[3])/3)</span>
+        <span class="n">fOut</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gridToVTK</span><span class="p">(</span><span class="n">file</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="o">-</span><span class="mi">4</span><span class="p">],</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">pointData</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Re&#39;</span><span class="p">:</span> <span class="n">file</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;Im&#39;</span><span class="p">:</span> <span class="n">file</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;Abs&#39;</span><span class="p">:</span> <span class="n">file</span><span class="p">[</span><span class="mi">3</span><span class="p">][</span><span class="mi">2</span><span class="p">]}))</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> files written to vtk format.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fOut</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="n">fOut</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Paul Hockett
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

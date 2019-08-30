@@ -1,0 +1,314 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>epsproc.MFPAD module &mdash; ePSproc 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="epsproc.sphCalc module" href="epsproc.sphCalc.html" />
+    <link rel="prev" title="epsproc.IO module" href="epsproc.IO.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ePSproc
+          
+
+          
+            
+            <img src="../_static/ePSproc_logo.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Intro:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">ePSproc Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Function ref:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="epsproc.html">epsproc package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="epsproc.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="epsproc.IO.html">epsproc.IO module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">epsproc.MFPAD module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#epsproc-mfpad-functions">ePSproc MFPAD functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#structure">Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#to-do">To Do</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#formalism">Formalism</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.sphCalc.html">epsproc.sphCalc module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.sphPlot.html">epsproc.sphPlot module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.util.html">epsproc.util module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="epsproc.html#module-epsproc">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ePSproc</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="epsproc.html">epsproc package</a> &raquo;</li>
+        
+      <li>epsproc.MFPAD module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/modules/epsproc.MFPAD.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-epsproc.MFPAD">
+<span id="epsproc-mfpad-module"></span><h1>epsproc.MFPAD module<a class="headerlink" href="#module-epsproc.MFPAD" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="epsproc-mfpad-functions">
+<h2>ePSproc MFPAD functions<a class="headerlink" href="#epsproc-mfpad-functions" title="Permalink to this headline">¶</a></h2>
+<dl class="simple">
+<dt>05/08/19    v1  Initial python version.</dt><dd><p>Based on original Matlab code ePS_MFPAD.m</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="structure">
+<h2>Structure<a class="headerlink" href="#structure" title="Permalink to this headline">¶</a></h2>
+<p>Calculate MFPAD on a grid from input ePS matrix elements.
+Use fast functions, pre-calculate if possible.
+Data in Xarray, use selection functions and multiplications based on relevant quantum numbers, other axes summed over.</p>
+<dl>
+<dt>Choices for functions…</dt><dd><ul>
+<li><p><a class="reference external" href="https://github.com/moble/spherical_functions">Moble’s spherical functions (quaternion based)</a></p>
+<p>Provides fast wignerD, 3j and Ylm functions, uses Numba.</p>
+<p>Install with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">conda</span> <span class="n">install</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">spherical_functions</span>
+</pre></div>
+</div>
+</li>
+<li><p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.sph_harm.html#scipy.special.sph_harm">Scipy special.sph_harm</a></p></li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="to-do">
+<h2>To Do<a class="headerlink" href="#to-do" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Propagate scale-factor to Mb.</p></li>
+<li><p>Benchmark on NO2 reference results.</p></li>
+<li><p>Test over multiple E.</p></li>
+<li><p>Test over multiple R.</p></li>
+</ul>
+</div>
+<div class="section" id="formalism">
+<h2>Formalism<a class="headerlink" href="#formalism" title="Permalink to this headline">¶</a></h2>
+<p>From <a class="reference external" href="https://www.authorea.com/users/71114/articles/122402/_show_article">ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations</a>.</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}I_{\mu_{0}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})=\frac{4\pi^{2}E}{cg_{p_{i}}}\sum_{\mu_{i},\mu_{f}}|T_{\mu_{0}}^{p_{i}\mu_{i},p_{f}\mu_{f}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})|^{2}\label{eq:MFPAD}\\T_{\mu_{0}}^{p_{i}\mu_{i},p_{f}\mu_{f}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})=\sum_{l,m,\mu}I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)Y_{lm}^{*}(\theta_{\hat{k}},\phi_{\hat{k}})D_{\mu,\mu_{0}}^{1}(R_{\hat{n}})\label{eq:TMF}\\I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)=\langle\Psi_{i}^{p_{i},\mu_{i}}|\hat{d_{\mu}}|\Psi_{f}^{p_{f},\mu_{f}}\varphi_{klm}^{(-)}\rangle\label{eq:I}\end{aligned}\end{align} \]</div>
+<p>In this formalism:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)\)</span> is the radial part of the dipole matrix element, determined from the initial and final state electronic wavefunctions <span class="math notranslate nohighlight">\(\Psi_{i}^{p_{i},\mu_{i}}\)</span> and <span class="math notranslate nohighlight">\(\Psi_{f}^{p_{f},\mu_{f}}\)</span>, photoelectron wavefunction <span class="math notranslate nohighlight">\(\varphi_{klm}^{(-)}\)</span> and dipole operator <span class="math notranslate nohighlight">\(\hat{d_{\mu}}\)</span>. Here the wavefunctions are indexed by irreducible representation (i.e. symmetry) by the labels <span class="math notranslate nohighlight">\(p_{i}\)</span> and <span class="math notranslate nohighlight">\(p_{f}\)</span>, with components <span class="math notranslate nohighlight">\(\mu_{i}\)</span> and <span class="math notranslate nohighlight">\(\mu_{f}\)</span> respectively; <span class="math notranslate nohighlight">\(l,m\)</span> are angular momentum components, <span class="math notranslate nohighlight">\(\mu\)</span> is the projection of the polarization into the MF (from a value <span class="math notranslate nohighlight">\(\mu_{0}\)</span> in the LF). Each energy and irreducible representation corresponds to a calculation in ePolyScat.</p></li>
+<li><p><span class="math notranslate nohighlight">\(T_{\mu_{0}}^{p_{i}\mu_{i},p_{f}\mu_{f}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})\)</span> is the full matrix element (expanded in polar coordinates) in the MF, where <span class="math notranslate nohighlight">\(\hat{k}\)</span> denotes the direction of the photoelectron <span class="math notranslate nohighlight">\(\mathbf{k}\)</span>-vector, and <span class="math notranslate nohighlight">\(\hat{n}\)</span> the direction of the polarization vector <span class="math notranslate nohighlight">\(\mathbf{n}\)</span> of the ionizing light. Note that the summation over components <span class="math notranslate nohighlight">\(\{l,m,\mu\}\)</span> is coherent, and hence phase sensitive.</p></li>
+<li><p><span class="math notranslate nohighlight">\(Y_{lm}^{*}(\theta_{\hat{k}},\phi_{\hat{k}})\)</span> is a spherical harmonic.</p></li>
+<li><p><span class="math notranslate nohighlight">\(D_{\mu,\mu_{0}}^{1}(R_{\hat{n}})\)</span> is a Wigner rotation matrix element, with a set of Euler angles <span class="math notranslate nohighlight">\(R_{\hat{n}}=(\phi_{\hat{n}},\theta_{\hat{n}},\chi_{\hat{n}})\)</span>, which rotates/projects the polarization into the MF.</p></li>
+<li><p><span class="math notranslate nohighlight">\(I_{\mu_{0}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})\)</span> is the final (observable) MFPAD, for a polarization <span class="math notranslate nohighlight">\(\mu_{0}\)</span> and summed over all symmetry components of the initial and final states, <span class="math notranslate nohighlight">\(\mu_{i}\)</span> and <span class="math notranslate nohighlight">\(\mu_{f}\)</span>. Note that this sum can be expressed as an incoherent summation, since these components are (by definition) orthogonal.</p></li>
+<li><p><span class="math notranslate nohighlight">\(g_{p_{i}}\)</span> is the degeneracy of the state <span class="math notranslate nohighlight">\(p_{i}\)</span>.</p></li>
+</ul>
+<dl class="function">
+<dt id="epsproc.MFPAD.mfpad">
+<code class="sig-prename descclassname">epsproc.MFPAD.</code><code class="sig-name descname">mfpad</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em>, <em class="sig-param">thres=0.01</em>, <em class="sig-param">inds={'Type': 'L'</em>, <em class="sig-param">'it': 1}</em>, <em class="sig-param">res=50</em>, <em class="sig-param">R=None</em>, <em class="sig-param">p=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/MFPAD.html#mfpad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.MFPAD.mfpad" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataIn</strong> (<em>Xarray</em>) – Contains set(s) of matrix elements to use, as output by epsproc.readMatEle().</p></li>
+<li><p><strong>thres</strong> (<em>float</em><em>, </em><em>optional</em><em>, </em><em>default 1e-2</em>) – Threshold value for matrix elements to use in calculation.</p></li>
+<li><p><strong>ind</strong> (<em>dictionary</em><em>, </em><em>optional.</em>) – Used for sub-selection of matrix elements from Xarrays.
+Default set for length gauage, single it component only, inds = {‘Type’:’L’,’it’:‘1’}.</p></li>
+<li><p><strong>res</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default 50</em>) – Resolution for output (theta,phi) grids.</p></li>
+<li><p><strong>R</strong> (<em>list of Euler angles</em><em> or </em><em>quaternions</em><em>, </em><em>optional.</em>) – Define LF &gt; MF polarization geometry/rotations.
+For default case (R = None), 3 geometries are calculated, corresponding to z-pol, x-pol and y-pol cases.
+Defined by Euler angles (p,t,c) = [0 0 0] for z-pol, [0 pi/2 0] for x-pol, [pi/2 pi/2 0] for y-pol.</p></li>
+<li><p><strong>p</strong> (<em>int</em><em>, </em><em>optional.</em>) – Defines LF polarization state, p = -1…1, default p = 0 (linearly pol light along z-axis).
+TODO: add summation over p for multiple pol states in LF.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>Ta</em> – Xarray (theta, phi, E, Sym) of MFPADs, summed over (l,m)</p></li>
+<li><p><em>Tlm</em> – Xarray (theta, phi, E, Sym, lm) of MFPAD components, expanded over all (l,m)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="epsproc.sphCalc.html" class="btn btn-neutral float-right" title="epsproc.sphCalc module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="epsproc.IO.html" class="btn btn-neutral float-left" title="epsproc.IO module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Paul Hockett
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

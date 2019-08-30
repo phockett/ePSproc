@@ -1,0 +1,280 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>epsproc.util &mdash; ePSproc 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> ePSproc
+          
+
+          
+            
+            <img src="../../_static/ePSproc_logo.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Intro:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">ePSproc Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Function ref:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/epsproc.html">epsproc package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ePSproc</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>epsproc.util</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for epsproc.util</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">ePSproc utility functions</span>
+
+<span class="sd">Collection of small functions for sorting etc.</span>
+
+<span class="sd">11/08/19    Added matEleSelector</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># Selector function for matrix elements in Xarray</span>
+<div class="viewcode-block" id="matEleSelector"><a class="viewcode-back" href="../../modules/epsproc.util.html#epsproc.util.matEleSelector">[docs]</a><span class="k">def</span> <span class="nf">matEleSelector</span><span class="p">(</span><span class="n">da</span><span class="p">,</span> <span class="n">thres</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">inds</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sq</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Select &amp; threshold raw matrix elements in an Xarray</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    da : Xarray</span>
+<span class="sd">        Set of matrix elements to sub-select</span>
+<span class="sd">    thres : float, optional, default None</span>
+<span class="sd">        Threshold value for abs(matElement), keep only elements &gt; thres.</span>
+<span class="sd">    inds : dict, optional, default None</span>
+<span class="sd">        Dicitonary of additional selection criteria, in name:value format.</span>
+<span class="sd">        These correspond to parameter dimensions in the Xarray structure.</span>
+<span class="sd">        E.g. inds = {&#39;Type&#39;:&#39;L&#39;,&#39;Cont&#39;:&#39;A2&#39;}</span>
+<span class="sd">    sq : bool, optional, default False</span>
+<span class="sd">        Squeeze output singleton dimensions.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    daOut</span>
+<span class="sd">        Xarray structure of selected matrix elements.</span>
+<span class="sd">        Note that Nans are dropped if possible.</span>
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+<span class="sd">    &gt;&gt;&gt; daOut = matEleSelector(da, inds = {&#39;Type&#39;:&#39;L&#39;,&#39;Cont&#39;:&#39;A2&#39;})</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Iterate over other selection criteria</span>
+    <span class="c1"># This may return view or copy - TBC - but seems to work as expected.</span>
+    <span class="c1"># http://xarray.pydata.org/en/v0.12.3/indexing.html#copies-vs-views</span>
+    <span class="k">if</span> <span class="n">inds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">da</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span>    <span class="c1"># Fors inds as dict, e.g. {&#39;Type&#39;:&#39;L&#39;,&#39;it&#39;:1,&#39;Cont&#39;:&#39;A2&#39;}</span>
+                                <span class="c1"># May want to send as list, or automate vs. dim names?</span>
+                                <span class="c1"># NOTE - in current dev code this is used to reindex, so .squeeze() casuses issues!</span>
+
+
+    <span class="c1"># Reduce dims by thesholding on abs values</span>
+    <span class="c1"># Do this after selection to ensure Nans removed.</span>
+    <span class="k">if</span> <span class="n">thres</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">daOut</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">da</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">thres</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">daOut</span> <span class="o">=</span> <span class="n">da</span>
+
+    <span class="k">if</span> <span class="n">sq</span><span class="p">:</span>
+        <span class="n">daOut</span> <span class="o">=</span> <span class="n">daOut</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>  <span class="c1"># Squeeze dims.</span>
+
+    <span class="k">return</span> <span class="n">daOut</span></div>
+
+
+<span class="c1"># Select over vals from data structure</span>
+<div class="viewcode-block" id="dataGroupSel"><a class="viewcode-back" href="../../modules/epsproc.util.html#epsproc.util.dataGroupSel">[docs]</a><span class="k">def</span> <span class="nf">dataGroupSel</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dInd</span><span class="p">):</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">dataSub</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">uVals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">dInd</span><span class="p">,:])</span>
+
+    <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">uVals</span><span class="p">:</span>
+        <span class="c1"># Get matching terms and subset data</span>
+        <span class="c1"># iSel = np.nonzero(a[dInd,:]==val)</span>
+        <span class="n">iSel</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">dInd</span><span class="p">,:]</span><span class="o">==</span><span class="n">val</span><span class="p">)</span>
+        <span class="n">dataSub</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span><span class="n">iSel</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">iSel</span><span class="p">]])</span>
+
+    <span class="k">return</span> <span class="n">dataSub</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Paul Hockett
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

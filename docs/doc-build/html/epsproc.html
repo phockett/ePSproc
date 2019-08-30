@@ -1,0 +1,794 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>epsproc package &#8212; ePSproc 1.5.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="epsproc" href="modules.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="epsproc-package">
+<h1>epsproc package<a class="headerlink" href="#epsproc-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-epsproc.ePSproc_IO">
+<span id="epsproc-epsproc-io-module"></span><h2>epsproc.ePSproc_IO module<a class="headerlink" href="#module-epsproc.ePSproc_IO" title="Permalink to this headline">¶</a></h2>
+<p>ePSproc IO functions.</p>
+<p>Main function readMatEle(fileIn = None, fileBase = None, fType = ‘.out’):</p>
+<blockquote>
+<div><p>Read ePS file(s) and return results as Xarray data structures containing matrix elements.
+File endings specified by fType, default <a href="#id1"><span class="problematic" id="id2">*</span></a>.out.</p>
+</div></blockquote>
+<p>Also includes required ancillary functions for file IO tasks, and data parsing.</p>
+<dl class="simple">
+<dt>26/08/19        Added parsing for E, sym parameters from head of ePS file.</dt><dd><p>Added error checking by comparing read mat elements to expected list.
+Changed &amp; fixed Xarray indexing - matrix elements now output with dims (LM, Eke, Sym, mu, it, Type)
+Current code rather ugly however.</p>
+</dd>
+</dl>
+<p>19/08/19        Add functions for reading wavefunction files (3D data)
+07/08/19        Naming convention tweaks, and some changes to comments, following basic tests with Sphinx.
+05/08/19    v1  Initial python version.</p>
+<blockquote>
+<div><p>Working, but little error checking as yet. Needs some tidying.</p>
+</div></blockquote>
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.dumpIdyFileParse">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">dumpIdyFileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.dumpIdyFileParse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse an ePS file for dumpIdy segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>fileName</strong> (<em>str</em>) – File to read (file in working dir, or full path)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>list</em> – [lineStart, lineStop], ints for line #s found from start and end phrases.</p></li>
+<li><p><em>list</em> – dumpSegs, list of lines read from file.</p></li>
+<li><p><em>Lists contain entries for each dumpIdy segment found in the file.</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.dumpIdySegParse">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">dumpIdySegParse</code><span class="sig-paren">(</span><em class="sig-param">dumpSeg</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.dumpIdySegParse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract values from dumpIdy file segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dumpSeg</strong> (<em>list</em>) – One dumpIdy segment, from dumpSegs[], as returned by dumpIdyFileParse()</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>np.array</em> – rawIdy, array of matrix elements, [m,l,mu,ip,it,Re,Im]</p></li>
+<li><p><em>list</em> – attribs, list [Label, value, units]</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Currently this is a bit messy, and relies on fixed DumpIDY format.
+No error checking as yet.
+Not yet reading all attribs.</p>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">matEle</span><span class="p">,</span> <span class="n">attribs</span> <span class="o">=</span> <span class="n">dumpIdySegParse</span><span class="p">(</span><span class="n">dumpSegs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.dumpIdySegsParseX">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">dumpIdySegsParseX</code><span class="sig-paren">(</span><em class="sig-param">dumpSegs</em>, <em class="sig-param">ekeListUn</em>, <em class="sig-param">symSegs</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.dumpIdySegsParseX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract data from ePS dumpIdy segments into usable form.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dumpSegs</strong> (<em>list</em>) – Set of dumpIdy segments, i.e. dumpSegs, as returned by dumpIdyFileParse()</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>xr.array</em> – Xarray data array, containing matrix elements etc.
+Dimensions (LM, Eke, Sym, mu, it, Type)</p></li>
+<li><p><em>int</em> – Number of blank segments found.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">parseDumpSegX</span><span class="p">(</span><span class="n">dumpSegs</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.fileParse">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">fileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em>, <em class="sig-param">startPhrase=None</em>, <em class="sig-param">endPhrase=None</em>, <em class="sig-param">comment=None</em>, <em class="sig-param">verbose=False</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.fileParse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a file, return segment(s) from startPhrase:endPhase, excluding comments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fileName</strong> (<em>str</em>) – File to read (file in working dir, or full path)</p></li>
+<li><p><strong>startPhrase</strong> (<em>str</em><em>, </em><em>optional</em>) – Phrase denoting start of section to read. Default = None</p></li>
+<li><p><strong>endPhase</strong> (<em>str</em><em>, </em><em>optional</em>) – Phrase denoting end of section to read. Default = None</p></li>
+<li><p><strong>comment</strong> (<em>str</em><em>, </em><em>optional</em>) – Phrase denoting comment lines, which are skipped. Default = None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>list</em> – [lineStart, lineStop], ints for line #s found from start and end phrases.</p></li>
+<li><p><em>list</em> – segments, list of lines read from file.</p></li>
+<li><p><em>All lists can contain multiple entries, if more than one segment matches the search criteria.</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.getFiles">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">getFiles</code><span class="sig-paren">(</span><em class="sig-param">fileIn=None</em>, <em class="sig-param">fileBase=None</em>, <em class="sig-param">fType='.out'</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.getFiles" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Read ePS file(s) and return results as Xarray data structures.
+File endings specified by fType, default <a href="#id3"><span class="problematic" id="id4">*</span></a>.out.</p>
+<dl class="simple">
+<dt>fileIn<span class="classifier">str, list of strs, optional.</span></dt><dd><p>File(s) to read (file in working dir, or full path).
+Defaults to current working dir if only a file name is supplied.
+For consistent results, pass raw strings, e.g.
+fileIn = r”C:sharecodeePSprocpython_dev</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>o2_demo_ePS.out”</p>
+<blockquote>
+<div><dl class="simple">
+<dt>fileBase<span class="classifier">str, optional.</span></dt><dd><p>Dir to scan for files.
+Currently only accepts a single dir.
+Defaults to current working dir if no other parameters are passed.</p>
+</dd>
+<dt>fType<span class="classifier">str, optional</span></dt><dd><p>File ending for ePS output files, default ‘.out’</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>list</dt><dd><p>List of Xarray data arrays, containing matrix elements etc. from each file scanned.</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.matEleGroupDim">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">matEleGroupDim</code><span class="sig-paren">(</span><em class="sig-param">data, dimGroups=[3, 4, 2]</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.matEleGroupDim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Group ePS matrix elements by redundant labels.</p>
+<p>Default is to group by [‘ip’, ‘it’, ‘mu’] terms, all have only a few values.</p>
+<p>TODO: better ways to do this?  Shoud be possible at Xarray level.</p>
+<dl class="simple">
+<dt>data<span class="classifier">list</span></dt><dd><p>Sections from dumpIdy segment, as created in dumpIdySegsParseX()
+Ordering is [labels, matElements, attribs].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.matEleGroupDimX">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">matEleGroupDimX</code><span class="sig-paren">(</span><em class="sig-param">daIn</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.matEleGroupDimX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Group ePS matrix elements by redundant labels (Xarray version).</p>
+<p>Group by [‘ip’, ‘it’, ‘mu’] terms, all have only a few values.
+Rename ‘ip’:1,2 as ‘Type’:’L’,’V’</p>
+<p>TODO: better ways to do this?
+See also tests in funcTests_210819.py for more versions/tests.</p>
+<dl class="simple">
+<dt>data<span class="classifier">Xarray</span></dt><dd><p>Data array with matrix elements to be split and recombined by dims.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>data<span class="classifier">Xarray</span></dt><dd><p>Data array with reordered matrix elements (dimensions).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.matEleGroupDimXnested">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">matEleGroupDimXnested</code><span class="sig-paren">(</span><em class="sig-param">da</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.matEleGroupDimXnested" title="Permalink to this definition">¶</a></dt>
+<dd><p>Group ePS matrix elements by redundant labels (Xarray version).</p>
+<p>Group by [‘ip’, ‘it’, ‘mu’] terms, all have only a few values.</p>
+<p>TODO: better ways to do this?
+See also tests in funcTests_210819.py for more versions/tests.</p>
+<dl class="simple">
+<dt>data<span class="classifier">Xarray</span></dt><dd><p>Data array with matrix elements to be split and recombined by dims.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.parseLineDigits">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">parseLineDigits</code><span class="sig-paren">(</span><em class="sig-param">testLine</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.parseLineDigits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use regular expressions to extract digits from a string.
+<a class="reference external" href="https://stackoverflow.com/questions/4289331/how-to-extract-numbers-from-a-string-in-python">https://stackoverflow.com/questions/4289331/how-to-extract-numbers-from-a-string-in-python</a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.readMatEle">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">readMatEle</code><span class="sig-paren">(</span><em class="sig-param">fileIn=None</em>, <em class="sig-param">fileBase=None</em>, <em class="sig-param">fType='.out'</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.readMatEle" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Read ePS file(s) and return results as Xarray data structures.
+File endings specified by fType, default <a href="#id5"><span class="problematic" id="id6">*</span></a>.out.</p>
+<dl class="simple">
+<dt>fileIn<span class="classifier">str, list of strs, optional.</span></dt><dd><p>File(s) to read (file in working dir, or full path).
+Defaults to current working dir if only a file name is supplied.
+For consistent results, pass raw strings, e.g.
+fileIn = r”C:sharecodeePSprocpython_dev</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>o2_demo_ePS.out”</p>
+<blockquote>
+<div><dl class="simple">
+<dt>fileBase<span class="classifier">str, optional.</span></dt><dd><p>Dir to scan for files.
+Currently only accepts a single dir.
+Defaults to current working dir if no other parameters are passed.</p>
+</dd>
+<dt>fType<span class="classifier">str, optional</span></dt><dd><p>File ending for ePS output files, default ‘.out’</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>list</dt><dd><p>List of Xarray data arrays, containing matrix elements etc. from each file scanned.</p>
+</dd>
+</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataSet</span> <span class="o">=</span> <span class="n">readMatEle</span><span class="p">()</span>  <span class="c1"># Scan current dir</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fileIn</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;C:\share\code\ePSproc\python_dev</span>
+</pre></div>
+</div>
+</div></blockquote>
+<dl>
+<dt>o2_demo_ePS.out’</dt><dd><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataSet</span> <span class="o">=</span> <span class="n">readMatEle</span><span class="p">(</span><span class="n">fileIn</span><span class="p">)</span>  <span class="c1"># Scan single file</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataSet</span> <span class="o">=</span> <span class="n">readMatEle</span><span class="p">(</span><span class="n">fileBase</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;C:\share\code\ePSproc\python_dev&#39;</span><span class="p">)</span> <span class="c1"># Scan dir</span>
+</pre></div>
+</div>
+<p>Files are scanned for matrix element output flagged by “DumpIdy” headers.
+Each segment found is parsed for attributes and data (set of matrix elements).
+Matrix elements and attributes are combined and output as an Xarray array.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.readOrb3D">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">readOrb3D</code><span class="sig-paren">(</span><em class="sig-param">fileIn=None</em>, <em class="sig-param">fileBase=None</em>, <em class="sig-param">fType='_Orb.dat'</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.readOrb3D" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Read ePS 3D data file(s) and return results.
+File endings specified by fType, default <a href="#id7"><span class="problematic" id="id8">*</span></a>_Orb.dat.</p>
+<dl class="simple">
+<dt>fileIn<span class="classifier">str, list of strs, optional.</span></dt><dd><p>File(s) to read (file in working dir, or full path).
+Defaults to current working dir if only a file name is supplied.
+For consistent results, pass raw strings, e.g.
+fileIn = r”C:sharecodeePSprocpython_dev</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>o2_demo_ePS.out”</p>
+<blockquote>
+<div><dl class="simple">
+<dt>fileBase<span class="classifier">str, optional.</span></dt><dd><p>Dir to scan for files.
+Currently only accepts a single dir.
+Defaults to current working dir if no other parameters are passed.</p>
+</dd>
+<dt>fType<span class="classifier">str, optional</span></dt><dd><p>File ending for ePS output files, default ‘_Orb.dat’</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>list</dt><dd><p>List of data arrays, containing matrix elements etc. from each file scanned.</p>
+</dd>
+</dl>
+<p># TODO: Change output to Xarray?</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataSet</span> <span class="o">=</span> <span class="n">readOrb3D</span><span class="p">()</span>  <span class="c1"># Scan current dir</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fileIn</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;C:\share\code\ePSproc\python_dev\DABCOSA2PPCA2PP_10.5eV_Orb.dat&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataSet</span> <span class="o">=</span> <span class="n">readOrb3D</span><span class="p">(</span><span class="n">fileIn</span><span class="p">)</span>  <span class="c1"># Scan single file</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataSet</span> <span class="o">=</span> <span class="n">readOrb3D</span><span class="p">(</span><span class="n">fileBase</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;C:\share\code\ePSproc\python_dev&#39;</span><span class="p">)</span> <span class="c1"># Scan dir</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.readOrbCoords">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">readOrbCoords</code><span class="sig-paren">(</span><em class="sig-param">f</em>, <em class="sig-param">headerLines</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.readOrbCoords" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.readOrbData">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">readOrbData</code><span class="sig-paren">(</span><em class="sig-param">f</em>, <em class="sig-param">headerLines</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.readOrbData" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.readOrbElements">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">readOrbElements</code><span class="sig-paren">(</span><em class="sig-param">f</em>, <em class="sig-param">n</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.readOrbElements" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.readOrbHeader">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">readOrbHeader</code><span class="sig-paren">(</span><em class="sig-param">f</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.readOrbHeader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.scatEngFileParse">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">scatEngFileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.scatEngFileParse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse an ePS file for ScatEng list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>fileName</strong> (<em>str</em>) – File to read (file in working dir, or full path)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>list</em> – ekeList, np array of energies set in the ePS file.</p></li>
+<li><p><em>Lists contain entries for each dumpIdy segment found in the file.</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.symFileParse">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">symFileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.symFileParse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse an ePS file for ScatEng list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>fileName</strong> (<em>str</em>) – File to read (file in working dir, or full path)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>list</em> – symSegs, raw lines from the ePS file.</p></li>
+<li><p><em>Lists contain entries for each dumpIdy segment found in the file.</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_IO.writeOrb3Dvtk">
+<code class="sig-prename descclassname">epsproc.ePSproc_IO.</code><code class="sig-name descname">writeOrb3Dvtk</code><span class="sig-paren">(</span><em class="sig-param">dataSet</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_IO.writeOrb3Dvtk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write ePS 3D data file(s) to vtk format.
+This can be opened in, e.g., Paraview.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataSet</strong> (<em>list</em>) – List of data arrays, containing matrix elements etc. from each file scanned.
+Assumes format as output by readOrb3D(), [fileName, headerLines, coords, data]</p></li>
+<li><p><strong>TODO</strong> (<em>#</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of output files.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Uses Paulo Herrera’s eVTK, see:
+<a class="reference external" href="https://pyscience.wordpress.com/2014/09/06/numpy-to-vtk-converting-your-numpy-arrays-to-vtk-arrays-and-files/">https://pyscience.wordpress.com/2014/09/06/numpy-to-vtk-converting-your-numpy-arrays-to-vtk-arrays-and-files/</a>
+<a class="reference external" href="https://bitbucket.org/pauloh/pyevtk/src/default/">https://bitbucket.org/pauloh/pyevtk/src/default/</a></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-epsproc.ePSproc_MFPAD">
+<span id="epsproc-epsproc-mfpad-module"></span><h2>epsproc.ePSproc_MFPAD module<a class="headerlink" href="#module-epsproc.ePSproc_MFPAD" title="Permalink to this headline">¶</a></h2>
+<p>ePSproc MFPAD functions.</p>
+<dl class="simple">
+<dt>05/08/19    v1  Initial python version.</dt><dd><p>Based on original Matlab code ePS_MFPAD.m</p>
+</dd>
+</dl>
+<div class="section" id="structure">
+<h3>Structure<a class="headerlink" href="#structure" title="Permalink to this headline">¶</a></h3>
+<p>Calculate MFPAD on a grid from input ePS matrix elements.
+Use fast functions, pre-calculate if possible.
+Data in Xarray, use selection functions and multiplications based on relevant quantum numbers, other axes summed over.</p>
+<p>Choices for functions…
+- Moble’s spherical functions (quaternion based)</p>
+<blockquote>
+<div><p><a class="reference external" href="https://github.com/moble/spherical_functions">https://github.com/moble/spherical_functions</a>
+conda install -c conda-forge spherical_functions</p>
+<p>wignerD and Ylm functions, quaternion-based</p>
+</div></blockquote>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Scipy</dt><dd><p>Ylm: <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.sph_harm.html#scipy.special.sph_harm">https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.sph_harm.html#scipy.special.sph_harm</a></p>
+</dd>
+</dl>
+</li>
+</ul>
+<dl class="function">
+<dt id="epsproc.ePSproc_MFPAD.mfpad">
+<code class="sig-prename descclassname">epsproc.ePSproc_MFPAD.</code><code class="sig-name descname">mfpad</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em>, <em class="sig-param">thres=0.01</em>, <em class="sig-param">inds={'Type': 'L'</em>, <em class="sig-param">'it': 1}</em>, <em class="sig-param">res=50</em>, <em class="sig-param">R=None</em>, <em class="sig-param">p=0</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_MFPAD.mfpad" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>dataIn<span class="classifier">Xarray</span></dt><dd><p>Contains set(s) of matrix elements to use, as output by epsproc.readMatEle().</p>
+</dd>
+<dt>thres<span class="classifier">float, optional, default 1e-2</span></dt><dd><p>Threshold value for matrix elements to use in calculation.</p>
+</dd>
+<dt>ind<span class="classifier">dictionary, optional.</span></dt><dd><p>Used for sub-selection of matrix elements from Xarrays.
+Default set for length gauage, single it component only, inds = {‘Type’:’L’,’it’:’1’}.</p>
+</dd>
+<dt>res<span class="classifier">int, optional, default 50</span></dt><dd><p>Resolution for output (theta,phi) grids.</p>
+</dd>
+<dt>R<span class="classifier">list of Euler angles or quaternions, optional.</span></dt><dd><p>Define LF &gt; MF polarization geometry/rotations.
+For default case (R = None), 3 geometries are calculated, corresponding to z-pol, x-pol and y-pol cases.
+Defined by Euler angles (p,t,c) = [0 0 0] for z-pol, [0 pi/2 0] for x-pol, [pi/2 pi/2 0] for y-pol.</p>
+</dd>
+<dt>p<span class="classifier">int, optional.</span></dt><dd><p>Defines LF polarization state, p = -1…1, default p = 0 (linearly pol light along z-axis).
+TODO: add summation over p for multiple pol states in LF.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Ta</dt><dd><p>Xarray (theta, phi, E, Sym) of MFPADs, summed over (l,m)</p>
+</dd>
+<dt>Tlm</dt><dd><p>Xarray (theta, phi, E, Sym, lm) of MFPAD components, expanded over all (l,m)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-epsproc.ePSproc_sphCalc">
+<span id="epsproc-epsproc-sphcalc-module"></span><h2>epsproc.ePSproc_sphCalc module<a class="headerlink" href="#module-epsproc.ePSproc_sphCalc" title="Permalink to this headline">¶</a></h2>
+<p>ePSproc spherical function calculations.</p>
+<p>Collection of functions for calculating Ylm, wignerD etc.</p>
+<p>For spherical harmonics, currently using scipy.special.sph_harm</p>
+<p>For other functions, using Moble’s spherical_functions package
+<a class="reference external" href="https://github.com/moble/spherical_functions">https://github.com/moble/spherical_functions</a></p>
+<p>See tests/Spherical function testing Aug 2019.ipynb</p>
+<p>27/08/19        Added wDcalc for Wigner D functions.
+14/08/19    v1  Implmented sphCalc</p>
+<dl class="function">
+<dt id="epsproc.ePSproc_sphCalc.sphCalc">
+<code class="sig-prename descclassname">epsproc.ePSproc_sphCalc.</code><code class="sig-name descname">sphCalc</code><span class="sig-paren">(</span><em class="sig-param">Lmax</em>, <em class="sig-param">Lmin=0</em>, <em class="sig-param">res=None</em>, <em class="sig-param">angs=None</em>, <em class="sig-param">XFlag=True</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphCalc.sphCalc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate set of spherical harmonics Ylm(theta,phi) on a grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Lmax</strong> (<em>int</em>) – Maximum L for the set. Ylm calculated for Lmin:Lmax, all m.</p></li>
+<li><p><strong>Lmin</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default 0</em>) – Min L for the set. Ylm calculated for Lmin:Lmax, all m.</p></li>
+<li><p><strong>res</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – (Theta, Phi) grid resolution, outputs will be of dim [res,res].</p></li>
+<li><p><strong>angs</strong> (<em>list of 2D np.arrays</em><em>, </em><em>[</em><em>thetea</em><em>, </em><em>phi</em><em>]</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – If passed, use these grids for calculation</p></li>
+<li><p><strong>XFlag</strong> (<em>bool</em><em>, </em><em>optional</em><em>, </em><em>default True</em>) – Flag for output. If true, output is Xarray. If false, np.arrays</p></li>
+<li><p><strong>that either res OR angs needs to be passed.</strong> (<em>Note</em>) – </p></li>
+<li><p><strong>Outputs</strong> – </p></li>
+<li><p><strong>-------</strong> – </p></li>
+<li><p><strong>if XFlag -</strong> (<em>-</em>) – </p></li>
+<li><p><strong>YlmX</strong> – 3D Xarray, dims (lm,theta,phi)</p></li>
+<li><p><strong>else -</strong> (<em>-</em>) – </p></li>
+<li><p><strong>lm</strong> (<em>Ylm</em><em>,</em>) – 3D np.array of values, dims (lm,theta,phi), plus list of lm pairs</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt>
+<code class="sig-name descname">Currently set for scipy.special.sph_harm as calculation routine.</code></dt>
+<dd></dd></dl>
+
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">YlmX</span> <span class="o">=</span> <span class="n">sphCalc</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="mi">50</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_sphCalc.wDcalc">
+<code class="sig-prename descclassname">epsproc.ePSproc_sphCalc.</code><code class="sig-name descname">wDcalc</code><span class="sig-paren">(</span><em class="sig-param">Lrange=[0, 1], Nangs=None, eAngs=None, R=None, XFlag=True</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphCalc.wDcalc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate set of Wigner D functions D(l,m,mp,R) on a grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Lrange</strong> (<em>list</em><em>, </em><em>optional</em><em>, </em><em>default</em><em> [</em><em>0</em><em>, </em><em>1</em><em>]</em>) – Range of L to calculate parameters for.
+If len(Lrange) == 2 assumed to be of form [Lmin, Lmax], otherwise list is used directly.
+For a given l, all (m, mp) combinations are calculated.</p></li>
+<li><p><strong>for setting angles</strong><strong> (</strong><strong>use one only</strong><strong>)</strong> (<em>Options</em>) – </p></li>
+<li><p><strong>Nangs</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – If passed, use this to define Euler angles sampled.
+Ranges will be set as (theta, phi, chi) = (0:pi, 0:pi/2, 0:pi) in Nangs steps.</p></li>
+<li><p><strong>eAngs</strong> (<em>np.array</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – If passed, use this to define Euler angles sampled.
+Array of angles, [theta,phi,chi], in radians</p></li>
+<li><p><strong>R</strong> (<em>np.array</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – If passed, use this to define Euler angles sampled.
+Array of quaternions, as given by quaternion.from_euler_angles(eAngs).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>XFlag<span class="classifier">bool, optional, default True</span></dt><dd><p>Flag for output. If true, output is Xarray. If false, np.arrays</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>if XFlag -</p></li>
+</ul>
+<dl class="simple">
+<dt>wDX</dt><dd><p>Xarray, dims (lmmp,Euler)</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>else -</p></li>
+</ul>
+<dl class="simple">
+<dt>wD, R, lmmp</dt><dd><p>np.arrays of values, dims (lmmp,Euler), plus list of angles and lmmp sets.</p>
+</dd>
+</dl>
+<dl class="method">
+<dt>
+<code class="sig-name descname">Uses Moble's spherical_functions package for wigner D function.</code></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<code class="sig-name descname">https://github.com/moble/spherical_functions</code></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<code class="sig-name descname">Moble's quaternion package for angles and conversions.</code></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<code class="sig-name descname">https://github.com/moble/quaternion</code></dt>
+<dd></dd></dl>
+
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wDX1</span> <span class="o">=</span> <span class="n">wDcalc</span><span class="p">(</span><span class="n">eAngs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wDX2</span> <span class="o">=</span> <span class="n">wDcalc</span><span class="p">(</span><span class="n">Nangs</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="module-epsproc.ePSproc_sphPlot">
+<span id="epsproc-epsproc-sphplot-module"></span><h2>epsproc.ePSproc_sphPlot module<a class="headerlink" href="#module-epsproc.ePSproc_sphPlot" title="Permalink to this headline">¶</a></h2>
+<p>ePSproc spherical polar plotting functions</p>
+<p>Collection of functions for plotting I(theta, phi) type data.</p>
+<p>14/08/19    v1</p>
+<dl class="function">
+<dt id="epsproc.ePSproc_sphPlot.mfpadPlotHV">
+<code class="sig-prename descclassname">epsproc.ePSproc_sphPlot.</code><code class="sig-name descname">mfpadPlotHV</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphPlot.mfpadPlotHV" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_sphPlot.mfpadPlotPL">
+<code class="sig-prename descclassname">epsproc.ePSproc_sphPlot.</code><code class="sig-name descname">mfpadPlotPL</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em>, <em class="sig-param">facetDim='Eke'</em>, <em class="sig-param">rc=None</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphPlot.mfpadPlotPL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_sphPlot.sphPlot">
+<code class="sig-prename descclassname">epsproc.ePSproc_sphPlot.</code><code class="sig-name descname">sphPlot</code><span class="sig-paren">(</span><em class="sig-param">dataPlot</em>, <em class="sig-param">theta</em>, <em class="sig-param">phi</em>, <em class="sig-param">pType='a'</em>, <em class="sig-param">backend='matplotlib'</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphPlot.sphPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Matplotlib.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataPlot</strong> (<em>np.array</em>) – Values to plot, dims (theta,phi).</p></li>
+<li><p><strong>phi</strong> (<em>theta</em><em>,</em>) – Angles defining spherical polar grid, 2D arrays.</p></li>
+<li><p><strong>pType</strong> (<em>char</em><em>, </em><em>optional</em><em>, </em><em>default 'a'</em>) – Set type of plot.
+‘a’ = np.abs(dataPlot)
+‘r’ = np.real(dataPlot)
+‘i’ = np.imag(dataPlot)
+‘p’ = dataPlot * np.conj(dataPlot)</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">YlmX</span> <span class="o">=</span> <span class="n">sphCalc</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="mi">50</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sphSumPlotX</span><span class="p">(</span><span class="n">YlmX</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">Notes</p>
+<p>Pretty basic functionality here, should add more colour mapping options and multiple plots, and alternative back-ends (Matplotlib only currently).
+Some functionality may end up being pushed to plotting library, e.g. Holoviews, which already supports faceting etc. etc.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_sphPlot.sphSumPlotX">
+<code class="sig-prename descclassname">epsproc.ePSproc_sphPlot.</code><code class="sig-name descname">sphSumPlotX</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em>, <em class="sig-param">pType='a'</em>, <em class="sig-param">backend='matplotlib'</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphPlot.sphSumPlotX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot sum of spherical harmonics from an Xarray.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataIn</strong> (<em>Xarray</em>) – Input set of precalculated Ylms, dims (theta,phi) or (lm,theta,phi).
+In the latter case (lm) dimension is summed.</p></li>
+<li><p><strong>pType</strong> (<em>char</em><em>, </em><em>optional</em><em>, </em><em>default 'a'</em>) – Set type of plot.
+‘a’ = np.abs(Ylm)
+‘r’ = np.real(Ylm)
+‘i’ = np.imag(Ylm)
+‘p’ = Ylm * np.conj(Ylm)</p></li>
+<li><p><strong>backend</strong> (<em>str</em><em>, </em><em>optional</em><em>, </em><em>default 'matplotlib'</em>) – <p>Set backend used for plotting.
+- matplotlib: basic 3D plotting, one figure per surface.
+- plotly: fancier 3D plotting, interactive in Jupyter but may fail at console.</p>
+<blockquote>
+<div><p>Subplots for surfaces.</p>
+</div></blockquote>
+<ul>
+<li><dl class="simple">
+<dt>holoviews: fancier plotting with additional back-end options.</dt><dd><p>Can facet on specific data types.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">YlmX</span> <span class="o">=</span> <span class="n">sphCalc</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="mi">50</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sphSumPlotX</span><span class="p">(</span><span class="n">YlmX</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">Notes</p>
+<p>Pretty basic functionality here, should add more colour mapping options and multiple plots.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_sphPlot.sphToCart">
+<code class="sig-prename descclassname">epsproc.ePSproc_sphPlot.</code><code class="sig-name descname">sphToCart</code><span class="sig-paren">(</span><em class="sig-param">R</em>, <em class="sig-param">theta</em>, <em class="sig-param">phi</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_sphPlot.sphToCart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert spherical polar coords (R,theta,phi) to Cartesian (X,Y,Z).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong><strong>, </strong><strong>phi</strong> (<em>R</em><em>,</em>) – </p></li>
+<li><p><strong>Outputs</strong> – </p></li>
+<li><p><strong>-------</strong> – </p></li>
+<li><p><strong>Y</strong><strong>, </strong><strong>Z</strong> (<em>X</em><em>,</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-epsproc.ePSproc_util">
+<span id="epsproc-epsproc-util-module"></span><h2>epsproc.ePSproc_util module<a class="headerlink" href="#module-epsproc.ePSproc_util" title="Permalink to this headline">¶</a></h2>
+<p>ePSproc utility functions</p>
+<p>Collection of small functions for sorting etc.</p>
+<p>11/08/19    Added matEleSelector</p>
+<dl class="function">
+<dt id="epsproc.ePSproc_util.dataGroupSel">
+<code class="sig-prename descclassname">epsproc.ePSproc_util.</code><code class="sig-name descname">dataGroupSel</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">dInd</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_util.dataGroupSel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="epsproc.ePSproc_util.matEleSelector">
+<code class="sig-prename descclassname">epsproc.ePSproc_util.</code><code class="sig-name descname">matEleSelector</code><span class="sig-paren">(</span><em class="sig-param">da</em>, <em class="sig-param">thres=None</em>, <em class="sig-param">inds=None</em>, <em class="sig-param">sq=False</em><span class="sig-paren">)</span><a class="headerlink" href="#epsproc.ePSproc_util.matEleSelector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Select &amp; threshold raw matrix elements in an Xarray</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>da</strong> (<em>Xarray</em>) – Set of matrix elements to sub-select</p></li>
+<li><p><strong>thres</strong> (<em>float</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – Threshold value for abs(matElement), keep only elements &gt; thres.</p></li>
+<li><p><strong>inds</strong> (<em>dict</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – Dicitonary of additional selection criteria, in name:value format.
+These correspond to parameter dimensions in the Xarray structure.
+E.g. inds = {‘Type’:’L’,’Cont’:’A2’}</p></li>
+<li><p><strong>sq</strong> (<em>bool</em><em>, </em><em>optional</em><em>, </em><em>default False</em>) – Squeeze output singleton dimensions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Xarray structure of selected matrix elements.
+Note that Nans are dropped if possible.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>daOut</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">daOut</span> <span class="o">=</span> <span class="n">matEleSelector</span><span class="p">(</span><span class="n">da</span><span class="p">,</span> <span class="n">inds</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Type&#39;</span><span class="p">:</span><span class="s1">&#39;L&#39;</span><span class="p">,</span><span class="s1">&#39;Cont&#39;</span><span class="p">:</span><span class="s1">&#39;A2&#39;</span><span class="p">})</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="module-epsproc">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-epsproc" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">ePSproc</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="readme.html">ePSproc</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">epsproc</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">epsproc package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">epsproc</a><ul>
+      <li>Previous: <a href="modules.html" title="previous chapter">epsproc</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, Paul Hockett.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/epsproc.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

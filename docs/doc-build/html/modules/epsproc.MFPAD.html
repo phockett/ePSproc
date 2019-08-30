@@ -34,6 +34,7 @@
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="epsproc.sphCalc module" href="epsproc.sphCalc.html" />
@@ -54,6 +55,9 @@
             <a href="../index.html" class="icon icon-home"> ePSproc
           
 
+          
+            
+            <img src="../_static/ePSproc_logo.png" class="logo" alt="Logo"/>
           
           </a>
 
@@ -85,9 +89,13 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Intro:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">ePSproc Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Function ref:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../readme.html">Readme.md (old)</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="epsproc.html">epsproc package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="epsproc.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="epsproc.IO.html">epsproc.IO module</a></li>
@@ -232,7 +240,7 @@ Data in Xarray, use selection functions and multiplications based on relevant qu
 <li><p><strong>dataIn</strong> (<em>Xarray</em>) – Contains set(s) of matrix elements to use, as output by epsproc.readMatEle().</p></li>
 <li><p><strong>thres</strong> (<em>float</em><em>, </em><em>optional</em><em>, </em><em>default 1e-2</em>) – Threshold value for matrix elements to use in calculation.</p></li>
 <li><p><strong>ind</strong> (<em>dictionary</em><em>, </em><em>optional.</em>) – Used for sub-selection of matrix elements from Xarrays.
-Default set for length gauage, single it component only, inds = {‘Type’:’L’,’it’:’1’}.</p></li>
+Default set for length gauage, single it component only, inds = {‘Type’:’L’,’it’:‘1’}.</p></li>
 <li><p><strong>res</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default 50</em>) – Resolution for output (theta,phi) grids.</p></li>
 <li><p><strong>R</strong> (<em>list of Euler angles</em><em> or </em><em>quaternions</em><em>, </em><em>optional.</em>) – Define LF &gt; MF polarization geometry/rotations.
 For default case (R = None), 3 geometries are calculated, corresponding to z-pol, x-pol and y-pol cases.

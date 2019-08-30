@@ -3,14 +3,21 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to ePSproc's documentation!
-===================================
+Welcome to ePSproc
+==================
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Intro:
 
-   readme
+   about
+   ePSproc_demo_Aug2019/ePSproc_demo_Aug2019
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Function ref:
+
    modules/epsproc
 
 

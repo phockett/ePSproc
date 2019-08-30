@@ -18,14 +18,14 @@ REQUIRES = []
 setup(
     name='ePSproc',
     version=version,
-    description='',
+    description='Post-processing suite for ePolyScat calculations (Matlab & Python).',
     long_description=readme,
     author='Paul Hockett',
     author_email='paul@femtolab.ca',
     maintainer='Paul Hockett',
     maintainer_email='paul@femtolab.ca',
     url='https://github.com/phockett/ePSproc',
-    license='MIT/Apache-2.0',
+    license='GNU3',
 
     keywords=[
         '',
@@ -34,15 +34,16 @@ setup(
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
-        'License :: OSI Approved :: Apache Software License',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
         'Natural Language :: English',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
+        'Topic :: Scientific/Engineering :: Physics',
+        'Topic :: Scientific/Engineering :: Chemistry'
     ],
 
     install_requires=REQUIRES,

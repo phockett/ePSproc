@@ -10,13 +10,13 @@ Github <https://github.com/phockett/ePSproc/blob/pkg/epsproc/tests/ePSproc_demo_
 Basic IO
 --------
 
-.. code-block:: ipython3
+.. code-block:: python
 
     import sys
     import os
     import numpy as np
 
-    # For module testing, include path to module here
+    # For local module testing, include path to module here
     modPath = r'D:\code\github\ePSproc'
     sys.path.append(modPath)
     import epsproc as ep
@@ -27,7 +27,7 @@ Basic IO
     * pyevtk not found, VTK export not available.
 
 
-.. code-block:: ipython3
+.. code-block:: python
 
     # Load data from modPath\data
     dataPath = os.path.join(modPath, 'data')
@@ -73,7 +73,7 @@ one Xarray per input file. The full dimensionality is maintained here.
 
 Calling the array will provide some output…
 
-.. code-block:: ipython3
+.. code-block:: python
 
     dataSet[1]
 
@@ -149,7 +149,7 @@ Calling the array will provide some output…
 … and sub-selection can provide sets of matrix elements as a function of
 energy, symmetry and type.
 
-.. code-block:: ipython3
+.. code-block:: python
 
     inds = {'Type':'L','Cont':'A2','mu':0}
     dataSet[1].sel(inds).squeeze()
@@ -239,7 +239,7 @@ energy, symmetry and type.
 The ``matEleSelector`` function does the same thing, and also includes
 thresholding on abs values:
 
-.. code-block:: ipython3
+.. code-block:: python
 
     # Set sq = True to squeeze on singleton dimensions
     ep.matEleSelector(dataSet[1], thres=1e-2, inds = inds, sq = True)
@@ -277,7 +277,7 @@ thresholding on abs values:
 Basic plotting from Xarray
 --------------------------
 
-.. code-block:: ipython3
+.. code-block:: python
 
     # Plot matrix elements using Xarray functionality
     daPlot = dataSet[0].sum('mu').sum('Sym').sel({'Type':'L'}).squeeze()
@@ -313,7 +313,7 @@ Basic plotting from Xarray
 .. image:: output_11_1.png
 
 
-.. code-block:: ipython3
+.. code-block:: python
 
     # Plot with faceting on type
     daPlot = dataSet[0].sum('mu').sum('Sym').squeeze()
@@ -397,7 +397,7 @@ D. (2007). Molecular frame and recoil frame photoelectron angular
 distributions from dissociative photoionization of NO2. The Journal of
 Chemical Physics, 126(5), 054307. https://doi.org/10.1063/1.2432124
 
-.. code-block:: ipython3
+.. code-block:: python
 
     print('MFPADs for test NO2 dataset (single energy, (z,x,y) pol states)')
     TX, TlmX = ep.mfpad(dataSet[1])
@@ -425,7 +425,7 @@ Chemical Physics, 126(5), 054307. https://doi.org/10.1063/1.2432124
 .. image:: output_16_3.png
 
 
-.. code-block:: ipython3
+.. code-block:: python
 
     # Plot abs(TX) images using Xarray functionality
     TX.squeeze().pipe(np.abs).plot(x='Theta',y='Phi', col='Euler', row='Sym')
@@ -443,7 +443,7 @@ Chemical Physics, 126(5), 054307. https://doi.org/10.1063/1.2432124
 .. image:: output_17_1.png
 
 
-.. code-block:: ipython3
+.. code-block:: python
 
     # Plot MFPAD surfaces vs E
     print('N2 test data, abs(TX) vs E and (z,x,y) pol geom')
@@ -469,7 +469,7 @@ Chemical Physics, 126(5), 054307. https://doi.org/10.1063/1.2432124
 .. image:: output_18_2.png
 
 
-.. code-block:: ipython3
+.. code-block:: python
 
     # Try Plotly with looping functionality... this gives 3D interactive surf plots.
     # Note this is currently set to expect 3D data only, and loop over 3rd dim.

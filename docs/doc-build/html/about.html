@@ -92,6 +92,7 @@
               <p class="caption"><span class="caption-text">Intro:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">ePSproc Readme</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#python">Python</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#matlab">Matlab</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#resources">Resources</a></li>
@@ -172,22 +173,34 @@
 <h1>ePSproc Readme<a class="headerlink" href="#epsproc-readme" title="Permalink to this headline">¶</a></h1>
 <p>Post-processing suite for ePolyScat calculations.</p>
 <p>ePSproc scripts are designed for photoionization studies. The scripts were originally written for Matlab (2009 - 2016); a Python version is currently under (heavy) development (Aug. 2019), and will be the main version in future.</p>
-<p>Source code is <a class="reference external" href="https://github.com/phockett/ePSproc/tree/pkg/epsproc/tests">available on Github</a>.</p>
+<p>Source code is <a class="reference external" href="https://github.com/phockett/ePSproc">available on Github</a>.</p>
 <p>Ongoing documentation is on <a class="reference external" href="https://epsproc.readthedocs.io">Read the Docs</a>.</p>
 <p>For more background, and details on the Matlab version, see the software metapaper for ePSproc (Aug. 2016), <em>ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations</em>, on <a class="reference external" href="https://www.authorea.com/users/71114/articles/122402/_show_article">Authorea</a> or <a class="reference external" href="https://arxiv.org/abs/1611.04043">arXiv 1611.04043</a>.</p>
+<img alt="https://epsproc.readthedocs.io/en/latest/_images/output_12_2.png" src="https://epsproc.readthedocs.io/en/latest/_images/output_12_2.png" />
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>From source: simply download <a class="reference external" href="https://github.com/phockett/ePSproc">from Github</a>. See specific version notes below for more details on the source code.</p>
+<p>Python:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install ePSproc
+</pre></div>
+</div>
+</div>
 <div class="section" id="python">
 <h2>Python<a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h2>
+<p>Functionality:</p>
 <ul class="simple">
-<li><p>./epsproc: basic python version, code still under development.</p>
-<ul>
-<li><p>Basic file IO implemented.</p></li>
-<li><p>MFPAD calculation and basic plotting implemented.</p></li>
-</ul>
-</li>
-<li><p>./docs: documentation tree, <a class="reference external" href="https://epsproc.readthedocs.io">HTML version on Read the Docs</a>.</p></li>
+<li><p>Read raw photoionization matrix elements from ePS output files with “dumpIdy” segments</p></li>
+<li><p>Calculate MF-PADs from the matrix elements (ePSproc_MFPAD.m, see also ePSproc_NO2_MFPADs_demo.m)</p></li>
+<li><p>Plot MF-PADs</p></li>
+<li><p>Under development: additional functionality and distribution via PyPi.</p></li>
 </ul>
 <p>See the demo <a class="reference internal" href="ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html"><span class="doc">Jupyter notebook</span></a> for example usage.</p>
-<p>Under development: additional functionality and distribution via PyPi.</p>
+<p>Source:</p>
+<ul class="simple">
+<li><p>./epsproc: basic python version, code still under development.</p></li>
+<li><p>./docs: documentation tree, <a class="reference external" href="https://epsproc.readthedocs.io">HTML version on Read the Docs</a>.</p></li>
+</ul>
+<p><a class="reference internal" href="modules/epsproc.html"><span class="doc">Full function documentation</span></a>.</p>
 </div>
 <div class="section" id="matlab">
 <h2>Matlab<a class="headerlink" href="#matlab" title="Permalink to this headline">¶</a></h2>
@@ -200,7 +213,7 @@
 <li><p>(Beta testing): Calculate MF-BLMs from matrix elements, see ePSproc_MFBLM.m</p></li>
 <li><p>(Under development): Calculate AF-BLMs from matrix elements.</p></li>
 </ul>
-<p>The distribution currently contains:</p>
+<p>Source:</p>
 <ul class="simple">
 <li><p>/matlab: stable matlab code (as per <a class="reference external" href="https://github.com/phockett/ePSproc/releases">release v1.0.1</a>).</p>
 <ul>
@@ -249,9 +262,7 @@ electron-molecule scattering, see:</p>
 <div class="section" id="future-aims">
 <h2>Future aims<a class="headerlink" href="#future-aims" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><p>Add capabilities, including more general processing, and for other
-phenomena (e.g. recombination matrix elements for high-harmonic
-generation, aligned-frame calculations)</p></li>
+<li><p>Add capabilities, including more general processing, and for other phenomena (e.g. recombination matrix elements for high-harmonic generation, aligned-frame calculations)</p></li>
 <li><p>Tidy and streamline code (yep)</p></li>
 <li><p>Extend &amp; update notes and benchmark calculations</p></li>
 <li><p>Port to non-commercial run-time engines, e.g. python</p></li>

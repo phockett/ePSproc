@@ -11,6 +11,7 @@ with open('epsproc/__init__.py', 'r') as f:
         version = '0.0.1'
 
 with open('README.rst', 'r', encoding='utf-8') as f:
+# with open('README.md', 'r', encoding='utf-8') as f:
     readme = f.read()
 
 REQUIRES = []
@@ -20,6 +21,7 @@ setup(
     version=version,
     description='Post-processing suite for ePolyScat calculations (Matlab & Python).',
     long_description=readme,
+    long_description_content_type = 'text/x-rst',
     author='Paul Hockett',
     author_email='paul@femtolab.ca',
     maintainer='Paul Hockett',

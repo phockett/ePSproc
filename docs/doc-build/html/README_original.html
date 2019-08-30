@@ -1,0 +1,248 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ePSproc &mdash; ePSproc 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> ePSproc
+          
+
+          
+            
+            <img src="_static/ePSproc_logo.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Intro:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="about.html">ePSproc Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Function ref:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules/epsproc.html">epsproc package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ePSproc</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>ePSproc</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/README_original.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="epsproc">
+<h1>ePSproc<a class="headerlink" href="#epsproc" title="Permalink to this headline">¶</a></h1>
+<p>Post-processing suite for ePolyScat calculations.</p>
+<p>PKG branch - testing package structure (Hatch), docs (Sphinx) and modules.</p>
+<p>ePSproc scripts are designed for photoionization studies, and specifically:</p>
+<ul class="simple">
+<li><p>Read raw photoionization matrix elements from ePS output files with “dumpIdy” segments</p></li>
+<li><p>Calculate MF-PADs from the matrix elements (ePSproc_MFPAD.m, see also ePSproc_NO2_MFPADs_demo.m)</p></li>
+<li><p>Plot MF-PADs</p></li>
+<li><p>Plot X-sects</p></li>
+<li><p>(Beta testing): Calculate MF-BLMs from matrix elements, see ePSproc_MFBLM.m</p></li>
+<li><p>(Under development): Calculate AF-BLMs from matrix elements.</p></li>
+</ul>
+<p>The scripts are currently written for Matlab &amp; Python. The distribution currently contains:</p>
+<ul class="simple">
+<li><p>./matlab: stable matlab code (as per <a class="reference external" href="https://github.com/phockett/ePSproc/releases">release v1.0.1</a>).</p></li>
+<li><p>./python-dev: basic python version, code still under development.</p></li>
+</ul>
+<p>The Matlab distro contains:</p>
+<ul class="simple">
+<li><p>a set of functions for processing (ePSproc*.m files)</p></li>
+<li><p>a script showing demo calculations, <a href="https://github.com/phockett/ePSproc/blob/master/ePSproc_NO2_MFPADs_demo.m">ePSproc_NO2_MFPADs_demo.m</a>, and the benchmark results from these calculations, <a href="https://github.com/phockett/ePSproc/blob/master/ePSproc_NO2_testing_summary_250915.pdf">ePSproc_NO2_testing_summary_250915.pdf</a></p></li>
+<li><p>some additional notes on ePS photoionization matrix elements, <a href="https://github.com/phockett/ePSproc/blob/master/ePSproc_scattering_theory_ePS_notes_011015.pdf">ePSproc_scattering_theory_ePS_notes_011015.pdf</a>.</p></li>
+</ul>
+<p>A software metapaper for ePSproc can be found on Authorea: https://www.authorea.com/users/71114/articles/122402/_show_article</p>
+<p>An ongoing repository of ePS results can be found on OSF: https://osf.io/psjxt/</p>
+</div>
+<div class="section" id="epolyscat">
+<h1>ePolyScat<a class="headerlink" href="#epolyscat" title="Permalink to this headline">¶</a></h1>
+<p>For details about ePolyScat (ePS), a tool for computation of electron-molecule scattering, see:</p>
+<ul class="simple">
+<li><p>ePS website &amp; manual, maintained by R.R. Lucchese, http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html</p></li>
+<li><p>F. A. Gianturco, R. R. Lucchese, and N. Sanna, J. Chem. Phys. 100, 6464 (1994), http://dx.doi.org/10.1063/1.467237</p></li>
+<li><p>A. P. P. Natalense and R. R. Lucchese, J. Chem. Phys. 111, 5344 (1999), http://dx.doi.org/10.1063/1.479794</p></li>
+</ul>
+</div>
+<div class="section" id="future-aims">
+<h1>Future aims<a class="headerlink" href="#future-aims" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>Add capabilities, including more general processing, and for other phenomena (e.g. recombination matrix elements for high-harmonic generation, aligned-frame calculations)</p></li>
+<li><p>Tidy and streamline code (yep)</p></li>
+<li><p>Extend &amp; update notes and benchmark calculations</p></li>
+<li><p>Port to non-commercial run-time engines, e.g. python</p></li>
+</ul>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Paul Hockett
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

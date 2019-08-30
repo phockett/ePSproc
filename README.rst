@@ -27,6 +27,16 @@ Python:
 
     $ pip install ePSproc
 
+Main requirements are `Xarray <http://xarray.pydata.org/en/stable/index.html>`_ (>= 0.12.2), and `Moble's spherical functions (quaternion based) <https://github.com/moble/spherical_functions>`_ (tested with v2019.7.12.23.25.11). See the individual package docs for full instructions - one option is via conda-forge:
+
+.. code-block:: bash
+
+    $ conda install -c conda-forge xarray=0.12.3
+    $ conda install -c conda-forge spherical_functions
+
+
+The usual SciPy stack is also used (numpy, matplotlib etc.) - see requirements.txt for full list - plus some optional packages for additional functionality.
+
 
 Python
 ------

@@ -5,7 +5,7 @@ If you make use of ePSproc in your research, please cite it.
 
 Cite the software directly via either Github or Figshare repositories for the software (note same DOI for both)::
 
-  @misc{hockett_2016,
+  @misc{ePSprocGithub,
     title={ePSproc: Post-processing for ePolyScat},
     url={https://github.com/phockett/ePSproc},
     DOI={10.6084/m9.figshare.3545639},
@@ -16,8 +16,8 @@ Cite the software directly via either Github or Figshare repositories for the so
     commit = {30158eb3fbba41d0a4c3a973744f28b7187e6ee2}
   }
 
-  @misc{hockett_2016,
-    title={ePSproc: Post-processing for ePolyScat (v1.0.0)},
+  @misc{ePSprocFigshare,
+    title={ePSproc: Post-processing for ePolyScat},
     url={https://figshare.com/articles/ePSproc_Post-processing_for_ePolyScat_v1_0_0_/3545639/4},
     DOI={10.6084/m9.figshare.3545639},
     publisher={Figshare},
@@ -27,7 +27,7 @@ Cite the software directly via either Github or Figshare repositories for the so
 
 ... or the software paper (Authorea/arXiv)::
 
-  @article{hockett_2016,
+  @article{ePSprocPaper,
     title={ePSproc: Post-processing for ePolyScat electron-molecule scattering calculations},
     url={https://www.authorea.com/users/71114/articles/122402-epsproc-post-processing-suite-for-epolyscat-electron-molecule-scattering-calculations},
     DOI={},

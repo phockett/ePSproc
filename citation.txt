@@ -30,7 +30,7 @@ Cite the software directly via either Github or Figshare repositories for the so
   @article{ePSprocPaper,
     title={ePSproc: Post-processing for ePolyScat electron-molecule scattering calculations},
     url={https://www.authorea.com/users/71114/articles/122402-epsproc-post-processing-suite-for-epolyscat-electron-molecule-scattering-calculations},
-    DOI={},
+    DOI={10.22541/au.156754490.06103020},
     journal = {Authorea/arXiv e-prints},
     publisher={Authorea/arXiv},
     author={Hockett, Paul},

@@ -150,7 +150,7 @@ Cite the software directly via either Github or Figshare repositories for the so
   @article{ePSprocPaper,
     title={ePSproc: Post-processing for ePolyScat electron-molecule scattering calculations},
     url={https://www.authorea.com/users/71114/articles/122402-epsproc-post-processing-suite-for-epolyscat-electron-molecule-scattering-calculations},
-    DOI={},
+    DOI={10.22541/au.156754490.06103020},
     journal = {Authorea/arXiv e-prints},
     publisher={Authorea/arXiv},
     author={Hockett, Paul},
@@ -173,4 +173,4 @@ Special thanks to R.R. Lucchese and coworkers for `ePolyScat <http://www.chem.ta
 
 Thanks to the multiple collaborators and co-authors who encouraged and suggested the cavilier use of ePS "out of the box", for many different problems incorporating electron scattering and photoionization. This spirit of "shoot first, ask questions later" indeed raised many questions which, eventually, necessitated proper use of ePS and careful post-processing of the results, and sharpened related foundational expertise - efforts well worth making.
 
-Thanks, finally and of course, to those supporting scientific software development and infrastructure (and making it easy!), including Github, Read the Docs, Pypi, SciPy etc. etc. In particular the python version of this project makes use of `Xarray <http://xarray.pydata.org/en/stable/index.html>`_, and `Moble's spherical functions (& quaternion) <https://github.com/moble/spherical_functions>`_.
+Thanks, finally, and of course, to those supporting scientific software development and infrastructure (and making it easy!), including Github, Read the Docs, Pypi, SciPy etc. etc. In particular the python version of this project makes use of `Xarray <http://xarray.pydata.org/en/stable/index.html>`_, and `Moble's spherical functions (& quaternion) <https://github.com/moble/spherical_functions>`_.

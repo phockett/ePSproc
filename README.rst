@@ -118,3 +118,5 @@ Future aims
 -  Tidy and streamline code (yep)
 -  Extend & update notes and benchmark calculations
 -  Port to non-commercial run-time engines, e.g. python
+
+.. include:: citation.txt

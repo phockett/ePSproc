@@ -29,6 +29,7 @@ from epsproc.util import *
 from epsproc.sphCalc import *
 from epsproc.sphPlot import *
 from epsproc.MFPAD import *
+from epsproc.MFBLM import *
 
 
 

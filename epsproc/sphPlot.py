@@ -71,13 +71,22 @@ def mfpadPlotPL(dataIn, facetDim = 'Eke', rc = None):
     n=0
     for rInd in range(1,rc[0]+1):
         for cInd in range(1,rc[1]+1):
-            X,Y,Z = sphToCart(dataPlot.sel({facetDim:dataPlot[facetDim][n]}),theta,phi)  # Bit ugly, probably a better way to select here.
-            fig.add_trace(
-                go.Surface(x=X, y=Y, z=Z, colorscale='Viridis', showscale=False),
-                row=rInd, col=cInd) # , title=[facetDim + '=' + str(dataPlot[facetDim][n].data)])  # Needs some work here...
-            n=n+1
-            if n > nData:
-                continue
+            if n < nData:
+                X,Y,Z = sphToCart(dataPlot.sel({facetDim:dataPlot[facetDim][n]}),theta,phi)  # Bit ugly, probably a better way to select here.
+                fig.add_trace(
+                    go.Surface(x=X, y=Y, z=Z, colorscale='Viridis', showscale=False),
+                    row=rInd, col=cInd) # , title=[facetDim + '=' + str(dataPlot[facetDim][n].data)])  # Needs some work here...
+
+                # fig['layout'].update(scene=dict(aspectmode="data"))  # Try and fix aspect ratio issues - getting stuck on first subplot?  Seems independent of setting here.
+
+                # DOESN'T WORK
+                # From https://github.com/plotly/plotly.py/issues/70
+                # fig['layout'].update(scene=dict(
+                #                     aspectmode='manual',
+                #                     aspectratio=go.layout.scene.Aspectratio(
+                #                     x=x.ptp(), y=y.ptp(), z=z.pyp())))
+
+                n=n+1
 
     fig.show()
 

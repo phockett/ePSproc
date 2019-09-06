@@ -1,0 +1,391 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>epsproc.MFBLM &mdash; ePSproc 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> ePSproc
+          
+
+          
+            
+            <img src="../../_static/ePSproc_logo.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Intro:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">ePSproc Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Function ref:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/epsproc.html">epsproc package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ePSproc</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>epsproc.MFBLM</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for epsproc.MFBLM</h1><div class="highlight"><pre>
+<span></span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">ePSproc MFBLM functions</span>
+<span class="sd">-----------------------</span>
+
+
+<span class="sd">05/09/19    v1  Initial python version.</span>
+<span class="sd">                Based on original Matlab code ePS_MFBLM.m</span>
+
+
+<span class="sd">Formalism</span>
+<span class="sd">---------</span>
+
+<span class="sd">Should be something like this, with possible substitutions or phase swaps.</span>
+
+<span class="sd">.. math::</span>
+<span class="sd">    \begin{eqnarray}</span>
+<span class="sd">    \beta_{L,-M}^{\mu_{i},\mu_{f}} &amp; = &amp; \sum_{l,m,\mu}\sum_{l&#39;,m&#39;,\mu&#39;}(-1)^{M}(-1)^{m}(-1)^{(\mu&#39;-\mu_{0})}\left(\frac{(2l+1)(2l&#39;+1)(2L+1)}{4\pi}\right)^{1/2}\left(\begin{array}{ccc}</span>
+<span class="sd">    l &amp; l&#39; &amp; L\\</span>
+<span class="sd">    0 &amp; 0 &amp; 0</span>
+<span class="sd">    \end{array}\right)\left(\begin{array}{ccc}</span>
+<span class="sd">    l &amp; l&#39; &amp; L\\</span>
+<span class="sd">    -m &amp; m&#39; &amp; -M</span>
+<span class="sd">    \end{array}\right)\nonumber \\</span>
+<span class="sd">     &amp; \times &amp; \sum_{P,R&#39;,R}(2P+1)(-1)^{(R&#39;-R)}\left(\begin{array}{ccc}</span>
+<span class="sd">    1 &amp; 1 &amp; P\\</span>
+<span class="sd">    \mu &amp; -\mu&#39; &amp; R&#39;</span>
+<span class="sd">    \end{array}\right)\left(\begin{array}{ccc}</span>
+<span class="sd">    1 &amp; 1 &amp; P\\</span>
+<span class="sd">    \mu_{0} &amp; -\mu_{0} &amp; R</span>
+<span class="sd">    \end{array}\right)D_{-R&#39;,-R}^{P}(R_{\hat{n}})I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)I_{l&#39;,m&#39;,\mu&#39;}^{p_{i}\mu_{i},p_{f}\mu_{f}*}(E)</span>
+<span class="sd">    \end{eqnarray}</span>
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Imports</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+<span class="c1"># Special functions</span>
+<span class="c1"># from scipy.special import sph_harm</span>
+<span class="kn">import</span> <span class="nn">spherical_functions</span> <span class="k">as</span> <span class="nn">sf</span>
+<span class="kn">import</span> <span class="nn">quaternion</span>
+
+
+<span class="c1"># Try basic looping version, similar to Matlab code...</span>
+<div class="viewcode-block" id="MFBLMCalcLoop"><a class="viewcode-back" href="../../modules/epsproc.MFBLM.html#epsproc.MFBLM.MFBLMCalcLoop">[docs]</a><span class="k">def</span> <span class="nf">MFBLMCalcLoop</span><span class="p">(</span><span class="n">matE</span><span class="p">,</span> <span class="n">eAngs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">thres</span> <span class="o">=</span> <span class="mf">1e-10</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">R</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate inner loop for MFBLMs, based on passed set of matrix elements (Xarray).</span>
+
+<span class="sd">    Loop code based on Matlab code ePSproc_MFBLM.m</span>
+
+<span class="sd">    This works, but not very clean or efficient - should be possible to parallelize &amp; vectorise...</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    matE : Xarray</span>
+<span class="sd">        Contains one set of matrix elements to use for calculation.</span>
+
+<span class="sd">    eAngs : [phi,theta,chi], optional, default = [0,0,0]</span>
+<span class="sd">        Single set of Euler angles defining polarization geometry.</span>
+
+<span class="sd">    thres : float, optional, default = 1e-10</span>
+<span class="sd">        Threshold value for testing significance of terms. Terms &lt; thres will be dropped.</span>
+
+<span class="sd">    p : int, optional, default p = 0</span>
+<span class="sd">        LF polarization term. Currently only valid for p = 0</span>
+
+<span class="sd">    R : int, optional, default R = 0</span>
+<span class="sd">        LF polarization term (from tensor contraction). Currently only valid for p = 0</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    BLMX : Xarray</span>
+<span class="sd">        Set of B(L,M; eAngs, Eke) terms for supplied matrix elements, in an Xarray.</span>
+
+<span class="sd">    Limitations &amp; To Do</span>
+<span class="sd">    -------------------</span>
+
+<span class="sd">    * Currently set with (p,R) values passed, but only valid for (0,0) (not full sum over R terms as shown in formalism above.)</span>
+<span class="sd">    * Set to accept a single set of matrix elements (single E), assuming looping over E (and other parameters) elsewhere.</span>
+<span class="sd">    * Not explicitly parallelized here, should be done by calling function.</span>
+<span class="sd">    * Coded for ease, not efficiency - there will be lots of repeated ang. mom. calcs. when run over many sets of matrix elements.</span>
+<span class="sd">    * Scale factor currently not propagated.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Issues with this, since I can&#39;t seem to get coords out once at singleton dim level (issue with pd multilevel?)</span>
+<span class="c1">#    for matE1 in matE:</span>
+<span class="c1">#        for matE2 in matE:</span>
+<span class="c1">#            for L in np.arange(0, matE1.LM[0] + matE2.l +1):</span>
+<span class="c1">#                print(L)</span>
+
+
+    <span class="c1"># Generate LM pairs list via indexing</span>
+    <span class="n">LMlist</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([</span><span class="n">matE</span><span class="o">.</span><span class="n">LM</span><span class="p">,</span> <span class="n">matE</span><span class="o">.</span><span class="n">LM</span><span class="p">],</span> <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;LM1&#39;</span><span class="p">,</span><span class="s1">&#39;LM2&#39;</span><span class="p">])</span>
+    <span class="n">indList</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">matE</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">matE</span><span class="o">.</span><span class="n">size</span><span class="p">)],</span> <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ind1&#39;</span><span class="p">,</span><span class="s1">&#39;ind2&#39;</span><span class="p">])</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Calculating MFBLMs for </span><span class="si">{0}</span><span class="s1"> pairs...&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">indList</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
+
+    <span class="c1"># Set pol terms - now passed</span>
+    <span class="c1"># p = 0</span>
+    <span class="c1"># R = 0 # For single pol state only, i.e. p-p&#39;=0</span>
+    <span class="c1"># pRot = quaternion.from_euler_angles(alpha, beta, gamma)</span>
+    <span class="c1"># pRot = quaternion.from_euler_angles(0,0,0)</span>
+    <span class="n">pRot</span> <span class="o">=</span> <span class="n">quaternion</span><span class="o">.</span><span class="n">from_euler_angles</span><span class="p">(</span><span class="n">eAngs</span><span class="p">)</span>
+
+    <span class="c1"># Set variable for outputs</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Loop over all pairs defined in lists &amp; calculate contributions</span>
+    <span class="k">for</span> <span class="n">rows</span> <span class="ow">in</span> <span class="n">indList</span><span class="p">:</span>
+       <span class="c1"># print(matE[n[0]], matE[n[1]])</span>
+
+       <span class="c1"># For clarity, set values explicitly here</span>
+       <span class="c1"># Explicit casting to int() may also be necessary in some cases (with passing of Xarray values to WignerD/3j sometimes get type issues)</span>
+       <span class="c1"># In usual notation, r1 == unprimed terms, r2 == primed terms</span>
+       <span class="n">r1</span> <span class="o">=</span> <span class="n">rows</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+       <span class="n">r2</span> <span class="o">=</span> <span class="n">rows</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+       <span class="n">l1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">matE</span><span class="o">.</span><span class="n">l</span><span class="p">[</span><span class="n">r1</span><span class="p">])</span>
+       <span class="n">m1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">matE</span><span class="o">.</span><span class="n">m</span><span class="p">[</span><span class="n">r1</span><span class="p">])</span>
+       <span class="n">mu1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">matE</span><span class="p">[</span><span class="n">r1</span><span class="p">]</span><span class="o">.</span><span class="n">mu</span><span class="p">)</span>
+       <span class="n">l2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">matE</span><span class="o">.</span><span class="n">l</span><span class="p">[</span><span class="n">r2</span><span class="p">])</span>
+       <span class="n">m2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">matE</span><span class="o">.</span><span class="n">m</span><span class="p">[</span><span class="n">r2</span><span class="p">])</span>
+       <span class="n">mu2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">matE</span><span class="p">[</span><span class="n">r2</span><span class="p">]</span><span class="o">.</span><span class="n">mu</span><span class="p">)</span>
+
+       <span class="c1"># Loop over allowed B(LM) and calculate</span>
+       <span class="c1"># NOTE - for multiindex coords matE.l[r1] works, but matE[r1].l DOESN&#39;T (Xarray v0.12.3)</span>
+       <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">l1</span> <span class="o">+</span> <span class="n">l2</span> <span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+           <span class="c1"># print(L)</span>
+
+           <span class="c1"># Set allowed M value, note phase convention (tested in Matlab version)</span>
+           <span class="n">M</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">m1</span> <span class="o">+</span> <span class="n">m2</span><span class="p">)</span>
+
+           <span class="c1"># Calculate associated gamma term, (L,M) values</span>
+           <span class="n">gammaLM</span> <span class="o">=</span> <span class="n">sf</span><span class="o">.</span><span class="n">Wigner3j</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">l2</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">sf</span><span class="o">.</span><span class="n">Wigner3j</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">l2</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="o">-</span><span class="n">m1</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="o">-</span><span class="n">M</span><span class="p">)</span>
+
+           <span class="c1"># Gamma terms for polarization - sum over P</span>
+           <span class="n">gammaP</span> <span class="o">=</span> <span class="mi">0</span>
+           <span class="n">matEprod</span> <span class="o">=</span> <span class="n">matE</span><span class="p">[</span><span class="n">r1</span><span class="p">]</span> <span class="o">*</span> <span class="n">matE</span><span class="p">[</span><span class="n">r2</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>   <span class="c1"># Mat element product</span>
+                                                   <span class="c1">#TODO: could set additional thresholding here for speed</span>
+
+            <span class="c1"># Loop over allowed P = [0...2] for 2-photon case</span>
+           <span class="k">for</span> <span class="n">P</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+               <span class="n">Rp</span> <span class="o">=</span> <span class="n">mu2</span> <span class="o">-</span> <span class="n">mu1</span>     <span class="c1"># mu2-mu1, includes Rp &gt; -Rp for numerics.</span>
+
+               <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Rp</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">P</span><span class="p">:</span>  <span class="c1"># Check for allowed terms</span>
+
+                   <span class="c1"># Sum over R,R&#39; projections omitted - only R=0 set above</span>
+                   <span class="c1"># Note polarization terms, here mu is MF, and p is LF.</span>
+                   <span class="c1"># Note use of matEprod.data here - otherwise output is kept as Xarray (which could be useful in future...)</span>
+                   <span class="n">gammaP</span> <span class="o">=</span> <span class="n">gammaP</span> <span class="o">+</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">P</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="n">Rp</span><span class="o">-</span><span class="n">R</span><span class="p">)</span> <span class="o">*</span> <span class="n">sf</span><span class="o">.</span><span class="n">Wigner3j</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">mu1</span><span class="p">,</span><span class="o">-</span><span class="n">mu2</span><span class="p">,</span><span class="n">Rp</span><span class="p">)</span> <span class="o">*</span> <span class="n">sf</span><span class="o">.</span><span class="n">Wigner3j</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="o">-</span><span class="n">p</span><span class="p">,</span><span class="n">R</span><span class="p">)</span> <span class="o">*</span> <span class="n">sf</span><span class="o">.</span><span class="n">Wigner_D_element</span><span class="p">(</span><span class="n">pRot</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span><span class="o">-</span><span class="n">Rp</span><span class="p">,</span><span class="o">-</span><span class="n">R</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="n">matEprod</span><span class="o">.</span><span class="n">data</span>
+
+
+           <span class="c1"># Set any remaining terms and sum</span>
+           <span class="n">phase</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="n">M</span> <span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="n">m1</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="n">mu2</span><span class="o">-</span><span class="n">p</span><span class="p">)</span>
+           <span class="n">degen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(((</span><span class="mi">2</span><span class="o">*</span><span class="n">l1</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">l2</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">L</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span>
+
+           <span class="n">gamma</span> <span class="o">=</span> <span class="n">gammaLM</span><span class="o">*</span><span class="n">gammaP</span><span class="o">*</span><span class="n">phase</span><span class="o">*</span><span class="n">degen</span>
+
+           <span class="n">LMterm</span> <span class="o">=</span> <span class="n">gamma</span>   <span class="c1"># *(sf^2)  #TODO: propagate SF</span>
+
+           <span class="n">C</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">l1</span><span class="p">,</span> <span class="n">m1</span><span class="p">,</span> <span class="n">l2</span><span class="p">,</span> <span class="n">m2</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">LMterm</span><span class="p">,</span> <span class="n">gammaLM</span><span class="p">,</span> <span class="n">gammaP</span><span class="p">,</span> <span class="n">phase</span><span class="p">,</span> <span class="n">degen</span><span class="p">])</span>
+           <span class="c1"># print(C[-1])</span>
+
+
+    <span class="c1"># Threshold terms</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">C</span><span class="p">)</span>
+    <span class="n">indThres</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">C</span><span class="p">[:,</span><span class="mi">7</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">thres</span>
+    <span class="n">Cthres</span> <span class="o">=</span> <span class="n">C</span><span class="p">[</span><span class="n">indThres</span><span class="p">,:]</span>
+
+    <span class="c1"># Calculate output values as sum over (L,M) terms</span>
+    <span class="n">BLM</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">Cthres</span><span class="p">[:,</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">real</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+       <span class="k">for</span> <span class="n">M</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+           <span class="n">maskLM</span> <span class="o">=</span> <span class="p">(</span><span class="n">Cthres</span><span class="p">[:,</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">==</span><span class="n">L</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">Cthres</span><span class="p">[:,</span><span class="mi">6</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">==</span><span class="n">M</span><span class="p">);</span>
+           <span class="n">BLM</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">L</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">Cthres</span><span class="p">[</span><span class="n">maskLM</span><span class="p">,</span><span class="mi">7</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()])</span>
+
+    <span class="n">BLM</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">BLM</span><span class="p">)</span>
+
+    <span class="c1"># Set output as Xarray with coords</span>
+    <span class="n">QNs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">(</span><span class="n">BLM</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int8&#39;</span><span class="p">),</span> <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;L&#39;</span><span class="p">,</span><span class="s1">&#39;M&#39;</span><span class="p">])</span>
+    <span class="n">BLMX</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">BLM</span><span class="p">[:,</span><span class="mi">2</span><span class="p">],</span> <span class="n">coords</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;BLM&#39;</span><span class="p">:</span><span class="n">QNs</span><span class="p">},</span> <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;BLM&#39;</span><span class="p">])</span>
+    <span class="c1"># BLMX = BLMX.expand_dims({&#39;Sym&#39;:[matE.Sym.data], &#39;Eke&#39;:[matE.Eke.data]})           # This might fail for multi symmetry cases... or if pre-selected?</span>
+    <span class="n">BLMX</span> <span class="o">=</span> <span class="n">BLMX</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">({</span><span class="s1">&#39;Eke&#39;</span><span class="p">:[</span><span class="n">matE</span><span class="o">.</span><span class="n">Eke</span><span class="p">]})</span>
+
+    <span class="k">return</span> <span class="n">BLMX</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Paul Hockett
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

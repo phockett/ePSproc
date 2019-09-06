@@ -31,6 +31,8 @@ Should be something like this, with possible substitutions or phase swaps.
     \end{eqnarray}
 
 
+Exact numerics may vary.
+
 
 """
 
@@ -76,7 +78,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-10, p=0, R=0):
         Set of B(L,M; eAngs, Eke) terms for supplied matrix elements, in an Xarray.
 
     Limitations & To Do
-    -------------------
+    --------------------
 
     * Currently set with (p,R) values passed, but only valid for (0,0) (not full sum over R terms as shown in formalism above.)
     * Set to accept a single set of matrix elements (single E), assuming looping over E (and other parameters) elsewhere.

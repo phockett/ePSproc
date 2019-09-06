@@ -231,13 +231,22 @@
     <span class="n">n</span><span class="o">=</span><span class="mi">0</span>
     <span class="k">for</span> <span class="n">rInd</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">rc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">cInd</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">rc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
-            <span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span> <span class="o">=</span> <span class="n">sphToCart</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">sel</span><span class="p">({</span><span class="n">facetDim</span><span class="p">:</span><span class="n">dataPlot</span><span class="p">[</span><span class="n">facetDim</span><span class="p">][</span><span class="n">n</span><span class="p">]}),</span><span class="n">theta</span><span class="p">,</span><span class="n">phi</span><span class="p">)</span>  <span class="c1"># Bit ugly, probably a better way to select here.</span>
-            <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
-                <span class="n">go</span><span class="o">.</span><span class="n">Surface</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">Z</span><span class="p">,</span> <span class="n">colorscale</span><span class="o">=</span><span class="s1">&#39;Viridis&#39;</span><span class="p">,</span> <span class="n">showscale</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-                <span class="n">row</span><span class="o">=</span><span class="n">rInd</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">cInd</span><span class="p">)</span> <span class="c1"># , title=[facetDim + &#39;=&#39; + str(dataPlot[facetDim][n].data)])  # Needs some work here...</span>
-            <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span>
-            <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="n">nData</span><span class="p">:</span>
-                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">nData</span><span class="p">:</span>
+                <span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span> <span class="o">=</span> <span class="n">sphToCart</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">sel</span><span class="p">({</span><span class="n">facetDim</span><span class="p">:</span><span class="n">dataPlot</span><span class="p">[</span><span class="n">facetDim</span><span class="p">][</span><span class="n">n</span><span class="p">]}),</span><span class="n">theta</span><span class="p">,</span><span class="n">phi</span><span class="p">)</span>  <span class="c1"># Bit ugly, probably a better way to select here.</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
+                    <span class="n">go</span><span class="o">.</span><span class="n">Surface</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">Z</span><span class="p">,</span> <span class="n">colorscale</span><span class="o">=</span><span class="s1">&#39;Viridis&#39;</span><span class="p">,</span> <span class="n">showscale</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                    <span class="n">row</span><span class="o">=</span><span class="n">rInd</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">cInd</span><span class="p">)</span> <span class="c1"># , title=[facetDim + &#39;=&#39; + str(dataPlot[facetDim][n].data)])  # Needs some work here...</span>
+
+                <span class="c1"># fig[&#39;layout&#39;].update(scene=dict(aspectmode=&quot;data&quot;))  # Try and fix aspect ratio issues - getting stuck on first subplot?  Seems independent of setting here.</span>
+
+                <span class="c1"># DOESN&#39;T WORK</span>
+                <span class="c1"># From https://github.com/plotly/plotly.py/issues/70</span>
+                <span class="c1"># fig[&#39;layout&#39;].update(scene=dict(</span>
+                <span class="c1">#                     aspectmode=&#39;manual&#39;,</span>
+                <span class="c1">#                     aspectratio=go.layout.scene.Aspectratio(</span>
+                <span class="c1">#                     x=x.ptp(), y=y.ptp(), z=z.pyp())))</span>
+
+                <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span>
 
     <span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
 

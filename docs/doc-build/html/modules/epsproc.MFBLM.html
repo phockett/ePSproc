@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>epsproc.util module &mdash; ePSproc 1.1.0 documentation</title>
+  <title>epsproc.MFBLM module &mdash; ePSproc 1.1.0 documentation</title>
   
 
   
@@ -37,7 +37,8 @@
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="prev" title="epsproc.sphPlot module" href="epsproc.sphPlot.html" /> 
+    <link rel="next" title="epsproc.MFPAD module" href="epsproc.MFPAD.html" />
+    <link rel="prev" title="epsproc.IO module" href="epsproc.IO.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -98,11 +99,15 @@
 <li class="toctree-l1 current"><a class="reference internal" href="epsproc.html">epsproc package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="epsproc.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="epsproc.IO.html">epsproc.IO module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="epsproc.MFBLM.html">epsproc.MFBLM module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">epsproc.MFBLM module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#epsproc-mfblm-functions">ePSproc MFBLM functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#formalism">Formalism</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="epsproc.MFPAD.html">epsproc.MFPAD module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="epsproc.sphCalc.html">epsproc.sphCalc module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="epsproc.sphPlot.html">epsproc.sphPlot module</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">epsproc.util module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.util.html">epsproc.util module</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="epsproc.html#module-epsproc">Module contents</a></li>
@@ -155,13 +160,13 @@
         
           <li><a href="epsproc.html">epsproc package</a> &raquo;</li>
         
-      <li>epsproc.util module</li>
+      <li>epsproc.MFBLM module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/modules/epsproc.util.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/modules/epsproc.MFBLM.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -174,45 +179,68 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-epsproc.util">
-<span id="epsproc-util-module"></span><h1>epsproc.util module<a class="headerlink" href="#module-epsproc.util" title="Permalink to this headline">¶</a></h1>
-<p>ePSproc utility functions</p>
-<p>Collection of small functions for sorting etc.</p>
-<p>11/08/19    Added matEleSelector</p>
+  <div class="section" id="module-epsproc.MFBLM">
+<span id="epsproc-mfblm-module"></span><h1>epsproc.MFBLM module<a class="headerlink" href="#module-epsproc.MFBLM" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="epsproc-mfblm-functions">
+<h2>ePSproc MFBLM functions<a class="headerlink" href="#epsproc-mfblm-functions" title="Permalink to this headline">¶</a></h2>
+<dl class="simple">
+<dt>05/09/19    v1  Initial python version.</dt><dd><p>Based on original Matlab code ePS_MFBLM.m</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="formalism">
+<h2>Formalism<a class="headerlink" href="#formalism" title="Permalink to this headline">¶</a></h2>
+<p>Should be something like this, with possible substitutions or phase swaps.</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{eqnarray}
+\beta_{L,-M}^{\mu_{i},\mu_{f}} &amp; = &amp; \sum_{l,m,\mu}\sum_{l',m',\mu'}(-1)^{M}(-1)^{m}(-1)^{(\mu'-\mu_{0})}\left(\frac{(2l+1)(2l'+1)(2L+1)}{4\pi}\right)^{1/2}\left(\begin{array}{ccc}
+l &amp; l' &amp; L\\
+0 &amp; 0 &amp; 0
+\end{array}\right)\left(\begin{array}{ccc}
+l &amp; l' &amp; L\\
+-m &amp; m' &amp; -M
+\end{array}\right)\nonumber \\
+ &amp; \times &amp; \sum_{P,R',R}(2P+1)(-1)^{(R'-R)}\left(\begin{array}{ccc}
+1 &amp; 1 &amp; P\\
+\mu &amp; -\mu' &amp; R'
+\end{array}\right)\left(\begin{array}{ccc}
+1 &amp; 1 &amp; P\\
+\mu_{0} &amp; -\mu_{0} &amp; R
+\end{array}\right)D_{-R',-R}^{P}(R_{\hat{n}})I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)I_{l',m',\mu'}^{p_{i}\mu_{i},p_{f}\mu_{f}*}(E)
+\end{eqnarray}\end{split}\]</div>
 <dl class="function">
-<dt id="epsproc.util.dataGroupSel">
-<code class="sig-prename descclassname">epsproc.util.</code><code class="sig-name descname">dataGroupSel</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">dInd</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/util.html#dataGroupSel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.util.dataGroupSel" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="epsproc.util.matEleSelector">
-<code class="sig-prename descclassname">epsproc.util.</code><code class="sig-name descname">matEleSelector</code><span class="sig-paren">(</span><em class="sig-param">da</em>, <em class="sig-param">thres=None</em>, <em class="sig-param">inds=None</em>, <em class="sig-param">sq=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/util.html#matEleSelector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.util.matEleSelector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Select &amp; threshold raw matrix elements in an Xarray</p>
+<dt id="epsproc.MFBLM.MFBLMCalcLoop">
+<code class="sig-prename descclassname">epsproc.MFBLM.</code><code class="sig-name descname">MFBLMCalcLoop</code><span class="sig-paren">(</span><em class="sig-param">matE, eAngs=[0, 0, 0], thres=1e-10, p=0, R=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/MFBLM.html#MFBLMCalcLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.MFBLM.MFBLMCalcLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate inner loop for MFBLMs, based on passed set of matrix elements (Xarray).</p>
+<p>Loop code based on Matlab code ePSproc_MFBLM.m</p>
+<p>This works, but not very clean or efficient - should be possible to parallelize &amp; vectorise…</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>da</strong> (<em>Xarray</em>) – Set of matrix elements to sub-select</p></li>
-<li><p><strong>thres</strong> (<em>float</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – Threshold value for abs(matElement), keep only elements &gt; thres.</p></li>
-<li><p><strong>inds</strong> (<em>dict</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – Dicitonary of additional selection criteria, in name:value format.
-These correspond to parameter dimensions in the Xarray structure.
-E.g. inds = {‘Type’:’L’,’Cont’:’A2’}</p></li>
-<li><p><strong>sq</strong> (<em>bool</em><em>, </em><em>optional</em><em>, </em><em>default False</em>) – Squeeze output singleton dimensions.</p></li>
+<li><p><strong>matE</strong> (<em>Xarray</em>) – Contains one set of matrix elements to use for calculation.</p></li>
+<li><p><strong>eAngs</strong> (<em>[</em><em>phi</em><em>,</em><em>theta</em><em>,</em><em>chi</em><em>]</em><em>, </em><em>optional</em><em>, </em><em>default =</em><em> [</em><em>0</em><em>,</em><em>0</em><em>,</em><em>0</em><em>]</em>) – Single set of Euler angles defining polarization geometry.</p></li>
+<li><p><strong>thres</strong> (<em>float</em><em>, </em><em>optional</em><em>, </em><em>default = 1e-10</em>) – Threshold value for testing significance of terms. Terms &lt; thres will be dropped.</p></li>
+<li><p><strong>p</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default p = 0</em>) – LF polarization term. Currently only valid for p = 0</p></li>
+<li><p><strong>R</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default R = 0</em>) – LF polarization term (from tensor contraction). Currently only valid for p = 0</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Xarray structure of selected matrix elements.
-Note that Nans are dropped if possible.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>daOut</p>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>BLMX</strong> (<em>Xarray</em>) – Set of B(L,M; eAngs, Eke) terms for supplied matrix elements, in an Xarray.</p></li>
+<li><p><em>Limitations &amp; To Do</em></p></li>
+<li><p><em>——————-</em></p></li>
+<li><p><em>* Currently set with (p,R) values passed, but only valid for (0,0) (not full sum over R terms as shown in formalism above.)</em></p></li>
+<li><p><em>* Set to accept a single set of matrix elements (single E), assuming looping over E (and other parameters) elsewhere.</em></p></li>
+<li><p><em>* Not explicitly parallelized here, should be done by calling function.</em></p></li>
+<li><p><em>* Coded for ease, not efficiency - there will be lots of repeated ang. mom. calcs. when run over many sets of matrix elements.</em></p></li>
+<li><p><em>* Scale factor currently not propagated.</em></p></li>
+</ul>
+</p>
 </dd>
 </dl>
-<p class="rubric">Example</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">daOut</span> <span class="o">=</span> <span class="n">matEleSelector</span><span class="p">(</span><span class="n">da</span><span class="p">,</span> <span class="n">inds</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Type&#39;</span><span class="p">:</span><span class="s1">&#39;L&#39;</span><span class="p">,</span><span class="s1">&#39;Cont&#39;</span><span class="p">:</span><span class="s1">&#39;A2&#39;</span><span class="p">})</span>
-</pre></div>
-</div>
 </dd></dl>
 
+</div>
 </div>
 
 
@@ -223,8 +251,10 @@ Note that Nans are dropped if possible.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
+        <a href="epsproc.MFPAD.html" class="btn btn-neutral float-right" title="epsproc.MFPAD module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
-        <a href="epsproc.sphPlot.html" class="btn btn-neutral float-left" title="epsproc.sphPlot module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+        <a href="epsproc.IO.html" class="btn btn-neutral float-left" title="epsproc.IO module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

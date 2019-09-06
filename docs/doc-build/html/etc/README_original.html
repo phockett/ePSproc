@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>epsproc package &mdash; ePSproc 1.1.0 documentation</title>
+  <title>ePSproc &mdash; ePSproc 1.1.0 documentation</title>
   
 
   
@@ -36,9 +36,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="epsproc.IO module" href="epsproc.IO.html" />
-    <link rel="prev" title="ePSproc demo" href="../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -95,20 +93,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Function ref:</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">epsproc package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="epsproc.IO.html">epsproc.IO module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="epsproc.MFBLM.html">epsproc.MFBLM module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="epsproc.MFPAD.html">epsproc.MFPAD module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="epsproc.sphCalc.html">epsproc.sphCalc module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="epsproc.sphPlot.html">epsproc.sphPlot module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="epsproc.util.html">epsproc.util module</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#module-epsproc">Module contents</a></li>
-</ul>
-</li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules/epsproc.html">epsproc package</a></li>
 </ul>
 
             
@@ -154,13 +140,13 @@
     
       <li><a href="../index.html">Docs</a> &raquo;</li>
         
-      <li>epsproc package</li>
+      <li>ePSproc</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/modules/epsproc.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/etc/README_original.md.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -173,41 +159,50 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="epsproc-package">
-<h1>epsproc package<a class="headerlink" href="#epsproc-package" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="epsproc.IO.html">epsproc.IO module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="epsproc.IO.html#epsproc-io-functions">ePSproc IO functions.</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="epsproc.IO.html#history">History</a></li>
-<li class="toctree-l3"><a class="reference internal" href="epsproc.IO.html#to-do">To do</a></li>
+  <div class="section" id="epsproc">
+<h1>ePSproc<a class="headerlink" href="#epsproc" title="Permalink to this headline">¶</a></h1>
+<p>Post-processing suite for ePolyScat calculations.</p>
+<p>PKG branch - testing package structure (Hatch), docs (Sphinx) and modules.</p>
+<p>ePSproc scripts are designed for photoionization studies, and specifically:</p>
+<ul class="simple">
+<li><p>Read raw photoionization matrix elements from ePS output files with “dumpIdy” segments</p></li>
+<li><p>Calculate MF-PADs from the matrix elements (ePSproc_MFPAD.m, see also ePSproc_NO2_MFPADs_demo.m)</p></li>
+<li><p>Plot MF-PADs</p></li>
+<li><p>Plot X-sects</p></li>
+<li><p>(Beta testing): Calculate MF-BLMs from matrix elements, see ePSproc_MFBLM.m</p></li>
+<li><p>(Under development): Calculate AF-BLMs from matrix elements.</p></li>
 </ul>
-</li>
+<p>The scripts are currently written for Matlab &amp; Python. The distribution currently contains:</p>
+<ul class="simple">
+<li><p>./matlab: stable matlab code (as per <a class="reference external" href="https://github.com/phockett/ePSproc/releases">release v1.0.1</a>).</p></li>
+<li><p>./python-dev: basic python version, code still under development.</p></li>
 </ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="epsproc.MFBLM.html">epsproc.MFBLM module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="epsproc.MFBLM.html#epsproc-mfblm-functions">ePSproc MFBLM functions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="epsproc.MFBLM.html#formalism">Formalism</a></li>
+<p>The Matlab distro contains:</p>
+<ul class="simple">
+<li><p>a set of functions for processing (ePSproc*.m files)</p></li>
+<li><p>a script showing demo calculations, <a href="https://github.com/phockett/ePSproc/blob/master/ePSproc_NO2_MFPADs_demo.m">ePSproc_NO2_MFPADs_demo.m</a>, and the benchmark results from these calculations, <a href="https://github.com/phockett/ePSproc/blob/master/ePSproc_NO2_testing_summary_250915.pdf">ePSproc_NO2_testing_summary_250915.pdf</a></p></li>
+<li><p>some additional notes on ePS photoionization matrix elements, <a href="https://github.com/phockett/ePSproc/blob/master/ePSproc_scattering_theory_ePS_notes_011015.pdf">ePSproc_scattering_theory_ePS_notes_011015.pdf</a>.</p></li>
 </ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="epsproc.MFPAD.html">epsproc.MFPAD module</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="epsproc.MFPAD.html#epsproc-mfpad-functions">ePSproc MFPAD functions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="epsproc.MFPAD.html#structure">Structure</a></li>
-<li class="toctree-l2"><a class="reference internal" href="epsproc.MFPAD.html#to-do">To Do</a></li>
-<li class="toctree-l2"><a class="reference internal" href="epsproc.MFPAD.html#formalism">Formalism</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="epsproc.sphCalc.html">epsproc.sphCalc module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="epsproc.sphPlot.html">epsproc.sphPlot module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="epsproc.util.html">epsproc.util module</a></li>
+<p>A software metapaper for ePSproc can be found on Authorea: https://www.authorea.com/users/71114/articles/122402/_show_article</p>
+<p>An ongoing repository of ePS results can be found on OSF: https://osf.io/psjxt/</p>
+</div>
+<div class="section" id="epolyscat">
+<h1>ePolyScat<a class="headerlink" href="#epolyscat" title="Permalink to this headline">¶</a></h1>
+<p>For details about ePolyScat (ePS), a tool for computation of electron-molecule scattering, see:</p>
+<ul class="simple">
+<li><p>ePS website &amp; manual, maintained by R.R. Lucchese, http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html</p></li>
+<li><p>F. A. Gianturco, R. R. Lucchese, and N. Sanna, J. Chem. Phys. 100, 6464 (1994), http://dx.doi.org/10.1063/1.467237</p></li>
+<li><p>A. P. P. Natalense and R. R. Lucchese, J. Chem. Phys. 111, 5344 (1999), http://dx.doi.org/10.1063/1.479794</p></li>
 </ul>
 </div>
-</div>
-<div class="section" id="module-epsproc">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-epsproc" title="Permalink to this headline">¶</a></h2>
-</div>
+<div class="section" id="future-aims">
+<h1>Future aims<a class="headerlink" href="#future-aims" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>Add capabilities, including more general processing, and for other phenomena (e.g. recombination matrix elements for high-harmonic generation, aligned-frame calculations)</p></li>
+<li><p>Tidy and streamline code (yep)</p></li>
+<li><p>Extend &amp; update notes and benchmark calculations</p></li>
+<li><p>Port to non-commercial run-time engines, e.g. python</p></li>
+</ul>
 </div>
 
 
@@ -215,15 +210,6 @@
            
           </div>
           <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="epsproc.IO.html" class="btn btn-neutral float-right" title="epsproc.IO module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html" class="btn btn-neutral float-left" title="ePSproc demo" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
-    </div>
   
 
   <hr/>

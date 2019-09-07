@@ -534,6 +534,7 @@ def matEleGroupDimX(daIn):
     Rename 'ip':1,2 as 'Type':'L','V'
 
     TODO: better ways to do this?
+    Via Stack/Unstack? http://xarray.pydata.org/en/stable/api.html#id16
     See also tests in funcTests_210819.py for more versions/tests.
 
     Parameters

@@ -51,7 +51,7 @@ import quaternion
 from epsproc.util import matEleSelector
 
 # Try basic looping version, similar to Matlab code...
-def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0):
+def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
     """
     Calculate inner loop for MFBLMs, based on passed set of matrix elements (Xarray).
 
@@ -76,6 +76,9 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0):
 
     R : int, optional, default R = 0
         LF polarization term (from tensor contraction). Currently only valid for p = 0
+
+    verbose : bool, optional, default False
+        Print intermediate C parameter array to termina when running.
 
     Returns
     -------
@@ -105,7 +108,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0):
     LMlist = pd.MultiIndex.from_product([matE.SumDim, matE.SumDim], names = ['LM1','LM2'])
     indList = pd.MultiIndex.from_product([np.arange(0, matE.size), np.arange(0, matE.size)], names = ['ind1','ind2'])
 
-    print('Calculating MFBLMs for {0} pairs...'.format(indList.size))
+    print('Calculating MFBLMs for {0} pairs... Eke = {1} eV, eAngs = ({2})'.format(indList.size, matE.Eke.data, eAngs))
 
     # Set pol terms - now passed
     # p = 0
@@ -183,9 +186,12 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0):
     if len(C) > 0:
         # Threshold terms
         C = np.array(C)
-        print(C)
+        # print(C)
         indThres = np.abs(C[:,6]) > thres
         Cthres = C[indThres,:]
+
+        if verbose:
+            print(Cthres)
 
         # Calculate output values as sum over (L,M) terms
         BLM = []
@@ -197,7 +203,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0):
         BLM = np.array(BLM)
 
         # Set output as Xarray with coords
-        QNs = pd.MultiIndex.from_arrays(BLM[:,0:2].real.T.astype('int8'), names = ['L','M'])
+        QNs = pd.MultiIndex.from_arrays(BLM[:,0:2].real.T.astype('int8'), names = ['l','m'])  # Set small (l,m) here for compatibility with sphCalc()
         BLMX = xr.DataArray(BLM[:,2], coords={'BLM':QNs}, dims = ['BLM'])
         # Set other dims - this might fail for multi symmetry cases... or if pre-selected?  Best done in calling/chunking function.
         # BLMX = BLMX.expand_dims({'Sym':[matE.Sym.data], 'Eke':[matE.Eke.data]})

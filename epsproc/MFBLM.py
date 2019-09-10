@@ -131,6 +131,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0):
        m1 = int(matE.m[r1])
        # mu1 = int(matE[r1].mu)  # Case for single mu
        mu1 = int(matE.mu[r1])  # Case for stacked dataArray (mu per item)
+
        l2 = int(matE.l[r2])
        m2 = int(matE.m[r2])
        # mu2 = int(matE[r2].mu) # Case for single mu
@@ -183,15 +184,15 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0):
         # Threshold terms
         C = np.array(C)
         print(C)
-        indThres = np.abs(C[:,7]) > thres
+        indThres = np.abs(C[:,6]) > thres
         Cthres = C[indThres,:]
 
         # Calculate output values as sum over (L,M) terms
         BLM = []
-        for L in np.arange(0, int(Cthres[:,5].max().real)+1):
+        for L in np.arange(0, int(Cthres[:,4].max().real)+1):
            for M in np.arange(-L, L+1):
-               maskLM = (Cthres[:,5].real.astype(int)==L)*(Cthres[:,6].real.astype(int)==M);
-               BLM.append([L, M, Cthres[maskLM,7].sum()])
+               maskLM = (Cthres[:,4].real.astype(int)==L)*(Cthres[:,5].real.astype(int)==M);
+               BLM.append([L, M, Cthres[maskLM,6].sum()])
 
         BLM = np.array(BLM)
 
@@ -238,7 +239,7 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     -----------
     Currently set to loop calcualtions over energy only, and all symmetries.
     Pass single {'Cont':'sym'} to calculated for only one symmetry group.
-    In future this will be more elegant.
+    TODO: In future this will be more elegant.
 
     """
 
@@ -274,6 +275,6 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
         BLMXout = xr.combine_nested(BLMXlist, concat_dim=['Eke'])
 
     else:
-        BLMXout = MFBLMCalcLoop(daSumDim)
+        BLMXout = MFBLMCalcLoop(daSumDim, eAngs = eAngs, thres = thres)
 
     return BLMXout

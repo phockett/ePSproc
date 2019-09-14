@@ -277,10 +277,19 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
         for n, daE in daSumDim.groupby('Eke'):
             BLMXlist.append(MFBLMCalcLoop(daE, eAngs = eAngs, thres = thres))
 
+            # Add dims - currently set for Euler angles only (single set)
+            # Can't seem to add mutiindex as a single element, so set dummy coord here and replace below.
+            BLMXlist[-1] = BLMXlist[-1].expand_dims({'Euler':[n]})  # Set as index
+
         # Restack along Eke
         BLMXout = xr.combine_nested(BLMXlist, concat_dim=['Eke'])
 
     else:
-        BLMXout = MFBLMCalcLoop(daSumDim, eAngs = eAngs, thres = thres)
+        BLMXout = MFBLMCalcLoop(daSumDim, eAngs = eAngs, thres = thres).expand_dims({'Euler':[0]})
+
+    # Set Euler angles used (cf. MFPAD.py code), assumed same for each Eke
+    # May fail for singleton Eke dim...?
+    Euler = pd.MultiIndex.from_arrays(np.tile(eAngs,(BLMXout.Eke.size,1)).T, names = ['P','T','C'])
+    BLMXout = BLMXout.assign_coords(Euler = Euler)
 
     return BLMXout

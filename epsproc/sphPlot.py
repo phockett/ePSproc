@@ -113,7 +113,7 @@ def sphPlotHV(dataIn):
 
 
 # Plot MFPADs from a set of BLM
-def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', facetDim = None, backend = 'mpl'):
+def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = None, backend = 'mpl'):
     r'''
     Calculate spherical harmonic expansions from BLM parameters and plot.
 
@@ -133,6 +133,9 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', facetDim = None, backend = 'mp
 
     pType : char, optional, default 'r' (real part)
         Set (data) type to plot. See :py:func:`plotTypeSelector`.
+
+    plotFlag : bool, optional, default False
+        Set plotting True/False.  Note that this will plot for all facetDim.
 
     facetDim : str, optional, default None
         Dimension to use for subplots.
@@ -162,7 +165,11 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', facetDim = None, backend = 'mp
     dataPlot = dataPlot.rename({'BLM':'LM'})    # Switch naming back for plotting function
 
     # Pass data to plotting function
-    fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend)
+    if plotFlag:
+        fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend)
+    else:
+        fig = None
+
 
     return dataPlot, fig
 
@@ -246,7 +253,7 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl'):
         if len(dataPlot.dims) > 2:
             print('Data dims: {0}, subplots on {1}'.format(dataPlot.dims, facetDim))
             for nPlot in dataPlot[facetDim]:
-                fig.append(sphPlotMPL(dataPlot.sel({facetDim:dataPlot[facetDim][n]}), theta, phi))
+                fig.append(sphPlotMPL(dataPlot.sel({facetDim:[nPlot]}).squeeze(), theta, phi))  # Will fail if dims>2 passed.
         else:
             # Call matplotlib plotting fn., single surface
             fig.append(sphPlotMPL(dataPlot, theta, phi))

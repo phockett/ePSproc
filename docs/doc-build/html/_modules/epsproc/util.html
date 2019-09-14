@@ -171,7 +171,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="c1"># Selector function for matrix elements in Xarray</span>
-<div class="viewcode-block" id="matEleSelector"><a class="viewcode-back" href="../../modules/epsproc.util.html#epsproc.util.matEleSelector">[docs]</a><span class="k">def</span> <span class="nf">matEleSelector</span><span class="p">(</span><span class="n">da</span><span class="p">,</span> <span class="n">thres</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">inds</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sq</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="matEleSelector"><a class="viewcode-back" href="../../modules/epsproc.util.html#epsproc.util.matEleSelector">[docs]</a><span class="k">def</span> <span class="nf">matEleSelector</span><span class="p">(</span><span class="n">da</span><span class="p">,</span> <span class="n">thres</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">inds</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sq</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Select &amp; threshold raw matrix elements in an Xarray</span>
 
@@ -187,6 +187,8 @@
 <span class="sd">        E.g. inds = {&#39;Type&#39;:&#39;L&#39;,&#39;Cont&#39;:&#39;A2&#39;}</span>
 <span class="sd">    sq : bool, optional, default False</span>
 <span class="sd">        Squeeze output singleton dimensions.</span>
+<span class="sd">    drop : bool, optional, default True</span>
+<span class="sd">        Passed to da.where() for thresholding, drop coord labels for values below threshold.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -212,7 +214,7 @@
     <span class="c1"># Reduce dims by thesholding on abs values</span>
     <span class="c1"># Do this after selection to ensure Nans removed.</span>
     <span class="k">if</span> <span class="n">thres</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">daOut</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">da</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">thres</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">daOut</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">da</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">thres</span><span class="p">,</span> <span class="n">drop</span> <span class="o">=</span> <span class="n">drop</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">daOut</span> <span class="o">=</span> <span class="n">da</span>
 
@@ -222,7 +224,8 @@
     <span class="k">return</span> <span class="n">daOut</span></div>
 
 
-<span class="c1"># Select over vals from data structure</span>
+<span class="c1"># Select over vals from data structure (list)</span>
+<span class="c1"># Currently only used in IO.matEleGroupDim</span>
 <div class="viewcode-block" id="dataGroupSel"><a class="viewcode-back" href="../../modules/epsproc.util.html#epsproc.util.dataGroupSel">[docs]</a><span class="k">def</span> <span class="nf">dataGroupSel</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dInd</span><span class="p">):</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">dataSub</span> <span class="o">=</span> <span class="p">[]</span>
@@ -236,6 +239,29 @@
         <span class="n">dataSub</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span><span class="n">iSel</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">iSel</span><span class="p">]])</span>
 
     <span class="k">return</span> <span class="n">dataSub</span></div>
+
+
+<span class="c1"># Return list of standard dataArray dims for matrix elements</span>
+<div class="viewcode-block" id="matEdimList"><a class="viewcode-back" href="../../modules/epsproc.util.html#epsproc.util.matEdimList">[docs]</a><span class="k">def</span> <span class="nf">matEdimList</span><span class="p">(</span><span class="n">sType</span> <span class="o">=</span> <span class="s1">&#39;stacked&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return standard list of dimensions for matrix elements.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sType : string, optional, default = &#39;stacked&#39;</span>
+<span class="sd">        Selected &#39;stacked&#39; or &#39;unstacked&#39; dimensions.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list : set of dimension labels.</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sType</span> <span class="ow">is</span> <span class="s1">&#39;stacked&#39;</span><span class="p">:</span>
+        <span class="c1"># stackedDims</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;LM&#39;</span><span class="p">,</span> <span class="s1">&#39;Eke&#39;</span><span class="p">,</span> <span class="s1">&#39;Sym&#39;</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="s1">&#39;it&#39;</span><span class="p">,</span> <span class="s1">&#39;Type&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># unstackedDims</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">,</span><span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="s1">&#39;Eke&#39;</span><span class="p">,</span> <span class="s1">&#39;Cont&#39;</span><span class="p">,</span> <span class="s1">&#39;Targ&#39;</span><span class="p">,</span> <span class="s1">&#39;Total&#39;</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="s1">&#39;it&#39;</span><span class="p">,</span> <span class="s1">&#39;Type&#39;</span><span class="p">]</span></div>
 </pre></div>
 
            </div>

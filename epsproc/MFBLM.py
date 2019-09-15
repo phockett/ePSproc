@@ -279,17 +279,22 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
 
             # Add dims - currently set for Euler angles only (single set)
             # Can't seem to add mutiindex as a single element, so set dummy coord here and replace below.
-            BLMXlist[-1] = BLMXlist[-1].expand_dims({'Euler':[n]})  # Set as index
+            # BLMXlist[-1] = BLMXlist[-1].expand_dims({'Euler':[n]})  # Set as index
 
         # Restack along Eke
         BLMXout = xr.combine_nested(BLMXlist, concat_dim=['Eke'])
 
     else:
-        BLMXout = MFBLMCalcLoop(daSumDim, eAngs = eAngs, thres = thres).expand_dims({'Euler':[0]})
+        BLMXout = MFBLMCalcLoop(daSumDim, eAngs = eAngs, thres = thres)  # .expand_dims({'Euler':[0]})
 
     # Set Euler angles used (cf. MFPAD.py code), assumed same for each Eke
     # May fail for singleton Eke dim...?
-    Euler = pd.MultiIndex.from_arrays(np.tile(eAngs,(BLMXout.Eke.size,1)).T, names = ['P','T','C'])
-    BLMXout = BLMXout.assign_coords(Euler = Euler)
+    # Euler = pd.MultiIndex.from_arrays(np.tile(eAngs,(BLMXout.Eke.size,1)).T, names = ['P','T','C'])
+    # BLMXout = BLMXout.assign_coords(Euler = Euler)
+
+    # Set instead as singleton dim
+    Euler = pd.MultiIndex.from_arrays(np.tile(eAngs,(1,1)).T, names = ['P','T','C'])    # Left tile code here to prevent pd errors on lists.
+    BLMXout = BLMXout.expand_dims({'Euler':Euler})
+
 
     return BLMXout

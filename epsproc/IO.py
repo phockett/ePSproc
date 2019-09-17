@@ -16,6 +16,9 @@ Main function: :py:func:`epsproc.IO.readMatEle`:
 History
 -------
 
+17/09/19        Added read/write to/from netCDF files for Xarrays.
+                Use built-in methods, with work-arounds for complex number format issues.
+
 29/08/19        Updating docs to rst.
 
 26/08/19        Added parsing for E, sym parameters from head of ePS file.
@@ -1059,3 +1062,44 @@ def writeOrb3Dvtk(dataSet):
     print("{0} files written to vtk format.".format(len(fOut)))
 
     return fOut
+
+
+#**************** Wrappers for Xarray load/save netCDF
+def writeXarray(dataIn, fileName = None):
+    """
+    Write file to netCDF format via Xarray method.
+
+    Parameters
+    -----------
+    dataIn : Xarray
+        Data array to write to disk.
+
+    fileName : str, optional, default = None
+        Filename to use. If set to None (default) the file will be written in the working dir with a datastamp.
+
+    Returns
+    -------
+    str
+        For fail, OK (netCDF4), OK (netCDF3).
+
+    Notes
+    -----
+    The default option for Xarray is to use Scipy netCDF writer, which does not support complex datatypes. In this case, the data array is written as a dataset with a real and imag component.
+
+    """
+    try:
+        dataIn.to_netcdf(fileName)
+        saveMsg = 'Written to netCDF4.'
+        print(saveMsg)
+        return saveMsg
+
+    except ValueError as e:
+        if e.msg != "NetCDF 3 does not support type complex128":
+            raise
+        else:
+            xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag}).to_netcdf(fileName)
+            saveMsg = 'Written to netCDF3 (re/im format).'
+            print(saveMsg)
+            return saveMsg
+
+    return 'File not written.'

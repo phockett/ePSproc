@@ -1075,7 +1075,8 @@ def writeXarray(dataIn, fileName = None):
         Data array to write to disk.
 
     fileName : str, optional, default = None
-        Filename to use. If set to None (default) the file will be written in the working dir with a datastamp.
+        Filename to use.
+        TODO: If set to None (default) the file will be written in the working dir with a datastamp.
 
     Returns
     -------
@@ -1086,20 +1087,67 @@ def writeXarray(dataIn, fileName = None):
     -----
     The default option for Xarray is to use Scipy netCDF writer, which does not support complex datatypes. In this case, the data array is written as a dataset with a real and imag component.
 
+    Multi-level indexing is also not supported, and must be serialized first. Ugh.
+
     """
-    try:
-        dataIn.to_netcdf(fileName)
-        saveMsg = 'Written to netCDF4.'
-        print(saveMsg)
-        return saveMsg
 
-    except ValueError as e:
-        if e.msg != "NetCDF 3 does not support type complex128":
-            raise
-        else:
-            xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag}).to_netcdf(fileName)
-            saveMsg = 'Written to netCDF3 (re/im format).'
-            print(saveMsg)
-            return saveMsg
+    # Serialize MultiIndex  - testing here for BLM case.
+    if 'BLM' in dataIn.dims:
+        dataIn = dataIn.reset_index(['Euler','BLM'])
 
-    return 'File not written.'
+# Try/except not yet working, multiple error types to handle here...
+    # try:
+    #     dataIn.to_netcdf(fileName)
+    #     saveMsg = 'Written to netCDF4.'
+    #     print(saveMsg)
+    #     return saveMsg
+    #
+    # except ValueError as e:
+    #     if e.msg != "NetCDF 3 does not support type complex128":
+    #         raise
+    #     else:
+    #         xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag}).to_netcdf(fileName)
+    #         saveMsg = 'Written to netCDF3 (re/im format).'
+    #         print(saveMsg)
+    #         return saveMsg
+    #
+    # return 'File not written.'
+
+# Safe version with re/im split save type only.
+    xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag}).to_netcdf(fileName)
+    saveMsg = 'Written to netCDF3 (re/im format).'
+    print(saveMsg)
+    return saveMsg
+
+def readXarray(fileName):
+    """
+    Read file from netCDF format via Xarray method.
+
+    Parameters
+    -----------
+    fileName : str
+        File to read.
+
+    Returns
+    -------
+    str
+        For fail, OK (netCDF4), OK (netCDF3).
+
+    Notes
+    -----
+    The default option for Xarray is to use Scipy netCDF writer, which does not support complex datatypes. In this case, the data array is written as a dataset with a real and imag component.
+
+    Multi-level indexing is also not supported, and must be serialized first. Ugh.
+
+    """
+    # Read file
+    dataIn = xr.open_dataset(fileName)
+
+    # Reconstruct complex variables
+    dataIn = dataIn.Re + dataIn.Im*1j
+
+    # Recreate MultiIndex from serialized version  - testing here for BLM case.
+    if 'BLM' in dataIn.dims:
+        dataIn = dataIn.set_index({'BLM':['l','m'],'Euler':['P','T','C']})
+
+    return dataIn

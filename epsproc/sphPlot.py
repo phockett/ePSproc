@@ -84,6 +84,8 @@ def plotTypeSelector(dataPlot, pType = 'a'):
     elif pType == 'p':
         # TODO: check conj defns with Xarray
         dataPlot = np.abs(dataPlot * np.conj(dataPlot))
+    elif pType == 'a2':
+        dataPlot = np.abs(dataPlot**2)
 
     # Set pType in output plotting data Xarray
     dataPlot.attrs['pType'] = pType
@@ -382,7 +384,8 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None):
     nData = dataPlot[facetDim].size
 
     if rc is None:
-        rc = [3,5]
+        nCols = 3
+        rc = [nData/nCols, nCols]
 
     pType = {'type':'surface'}
     specs = [[pType] * rc[1] for i in range(rc[0])]  # Set specs as 2D list of dicts.

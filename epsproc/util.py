@@ -90,15 +90,47 @@ def matEdimList(sType = 'stacked'):
     ----------
     sType : string, optional, default = 'stacked'
         Selected 'stacked' or 'unstacked' dimensions.
+        Set 'sDict' to return a dictionary of unstacked <> stacked dims mappings for use with xr.stack({dim mapping}).
 
     Returns
     -------
     list : set of dimension labels.
-    
+
     """
     if sType is 'stacked':
         # stackedDims
         return ['LM', 'Eke', 'Sym', 'mu', 'it', 'Type']
+
+    elif sType is 'sDict':
+        return {'LM':['l','m'],'Sym':['Cont', 'Targ', 'Total']}
+
     else:
         # unstackedDims
         return ['l','m', 'Eke', 'Cont', 'Targ', 'Total', 'mu', 'it', 'Type']
+
+# Return list of standard dataArray dims for BLM values
+def BLMdimList(sType = 'stacked'):
+    """
+    Return standard list of dimensions for calculated BLM.
+
+    Parameters
+    ----------
+    sType : string, optional, default = 'stacked'
+        Selected 'stacked' or 'unstacked' dimensions.
+        Set 'sDict' to return a dictionary of unstacked <> stacked dims mappings for use with xr.stack({dim mapping}).
+
+    Returns
+    -------
+    list : set of dimension labels.
+
+    """
+    if sType is 'stacked':
+        # stackedDims
+        return ['Euler', 'Eke', 'BLM']
+
+    elif sType is 'sDict':
+        return {'BLM':['l','m'],'Euler':['P','T','C']}
+
+    else:
+        # unstackedDims
+        return ['Eke', 'l', 'm', 'P', 'T', 'C']

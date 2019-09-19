@@ -240,12 +240,18 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
         (These are used to flatten the Xarray before calculation.)
         Default includes sum over (l,m), symmetries and degeneracies (but not energies).
 
+    Returns
+    -------
+    Xarray
+        Calculation results BLM, dims (Euler, Eke, l,m). Some global attributes are also appended.
 
     Limitations
     -----------
     Currently set to loop calcualtions over energy only, and all symmetries.
     Pass single {'Cont':'sym'} to calculated for only one symmetry group.
+
     TODO: In future this will be more elegant.
+    TODO: Setting selDims in output structure needs more thought for netCDF save compatibility.
 
     """
 
@@ -296,5 +302,11 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     Euler = pd.MultiIndex.from_arrays(np.tile(eAngs,(1,1)).T, names = ['P','T','C'])    # Left tile code here to prevent pd errors on lists.
     BLMXout = BLMXout.expand_dims({'Euler':Euler})
 
+    # Set/propagate global properties
+    BLMXout.attrs = da.attrs
+    BLMXout.attrs['thres'] = thres
+    BLMXout.attrs['sumDims'] = sumDims # May want to explicitly propagate symmetries here...?
+    BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
+    BLMXout.attrs['dataType'] = 'BLM'
 
     return BLMXout

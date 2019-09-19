@@ -252,8 +252,17 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl'):
         # Return list of fig handles
         if len(dataPlot.dims) > 2:
             print('Data dims: {0}, subplots on {1}'.format(dataPlot.dims, facetDim))
+
+            # Basic loop over facetDim
+            # Fails for dims with multi-index, or repeated values for sub-indexes if used as selector.
+            # Therefore, use positional numerical index...
+            # for nPlot in dataPlot[facetDim]:
+            #     fig.append(sphPlotMPL(dataPlot.sel({facetDim:[nPlot]}).squeeze(), theta, phi))  # Will fail if dims>2 passed.
+
+            # Loop over facetDim with full dataArray as selector, allows for MultiIndex cases.
             for nPlot in dataPlot[facetDim]:
-                fig.append(sphPlotMPL(dataPlot.sel({facetDim:[nPlot]}).squeeze(), theta, phi))  # Will fail if dims>2 passed.
+                fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi))  # Will fail if dims>2 passed.
+
         else:
             # Call matplotlib plotting fn., single surface
             fig.append(sphPlotMPL(dataPlot, theta, phi))

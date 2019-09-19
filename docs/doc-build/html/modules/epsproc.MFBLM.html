@@ -93,6 +93,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../about.html">ePSproc Readme</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html">ePSproc <span class="math notranslate nohighlight">\(\beta_{L,M}\)</span> calculations demo</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Function ref:</span></p>
 <ul class="current">
@@ -262,10 +263,19 @@ Default selects just length gauge results.</p></li>
 Default includes sum over (l,m), symmetries and degeneracies (but not energies).</p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>Xarray</em> – Calculation results BLM, dims (Euler, Eke, l,m). Some global attributes are also appended.</p></li>
+<li><p><em>Limitations</em></p></li>
+<li><p><em>———–</em></p></li>
+<li><p><em>Currently set to loop calcualtions over energy only, and all symmetries.</em></p></li>
+<li><p><strong>Pass single {‘Cont’</strong> (<em>‘sym’} to calculated for only one symmetry group.</em>)</p></li>
+<li><p><strong>TODO</strong> (<em>In future this will be more elegant.</em>)</p></li>
+<li><p><strong>TODO</strong> (<em>Setting selDims in output structure needs more thought for netCDF save compatibility.</em>)</p></li>
+</ul>
+</p>
+</dd>
 </dl>
-<p>Currently set to loop calcualtions over energy only, and all symmetries.
-Pass single {‘Cont’:’sym’} to calculated for only one symmetry group.
-TODO: In future this will be more elegant.</p>
 </dd></dl>
 
 </div>

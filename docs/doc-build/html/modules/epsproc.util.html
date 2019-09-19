@@ -92,6 +92,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../about.html">ePSproc Readme</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html">ePSproc <span class="math notranslate nohighlight">\(\beta_{L,M}\)</span> calculations demo</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Function ref:</span></p>
 <ul class="current">
@@ -180,6 +181,24 @@
 <p>Collection of small functions for sorting etc.</p>
 <p>11/08/19    Added matEleSelector</p>
 <dl class="function">
+<dt id="epsproc.util.BLMdimList">
+<code class="sig-prename descclassname">epsproc.util.</code><code class="sig-name descname">BLMdimList</code><span class="sig-paren">(</span><em class="sig-param">sType='stacked'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/util.html#BLMdimList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.util.BLMdimList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return standard list of dimensions for calculated BLM.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sType</strong> (<em>string</em><em>, </em><em>optional</em><em>, </em><em>default = 'stacked'</em>) – Selected ‘stacked’ or ‘unstacked’ dimensions.
+Set ‘sDict’ to return a dictionary of unstacked &lt;&gt; stacked dims mappings for use with xr.stack({dim mapping}).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>list</strong></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>set of dimension labels.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="epsproc.util.dataGroupSel">
 <code class="sig-prename descclassname">epsproc.util.</code><code class="sig-name descname">dataGroupSel</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">dInd</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/util.html#dataGroupSel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.util.dataGroupSel" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -190,7 +209,8 @@
 <dd><p>Return standard list of dimensions for matrix elements.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>sType</strong> (<em>string</em><em>, </em><em>optional</em><em>, </em><em>default = 'stacked'</em>) – Selected ‘stacked’ or ‘unstacked’ dimensions.</p>
+<dd class="field-odd"><p><strong>sType</strong> (<em>string</em><em>, </em><em>optional</em><em>, </em><em>default = 'stacked'</em>) – Selected ‘stacked’ or ‘unstacked’ dimensions.
+Set ‘sDict’ to return a dictionary of unstacked &lt;&gt; stacked dims mappings for use with xr.stack({dim mapping}).</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><strong>list</strong></p>

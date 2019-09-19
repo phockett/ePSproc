@@ -91,6 +91,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../about.html">ePSproc Readme</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html">ePSproc <span class="math notranslate nohighlight">\(\beta_{L,M}\)</span> calculations demo</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Function ref:</span></p>
 <ul>
@@ -176,6 +177,9 @@
 <span class="sd">History</span>
 <span class="sd">-------</span>
 
+<span class="sd">17/09/19        Added read/write to/from netCDF files for Xarrays.</span>
+<span class="sd">                Use built-in methods, with work-arounds for complex number format issues.</span>
+
 <span class="sd">29/08/19        Updating docs to rst.</span>
 
 <span class="sd">26/08/19        Added parsing for E, sym parameters from head of ePS file.</span>
@@ -208,6 +212,7 @@
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">StringIO</span>
 <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span> <span class="k">as</span> <span class="n">dt</span> <span class="c1"># Import datetime.datetime for now() function</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">pyevtk.hl</span> <span class="k">import</span> <span class="n">gridToVTK</span>
@@ -217,7 +222,7 @@
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;* pyevtk not found, VTK export not available. &#39;</span><span class="p">)</span>
 
 <span class="c1"># Package fns.</span>
-<span class="kn">from</span> <span class="nn">epsproc.util</span> <span class="k">import</span> <span class="n">matEleSelector</span><span class="p">,</span> <span class="n">dataGroupSel</span>
+<span class="kn">from</span> <span class="nn">epsproc.util</span> <span class="k">import</span> <span class="n">matEleSelector</span><span class="p">,</span> <span class="n">dataGroupSel</span><span class="p">,</span> <span class="n">matEdimList</span><span class="p">,</span> <span class="n">BLMdimList</span>
 
 <span class="c1"># ***** Ancillary functions</span>
 
@@ -680,6 +685,9 @@
 <span class="c1">#    # THIS WILL BREAK LATER!!!!</span>
 <span class="c1">#    # TODO: fix use of Xarrays and dimension issues.</span>
 <span class="c1">#    daOut = xr.combine_nested(dataArrays, concat_dim=[&#39;it&#39;])</span>
+
+    <span class="c1"># Set any other global attribs</span>
+    <span class="n">daOut</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;dataType&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;matE&#39;</span>    <span class="c1"># Set dataType for use later.</span>
 
     <span class="k">return</span> <span class="n">daOut</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">blankSegs</span>     <span class="c1"># NOTE transpose to reverse ordering of dims.</span></div>
 
@@ -1219,6 +1227,135 @@
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> files written to vtk format.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fOut</span><span class="p">)))</span>
 
     <span class="k">return</span> <span class="n">fOut</span></div>
+
+
+<span class="c1">#**************** Wrappers for Xarray load/save netCDF</span>
+
+<span class="c1"># File write wrapper.</span>
+<div class="viewcode-block" id="writeXarray"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.writeXarray">[docs]</a><span class="k">def</span> <span class="nf">writeXarray</span><span class="p">(</span><span class="n">dataIn</span><span class="p">,</span> <span class="n">fileName</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">filePath</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write file to netCDF format via Xarray method.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    -----------</span>
+<span class="sd">    dataIn : Xarray</span>
+<span class="sd">        Data array to write to disk.</span>
+
+<span class="sd">    fileName : str, optional, default = None</span>
+<span class="sd">        Filename to use.</span>
+<span class="sd">        If set to None (default) the file will be written with a datastamp.</span>
+
+<span class="sd">    filePath : str, optional, default = None</span>
+<span class="sd">        Full path to file.</span>
+<span class="sd">        If set to None (default) the file will be written in the current working directory (as returned by `os.getcwd()`).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Indicates save type and file path.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The default option for Xarray is to use Scipy netCDF writer, which does not support complex datatypes. In this case, the data array is written as a dataset with a real and imag component.</span>
+
+<span class="sd">    TODO: implement try/except to handle various cases here.</span>
+
+<span class="sd">    Multi-level indexing is also not supported, and must be serialized first. Ugh.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">fileName</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">timeString</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">fileName</span> <span class="o">=</span> <span class="s1">&#39;ep_&#39;</span> <span class="o">+</span> <span class="n">timeString</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">_%H-%M-%S&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">filePath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">filePath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+
+    <span class="c1"># Serialize MultiIndex  - testing here for BLM case.</span>
+    <span class="c1"># if &#39;BLM&#39; in dataIn.dims:</span>
+    <span class="c1">#     dataIn = dataIn.reset_index([&#39;Euler&#39;,&#39;BLM&#39;])</span>
+
+    <span class="c1"># Serialize general - use unstact() to flatten all dims</span>
+    <span class="n">dataIn</span> <span class="o">=</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">unstack</span><span class="p">()</span>
+
+<span class="c1"># Try/except not yet working, multiple error types to handle here...</span>
+    <span class="c1"># try:</span>
+    <span class="c1">#     dataIn.to_netcdf(fileName)</span>
+    <span class="c1">#     saveMsg = &#39;Written to netCDF4.&#39;</span>
+    <span class="c1">#     print(saveMsg)</span>
+    <span class="c1">#     return saveMsg</span>
+    <span class="c1">#</span>
+    <span class="c1"># except ValueError as e:</span>
+    <span class="c1">#     if e.msg != &quot;NetCDF 3 does not support type complex128&quot;:</span>
+    <span class="c1">#         raise</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         xr.Dataset({&#39;Re&#39;:dataIn.real, &#39;Im&#39;:dataIn.imag}).to_netcdf(fileName)</span>
+    <span class="c1">#         saveMsg = &#39;Written to netCDF3 (re/im format).&#39;</span>
+    <span class="c1">#         print(saveMsg)</span>
+    <span class="c1">#         return saveMsg</span>
+    <span class="c1">#</span>
+    <span class="c1"># return &#39;File not written.&#39;</span>
+
+<span class="c1"># Safe version with re/im split save type only.</span>
+    <span class="c1"># xr.Dataset({&#39;Re&#39;:dataIn.real, &#39;Im&#39;:dataIn.imag}).to_netcdf(os.path.join(filePath, fileName + &#39;.nc&#39;))  # This works, but drops attrs!</span>
+    <span class="n">dataOut</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">({</span><span class="s1">&#39;Re&#39;</span><span class="p">:</span><span class="n">dataIn</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="s1">&#39;Im&#39;</span><span class="p">:</span><span class="n">dataIn</span><span class="o">.</span><span class="n">imag</span><span class="p">})</span>
+    <span class="n">dataOut</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">attrs</span>
+
+    <span class="n">dataOut</span><span class="o">.</span><span class="n">to_netcdf</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filePath</span><span class="p">,</span> <span class="n">fileName</span> <span class="o">+</span> <span class="s1">&#39;.nc&#39;</span><span class="p">))</span>
+    <span class="n">saveMsg</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Written to netCDF3 (re/im format)&#39;</span><span class="p">]</span>
+    <span class="n">saveMsg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filePath</span><span class="p">,</span> <span class="n">fileName</span> <span class="o">+</span> <span class="s1">&#39;.nc&#39;</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">saveMsg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">saveMsg</span></div>
+
+
+<span class="c1"># File read wrapper.</span>
+<div class="viewcode-block" id="readXarray"><a class="viewcode-back" href="../../modules/epsproc.IO.html#epsproc.IO.readXarray">[docs]</a><span class="k">def</span> <span class="nf">readXarray</span><span class="p">(</span><span class="n">fileName</span><span class="p">,</span> <span class="n">filePath</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read file from netCDF format via Xarray method.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    -----------</span>
+<span class="sd">    fileName : str</span>
+<span class="sd">        File to read.</span>
+
+<span class="sd">    filePath : str, optional, default = None</span>
+<span class="sd">        Full path to file.</span>
+<span class="sd">        If set to None (default) the file will be written in the current working directory (as returned by `os.getcwd()`).</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Xarray</span>
+<span class="sd">        Data from file.  May be in serialized format.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The default option for Xarray is to use Scipy netCDF writer, which does not support complex datatypes. In this case, the data array is written as a dataset with a real and imag component.</span>
+
+<span class="sd">    Multi-level indexing is also not supported, and must be serialized first. Ugh.</span>
+
+<span class="sd">    TODO: generalize multi-level indexing here.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Read file</span>
+    <span class="n">dataIn</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">fileName</span><span class="p">)</span>
+
+    <span class="c1"># Reconstruct complex variables, NOTE this drops attrs... there&#39;s likely a better way to do this!</span>
+    <span class="n">dataOut</span> <span class="o">=</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">Re</span> <span class="o">+</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">Im</span><span class="o">*</span><span class="mi">1</span><span class="n">j</span>
+    <span class="n">dataOut</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">attrs</span>
+
+    <span class="c1"># Recreate MultiIndex from serialized version  - testing here for BLM case.</span>
+    <span class="c1"># if &#39;BLM&#39; in dataIn.dims:</span>
+    <span class="c1">#     dataIn = dataIn.set_index({&#39;BLM&#39;:[&#39;l&#39;,&#39;m&#39;],&#39;Euler&#39;:[&#39;P&#39;,&#39;T&#39;,&#39;C&#39;]})</span>
+
+    <span class="c1"># Recreate MultiIndex from serialized version according to array type.</span>
+    <span class="k">if</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">dataType</span> <span class="o">==</span> <span class="s1">&#39;BLM&#39;</span><span class="p">:</span>
+        <span class="n">dataOut</span> <span class="o">=</span> <span class="n">dataOut</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">BLMdimList</span><span class="p">(</span><span class="n">sType</span> <span class="o">=</span> <span class="s1">&#39;sDict&#39;</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">dataType</span> <span class="o">==</span> <span class="s1">&#39;matE&#39;</span><span class="p">:</span>
+        <span class="n">dataOut</span> <span class="o">=</span> <span class="n">dataOut</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">matEdimList</span><span class="p">(</span><span class="n">sType</span> <span class="o">=</span> <span class="s1">&#39;sDict&#39;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">dataOut</span></div>
 </pre></div>
 
            </div>

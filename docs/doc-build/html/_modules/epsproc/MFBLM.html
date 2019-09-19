@@ -91,6 +91,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../about.html">ePSproc Readme</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html">ePSproc <span class="math notranslate nohighlight">\(\beta_{L,M}\)</span> calculations demo</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Function ref:</span></p>
 <ul>
@@ -400,12 +401,18 @@
 <span class="sd">        (These are used to flatten the Xarray before calculation.)</span>
 <span class="sd">        Default includes sum over (l,m), symmetries and degeneracies (but not energies).</span>
 
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Xarray</span>
+<span class="sd">        Calculation results BLM, dims (Euler, Eke, l,m). Some global attributes are also appended.</span>
 
 <span class="sd">    Limitations</span>
 <span class="sd">    -----------</span>
 <span class="sd">    Currently set to loop calcualtions over energy only, and all symmetries.</span>
 <span class="sd">    Pass single {&#39;Cont&#39;:&#39;sym&#39;} to calculated for only one symmetry group.</span>
+
 <span class="sd">    TODO: In future this will be more elegant.</span>
+<span class="sd">    TODO: Setting selDims in output structure needs more thought for netCDF save compatibility.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -437,11 +444,31 @@
         <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">daE</span> <span class="ow">in</span> <span class="n">daSumDim</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;Eke&#39;</span><span class="p">):</span>
             <span class="n">BLMXlist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MFBLMCalcLoop</span><span class="p">(</span><span class="n">daE</span><span class="p">,</span> <span class="n">eAngs</span> <span class="o">=</span> <span class="n">eAngs</span><span class="p">,</span> <span class="n">thres</span> <span class="o">=</span> <span class="n">thres</span><span class="p">))</span>
 
+            <span class="c1"># Add dims - currently set for Euler angles only (single set)</span>
+            <span class="c1"># Can&#39;t seem to add mutiindex as a single element, so set dummy coord here and replace below.</span>
+            <span class="c1"># BLMXlist[-1] = BLMXlist[-1].expand_dims({&#39;Euler&#39;:[n]})  # Set as index</span>
+
         <span class="c1"># Restack along Eke</span>
         <span class="n">BLMXout</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">combine_nested</span><span class="p">(</span><span class="n">BLMXlist</span><span class="p">,</span> <span class="n">concat_dim</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Eke&#39;</span><span class="p">])</span>
 
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">BLMXout</span> <span class="o">=</span> <span class="n">MFBLMCalcLoop</span><span class="p">(</span><span class="n">daSumDim</span><span class="p">,</span> <span class="n">eAngs</span> <span class="o">=</span> <span class="n">eAngs</span><span class="p">,</span> <span class="n">thres</span> <span class="o">=</span> <span class="n">thres</span><span class="p">)</span>
+        <span class="n">BLMXout</span> <span class="o">=</span> <span class="n">MFBLMCalcLoop</span><span class="p">(</span><span class="n">daSumDim</span><span class="p">,</span> <span class="n">eAngs</span> <span class="o">=</span> <span class="n">eAngs</span><span class="p">,</span> <span class="n">thres</span> <span class="o">=</span> <span class="n">thres</span><span class="p">)</span>  <span class="c1"># .expand_dims({&#39;Euler&#39;:[0]})</span>
+
+    <span class="c1"># Set Euler angles used (cf. MFPAD.py code), assumed same for each Eke</span>
+    <span class="c1"># May fail for singleton Eke dim...?</span>
+    <span class="c1"># Euler = pd.MultiIndex.from_arrays(np.tile(eAngs,(BLMXout.Eke.size,1)).T, names = [&#39;P&#39;,&#39;T&#39;,&#39;C&#39;])</span>
+    <span class="c1"># BLMXout = BLMXout.assign_coords(Euler = Euler)</span>
+
+    <span class="c1"># Set instead as singleton dim</span>
+    <span class="n">Euler</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">eAngs</span><span class="p">,(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;P&#39;</span><span class="p">,</span><span class="s1">&#39;T&#39;</span><span class="p">,</span><span class="s1">&#39;C&#39;</span><span class="p">])</span>    <span class="c1"># Left tile code here to prevent pd errors on lists.</span>
+    <span class="n">BLMXout</span> <span class="o">=</span> <span class="n">BLMXout</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">({</span><span class="s1">&#39;Euler&#39;</span><span class="p">:</span><span class="n">Euler</span><span class="p">})</span>
+
+    <span class="c1"># Set/propagate global properties</span>
+    <span class="n">BLMXout</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">attrs</span>
+    <span class="n">BLMXout</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;thres&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">thres</span>
+    <span class="n">BLMXout</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;sumDims&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sumDims</span> <span class="c1"># May want to explicitly propagate symmetries here...?</span>
+    <span class="n">BLMXout</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;selDims&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">selDims</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>  <span class="c1"># Can&#39;t use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.</span>
+    <span class="n">BLMXout</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;dataType&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;BLM&#39;</span>
 
     <span class="k">return</span> <span class="n">BLMXout</span></div>
 </pre></div>

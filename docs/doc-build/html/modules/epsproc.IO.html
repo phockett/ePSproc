@@ -93,6 +93,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../about.html">ePSproc Readme</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html">ePSproc <span class="math notranslate nohighlight">\(\beta_{L,M}\)</span> calculations demo</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Function ref:</span></p>
 <ul class="current">
@@ -191,6 +192,10 @@ File endings specified by fType, default .out.</p>
 </div></blockquote>
 <div class="section" id="history">
 <h3>History<a class="headerlink" href="#history" title="Permalink to this headline">¶</a></h3>
+<dl class="simple">
+<dt>17/09/19        Added read/write to/from netCDF files for Xarrays.</dt><dd><p>Use built-in methods, with work-arounds for complex number format issues.</p>
+</dd>
+</dl>
 <p>29/08/19        Updating docs to rst.</p>
 <dl class="simple">
 <dt>26/08/19        Added parsing for E, sym parameters from head of ePS file.</dt><dd><p>Added error checking by comparing read mat elements to expected list.
@@ -497,6 +502,31 @@ Defaults to current working dir if no other parameters are passed.</p>
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="epsproc.IO.readXarray">
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">readXarray</code><span class="sig-paren">(</span><em class="sig-param">fileName</em>, <em class="sig-param">filePath=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#readXarray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.readXarray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read file from netCDF format via Xarray method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fileName</strong> (<em>str</em>) – File to read.</p></li>
+<li><p><strong>filePath</strong> (<em>str</em><em>, </em><em>optional</em><em>, </em><em>default = None</em>) – Full path to file.
+If set to None (default) the file will be written in the current working directory (as returned by <cite>os.getcwd()</cite>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Data from file.  May be in serialized format.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Xarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The default option for Xarray is to use Scipy netCDF writer, which does not support complex datatypes. In this case, the data array is written as a dataset with a real and imag component.</p>
+<p>Multi-level indexing is also not supported, and must be serialized first. Ugh.</p>
+<p>TODO: generalize multi-level indexing here.</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="epsproc.IO.scatEngFileParse">
 <code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">scatEngFileParse</code><span class="sig-paren">(</span><em class="sig-param">fileName</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#scatEngFileParse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.scatEngFileParse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse an ePS file for ScatEng list.</p>
@@ -560,6 +590,33 @@ Assumes format as output by readOrb3D(), [fileName, headerLines, coords, data]</
 <li><p><a class="reference external" href="https://bitbucket.org/pauloh/pyevtk/src/default/">https://bitbucket.org/pauloh/pyevtk/src/default/</a></p></li>
 </ul>
 </div>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.IO.writeXarray">
+<code class="sig-prename descclassname">epsproc.IO.</code><code class="sig-name descname">writeXarray</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em>, <em class="sig-param">fileName=None</em>, <em class="sig-param">filePath=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/IO.html#writeXarray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.IO.writeXarray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write file to netCDF format via Xarray method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataIn</strong> (<em>Xarray</em>) – Data array to write to disk.</p></li>
+<li><p><strong>fileName</strong> (<em>str</em><em>, </em><em>optional</em><em>, </em><em>default = None</em>) – Filename to use.
+If set to None (default) the file will be written with a datastamp.</p></li>
+<li><p><strong>filePath</strong> (<em>str</em><em>, </em><em>optional</em><em>, </em><em>default = None</em>) – Full path to file.
+If set to None (default) the file will be written in the current working directory (as returned by <cite>os.getcwd()</cite>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Indicates save type and file path.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The default option for Xarray is to use Scipy netCDF writer, which does not support complex datatypes. In this case, the data array is written as a dataset with a real and imag component.</p>
+<p>TODO: implement try/except to handle various cases here.</p>
+<p>Multi-level indexing is also not supported, and must be serialized first. Ugh.</p>
 </dd></dl>
 
 </div>

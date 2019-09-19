@@ -93,6 +93,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../about.html">ePSproc Readme</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html">ePSproc <span class="math notranslate nohighlight">\(\beta_{L,M}\)</span> calculations demo</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Function ref:</span></p>
 <ul class="current">
@@ -222,7 +223,7 @@
 
 <dl class="function">
 <dt id="epsproc.sphPlot.sphFromBLMPlot">
-<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphFromBLMPlot</code><span class="sig-paren">(</span><em class="sig-param">BLMXin</em>, <em class="sig-param">res=50</em>, <em class="sig-param">pType='r'</em>, <em class="sig-param">facetDim=None</em>, <em class="sig-param">backend='mpl'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#sphFromBLMPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.sphFromBLMPlot" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphFromBLMPlot</code><span class="sig-paren">(</span><em class="sig-param">BLMXin</em>, <em class="sig-param">res=50</em>, <em class="sig-param">pType='r'</em>, <em class="sig-param">plotFlag=False</em>, <em class="sig-param">facetDim=None</em>, <em class="sig-param">backend='mpl'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#sphFromBLMPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.sphFromBLMPlot" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate spherical harmonic expansions from BLM parameters and plot.</p>
 <p>Surfaces calculated as:</p>
 <div class="math notranslate nohighlight">
@@ -233,6 +234,7 @@
 <li><p><strong>dataIn</strong> (<em>Xarray</em>) – Input set of BLM parameters.</p></li>
 <li><p><strong>res</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default 50</em>) – Resolution for output (theta,phi) grids.</p></li>
 <li><p><strong>pType</strong> (<em>char</em><em>, </em><em>optional</em><em>, </em><em>default 'r'</em><em> (</em><em>real part</em><em>)</em>) – Set (data) type to plot. See <a class="reference internal" href="#epsproc.sphPlot.plotTypeSelector" title="epsproc.sphPlot.plotTypeSelector"><code class="xref py py-func docutils literal notranslate"><span class="pre">plotTypeSelector()</span></code></a>.</p></li>
+<li><p><strong>plotFlag</strong> (<em>bool</em><em>, </em><em>optional</em><em>, </em><em>default False</em>) – Set plotting True/False.  Note that this will plot for all facetDim.</p></li>
 <li><p><strong>facetDim</strong> (<em>str</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – Dimension to use for subplots.
 Currently set for a single dimension only.
 For matplotlib backend: one figure per surface.

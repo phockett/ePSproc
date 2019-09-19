@@ -91,6 +91,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../about.html">ePSproc Readme</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html">ePSproc <span class="math notranslate nohighlight">\(\beta_{L,M}\)</span> calculations demo</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Function ref:</span></p>
 <ul>
@@ -273,7 +274,7 @@
 
 
 <span class="c1"># Plot MFPADs from a set of BLM</span>
-<div class="viewcode-block" id="sphFromBLMPlot"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.sphFromBLMPlot">[docs]</a><span class="k">def</span> <span class="nf">sphFromBLMPlot</span><span class="p">(</span><span class="n">BLMXin</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">pType</span> <span class="o">=</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">facetDim</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">backend</span> <span class="o">=</span> <span class="s1">&#39;mpl&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="sphFromBLMPlot"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.sphFromBLMPlot">[docs]</a><span class="k">def</span> <span class="nf">sphFromBLMPlot</span><span class="p">(</span><span class="n">BLMXin</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">pType</span> <span class="o">=</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">plotFlag</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">facetDim</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">backend</span> <span class="o">=</span> <span class="s1">&#39;mpl&#39;</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Calculate spherical harmonic expansions from BLM parameters and plot.</span>
 
@@ -293,6 +294,9 @@
 
 <span class="sd">    pType : char, optional, default &#39;r&#39; (real part)</span>
 <span class="sd">        Set (data) type to plot. See :py:func:`plotTypeSelector`.</span>
+
+<span class="sd">    plotFlag : bool, optional, default False</span>
+<span class="sd">        Set plotting True/False.  Note that this will plot for all facetDim.</span>
 
 <span class="sd">    facetDim : str, optional, default None</span>
 <span class="sd">        Dimension to use for subplots.</span>
@@ -322,7 +326,11 @@
     <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">dataPlot</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s1">&#39;BLM&#39;</span><span class="p">:</span><span class="s1">&#39;LM&#39;</span><span class="p">})</span>    <span class="c1"># Switch naming back for plotting function</span>
 
     <span class="c1"># Pass data to plotting function</span>
-    <span class="n">fig</span> <span class="o">=</span> <span class="n">sphSumPlotX</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">pType</span> <span class="o">=</span> <span class="n">pType</span><span class="p">,</span> <span class="n">facetDim</span> <span class="o">=</span> <span class="n">facetDim</span><span class="p">,</span> <span class="n">backend</span> <span class="o">=</span> <span class="n">backend</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">plotFlag</span><span class="p">:</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">sphSumPlotX</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">pType</span> <span class="o">=</span> <span class="n">pType</span><span class="p">,</span> <span class="n">facetDim</span> <span class="o">=</span> <span class="n">facetDim</span><span class="p">,</span> <span class="n">backend</span> <span class="o">=</span> <span class="n">backend</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="kc">None</span>
+
 
     <span class="k">return</span> <span class="n">dataPlot</span><span class="p">,</span> <span class="n">fig</span></div>
 
@@ -405,8 +413,17 @@
         <span class="c1"># Return list of fig handles</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Data dims: </span><span class="si">{0}</span><span class="s1">, subplots on </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="n">facetDim</span><span class="p">))</span>
+
+            <span class="c1"># Basic loop over facetDim</span>
+            <span class="c1"># Fails for dims with multi-index, or repeated values for sub-indexes if used as selector.</span>
+            <span class="c1"># Therefore, use positional numerical index...</span>
+            <span class="c1"># for nPlot in dataPlot[facetDim]:</span>
+            <span class="c1">#     fig.append(sphPlotMPL(dataPlot.sel({facetDim:[nPlot]}).squeeze(), theta, phi))  # Will fail if dims&gt;2 passed.</span>
+
+            <span class="c1"># Loop over facetDim with full dataArray as selector, allows for MultiIndex cases.</span>
             <span class="k">for</span> <span class="n">nPlot</span> <span class="ow">in</span> <span class="n">dataPlot</span><span class="p">[</span><span class="n">facetDim</span><span class="p">]:</span>
-                <span class="n">fig</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sphPlotMPL</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">sel</span><span class="p">({</span><span class="n">facetDim</span><span class="p">:</span><span class="n">dataPlot</span><span class="p">[</span><span class="n">facetDim</span><span class="p">][</span><span class="n">n</span><span class="p">]}),</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">))</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sphPlotMPL</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">sel</span><span class="p">({</span><span class="n">facetDim</span><span class="p">:</span><span class="n">nPlot</span><span class="p">})</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">))</span>  <span class="c1"># Will fail if dims&gt;2 passed.</span>
+
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Call matplotlib plotting fn., single surface</span>
             <span class="n">fig</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sphPlotMPL</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">))</span>
@@ -526,7 +543,8 @@
     <span class="n">nData</span> <span class="o">=</span> <span class="n">dataPlot</span><span class="p">[</span><span class="n">facetDim</span><span class="p">]</span><span class="o">.</span><span class="n">size</span>
 
     <span class="k">if</span> <span class="n">rc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">rc</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">5</span><span class="p">]</span>
+        <span class="n">nCols</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">rc</span> <span class="o">=</span> <span class="p">[</span><span class="n">nData</span><span class="o">/</span><span class="n">nCols</span><span class="p">,</span> <span class="n">nCols</span><span class="p">]</span>
 
     <span class="n">pType</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span><span class="s1">&#39;surface&#39;</span><span class="p">}</span>
     <span class="n">specs</span> <span class="o">=</span> <span class="p">[[</span><span class="n">pType</span><span class="p">]</span> <span class="o">*</span> <span class="n">rc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rc</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>  <span class="c1"># Set specs as 2D list of dicts.</span>

@@ -2,6 +2,9 @@ r"""
 ePSproc MFBLM functions
 -----------------------
 
+23/09/19        Testing function caching...
+
+19/09/19        Working & verified basic version (slow loop).
 
 05/09/19    v1  Initial python version.
                 Based on original Matlab code ePS_MFBLM.m
@@ -40,6 +43,7 @@ Exact numerics may vary.
 import numpy as np
 import pandas as pd
 import xarray as xr
+from functools import lru_cache  # For function result caching
 
 # Special functions
 # from scipy.special import sph_harm
@@ -49,6 +53,21 @@ import quaternion
 # Package fns.
 # TODO: tidy this up!
 from epsproc.util import matEleSelector
+
+
+# Wrappers for function caching
+# Tested for mfblm calcs, N2 vs. E, NO2 vs. Euler angs. (in test Jupyter notebook).  No change vs. bare functions in this case.
+@lru_cache(maxsize = None)
+def Wigner3jCached(j_1,j_2,j_3,m_1,m_2,m_3):
+    """Wrapper for 3j caching with functools.lru_cache"""
+    return sf.Wigner3j(j_1,j_2,j_3,m_1,m_2,m_3)
+
+@lru_cache(maxsize = None)
+def Wigner_D_element_Cached(pRot, P, Rp, R):
+    """Wrapper for WignerD caching with functools.lru_cache"""
+    return  sf.Wigner_D_element(pRot, P, Rp, R)
+
+
 
 # Try basic looping version, similar to Matlab code...
 def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
@@ -160,7 +179,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
                    # Sum over R,R' projections omitted - only R=0 set above
                    # Note polarization terms, here mu is MF, and p is LF.
                    # Note use of matEprod.data here - otherwise output is kept as Xarray (which could be useful in future...)
-                   gammaP = gammaP + (2*P+1) * (-1)**(Rp-R) * sf.Wigner3j(1,1,P,mu1,-mu2,Rp) * sf.Wigner3j(1,1,P,p,-p,R) * sf.Wigner_D_element(pRot, P,-Rp,-R).conj()
+                   gammaP = gammaP + (2*P+1) * (-1)**(Rp-R) * Wigner3jCached(1,1,P,mu1,-mu2,Rp) * Wigner3jCached(1,1,P,p,-p,R) * Wigner_D_element_Cached(pRot, P,-Rp,-R).conj()
 
            # Loop over allowed B(LM) and calculate
            # NOTE - for multiindex coords matE.l[r1] works, but matE[r1].l DOESN'T (Xarray v0.12.3)
@@ -169,7 +188,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
                    # print(L)
 
                    # Calculate associated gamma term, (L,M) values
-                   gammaLM = sf.Wigner3j(l1, l2, L, 0, 0, 0) * sf.Wigner3j(l1, l2, L, -m1, m2, -M)
+                   gammaLM = Wigner3jCached(l1, l2, L, 0, 0, 0) * Wigner3jCached(l1, l2, L, -m1, m2, -M)
 
                    # Set any remaining terms and sum
                    phase = (-1)**M *(-1)**m1 * (-1)**(mu2-p)

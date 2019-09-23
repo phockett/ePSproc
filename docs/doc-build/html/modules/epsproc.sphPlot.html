@@ -93,12 +93,14 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../about.html">ePSproc Readme</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html">ePSproc <span class="math notranslate nohighlight">\(\beta_{L,M}\)</span> calculations demo</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Function ref:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="epsproc.html">epsproc package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="epsproc.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="epsproc.IO.html">epsproc.IO module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.MFBLM.html">epsproc.MFBLM module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="epsproc.MFPAD.html">epsproc.MFPAD module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="epsproc.sphCalc.html">epsproc.sphCalc module</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">epsproc.sphPlot module</a></li>
@@ -177,68 +179,158 @@
   <div class="section" id="module-epsproc.sphPlot">
 <span id="epsproc-sphplot-module"></span><h1>epsproc.sphPlot module<a class="headerlink" href="#module-epsproc.sphPlot" title="Permalink to this headline">¶</a></h1>
 <p>ePSproc spherical polar plotting functions</p>
-<p>Collection of functions for plotting I(theta, phi) type data.</p>
+<p>Collection of functions for plotting 2D spherical polar data <span class="math notranslate nohighlight">\(I(\theta, \phi)\)</span>.</p>
+<p>Main plotters are:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#epsproc.sphPlot.sphSumPlotX" title="epsproc.sphPlot.sphSumPlotX"><code class="xref py py-func docutils literal notranslate"><span class="pre">sphSumPlotX()</span></code></a> for arrays of <span class="math notranslate nohighlight">\(I(\theta,\phi)\)</span></p></li>
+<li><p><a class="reference internal" href="#epsproc.sphPlot.sphFromBLMPlot" title="epsproc.sphPlot.sphFromBLMPlot"><code class="xref py py-func docutils literal notranslate"><span class="pre">sphFromBLMPlot()</span></code></a> for arrays of <span class="math notranslate nohighlight">\(\beta_{LM}\)</span> parameters.</p></li>
+</ul>
+<p>13/09/19</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Added sphFromBLMPlot().</p></li>
+<li><p>Some additional plot type fuctionality added.</p></li>
+<li><p>Some tidying up and reorganising… hopefully nothing broken…</p></li>
+</ul>
+</div></blockquote>
 <p>14/08/19    v1</p>
 <dl class="function">
-<dt id="epsproc.sphPlot.mfpadPlotHV">
-<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">mfpadPlotHV</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#mfpadPlotHV"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.mfpadPlotHV" title="Permalink to this definition">¶</a></dt>
+<dt id="epsproc.sphPlot.plotTypeSelector">
+<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">plotTypeSelector</code><span class="sig-paren">(</span><em class="sig-param">dataPlot</em>, <em class="sig-param">pType='a'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#plotTypeSelector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.plotTypeSelector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set plotting data type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataPlot</strong> (<em>np.array</em><em>, </em><em>Xarray</em>) – Data for plotting, output converted to type defined by pType.</p></li>
+<li><p><strong>pType</strong> (<em>char</em><em>, </em><em>optional</em><em>, </em><em>default 'a'</em>) – <p>Set type of plot.</p>
+<ul>
+<li><p>’a’ (abs)       = np.abs(dataPlot)</p></li>
+<li><p>’r’ (real)      = np.real(dataPlot)</p></li>
+<li><p>’i’ (imag)      = np.imag(dataPlot)</p></li>
+<li><p>’p’ (product)   = dataPlot * np.conj(dataPlot)</p></li>
+</ul>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Input data structure converted to pType.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Xarray, np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.sphPlot.sphFromBLMPlot">
+<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphFromBLMPlot</code><span class="sig-paren">(</span><em class="sig-param">BLMXin</em>, <em class="sig-param">res=50</em>, <em class="sig-param">pType='r'</em>, <em class="sig-param">plotFlag=False</em>, <em class="sig-param">facetDim=None</em>, <em class="sig-param">backend='mpl'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#sphFromBLMPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.sphFromBLMPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate spherical harmonic expansions from BLM parameters and plot.</p>
+<p>Surfaces calculated as:</p>
+<div class="math notranslate nohighlight">
+\[I(\theta,\phi)=\sum_{L,M}\beta_{L,M}Y_{L,M}(\theta,\phi)\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataIn</strong> (<em>Xarray</em>) – Input set of BLM parameters.</p></li>
+<li><p><strong>res</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default 50</em>) – Resolution for output (theta,phi) grids.</p></li>
+<li><p><strong>pType</strong> (<em>char</em><em>, </em><em>optional</em><em>, </em><em>default 'r'</em><em> (</em><em>real part</em><em>)</em>) – Set (data) type to plot. See <a class="reference internal" href="#epsproc.sphPlot.plotTypeSelector" title="epsproc.sphPlot.plotTypeSelector"><code class="xref py py-func docutils literal notranslate"><span class="pre">plotTypeSelector()</span></code></a>.</p></li>
+<li><p><strong>plotFlag</strong> (<em>bool</em><em>, </em><em>optional</em><em>, </em><em>default False</em>) – Set plotting True/False.  Note that this will plot for all facetDim.</p></li>
+<li><p><strong>facetDim</strong> (<em>str</em><em>, </em><em>optional</em><em>, </em><em>default None</em>) – Dimension to use for subplots.
+Currently set for a single dimension only.
+For matplotlib backend: one figure per surface.
+For plotly backend: subplots per surface.</p></li>
+<li><p><strong>backend</strong> (<em>str</em><em>, </em><em>optional</em><em>, </em><em>default 'mpl'</em><em> (</em><em>matplotlib</em><em>)</em>) – Set backend used for plotting. See <a class="reference internal" href="#epsproc.sphPlot.sphSumPlotX" title="epsproc.sphPlot.sphSumPlotX"><code class="xref py py-func docutils literal notranslate"><span class="pre">sphSumPlotX()</span></code></a> for details.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>Xarray</em> – Xarray containing the calcualted surfaces I(theta,phi,…)</p></li>
+<li><p><em>fig</em> – List of figure handles.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.sphPlot.sphPlotHV">
+<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphPlotHV</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#sphPlotHV"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.sphPlotHV" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="epsproc.sphPlot.mfpadPlotPL">
-<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">mfpadPlotPL</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em>, <em class="sig-param">facetDim='Eke'</em>, <em class="sig-param">rc=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#mfpadPlotPL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.mfpadPlotPL" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="epsproc.sphPlot.sphPlot">
-<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphPlot</code><span class="sig-paren">(</span><em class="sig-param">dataPlot</em>, <em class="sig-param">theta</em>, <em class="sig-param">phi</em>, <em class="sig-param">pType='a'</em>, <em class="sig-param">backend='matplotlib'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#sphPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.sphPlot" title="Permalink to this definition">¶</a></dt>
+<dt id="epsproc.sphPlot.sphPlotMPL">
+<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphPlotMPL</code><span class="sig-paren">(</span><em class="sig-param">dataPlot</em>, <em class="sig-param">theta</em>, <em class="sig-param">phi</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#sphPlotMPL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.sphPlotMPL" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Matplotlib.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dataPlot</strong> (<em>np.array</em>) – Values to plot, dims (theta,phi).</p></li>
+<li><p><strong>dataPlot</strong> (<em>np.array</em><em> or </em><em>Xarray</em>) – Values to plot, single surface only, with dims (theta,phi).</p></li>
 <li><p><strong>phi</strong> (<em>theta</em><em>,</em>) – Angles defining spherical polar grid, 2D arrays.</p></li>
-<li><p><strong>pType</strong> (<em>char</em><em>, </em><em>optional</em><em>, </em><em>default 'a'</em>) – Set type of plot.
-‘a’ = np.abs(dataPlot)
-‘r’ = np.real(dataPlot)
-‘i’ = np.imag(dataPlot)
-‘p’ = dataPlot * np.conj(dataPlot)</p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Handle to matplotlib figure.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>fig</p>
+</dd>
 </dl>
-<p class="rubric">Example</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">YlmX</span> <span class="o">=</span> <span class="n">sphCalc</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="mi">50</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">sphSumPlotX</span><span class="p">(</span><span class="n">YlmX</span><span class="p">)</span>
-</pre></div>
-</div>
-<p class="rubric">Notes</p>
-<p>Pretty basic functionality here, should add more colour mapping options and multiple plots, and alternative back-ends (Matplotlib only currently).
-Some functionality may end up being pushed to plotting library, e.g. Holoviews, which already supports faceting etc. etc.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.sphPlot.sphPlotPL">
+<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphPlotPL</code><span class="sig-paren">(</span><em class="sig-param">dataPlot</em>, <em class="sig-param">theta</em>, <em class="sig-param">phi</em>, <em class="sig-param">facetDim='Eke'</em>, <em class="sig-param">rc=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#sphPlotPL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.sphPlotPL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Plotly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataPlot</strong> (<em>np.array</em><em> or </em><em>Xarray</em>) – Values to plot, single surface only, with dims (theta,phi).</p></li>
+<li><p><strong>phi</strong> (<em>theta</em><em>,</em>) – Angles defining spherical polar grid, 2D arrays.</p></li>
+<li><p><strong>facetDim</strong> (<em>str</em><em>, </em><em>default 'Eke'</em>) – Dimension to use for faceting (subplots), currently set for single dim only.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Handle to figure.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>fig</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="epsproc.sphPlot.sphSumPlotX">
-<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphSumPlotX</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em>, <em class="sig-param">pType='a'</em>, <em class="sig-param">backend='matplotlib'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#sphSumPlotX"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.sphSumPlotX" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphSumPlotX</code><span class="sig-paren">(</span><em class="sig-param">dataIn</em>, <em class="sig-param">pType='a'</em>, <em class="sig-param">facetDim='Eke'</em>, <em class="sig-param">backend='mpl'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#sphSumPlotX"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.sphSumPlotX" title="Permalink to this definition">¶</a></dt>
 <dd><p>Plot sum of spherical harmonics from an Xarray.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dataIn</strong> (<em>Xarray</em>) – Input set of precalculated Ylms, dims (theta,phi) or (lm,theta,phi).
-In the latter case (lm) dimension is summed.</p></li>
-<li><p><strong>pType</strong> (<em>char</em><em>, </em><em>optional</em><em>, </em><em>default 'a'</em>) – Set type of plot.
-‘a’ = np.abs(Ylm)
-‘r’ = np.real(Ylm)
-‘i’ = np.imag(Ylm)
-‘p’ = Ylm * np.conj(Ylm)</p></li>
-<li><p><strong>backend</strong> (<em>str</em><em>, </em><em>optional</em><em>, </em><em>default 'matplotlib'</em>) – <p>Set backend used for plotting.
-- matplotlib: basic 3D plotting, one figure per surface.
-- plotly: fancier 3D plotting, interactive in Jupyter but may fail at console.</p>
-<blockquote>
-<div><p>Subplots for surfaces.</p>
-</div></blockquote>
+<li><p><strong>dataIn</strong> (<em>Xarray</em>) – <p>Input structure can be</p>
 <ul>
+<li><p>Set of precalculated Ylms, dims (theta,phi) or (theta,phi,LM).</p></li>
+<li><p>Set of precalculated mfpads, dims (theta,phi), (theta,phi,LM) or (theta,phi,LM,facetDim).</p></li>
+<li><p>If (LM) dimension is present, it is summed over before plotting.</p></li>
+<li><p>If facetDim is present this is used for subplots, currently only one facetDim is supported here.</p></li>
+</ul>
+</p></li>
+<li><p><strong>pType</strong> (<em>char</em><em>, </em><em>optional</em><em>, </em><em>default 'a'</em><em> (</em><em>abs value</em><em>)</em>) – Set (data) type of plot. See <a class="reference internal" href="#epsproc.sphPlot.plotTypeSelector" title="epsproc.sphPlot.plotTypeSelector"><code class="xref py py-func docutils literal notranslate"><span class="pre">plotTypeSelector()</span></code></a>.</p></li>
+<li><p><strong>facetDim</strong> (<em>str</em><em>, </em><em>optional</em><em>, </em><em>default Eke</em>) – <p>Dimension to use for subplots.</p>
+<ul>
+<li><p>Currently set for a single dimension only.</p></li>
+<li><p>For matplotlib backend: one figure per surface.</p></li>
+<li><p>For plotly backend: subplots per surface.</p></li>
+</ul>
+</p></li>
+<li><p><strong>backend</strong> (<em>str</em><em>, </em><em>optional</em><em>, </em><em>default 'mpl'</em>) – <p>Set backend used for plotting.</p>
+<ul>
+<li><p>mpl   matplotlib: basic 3D plotting, one figure per surface.</p></li>
 <li><dl class="simple">
-<dt>holoviews: fancier plotting with additional back-end options.</dt><dd><p>Can facet on specific data types.</p>
+<dt>pl    plotly: fancier 3D plotting, interactive in Jupyter but may fail at console.</dt><dd><p>Subplots for surfaces.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>hv    holoviews: fancier plotting with additional back-end options.</dt><dd><p>Can facet on specific data types.</p>
 </dd>
 </dl>
 </li>
@@ -246,30 +338,48 @@ In the latter case (lm) dimension is summed.</p></li>
 </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of figure handles.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>fig</p>
+</dd>
 </dl>
-<p class="rubric">Example</p>
+<p class="rubric">Examples</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">YlmX</span> <span class="o">=</span> <span class="n">sphCalc</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="mi">50</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sphSumPlotX</span><span class="p">(</span><span class="n">YlmX</span><span class="p">)</span>
 </pre></div>
 </div>
-<p class="rubric">Notes</p>
-<p>Pretty basic functionality here, should add more colour mapping options and multiple plots.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Pretty basic functionality here, should add more colour mapping options and multiple plots, alternative back-ends, support for more dimensions etc.</p>
+</div>
 </dd></dl>
 
 <dl class="function">
 <dt id="epsproc.sphPlot.sphToCart">
 <code class="sig-prename descclassname">epsproc.sphPlot.</code><code class="sig-name descname">sphToCart</code><span class="sig-paren">(</span><em class="sig-param">R</em>, <em class="sig-param">theta</em>, <em class="sig-param">phi</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/sphPlot.html#sphToCart"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.sphPlot.sphToCart" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert spherical polar coords (R,theta,phi) to Cartesian (X,Y,Z).</p>
+<dd><p>Convert spherical polar coords <span class="math notranslate nohighlight">\((R,\theta,\phi)\)</span> to Cartesian <span class="math notranslate nohighlight">\((X,Y,Z)\)</span>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong><strong>, </strong><strong>phi</strong> (<em>R</em><em>,</em>) – </p></li>
-<li><p><strong>Outputs</strong> – </p></li>
-<li><p><strong>-------</strong> – </p></li>
-<li><p><strong>Y</strong><strong>, </strong><strong>Z</strong> (<em>X</em><em>,</em>) – </p></li>
-</ul>
+<dd class="field-odd"><p><strong>theta</strong><strong>, </strong><strong>phi</strong> (<em>R</em><em>,</em>) – Spherical polar coords <span class="math notranslate nohighlight">\((R,\theta,\phi)\)</span>.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>X, Y, Z</strong> – Cartesian coords <span class="math notranslate nohighlight">\((X,Y,Z)\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.arrays</p>
 </dd>
 </dl>
+<p>Conversion defined with the <a class="reference external" href="https://en.wikipedia.org/wiki/Spherical_coordinate_system#Conventions">usual physics convention</a> , where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(R\)</span> is the radial distance from the origin</p></li>
+<li><p><span class="math notranslate nohighlight">\(\theta\)</span> is the polar angle (defined relative to the z-axis), <span class="math notranslate nohighlight">\(0\leq\theta\leq\pi\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\phi\)</span> is the azimuthal angle (defined relative to the x-axis), <span class="math notranslate nohighlight">\(0\leq\theta\leq2\pi\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(X = R * np.sin(phi) * np.cos(theta)\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(Y = R * np.sin(phi) * np.sin(theta)\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(Z = R * np.cos(phi)\)</span></p></li>
+</ul>
 </dd></dl>
 
 </div>

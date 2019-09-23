@@ -1,0 +1,333 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>epsproc.MFBLM module &mdash; ePSproc 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="epsproc.MFPAD module" href="epsproc.MFPAD.html" />
+    <link rel="prev" title="epsproc.IO module" href="epsproc.IO.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ePSproc
+          
+
+          
+            
+            <img src="../_static/ePSproc_logo.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Intro:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">ePSproc Readme</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html">ePSproc <span class="math notranslate nohighlight">\(\beta_{L,M}\)</span> calculations demo</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Function ref:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="epsproc.html">epsproc package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="epsproc.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="epsproc.IO.html">epsproc.IO module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">epsproc.MFBLM module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#epsproc-mfblm-functions">ePSproc MFBLM functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#formalism">Formalism</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.MFPAD.html">epsproc.MFPAD module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.sphCalc.html">epsproc.sphCalc module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.sphPlot.html">epsproc.sphPlot module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.util.html">epsproc.util module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="epsproc.html#module-epsproc">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ePSproc</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="epsproc.html">epsproc package</a> &raquo;</li>
+        
+      <li>epsproc.MFBLM module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/modules/epsproc.MFBLM.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-epsproc.MFBLM">
+<span id="epsproc-mfblm-module"></span><h1>epsproc.MFBLM module<a class="headerlink" href="#module-epsproc.MFBLM" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="epsproc-mfblm-functions">
+<h2>ePSproc MFBLM functions<a class="headerlink" href="#epsproc-mfblm-functions" title="Permalink to this headline">¶</a></h2>
+<dl class="simple">
+<dt>05/09/19    v1  Initial python version.</dt><dd><p>Based on original Matlab code ePS_MFBLM.m</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="formalism">
+<h2>Formalism<a class="headerlink" href="#formalism" title="Permalink to this headline">¶</a></h2>
+<p>Should be something like this, with possible substitutions or phase swaps.</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{eqnarray}
+\beta_{L,-M}^{\mu_{i},\mu_{f}} &amp; = &amp; \sum_{l,m,\mu}\sum_{l',m',\mu'}(-1)^{M}(-1)^{m}(-1)^{(\mu'-\mu_{0})}\left(\frac{(2l+1)(2l'+1)(2L+1)}{4\pi}\right)^{1/2}\left(\begin{array}{ccc}
+l &amp; l' &amp; L\\
+0 &amp; 0 &amp; 0
+\end{array}\right)\left(\begin{array}{ccc}
+l &amp; l' &amp; L\\
+-m &amp; m' &amp; -M
+\end{array}\right)\nonumber \\
+ &amp; \times &amp; \sum_{P,R',R}(2P+1)(-1)^{(R'-R)}\left(\begin{array}{ccc}
+1 &amp; 1 &amp; P\\
+\mu &amp; -\mu' &amp; R'
+\end{array}\right)\left(\begin{array}{ccc}
+1 &amp; 1 &amp; P\\
+\mu_{0} &amp; -\mu_{0} &amp; R
+\end{array}\right)D_{-R',-R}^{P}(R_{\hat{n}})I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)I_{l',m',\mu'}^{p_{i}\mu_{i},p_{f}\mu_{f}*}(E)
+\end{eqnarray}\end{split}\]</div>
+<p>Exact numerics may vary.</p>
+<dl class="function">
+<dt id="epsproc.MFBLM.MFBLMCalcLoop">
+<code class="sig-prename descclassname">epsproc.MFBLM.</code><code class="sig-name descname">MFBLMCalcLoop</code><span class="sig-paren">(</span><em class="sig-param">matE, eAngs=[0, 0, 0], thres=1e-06, p=0, R=0, verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/MFBLM.html#MFBLMCalcLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.MFBLM.MFBLMCalcLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate inner loop for MFBLMs, based on passed set of matrix elements (Xarray).</p>
+<p>Loop code based on Matlab code ePSproc_MFBLM.m</p>
+<p>This works, but not very clean or efficient - should be possible to parallelize &amp; vectorise… but this is OK for testing, benchmarking and verification purposes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>matE</strong> (<em>Xarray</em>) – Contains one set of matrix elements to use for calculation.
+Currently assumes these are a 1D list, with associated (l,m,mu) parameters, as set by mfblm().</p></li>
+<li><p><strong>eAngs</strong> (<em>[</em><em>phi</em><em>,</em><em>theta</em><em>,</em><em>chi</em><em>]</em><em>, </em><em>optional</em><em>, </em><em>default =</em><em> [</em><em>0</em><em>,</em><em>0</em><em>,</em><em>0</em><em>]</em>) – Single set of Euler angles defining polarization geometry.</p></li>
+<li><p><strong>thres</strong> (<em>float</em><em>, </em><em>optional</em><em>, </em><em>default = 1e-4</em>) – Threshold value for testing significance of terms. Terms &lt; thres will be dropped.</p></li>
+<li><p><strong>p</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default p = 0</em>) – LF polarization term. Currently only valid for p = 0</p></li>
+<li><p><strong>R</strong> (<em>int</em><em>, </em><em>optional</em><em>, </em><em>default R = 0</em>) – LF polarization term (from tensor contraction). Currently only valid for p = 0</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em><em>, </em><em>default False</em>) – Print intermediate C parameter array to termina when running.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>BLMX</strong> (<em>Xarray</em>) – Set of B(L,M; eAngs, Eke) terms for supplied matrix elements, in an Xarray.</p></li>
+<li><p><em>Limitations &amp; To Do</em></p></li>
+<li><p><em>——————–</em></p></li>
+<li><p><em>* Currently set with (p,R) values passed, but only valid for (0,0) (not full sum over R terms as shown in formalism above.)</em></p></li>
+<li><p><em>* Set to accept a single set of matrix elements (single E), assuming looping over E (and other parameters) elsewhere.</em></p></li>
+<li><p><em>* Not explicitly parallelized here, should be done by calling function.</em></p></li>
+<li><p><strong>(Either via Xarray methods, or numba/dask…?  http</strong> (<em>//xarray.pydata.org/en/stable/computation.html#wrapping-custom-computation)</em>)</p></li>
+<li><p><em>* Coded for ease, not efficiency - there will be lots of repeated ang. mom. calcs. when run over many sets of matrix elements.</em></p></li>
+<li><p><em>* Scale factor currently not propagated.</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="epsproc.MFBLM.mfblm">
+<code class="sig-prename descclassname">epsproc.MFBLM.</code><code class="sig-name descname">mfblm</code><span class="sig-paren">(</span><em class="sig-param">da, selDims={'Type': 'L'}, eAngs=[0, 0, 0], thres=0.0001, sumDims=('l', 'm', 'mu', 'Cont', 'Targ', 'Total', 'it')</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/MFBLM.html#mfblm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.MFBLM.mfblm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate MFBLMs for a range of (E, sym) cases. Default is to calculated for all symmetries at each energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>da</strong> (<em>Xarray</em>) – Contains matrix elements to use for calculation.
+Matrix elements will be sorted by energy and BLMs calculated for each set.</p></li>
+<li><p><strong>selDims</strong> (<em>dict</em><em>, </em><em>optional</em><em>, </em><em>default = {'Type':'L'}</em>) – Additional sub-selection to be applied to matrix elements before BLM calculation.
+Default selects just length gauge results.</p></li>
+<li><p><strong>eAngs</strong> (<em>[</em><em>phi</em><em>,</em><em>theta</em><em>,</em><em>chi</em><em>]</em><em>, </em><em>optional</em><em>, </em><em>default =</em><em> [</em><em>0</em><em>,</em><em>0</em><em>,</em><em>0</em><em>]</em>) – Single set of Euler angles defining polarization geometry.</p></li>
+<li><p><strong>thres</strong> (<em>float</em><em>, </em><em>optional</em><em>, </em><em>default = 1e-4</em>) – Threshold value for testing significance of terms. Terms &lt; thres will be dropped.</p></li>
+<li><p><strong>sumDims</strong> (<em>tuple</em><em>, </em><em>optional</em><em>, </em><em>default =</em><em> (</em><em>'l'</em><em>,</em><em>'m'</em><em>,</em><em>'mu'</em><em>,</em><em>'Cont'</em><em>,</em><em>'Targ'</em><em>,</em><em>'Total'</em><em>,</em><em>'it'</em><em>)</em>) – Defines which terms are summed over (coherent) in the MFBLM calculation.
+(These are used to flatten the Xarray before calculation.)
+Default includes sum over (l,m), symmetries and degeneracies (but not energies).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>Xarray</em> – Calculation results BLM, dims (Euler, Eke, l,m). Some global attributes are also appended.</p></li>
+<li><p><em>Limitations</em></p></li>
+<li><p><em>———–</em></p></li>
+<li><p><em>Currently set to loop calcualtions over energy only, and all symmetries.</em></p></li>
+<li><p><strong>Pass single {‘Cont’</strong> (<em>‘sym’} to calculated for only one symmetry group.</em>)</p></li>
+<li><p><strong>TODO</strong> (<em>In future this will be more elegant.</em>)</p></li>
+<li><p><strong>TODO</strong> (<em>Setting selDims in output structure needs more thought for netCDF save compatibility.</em>)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="epsproc.MFPAD.html" class="btn btn-neutral float-right" title="epsproc.MFPAD module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="epsproc.IO.html" class="btn btn-neutral float-left" title="epsproc.IO module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Paul Hockett
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

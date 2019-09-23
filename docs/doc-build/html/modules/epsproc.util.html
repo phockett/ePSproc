@@ -92,12 +92,14 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../about.html">ePSproc Readme</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html">ePSproc <span class="math notranslate nohighlight">\(\beta_{L,M}\)</span> calculations demo</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Function ref:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="epsproc.html">epsproc package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="epsproc.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="epsproc.IO.html">epsproc.IO module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="epsproc.MFBLM.html">epsproc.MFBLM module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="epsproc.MFPAD.html">epsproc.MFPAD module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="epsproc.sphCalc.html">epsproc.sphCalc module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="epsproc.sphPlot.html">epsproc.sphPlot module</a></li>
@@ -179,13 +181,49 @@
 <p>Collection of small functions for sorting etc.</p>
 <p>11/08/19    Added matEleSelector</p>
 <dl class="function">
+<dt id="epsproc.util.BLMdimList">
+<code class="sig-prename descclassname">epsproc.util.</code><code class="sig-name descname">BLMdimList</code><span class="sig-paren">(</span><em class="sig-param">sType='stacked'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/util.html#BLMdimList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.util.BLMdimList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return standard list of dimensions for calculated BLM.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sType</strong> (<em>string</em><em>, </em><em>optional</em><em>, </em><em>default = 'stacked'</em>) – Selected ‘stacked’ or ‘unstacked’ dimensions.
+Set ‘sDict’ to return a dictionary of unstacked &lt;&gt; stacked dims mappings for use with xr.stack({dim mapping}).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>list</strong></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>set of dimension labels.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="epsproc.util.dataGroupSel">
 <code class="sig-prename descclassname">epsproc.util.</code><code class="sig-name descname">dataGroupSel</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">dInd</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/util.html#dataGroupSel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.util.dataGroupSel" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="epsproc.util.matEdimList">
+<code class="sig-prename descclassname">epsproc.util.</code><code class="sig-name descname">matEdimList</code><span class="sig-paren">(</span><em class="sig-param">sType='stacked'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/util.html#matEdimList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.util.matEdimList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return standard list of dimensions for matrix elements.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sType</strong> (<em>string</em><em>, </em><em>optional</em><em>, </em><em>default = 'stacked'</em>) – Selected ‘stacked’ or ‘unstacked’ dimensions.
+Set ‘sDict’ to return a dictionary of unstacked &lt;&gt; stacked dims mappings for use with xr.stack({dim mapping}).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>list</strong></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>set of dimension labels.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="epsproc.util.matEleSelector">
-<code class="sig-prename descclassname">epsproc.util.</code><code class="sig-name descname">matEleSelector</code><span class="sig-paren">(</span><em class="sig-param">da</em>, <em class="sig-param">thres=None</em>, <em class="sig-param">inds=None</em>, <em class="sig-param">sq=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/util.html#matEleSelector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.util.matEleSelector" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">epsproc.util.</code><code class="sig-name descname">matEleSelector</code><span class="sig-paren">(</span><em class="sig-param">da</em>, <em class="sig-param">thres=None</em>, <em class="sig-param">inds=None</em>, <em class="sig-param">sq=False</em>, <em class="sig-param">drop=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsproc/util.html#matEleSelector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsproc.util.matEleSelector" title="Permalink to this definition">¶</a></dt>
 <dd><p>Select &amp; threshold raw matrix elements in an Xarray</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -196,6 +234,7 @@
 These correspond to parameter dimensions in the Xarray structure.
 E.g. inds = {‘Type’:’L’,’Cont’:’A2’}</p></li>
 <li><p><strong>sq</strong> (<em>bool</em><em>, </em><em>optional</em><em>, </em><em>default False</em>) – Squeeze output singleton dimensions.</p></li>
+<li><p><strong>drop</strong> (<em>bool</em><em>, </em><em>optional</em><em>, </em><em>default True</em>) – Passed to da.where() for thresholding, drop coord labels for values below threshold.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

@@ -12,6 +12,7 @@ Welcome to ePSproc
 
    about
    ePSproc_demo_Aug2019/ePSproc_demo_Aug2019
+   ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019
 
 
 .. toctree::

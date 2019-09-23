@@ -11,7 +11,7 @@ Collection of small functions for sorting etc.
 import numpy as np
 
 # Selector function for matrix elements in Xarray
-def matEleSelector(da, thres = None, inds = None, sq = False, drop=True):
+def matEleSelector(da, thres = None, inds = None, sq = False):
     """
     Select & threshold raw matrix elements in an Xarray
 
@@ -27,8 +27,6 @@ def matEleSelector(da, thres = None, inds = None, sq = False, drop=True):
         E.g. inds = {'Type':'L','Cont':'A2'}
     sq : bool, optional, default False
         Squeeze output singleton dimensions.
-    drop : bool, optional, default True
-        Passed to da.where() for thresholding, drop coord labels for values below threshold.
 
     Returns
     -------
@@ -54,7 +52,7 @@ def matEleSelector(da, thres = None, inds = None, sq = False, drop=True):
     # Reduce dims by thesholding on abs values
     # Do this after selection to ensure Nans removed.
     if thres is not None:
-        daOut = da.where(np.abs(da) > thres, drop = drop)
+        daOut = da.where(np.abs(da) > thres, drop=True)
     else:
         daOut = da
 
@@ -64,8 +62,7 @@ def matEleSelector(da, thres = None, inds = None, sq = False, drop=True):
     return daOut
 
 
-# Select over vals from data structure (list)
-# Currently only used in IO.matEleGroupDim
+# Select over vals from data structure
 def dataGroupSel(data, dInd):
     a = data[0]
     dataSub = []
@@ -79,58 +76,3 @@ def dataGroupSel(data, dInd):
         dataSub.append([data[0][:,iSel], data[1][iSel]])
 
     return dataSub
-
-
-# Return list of standard dataArray dims for matrix elements
-def matEdimList(sType = 'stacked'):
-    """
-    Return standard list of dimensions for matrix elements.
-
-    Parameters
-    ----------
-    sType : string, optional, default = 'stacked'
-        Selected 'stacked' or 'unstacked' dimensions.
-        Set 'sDict' to return a dictionary of unstacked <> stacked dims mappings for use with xr.stack({dim mapping}).
-
-    Returns
-    -------
-    list : set of dimension labels.
-
-    """
-    if sType is 'stacked':
-        # stackedDims
-        return ['LM', 'Eke', 'Sym', 'mu', 'it', 'Type']
-
-    elif sType is 'sDict':
-        return {'LM':['l','m'],'Sym':['Cont', 'Targ', 'Total']}
-
-    else:
-        # unstackedDims
-        return ['l','m', 'Eke', 'Cont', 'Targ', 'Total', 'mu', 'it', 'Type']
-
-# Return list of standard dataArray dims for BLM values
-def BLMdimList(sType = 'stacked'):
-    """
-    Return standard list of dimensions for calculated BLM.
-
-    Parameters
-    ----------
-    sType : string, optional, default = 'stacked'
-        Selected 'stacked' or 'unstacked' dimensions.
-        Set 'sDict' to return a dictionary of unstacked <> stacked dims mappings for use with xr.stack({dim mapping}).
-
-    Returns
-    -------
-    list : set of dimension labels.
-
-    """
-    if sType is 'stacked':
-        # stackedDims
-        return ['Euler', 'Eke', 'BLM']
-
-    elif sType is 'sDict':
-        return {'BLM':['l','m'],'Euler':['P','T','C']}
-
-    else:
-        # unstackedDims
-        return ['Eke', 'l', 'm', 'P', 'T', 'C']

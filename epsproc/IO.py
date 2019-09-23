@@ -16,9 +16,6 @@ Main function: :py:func:`epsproc.IO.readMatEle`:
 History
 -------
 
-17/09/19        Added read/write to/from netCDF files for Xarrays.
-                Use built-in methods, with work-arounds for complex number format issues.
-
 29/08/19        Updating docs to rst.
 
 26/08/19        Added parsing for E, sym parameters from head of ePS file.
@@ -51,7 +48,6 @@ import numpy as np
 import pandas as pd
 from io import StringIO
 import xarray as xr
-from datetime import datetime as dt # Import datetime.datetime for now() function
 
 try:
     from pyevtk.hl import gridToVTK
@@ -61,7 +57,7 @@ except ImportError as e:
     print('* pyevtk not found, VTK export not available. ')
 
 # Package fns.
-from epsproc.util import matEleSelector, dataGroupSel, matEdimList, BLMdimList
+from epsproc.util import matEleSelector, dataGroupSel
 
 # ***** Ancillary functions
 
@@ -525,9 +521,6 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
 #    # TODO: fix use of Xarrays and dimension issues.
 #    daOut = xr.combine_nested(dataArrays, concat_dim=['it'])
 
-    # Set any other global attribs
-    daOut.attrs['dataType'] = 'matE'    # Set dataType for use later.
-
     return daOut.transpose(), blankSegs     # NOTE transpose to reverse ordering of dims.
 
 # Linear version of code, for very specific cases.
@@ -541,7 +534,6 @@ def matEleGroupDimX(daIn):
     Rename 'ip':1,2 as 'Type':'L','V'
 
     TODO: better ways to do this?
-    Via Stack/Unstack? http://xarray.pydata.org/en/stable/api.html#id16
     See also tests in funcTests_210819.py for more versions/tests.
 
     Parameters
@@ -1066,132 +1058,3 @@ def writeOrb3Dvtk(dataSet):
     print("{0} files written to vtk format.".format(len(fOut)))
 
     return fOut
-
-
-#**************** Wrappers for Xarray load/save netCDF
-
-# File write wrapper.
-def writeXarray(dataIn, fileName = None, filePath = None):
-    """
-    Write file to netCDF format via Xarray method.
-
-    Parameters
-    -----------
-    dataIn : Xarray
-        Data array to write to disk.
-
-    fileName : str, optional, default = None
-        Filename to use.
-        If set to None (default) the file will be written with a datastamp.
-
-    filePath : str, optional, default = None
-        Full path to file.
-        If set to None (default) the file will be written in the current working directory (as returned by `os.getcwd()`).
-
-    Returns
-    -------
-    str
-        Indicates save type and file path.
-
-    Notes
-    -----
-    The default option for Xarray is to use Scipy netCDF writer, which does not support complex datatypes. In this case, the data array is written as a dataset with a real and imag component.
-
-    TODO: implement try/except to handle various cases here.
-
-    Multi-level indexing is also not supported, and must be serialized first. Ugh.
-
-    """
-
-    if fileName is None:
-        timeString = dt.now()
-        fileName = 'ep_' + timeString.strftime('%Y-%m-%d_%H-%M-%S')
-
-    if filePath is None:
-        filePath = os.getcwd()
-
-    # Serialize MultiIndex  - testing here for BLM case.
-    # if 'BLM' in dataIn.dims:
-    #     dataIn = dataIn.reset_index(['Euler','BLM'])
-
-    # Serialize general - use unstact() to flatten all dims
-    dataIn = dataIn.unstack()
-
-# Try/except not yet working, multiple error types to handle here...
-    # try:
-    #     dataIn.to_netcdf(fileName)
-    #     saveMsg = 'Written to netCDF4.'
-    #     print(saveMsg)
-    #     return saveMsg
-    #
-    # except ValueError as e:
-    #     if e.msg != "NetCDF 3 does not support type complex128":
-    #         raise
-    #     else:
-    #         xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag}).to_netcdf(fileName)
-    #         saveMsg = 'Written to netCDF3 (re/im format).'
-    #         print(saveMsg)
-    #         return saveMsg
-    #
-    # return 'File not written.'
-
-# Safe version with re/im split save type only.
-    # xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag}).to_netcdf(os.path.join(filePath, fileName + '.nc'))  # This works, but drops attrs!
-    dataOut = xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag})
-    dataOut.attrs = dataIn.attrs
-
-    dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'))
-    saveMsg = ['Written to netCDF3 (re/im format)']
-    saveMsg.append(os.path.join(filePath, fileName + '.nc'))
-    print(saveMsg)
-
-    return saveMsg
-
-
-# File read wrapper.
-def readXarray(fileName, filePath = None):
-    """
-    Read file from netCDF format via Xarray method.
-
-    Parameters
-    -----------
-    fileName : str
-        File to read.
-
-    filePath : str, optional, default = None
-        Full path to file.
-        If set to None (default) the file will be written in the current working directory (as returned by `os.getcwd()`).
-
-
-    Returns
-    -------
-    Xarray
-        Data from file.  May be in serialized format.
-
-    Notes
-    -----
-    The default option for Xarray is to use Scipy netCDF writer, which does not support complex datatypes. In this case, the data array is written as a dataset with a real and imag component.
-
-    Multi-level indexing is also not supported, and must be serialized first. Ugh.
-
-    TODO: generalize multi-level indexing here.
-
-    """
-    # Read file
-    dataIn = xr.open_dataset(fileName)
-
-    # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!
-    dataOut = dataIn.Re + dataIn.Im*1j
-    dataOut.attrs = dataIn.attrs
-
-    # Recreate MultiIndex from serialized version  - testing here for BLM case.
-    # if 'BLM' in dataIn.dims:
-    #     dataIn = dataIn.set_index({'BLM':['l','m'],'Euler':['P','T','C']})
-
-    # Recreate MultiIndex from serialized version according to array type.
-    if dataIn.dataType == 'BLM':
-        dataOut = dataOut.stack(BLMdimList(sType = 'sDict'))
-    elif dataIn.dataType == 'matE':
-        dataOut = dataOut.stack(matEdimList(sType = 'sDict'))
-
-    return dataOut

@@ -98,8 +98,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#resources">Resources</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#epolyscat">ePolyScat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#future-aims">Future aims</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#citation">Citation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#acknowledgements">Acknowledgements</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
@@ -186,12 +184,6 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install ePSproc
 </pre></div>
 </div>
-<p>Main requirements are <a class="reference external" href="http://xarray.pydata.org/en/stable/index.html">Xarray</a> (&gt;= 0.12.2), and <a class="reference external" href="https://github.com/moble/spherical_functions">Moble’s spherical functions (quaternion based)</a> (tested with v2019.7.12.23.25.11). See the individual package docs for full instructions - one option is via conda-forge:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ conda install -c conda-forge <span class="nv">xarray</span><span class="o">=</span><span class="m">0</span>.12.3
-$ conda install -c conda-forge spherical_functions
-</pre></div>
-</div>
-<p>The usual SciPy stack is also used (numpy, matplotlib etc.) - see requirements.txt for full list - plus some optional packages for additional functionality.</p>
 </div>
 <div class="section" id="python">
 <h2>Python<a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h2>
@@ -202,13 +194,13 @@ $ conda install -c conda-forge spherical_functions
 <li><p>Plot MF-PADs</p></li>
 <li><p>Under development: additional functionality and distribution via PyPi.</p></li>
 </ul>
-<p>See the demo <a class="reference external" href="https://epsproc.readthedocs.io/en/latest/ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">Jupyter notebook</a> for example usage.</p>
+<p>See the demo <a class="reference internal" href="ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html"><span class="doc">Jupyter notebook</span></a> for example usage.</p>
 <p>Source:</p>
 <ul class="simple">
 <li><p>./epsproc: basic python version, code still under development.</p></li>
 <li><p>./docs: documentation tree, <a class="reference external" href="https://epsproc.readthedocs.io">HTML version on Read the Docs</a>.</p></li>
 </ul>
-<p><a class="reference external" href="https://epsproc.readthedocs.io/en/latest/modules/epsproc.html">Full function documentation</a>.</p>
+<p><a class="reference internal" href="modules/epsproc.html"><span class="doc">Full function documentation</span></a>.</p>
 </div>
 <div class="section" id="matlab">
 <h2>Matlab<a class="headerlink" href="#matlab" title="Permalink to this headline">¶</a></h2>
@@ -244,11 +236,27 @@ $ conda install -c conda-forge spherical_functions
 </div>
 <div class="section" id="epolyscat">
 <h2>ePolyScat<a class="headerlink" href="#epolyscat" title="Permalink to this headline">¶</a></h2>
-<p>For details about ePolyScat (ePS), a tool for computation of electron-molecule scattering, see:</p>
+<p>For details about ePolyScat (ePS), a tool for computation of
+electron-molecule scattering, see:</p>
 <ul class="simple">
-<li><p><a class="reference external" href="http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html">ePS website &amp; manual</a>, maintained by R.R. Lucchese.</p></li>
-<li><p>Calculation of low-energy elastic cross sections for electron-CF4 scattering, F. A. Gianturco, R. R. Lucchese, and N. Sanna, J. Chem. Phys. 100, 6464 (1994), <a class="reference external" href="http://dx.doi.org/10.1063/1.467237">http://dx.doi.org/10.1063/1.467237</a></p></li>
-<li><p>Cross section and asymmetry parameter calculation for sulfur 1s photoionization of SF6, A. P. P. Natalense and R. R. Lucchese, J. Chem. Phys. 111, 5344 (1999), <a class="reference external" href="http://dx.doi.org/10.1063/1.479794">http://dx.doi.org/10.1063/1.479794</a></p></li>
+<li><p>ePS website &amp; manual, maintained by R.R. Lucchese, <a class="reference external" href="http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html">http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html</a></p></li>
+<li><ol class="upperalpha simple" start="6">
+<li><ol class="upperalpha simple">
+<li><p>Gianturco, R. R. Lucchese, and N. Sanna, J. Chem. Phys. 100, 6464 (1994), <a class="reference external" href="http://dx.doi.org/10.1063/1.467237">http://dx.doi.org/10.1063/1.467237</a></p></li>
+</ol>
+</li>
+</ol>
+</li>
+<li><ol class="upperalpha simple">
+<li><ol class="upperalpha simple" start="16">
+<li><ol class="upperalpha simple" start="16">
+<li><p>Natalense and R. R. Lucchese, J. Chem. Phys. 111, 5344 (1999), <a class="reference external" href="http://dx.doi.org/10.1063/1.479794">http://dx.doi.org/10.1063/1.479794</a></p></li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+</li>
 </ul>
 </div>
 <div class="section" id="future-aims">
@@ -259,56 +267,6 @@ $ conda install -c conda-forge spherical_functions
 <li><p>Extend &amp; update notes and benchmark calculations</p></li>
 <li><p>Port to non-commercial run-time engines, e.g. python</p></li>
 </ul>
-</div>
-<div class="section" id="citation">
-<h2>Citation<a class="headerlink" href="#citation" title="Permalink to this headline">¶</a></h2>
-<p>If you make use of ePSproc in your research, please cite it.</p>
-<p>Cite the software directly via either Github or Figshare repositories for the software (note same DOI for both):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@misc</span><span class="p">{</span><span class="n">ePSprocGithub</span><span class="p">,</span>
-  <span class="n">title</span><span class="o">=</span><span class="p">{</span><span class="n">ePSproc</span><span class="p">:</span> <span class="n">Post</span><span class="o">-</span><span class="n">processing</span> <span class="k">for</span> <span class="n">ePolyScat</span><span class="p">},</span>
-  <span class="n">url</span><span class="o">=</span><span class="p">{</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">phockett</span><span class="o">/</span><span class="n">ePSproc</span><span class="p">},</span>
-  <span class="n">DOI</span><span class="o">=</span><span class="p">{</span><span class="mf">10.6084</span><span class="o">/</span><span class="n">m9</span><span class="o">.</span><span class="n">figshare</span><span class="o">.</span><span class="mi">3545639</span><span class="p">},</span>
-  <span class="n">publisher</span><span class="o">=</span><span class="p">{</span><span class="n">Github</span><span class="p">},</span>
-  <span class="n">howpublished</span> <span class="o">=</span> <span class="p">{</span>\<span class="n">url</span><span class="p">{</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">phockett</span><span class="o">/</span><span class="n">ePSproc</span><span class="p">}},</span>
-  <span class="n">author</span><span class="o">=</span><span class="p">{</span><span class="n">Hockett</span><span class="p">,</span> <span class="n">Paul</span><span class="p">},</span>
-  <span class="n">year</span><span class="o">=</span><span class="p">{</span><span class="mi">2016</span><span class="p">},</span>
-  <span class="n">commit</span> <span class="o">=</span> <span class="p">{</span><span class="mi">30158</span><span class="n">eb3fbba41d0a4c3a973744f28b7187e6ee2</span><span class="p">}</span>
-<span class="p">}</span>
-
-<span class="nd">@misc</span><span class="p">{</span><span class="n">ePSprocFigshare</span><span class="p">,</span>
-  <span class="n">title</span><span class="o">=</span><span class="p">{</span><span class="n">ePSproc</span><span class="p">:</span> <span class="n">Post</span><span class="o">-</span><span class="n">processing</span> <span class="k">for</span> <span class="n">ePolyScat</span><span class="p">},</span>
-  <span class="n">url</span><span class="o">=</span><span class="p">{</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">figshare</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">articles</span><span class="o">/</span><span class="n">ePSproc_Post</span><span class="o">-</span><span class="n">processing_for_ePolyScat_v1_0_0_</span><span class="o">/</span><span class="mi">3545639</span><span class="o">/</span><span class="mi">4</span><span class="p">},</span>
-  <span class="n">DOI</span><span class="o">=</span><span class="p">{</span><span class="mf">10.6084</span><span class="o">/</span><span class="n">m9</span><span class="o">.</span><span class="n">figshare</span><span class="o">.</span><span class="mi">3545639</span><span class="p">},</span>
-  <span class="n">publisher</span><span class="o">=</span><span class="p">{</span><span class="n">Figshare</span><span class="p">},</span>
-  <span class="n">author</span><span class="o">=</span><span class="p">{</span><span class="n">Hockett</span><span class="p">,</span> <span class="n">Paul</span><span class="p">},</span>
-  <span class="n">year</span><span class="o">=</span><span class="p">{</span><span class="mi">2016</span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>… or the software paper (Authorea/arXiv):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@article</span><span class="p">{</span><span class="n">ePSprocPaper</span><span class="p">,</span>
-  <span class="n">title</span><span class="o">=</span><span class="p">{</span><span class="n">ePSproc</span><span class="p">:</span> <span class="n">Post</span><span class="o">-</span><span class="n">processing</span> <span class="k">for</span> <span class="n">ePolyScat</span> <span class="n">electron</span><span class="o">-</span><span class="n">molecule</span> <span class="n">scattering</span> <span class="n">calculations</span><span class="p">},</span>
-  <span class="n">url</span><span class="o">=</span><span class="p">{</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="o">.</span><span class="n">authorea</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">users</span><span class="o">/</span><span class="mi">71114</span><span class="o">/</span><span class="n">articles</span><span class="o">/</span><span class="mi">122402</span><span class="o">-</span><span class="n">epsproc</span><span class="o">-</span><span class="n">post</span><span class="o">-</span><span class="n">processing</span><span class="o">-</span><span class="n">suite</span><span class="o">-</span><span class="k">for</span><span class="o">-</span><span class="n">epolyscat</span><span class="o">-</span><span class="n">electron</span><span class="o">-</span><span class="n">molecule</span><span class="o">-</span><span class="n">scattering</span><span class="o">-</span><span class="n">calculations</span><span class="p">},</span>
-  <span class="n">DOI</span><span class="o">=</span><span class="p">{</span><span class="mf">10.22541</span><span class="o">/</span><span class="n">au</span><span class="o">.</span><span class="mf">156754490.06103020</span><span class="p">},</span>
-  <span class="n">journal</span> <span class="o">=</span> <span class="p">{</span><span class="n">Authorea</span><span class="o">/</span><span class="n">arXiv</span> <span class="n">e</span><span class="o">-</span><span class="n">prints</span><span class="p">},</span>
-  <span class="n">publisher</span><span class="o">=</span><span class="p">{</span><span class="n">Authorea</span><span class="o">/</span><span class="n">arXiv</span><span class="p">},</span>
-  <span class="n">author</span><span class="o">=</span><span class="p">{</span><span class="n">Hockett</span><span class="p">,</span> <span class="n">Paul</span><span class="p">},</span>
-  <span class="n">year</span><span class="o">=</span><span class="p">{</span><span class="mi">2016</span><span class="p">},</span>
-  <span class="n">archivePrefix</span> <span class="o">=</span> <span class="p">{</span><span class="n">arXiv</span><span class="p">},</span>
-  <span class="n">eprint</span> <span class="o">=</span> <span class="p">{</span><span class="mf">1611.04043</span><span class="p">},</span>
-  <span class="n">primaryClass</span> <span class="o">=</span> <span class="p">{</span><span class="n">physics</span><span class="o">.</span><span class="n">comp</span><span class="o">-</span><span class="n">ph</span><span class="p">},</span>
-  <span class="n">eid</span> <span class="o">=</span> <span class="p">{</span><span class="n">arXiv</span><span class="p">:</span><span class="mf">1611.04043</span><span class="p">},</span>
-  <span class="n">pages</span> <span class="o">=</span> <span class="p">{</span><span class="n">arXiv</span><span class="p">:</span><span class="mf">1611.04043</span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>(Citation styles for software <a class="reference external" href="https://academia.stackexchange.com/questions/14010/how-do-you-cite-a-github-repository">from StackExcahnge</a>.)</p>
-</div>
-<div class="section" id="acknowledgements">
-<h2>Acknowledgements<a class="headerlink" href="#acknowledgements" title="Permalink to this headline">¶</a></h2>
-<p>Special thanks to R.R. Lucchese and coworkers for <a class="reference external" href="http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html">ePolyScat</a>.</p>
-<p>Thanks to the multiple collaborators and co-authors who encouraged and suggested the cavilier use of ePS “out of the box”, for many different problems incorporating electron scattering and photoionization. This spirit of “shoot first, ask questions later” indeed raised many questions which, eventually, necessitated proper use of ePS and careful post-processing of the results, and sharpened related foundational expertise - efforts well worth making.</p>
-<p>Thanks, finally, and of course, to those supporting scientific software development and infrastructure (and making it easy!), including Github, Read the Docs, Pypi, SciPy etc. etc. In particular the python version of this project makes use of <a class="reference external" href="http://xarray.pydata.org/en/stable/index.html">Xarray</a>, and <a class="reference external" href="https://github.com/moble/spherical_functions">Moble’s spherical functions (&amp; quaternion)</a>.</p>
 </div>
 </div>
 

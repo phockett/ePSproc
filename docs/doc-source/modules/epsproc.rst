@@ -7,7 +7,6 @@ Submodules
 .. toctree::
 
    epsproc.IO
-   epsproc.MFBLM
    epsproc.MFPAD
    epsproc.sphCalc
    epsproc.sphPlot

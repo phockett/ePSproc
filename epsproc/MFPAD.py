@@ -30,9 +30,8 @@ To Do
 -----
 * Propagate scale-factor to Mb.
 * Benchmark on NO2 reference results.
-* ~~Test over multiple E.~~
+* Test over multiple E.
 * Test over multiple R.
-* More efficient computation?  Use Xarray group by?
 
 Formalism
 ---------

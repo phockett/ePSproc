@@ -91,7 +91,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../about.html">ePSproc Readme</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html">ePSproc demo</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html">ePSproc <span class="math notranslate nohighlight">\(\beta_{L,M}\)</span> calculations demo</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Function ref:</span></p>
 <ul>
@@ -163,29 +162,9 @@
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">ePSproc spherical polar plotting functions</span>
 
-<span class="sd">Collection of functions for plotting 2D spherical polar data :math:`I(\\theta, \\phi)`.</span>
-
-<span class="sd">Main plotters are:</span>
-
-<span class="sd">* :py:func:`sphSumPlotX` for arrays of :math:`I(\\theta,\\phi)`</span>
-<span class="sd">* :py:func:`sphFromBLMPlot` for arrays of :math:`\\beta_{LM}` parameters.</span>
-
-<span class="sd">13/09/19</span>
-
-<span class="sd">            * Added sphFromBLMPlot().</span>
-<span class="sd">            * Some additional plot type fuctionality added.</span>
-<span class="sd">            * Some tidying up and reorganising... hopefully nothing broken...</span>
+<span class="sd">Collection of functions for plotting I(theta, phi) type data.</span>
 
 <span class="sd">14/08/19    v1</span>
-
-
-<span class="sd">TODO</span>
-<span class="sd">----</span>
-
-<span class="sd">- Code for switching backend plotter. (Rudiments in place 13/09/19.)</span>
-<span class="sd">- Generalise plotting for more dimensions.</span>
-<span class="sd">- More sophisticated/flexible Matplotlib implementation.</span>
-<span class="sd">- Get Holoviews plotting working.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -196,7 +175,7 @@
 <span class="kn">from</span> <span class="nn">mpl_toolkits.mplot3d</span> <span class="k">import</span> <span class="n">Axes3D</span>
 <span class="kn">from</span> <span class="nn">matplotlib</span> <span class="k">import</span> <span class="n">cm</span><span class="p">,</span> <span class="n">colors</span>
 
-<span class="c1"># Plotly (optional)</span>
+<span class="c1"># Plotly</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">plotly.graph_objects</span> <span class="k">as</span> <span class="nn">go</span>
     <span class="kn">from</span> <span class="nn">plotly.subplots</span> <span class="k">import</span> <span class="n">make_subplots</span>
@@ -205,55 +184,11 @@
         <span class="k">raise</span>
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;* plotly not found, plotly plots not available. &#39;</span><span class="p">)</span>
 
-<span class="c1"># Local functions</span>
-<span class="kn">from</span> <span class="nn">epsproc.sphCalc</span> <span class="k">import</span> <span class="n">sphCalc</span>
 
-<span class="c1">#***** Plotting top-level functions &amp; logic</span>
-
-<span class="c1"># Define plot types</span>
-<div class="viewcode-block" id="plotTypeSelector"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.plotTypeSelector">[docs]</a><span class="k">def</span> <span class="nf">plotTypeSelector</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">pType</span> <span class="o">=</span> <span class="s1">&#39;a&#39;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Set plotting data type.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    dataPlot : np.array, Xarray</span>
-<span class="sd">        Data for plotting, output converted to type defined by pType.</span>
-
-<span class="sd">    pType : char, optional, default &#39;a&#39;</span>
-<span class="sd">        Set type of plot.</span>
-
-<span class="sd">        * &#39;a&#39; (abs)       = np.abs(dataPlot)</span>
-<span class="sd">        * &#39;r&#39; (real)      = np.real(dataPlot)</span>
-<span class="sd">        * &#39;i&#39; (imag)      = np.imag(dataPlot)</span>
-<span class="sd">        * &#39;p&#39; (product)   = dataPlot * np.conj(dataPlot)</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-
-<span class="sd">    Xarray, np.array</span>
-<span class="sd">        Input data structure converted to pType.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">if</span> <span class="n">pType</span> <span class="o">==</span> <span class="s1">&#39;a&#39;</span><span class="p">:</span>
-        <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">pType</span> <span class="o">==</span> <span class="s1">&#39;r&#39;</span><span class="p">:</span>
-        <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">pType</span> <span class="o">==</span> <span class="s1">&#39;i&#39;</span><span class="p">:</span>
-        <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">pType</span> <span class="o">==</span> <span class="s1">&#39;p&#39;</span><span class="p">:</span>
-        <span class="c1"># TODO: check conj defns with Xarray</span>
-        <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dataPlot</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">))</span>
-
-    <span class="c1"># Set pType in output plotting data Xarray</span>
-    <span class="n">dataPlot</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;pType&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pType</span>
-
-    <span class="k">return</span> <span class="n">dataPlot</span></div>
 
 <span class="c1"># Plot a set of mfpads using Holoviews</span>
 <span class="c1"># TODO: finish this!!!</span>
-<div class="viewcode-block" id="sphPlotHV"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.sphPlotHV">[docs]</a><span class="k">def</span> <span class="nf">sphPlotHV</span><span class="p">(</span><span class="n">dataIn</span><span class="p">):</span>
+<div class="viewcode-block" id="mfpadPlotHV"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.mfpadPlotHV">[docs]</a><span class="k">def</span> <span class="nf">mfpadPlotHV</span><span class="p">(</span><span class="n">dataIn</span><span class="p">):</span>
     <span class="c1"># Remove multilevel indexes, these casuse issues with HV</span>
     <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="k">if</span> <span class="s1">&#39;Sym&#39;</span> <span class="ow">in</span> <span class="n">dataPlot</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>      <span class="c1"># This is a bit dodgy, and may fail in some cases.</span>
@@ -270,281 +205,19 @@
     <span class="c1"># Y = dataPlot * np.sin(phi) * np.sin(theta)</span>
     <span class="c1"># Z = dataPlot * np.cos(phi)</span>
 
+<span class="c1"># Plot as Plotly subplots, as function of selected dim.</span>
+<span class="c1"># Currently set for subplotting over facetDim, but assumes over dim (theta,phi)</span>
+<div class="viewcode-block" id="mfpadPlotPL"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.mfpadPlotPL">[docs]</a><span class="k">def</span> <span class="nf">mfpadPlotPL</span><span class="p">(</span><span class="n">dataIn</span><span class="p">,</span> <span class="n">facetDim</span> <span class="o">=</span> <span class="s1">&#39;Eke&#39;</span><span class="p">,</span> <span class="n">rc</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 
-
-
-<span class="c1"># Plot MFPADs from a set of BLM</span>
-<div class="viewcode-block" id="sphFromBLMPlot"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.sphFromBLMPlot">[docs]</a><span class="k">def</span> <span class="nf">sphFromBLMPlot</span><span class="p">(</span><span class="n">BLMXin</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">pType</span> <span class="o">=</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">plotFlag</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">facetDim</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">backend</span> <span class="o">=</span> <span class="s1">&#39;mpl&#39;</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Calculate spherical harmonic expansions from BLM parameters and plot.</span>
-
-<span class="sd">    Surfaces calculated as:</span>
-
-<span class="sd">    .. math::</span>
-<span class="sd">        I(\theta,\phi)=\sum_{L,M}\beta_{L,M}Y_{L,M}(\theta,\phi)</span>
-
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    dataIn : Xarray</span>
-<span class="sd">        Input set of BLM parameters.</span>
-
-<span class="sd">    res : int, optional, default 50</span>
-<span class="sd">        Resolution for output (theta,phi) grids.</span>
-
-<span class="sd">    pType : char, optional, default &#39;r&#39; (real part)</span>
-<span class="sd">        Set (data) type to plot. See :py:func:`plotTypeSelector`.</span>
-
-<span class="sd">    plotFlag : bool, optional, default False</span>
-<span class="sd">        Set plotting True/False.  Note that this will plot for all facetDim.</span>
-
-<span class="sd">    facetDim : str, optional, default None</span>
-<span class="sd">        Dimension to use for subplots.</span>
-<span class="sd">        Currently set for a single dimension only.</span>
-<span class="sd">        For matplotlib backend: one figure per surface.</span>
-<span class="sd">        For plotly backend: subplots per surface.</span>
-
-<span class="sd">    backend : str, optional, default &#39;mpl&#39; (matplotlib)</span>
-<span class="sd">        Set backend used for plotting. See :py:func:`sphSumPlotX` for details.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    Xarray</span>
-<span class="sd">        Xarray containing the calcualted surfaces I(theta,phi,...)</span>
-
-<span class="sd">    fig</span>
-<span class="sd">        List of figure handles.</span>
-
-<span class="sd">    &#39;&#39;&#39;</span>
-
-    <span class="c1"># Calculate YLMs</span>
-    <span class="n">YLMX</span> <span class="o">=</span> <span class="n">sphCalc</span><span class="p">(</span><span class="n">BLMXin</span><span class="o">.</span><span class="n">l</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="p">)</span>
-    <span class="n">YLMX</span> <span class="o">=</span> <span class="n">YLMX</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s1">&#39;LM&#39;</span><span class="p">:</span><span class="s1">&#39;BLM&#39;</span><span class="p">})</span>    <span class="c1"># Switch naming for multiplication &amp; plotting</span>
-
-    <span class="c1"># Calculate MFPADs (theta,phi)</span>
-    <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">BLMXin</span><span class="o">*</span><span class="n">YLMX</span>
-    <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">dataPlot</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s1">&#39;BLM&#39;</span><span class="p">:</span><span class="s1">&#39;LM&#39;</span><span class="p">})</span>    <span class="c1"># Switch naming back for plotting function</span>
-
-    <span class="c1"># Pass data to plotting function</span>
-    <span class="k">if</span> <span class="n">plotFlag</span><span class="p">:</span>
-        <span class="n">fig</span> <span class="o">=</span> <span class="n">sphSumPlotX</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">pType</span> <span class="o">=</span> <span class="n">pType</span><span class="p">,</span> <span class="n">facetDim</span> <span class="o">=</span> <span class="n">facetDim</span><span class="p">,</span> <span class="n">backend</span> <span class="o">=</span> <span class="n">backend</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">fig</span> <span class="o">=</span> <span class="kc">None</span>
-
-
-    <span class="k">return</span> <span class="n">dataPlot</span><span class="p">,</span> <span class="n">fig</span></div>
-
-
-<span class="c1"># Sum and plot spherical functions from an Xarray.</span>
-<span class="c1"># TODO: This currently assumes matplotlib cm is already loaded.</span>
-<span class="c1"># TODO: More plot types.</span>
-<span class="c1"># TODO: More careful testing - not totally sure if summation &amp; axes consistent here.</span>
-<div class="viewcode-block" id="sphSumPlotX"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.sphSumPlotX">[docs]</a><span class="k">def</span> <span class="nf">sphSumPlotX</span><span class="p">(</span><span class="n">dataIn</span><span class="p">,</span> <span class="n">pType</span> <span class="o">=</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">facetDim</span> <span class="o">=</span> <span class="s1">&#39;Eke&#39;</span><span class="p">,</span> <span class="n">backend</span> <span class="o">=</span> <span class="s1">&#39;mpl&#39;</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Plot sum of spherical harmonics from an Xarray.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    dataIn : Xarray</span>
-<span class="sd">        Input structure can be</span>
-
-<span class="sd">        * Set of precalculated Ylms, dims (theta,phi) or (theta,phi,LM).</span>
-<span class="sd">        * Set of precalculated mfpads, dims (theta,phi), (theta,phi,LM) or (theta,phi,LM,facetDim).</span>
-<span class="sd">        * If (LM) dimension is present, it is summed over before plotting.</span>
-<span class="sd">        * If facetDim is present this is used for subplots, currently only one facetDim is supported here.</span>
-
-<span class="sd">    pType : char, optional, default &#39;a&#39; (abs value)</span>
-<span class="sd">        Set (data) type of plot. See :py:func:`plotTypeSelector`.</span>
-
-<span class="sd">    facetDim : str, optional, default Eke</span>
-<span class="sd">        Dimension to use for subplots.</span>
-
-<span class="sd">        * Currently set for a single dimension only.</span>
-<span class="sd">        * For matplotlib backend: one figure per surface.</span>
-<span class="sd">        * For plotly backend: subplots per surface.</span>
-
-<span class="sd">    backend : str, optional, default &#39;mpl&#39;</span>
-<span class="sd">        Set backend used for plotting.</span>
-
-<span class="sd">        - mpl   matplotlib: basic 3D plotting, one figure per surface.</span>
-<span class="sd">        - pl    plotly: fancier 3D plotting, interactive in Jupyter but may fail at console.</span>
-<span class="sd">                Subplots for surfaces.</span>
-<span class="sd">        - hv    holoviews: fancier plotting with additional back-end options.</span>
-<span class="sd">                Can facet on specific data types.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    fig</span>
-<span class="sd">        List of figure handles.</span>
-
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    &gt;&gt;&gt; YlmX = sphCalc(2, res = 50)</span>
-<span class="sd">    &gt;&gt;&gt; sphSumPlotX(YlmX)</span>
-
-<span class="sd">    Note</span>
-<span class="sd">    ----</span>
-<span class="sd">    Pretty basic functionality here, should add more colour mapping options and multiple plots, alternative back-ends, support for more dimensions etc.</span>
-
-
-<span class="sd">    &#39;&#39;&#39;</span>
-
-    <span class="c1"># Sum over QNs if necessary</span>
-    <span class="c1"># if (dataIn.LM.shape[0]) &gt; 1:</span>
-    <span class="k">if</span> <span class="s1">&#39;LM&#39;</span> <span class="ow">in</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
-        <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;LM&#39;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">dataIn</span>
-
-    <span class="c1"># (theta,phi) grid from Xarray coords</span>
+    <span class="c1"># Set data</span>
+    <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">dataIn</span> <span class="o">*</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
     <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">Theta</span><span class="p">,</span> <span class="n">dataPlot</span><span class="o">.</span><span class="n">Phi</span><span class="p">)</span>
 
-    <span class="c1"># Set data according to type of plot selected</span>
-    <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">plotTypeSelector</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">pType</span> <span class="o">=</span> <span class="n">pType</span><span class="p">)</span>
-
-    <span class="c1"># Switch plot function based on backend</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Plotting with </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">backend</span><span class="p">))</span>
-
-    <span class="n">fig</span> <span class="o">=</span> <span class="p">[]</span>
-
-    <span class="c1"># Matplotlib</span>
-    <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="s1">&#39;mpl&#39;</span><span class="p">:</span>
-        <span class="c1"># Check dimensionality - loop over facetDim if necessary</span>
-        <span class="c1"># Return list of fig handles</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Data dims: </span><span class="si">{0}</span><span class="s1">, subplots on </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="n">facetDim</span><span class="p">))</span>
-
-            <span class="c1"># Basic loop over facetDim</span>
-            <span class="c1"># Fails for dims with multi-index, or repeated values for sub-indexes if used as selector.</span>
-            <span class="c1"># Therefore, use positional numerical index...</span>
-            <span class="c1"># for nPlot in dataPlot[facetDim]:</span>
-            <span class="c1">#     fig.append(sphPlotMPL(dataPlot.sel({facetDim:[nPlot]}).squeeze(), theta, phi))  # Will fail if dims&gt;2 passed.</span>
-
-            <span class="c1"># Loop over facetDim with full dataArray as selector, allows for MultiIndex cases.</span>
-            <span class="k">for</span> <span class="n">nPlot</span> <span class="ow">in</span> <span class="n">dataPlot</span><span class="p">[</span><span class="n">facetDim</span><span class="p">]:</span>
-                <span class="n">fig</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sphPlotMPL</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">sel</span><span class="p">({</span><span class="n">facetDim</span><span class="p">:</span><span class="n">nPlot</span><span class="p">})</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">))</span>  <span class="c1"># Will fail if dims&gt;2 passed.</span>
-
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Call matplotlib plotting fn., single surface</span>
-            <span class="n">fig</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sphPlotMPL</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">))</span>
-
-    <span class="c1"># Plotly</span>
-    <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="s1">&#39;pl&#39;</span><span class="p">:</span>
-        <span class="n">fig</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sphPlotPL</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">facetDim</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">fig</span></div>
-
-
-<span class="c1">#******** Low-level plotting functions</span>
-
-<span class="c1"># Set cart coords from spherical polar coords</span>
-<div class="viewcode-block" id="sphToCart"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.sphToCart">[docs]</a><span class="k">def</span> <span class="nf">sphToCart</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Convert spherical polar coords :math:`(R,\theta,\phi)` to Cartesian :math:`(X,Y,Z)`.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    R, theta, phi : np.arrays</span>
-<span class="sd">        Spherical polar coords :math:`(R,\theta,\phi)`.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    X, Y, Z : np.arrays</span>
-<span class="sd">        Cartesian coords :math:`(X,Y,Z)`.</span>
-
-
-<span class="sd">    Definitions</span>
-<span class="sd">    ------------</span>
-<span class="sd">    Conversion defined with the `usual physics convention &lt;https://en.wikipedia.org/wiki/Spherical_coordinate_system#Conventions&gt;`_ , where:</span>
-
-<span class="sd">    * :math:`R` is the radial distance from the origin</span>
-<span class="sd">    * :math:`\theta` is the polar angle (defined relative to the z-axis), :math:`0\leq\theta\leq\pi`</span>
-<span class="sd">    * :math:`\phi` is the azimuthal angle (defined relative to the x-axis), :math:`0\leq\theta\leq2\pi`</span>
-
-<span class="sd">    * :math:`X = R * np.sin(phi) * np.cos(theta)`</span>
-<span class="sd">    * :math:`Y = R * np.sin(phi) * np.sin(theta)`</span>
-<span class="sd">    * :math:`Z = R * np.cos(phi)`</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">X</span> <span class="o">=</span> <span class="n">R</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
-    <span class="n">Y</span> <span class="o">=</span> <span class="n">R</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
-    <span class="n">Z</span> <span class="o">=</span> <span class="n">R</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span></div>
-
-<span class="c1"># Plot using matplotlib - legacy</span>
-<span class="c1"># TODO - remove this.</span>
-<span class="c1"># def sphPlot(dataPlot, theta, phi):</span>
-<span class="c1">#     sphPlotMatplotLib(dataPlot, theta, phi)</span>
-
-<span class="c1"># Plot using matplotlib</span>
-<div class="viewcode-block" id="sphPlotMPL"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.sphPlotMPL">[docs]</a><span class="k">def</span> <span class="nf">sphPlotMPL</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Matplotlib.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    dataPlot : np.array or Xarray</span>
-<span class="sd">        Values to plot, single surface only, with dims (theta,phi).</span>
-
-<span class="sd">    theta, phi : np.arrays</span>
-<span class="sd">        Angles defining spherical polar grid, 2D arrays.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    fig</span>
-<span class="sd">        Handle to matplotlib figure.</span>
-
-
-<span class="sd">    &#39;&#39;&#39;</span>
-
-    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span> <span class="o">=</span> <span class="n">sphToCart</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">)</span>
-
-    <span class="c1"># Plot in a new figure using Matplotlib</span>
-    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
-    <span class="n">ax</span> <span class="o">=</span> <span class="n">Axes3D</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
-    <span class="c1"># ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap=cm.jet)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">plot_surface</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">rstride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cstride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cm</span><span class="o">.</span><span class="n">jet</span><span class="p">)</span>
-    <span class="c1"># ax.axis(&#39;equal&#39;) # Not implemented for 3D axes</span>
-    <span class="c1"># Rescale axis to equal, hack from https://stackoverflow.com/questions/8130823/set-matplotlib-3d-plot-aspect-ratio</span>
-    <span class="n">scaling</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">getattr</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="s1">&#39;get_</span><span class="si">{}</span><span class="s1">lim&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dim</span><span class="p">))()</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="s1">&#39;xyz&#39;</span><span class="p">])</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">auto_scale_xyz</span><span class="p">(</span><span class="o">*</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">scaling</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">scaling</span><span class="p">)]]</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-
-    <span class="k">return</span> <span class="n">fig</span></div>
-
-
-<span class="c1"># Plot as Plotly subplots, as function of selected dim.</span>
-<span class="c1"># Currently set for subplotting over facetDim, but assumes other dims (theta,phi)</span>
-<div class="viewcode-block" id="sphPlotPL"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.sphPlotPL">[docs]</a><span class="k">def</span> <span class="nf">sphPlotPL</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">facetDim</span> <span class="o">=</span> <span class="s1">&#39;Eke&#39;</span><span class="p">,</span> <span class="n">rc</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Plotly.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    dataPlot : np.array or Xarray</span>
-<span class="sd">        Values to plot, single surface only, with dims (theta,phi).</span>
-
-<span class="sd">    theta, phi : np.arrays</span>
-<span class="sd">        Angles defining spherical polar grid, 2D arrays.</span>
-
-<span class="sd">    facetDim : str, default &#39;Eke&#39;</span>
-<span class="sd">        Dimension to use for faceting (subplots), currently set for single dim only.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    fig</span>
-<span class="sd">        Handle to figure.</span>
-
-<span class="sd">    &#39;&#39;&#39;</span>
-
     <span class="c1"># Set up subplots</span>
-    <span class="n">nData</span> <span class="o">=</span> <span class="n">dataPlot</span><span class="p">[</span><span class="n">facetDim</span><span class="p">]</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">nData</span> <span class="o">=</span> <span class="n">dataIn</span><span class="p">[</span><span class="n">facetDim</span><span class="p">]</span><span class="o">.</span><span class="n">size</span>
 
     <span class="k">if</span> <span class="n">rc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">nCols</span> <span class="o">=</span> <span class="mi">3</span>
-        <span class="n">rc</span> <span class="o">=</span> <span class="p">[</span><span class="n">nData</span><span class="o">/</span><span class="n">nCols</span><span class="p">,</span> <span class="n">nCols</span><span class="p">]</span>
+        <span class="n">rc</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">5</span><span class="p">]</span>
 
     <span class="n">pType</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;type&#39;</span><span class="p">:</span><span class="s1">&#39;surface&#39;</span><span class="p">}</span>
     <span class="n">specs</span> <span class="o">=</span> <span class="p">[[</span><span class="n">pType</span><span class="p">]</span> <span class="o">*</span> <span class="n">rc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rc</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>  <span class="c1"># Set specs as 2D list of dicts.</span>
@@ -558,26 +231,153 @@
     <span class="n">n</span><span class="o">=</span><span class="mi">0</span>
     <span class="k">for</span> <span class="n">rInd</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">rc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">cInd</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">rc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">nData</span><span class="p">:</span>
-                <span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span> <span class="o">=</span> <span class="n">sphToCart</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">sel</span><span class="p">({</span><span class="n">facetDim</span><span class="p">:</span><span class="n">dataPlot</span><span class="p">[</span><span class="n">facetDim</span><span class="p">][</span><span class="n">n</span><span class="p">]}),</span><span class="n">theta</span><span class="p">,</span><span class="n">phi</span><span class="p">)</span>  <span class="c1"># Bit ugly, probably a better way to select here.</span>
-                <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
-                    <span class="n">go</span><span class="o">.</span><span class="n">Surface</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">Z</span><span class="p">,</span> <span class="n">colorscale</span><span class="o">=</span><span class="s1">&#39;Viridis&#39;</span><span class="p">,</span> <span class="n">showscale</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-                    <span class="n">row</span><span class="o">=</span><span class="n">rInd</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">cInd</span><span class="p">)</span> <span class="c1"># , title=[facetDim + &#39;=&#39; + str(dataPlot[facetDim][n].data)])  # Needs some work here...</span>
+            <span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span> <span class="o">=</span> <span class="n">sphToCart</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">sel</span><span class="p">({</span><span class="n">facetDim</span><span class="p">:</span><span class="n">dataPlot</span><span class="p">[</span><span class="n">facetDim</span><span class="p">][</span><span class="n">n</span><span class="p">]}),</span><span class="n">theta</span><span class="p">,</span><span class="n">phi</span><span class="p">)</span>  <span class="c1"># Bit ugly, probably a better way to select here.</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span>
+                <span class="n">go</span><span class="o">.</span><span class="n">Surface</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">Z</span><span class="p">,</span> <span class="n">colorscale</span><span class="o">=</span><span class="s1">&#39;Viridis&#39;</span><span class="p">,</span> <span class="n">showscale</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                <span class="n">row</span><span class="o">=</span><span class="n">rInd</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">cInd</span><span class="p">)</span> <span class="c1"># , title=[facetDim + &#39;=&#39; + str(dataPlot[facetDim][n].data)])  # Needs some work here...</span>
+            <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="n">nData</span><span class="p">:</span>
+                <span class="k">continue</span>
 
-                <span class="c1"># fig[&#39;layout&#39;].update(scene=dict(aspectmode=&quot;data&quot;))  # Try and fix aspect ratio issues - getting stuck on first subplot?  Seems independent of setting here.</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
 
-                <span class="c1"># DOESN&#39;T WORK</span>
-                <span class="c1"># From https://github.com/plotly/plotly.py/issues/70</span>
-                <span class="c1"># fig[&#39;layout&#39;].update(scene=dict(</span>
-                <span class="c1">#                     aspectmode=&#39;manual&#39;,</span>
-                <span class="c1">#                     aspectratio=go.layout.scene.Aspectratio(</span>
-                <span class="c1">#                     x=x.ptp(), y=y.ptp(), z=z.pyp())))</span>
 
-                <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span>
+<span class="c1"># Sum and plot spherical functions from an Xarray.</span>
+<span class="c1"># TODO: This currently assumes matplotlib cm is already loaded.</span>
+<span class="c1"># TODO: More plot types.</span>
+<span class="c1"># TODO: More careful testing - not totally sure if summation &amp; axes consistent here.</span>
+<div class="viewcode-block" id="sphSumPlotX"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.sphSumPlotX">[docs]</a><span class="k">def</span> <span class="nf">sphSumPlotX</span><span class="p">(</span><span class="n">dataIn</span><span class="p">,</span> <span class="n">pType</span> <span class="o">=</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">backend</span> <span class="o">=</span> <span class="s1">&#39;matplotlib&#39;</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Plot sum of spherical harmonics from an Xarray.</span>
 
-    <span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dataIn : Xarray</span>
+<span class="sd">        Input set of precalculated Ylms, dims (theta,phi) or (lm,theta,phi).</span>
+<span class="sd">        In the latter case (lm) dimension is summed.</span>
 
-    <span class="k">return</span> <span class="n">fig</span></div>
+<span class="sd">    pType : char, optional, default &#39;a&#39;</span>
+<span class="sd">        Set type of plot.</span>
+<span class="sd">        &#39;a&#39; = np.abs(Ylm)</span>
+<span class="sd">        &#39;r&#39; = np.real(Ylm)</span>
+<span class="sd">        &#39;i&#39; = np.imag(Ylm)</span>
+<span class="sd">        &#39;p&#39; = Ylm * np.conj(Ylm)</span>
+
+<span class="sd">    backend : str, optional, default &#39;matplotlib&#39;</span>
+<span class="sd">        Set backend used for plotting.</span>
+<span class="sd">        - matplotlib: basic 3D plotting, one figure per surface.</span>
+<span class="sd">        - plotly: fancier 3D plotting, interactive in Jupyter but may fail at console.</span>
+<span class="sd">                    Subplots for surfaces.</span>
+<span class="sd">        - holoviews: fancier plotting with additional back-end options.</span>
+<span class="sd">                    Can facet on specific data types.</span>
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+<span class="sd">    &gt;&gt;&gt; YlmX = sphCalc(2, res = 50)</span>
+<span class="sd">    &gt;&gt;&gt; sphSumPlotX(YlmX)</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Pretty basic functionality here, should add more colour mapping options and multiple plots.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Sum over QNs if necessary</span>
+    <span class="c1"># if (dataIn.LM.shape[0]) &gt; 1:</span>
+    <span class="k">if</span> <span class="s1">&#39;LM&#39;</span> <span class="ow">in</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+        <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">dataIn</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;LM&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dataPlot</span> <span class="o">=</span> <span class="n">dataIn</span>
+
+    <span class="c1"># (theta,phi) grid from Xarray coords</span>
+    <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">Theta</span><span class="p">,</span> <span class="n">dataPlot</span><span class="o">.</span><span class="n">Phi</span><span class="p">)</span>
+
+    <span class="c1"># Check dimensionality - loop over dims if necessary</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Data dims: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dataPlot</span><span class="o">.</span><span class="n">dims</span><span class="p">))</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Call basic plotting fn., single surface</span>
+        <span class="n">sphPlot</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">pType</span><span class="p">,</span> <span class="n">backend</span><span class="p">)</span></div>
+
+
+<span class="c1">#******** Low-level plotting functions</span>
+
+<span class="c1"># Set cart coords from spherical polar coords</span>
+<div class="viewcode-block" id="sphToCart"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.sphToCart">[docs]</a><span class="k">def</span> <span class="nf">sphToCart</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert spherical polar coords (R,theta,phi) to Cartesian (X,Y,Z).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    R, theta, phi : np.arrays defining a grid of Sph coords.</span>
+
+<span class="sd">    Outputs</span>
+<span class="sd">    -------</span>
+<span class="sd">    X, Y, Z : np.arrays defining a grid of Cart coords.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">X</span> <span class="o">=</span> <span class="n">R</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">Y</span> <span class="o">=</span> <span class="n">R</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">R</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span></div>
+
+<div class="viewcode-block" id="sphPlot"><a class="viewcode-back" href="../../modules/epsproc.sphPlot.html#epsproc.sphPlot.sphPlot">[docs]</a><span class="k">def</span> <span class="nf">sphPlot</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">pType</span> <span class="o">=</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">backend</span> <span class="o">=</span> <span class="s1">&#39;matplotlib&#39;</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Matplotlib.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dataPlot : np.array</span>
+<span class="sd">        Values to plot, dims (theta,phi).</span>
+
+<span class="sd">    theta, phi: np.arrays</span>
+<span class="sd">        Angles defining spherical polar grid, 2D arrays.</span>
+
+<span class="sd">    pType : char, optional, default &#39;a&#39;</span>
+<span class="sd">        Set type of plot.</span>
+<span class="sd">        &#39;a&#39; = np.abs(dataPlot)</span>
+<span class="sd">        &#39;r&#39; = np.real(dataPlot)</span>
+<span class="sd">        &#39;i&#39; = np.imag(dataPlot)</span>
+<span class="sd">        &#39;p&#39; = dataPlot * np.conj(dataPlot)</span>
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+<span class="sd">    &gt;&gt;&gt; YlmX = sphCalc(2, res = 50)</span>
+<span class="sd">    &gt;&gt;&gt; sphSumPlotX(YlmX)</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Pretty basic functionality here, should add more colour mapping options and multiple plots, and alternative back-ends (Matplotlib only currently).</span>
+<span class="sd">    Some functionality may end up being pushed to plotting library, e.g. Holoviews, which already supports faceting etc. etc.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Convert to cart</span>
+    <span class="k">if</span> <span class="n">pType</span> <span class="o">==</span> <span class="s1">&#39;a&#39;</span><span class="p">:</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">pType</span> <span class="o">==</span> <span class="s1">&#39;r&#39;</span><span class="p">:</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">pType</span> <span class="o">==</span> <span class="s1">&#39;i&#39;</span><span class="p">:</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">pType</span> <span class="o">==</span> <span class="s1">&#39;p&#39;</span><span class="p">:</span>
+        <span class="c1"># TODO: check conj defns with Xarray</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dataPlot</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">dataPlot</span><span class="p">))</span>
+
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span> <span class="o">=</span> <span class="n">sphToCart</span><span class="p">(</span><span class="n">R</span><span class="p">,</span><span class="n">theta</span><span class="p">,</span><span class="n">phi</span><span class="p">)</span>
+
+    <span class="c1"># Plot in a new figure using Matplotlib</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">Axes3D</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+    <span class="c1"># ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap=cm.jet)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot_surface</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">rstride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cstride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cm</span><span class="o">.</span><span class="n">jet</span><span class="p">)</span>
+    <span class="c1"># ax.axis(&#39;equal&#39;) # Not implemented for 3D axes</span>
+    <span class="c1"># Rescale axis to equal, hack from https://stackoverflow.com/questions/8130823/set-matplotlib-3d-plot-aspect-ratio</span>
+    <span class="n">scaling</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">getattr</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="s1">&#39;get_</span><span class="si">{}</span><span class="s1">lim&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dim</span><span class="p">))()</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="s1">&#39;xyz&#39;</span><span class="p">])</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">auto_scale_xyz</span><span class="p">(</span><span class="o">*</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">scaling</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">scaling</span><span class="p">)]]</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
 </pre></div>
 
            </div>

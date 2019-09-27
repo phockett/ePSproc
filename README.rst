@@ -28,10 +28,11 @@ Python:
     $ pip install ePSproc
 
 Main requirements are `Xarray <http://xarray.pydata.org/en/stable/index.html>`_ (>= 0.12.2), and `Moble's spherical functions (quaternion based) <https://github.com/moble/spherical_functions>`_ (tested with v2019.7.12.23.25.11). See the individual package docs for full instructions - one option is via conda-forge:
+(Update Sept. 2019 - Xarray v0.13.0 is now on the main Anaconda channel.)
 
 .. code-block:: bash
 
-    $ conda install -c conda-forge xarray=0.12.3
+    .. $ conda install -c conda-forge xarray=0.12.3
     $ conda install -c conda-forge spherical_functions
 
 
@@ -46,11 +47,18 @@ Functionality:
 * Read raw photoionization matrix elements from ePS output files with “dumpIdy” segments
 * Calculate MF-PADs from the matrix elements (ePSproc_MFPAD.m, see also ePSproc_NO2_MFPADs_demo.m)
 * Plot MF-PADs
+* Calculate MF-$\beta_{LM}$ parameters
+* `Distirbution via PyPi (latest stable version) <https://pypi.org/project/ePSproc/>`__ .`
 * Under development: additional functionality and distribution via PyPi.
 
 .. This doesn't work for PyPi: See the demo :doc:`Jupyter notebook <ePSproc_demo_Aug2019/ePSproc_demo_Aug2019>` for example usage.
 
-See the demo `Jupyter notebook <https://epsproc.readthedocs.io/en/latest/ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html>`_ for example usage.
+See the demo Jupyter notebooks for example usage:
+
+* `Basic usage <https://epsproc.readthedocs.io/en/latest/ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html>`__ .
+* `Beta parameters <https://epsproc.readthedocs.io/en/latest/ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html>`__ .
+
+
 
 Source:
 

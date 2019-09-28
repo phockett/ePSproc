@@ -665,6 +665,13 @@ def EDCSSegsParseX(dumpSegs):
     # Dump lists into Xarray - will work provided same theta over all records.
     daOut = xr.DataArray(np.asarray(dataArray), coords={'E':ekeList, 'Theta':segBlock[:,0]}, dims = ['E','Theta'])
 
+    daOut.attrs['dataType'] = 'EDCS'    # Set dataType for use later.
+
+    # Set units - should set from file ideally.
+    daOut.attrs['units'] = 'Angs^2'
+    daOut.E.attrs['units'] = 'eV'
+    daOut.Theta.attrs['units'] = 'deg.'
+
     return daOut, blankSegs
 
 

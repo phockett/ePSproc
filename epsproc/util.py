@@ -134,3 +134,34 @@ def BLMdimList(sType = 'stacked'):
     else:
         # unstackedDims
         return ['Eke', 'l', 'm', 'P', 'T', 'C']
+
+# Return a dict of allowed dataTypes, corresponding to ePS commands/file segments, or epsproc processed data.
+def dataTypesList():
+    """
+    Return a dict of allowed dataTypes, corresponding to ePS commands/file segments, or epsproc processed data.
+    Each dataType lists 'source' and 'desc' fields.
+    'Source' fields correspond to 'recordType' in ePS files (and for associated parser), or give epsproc function.
+
+    TODO: best choice of data structure here?  Currently nested dictionary.
+
+    """
+
+    dataDict = {'BLM' :
+                    {'source':'epsproc.MFBLM',
+                    'desc':'Calcualted MF beta parameters from epsproc.MFBLM().'
+                    },
+                'matE' :
+                    {'source':'DumpIdy',
+                    'desc':'Raw photoionization matrix elements from ePS, DumpIdy command and file segments.'
+                    },
+                'EDCS' :
+                    {'source':'EDCS',
+                    'desc':'Electron scattering DCS results from ePS, EDCS command and file segments.'
+                    },
+                'XSect' :
+                    {'source':'CrossSection',
+                    'desc':'Photoionziation cross section results from ePS, GetCro command and CrossSection file segments.'
+                    }
+                }
+
+    return dataDict

@@ -16,6 +16,8 @@ Main function: :py:func:`epsproc.IO.readMatEle`:
 History
 -------
 
+14/10/19        Added/debugged read functions for CrossSecion segments.
+
 27/09/19        Added read functions for EDCS segments.
 
 17/09/19        Added read/write to/from netCDF files for Xarrays.
@@ -63,7 +65,7 @@ except ImportError as e:
     print('* pyevtk not found, VTK export not available. ')
 
 # Package fns.
-from epsproc.util import matEleSelector, dataGroupSel, matEdimList, BLMdimList
+from epsproc.util import matEleSelector, dataGroupSel, matEdimList, BLMdimList, stringRepMap
 
 # ***** Ancillary functions
 
@@ -107,8 +109,9 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
         for (i, line) in enumerate(f):  # Note enumerate() here gives lines with numbers, e.g. fullFile=enumerate(f) will read in file with numbers
             i = i + 1  # Offset for file line numbers (1 indexed)
             # If line matches startPhrase, print line & append to list.
+            # Note use of lstrip to skip any leading whitespace.
             # if startPhrase in line:
-            if line.startswith(startPhrase):
+            if line.lstrip().startswith(startPhrase):
                 if verbose:
                     print('Found "', startPhrase, '" at line: ', i)
 
@@ -289,7 +292,7 @@ def symFileParse(fileName):
 
     """
     startPhrase = "ScatSym"
-    endPhrase = "FileName"
+    endPhrase = ["FileName", "\n"]
     comment = "+"
 
     (lines, symSegs) = fileParse(fileName, startPhrase, endPhrase, comment) # , '>')
@@ -742,13 +745,14 @@ def getCroSegParse(dumpSeg):
 
     """
     # Use lists to collect data, and convert format at the end
-    attribs = []
+    # attribs = []
     XS = []
 
     # attribs.append(['E', np.float(parseLineDigits(dumpSeg[13][2])[0]), 'eV'])
-    attribs.append(dumpSeg[0].split())  # Set header line
+    # attribs.append(dumpSeg[1][2].split())  # Set header line
+    attribs = dumpSeg[1][2].split()  # Set header line
     # For each line convert to float - bit ugly, but works
-    for testLine in dumpSeg[1:]:
+    for testLine in dumpSeg[2:]:
         XS.append(np.genfromtxt(StringIO(testLine[2])))
 
     return np.asarray(XS), attribs
@@ -794,18 +798,41 @@ def getCroSegsParseX(dumpSegs, symSegs):
     # Loop over DumpIdy segments, extract data & reformat
     # If blank, skip parser and append blankSegs.
     for n, dumpSeg in enumerate(dumpSegs):
-        if len(dumpSeg)>4:
+        if len(dumpSeg)>1:
             segBlock, attribs = getCroSegParse(dumpSeg)
 
-            # Create Xarray
-            daTmp = xr.DataArray(np.asarray(segBlock[:,1:]),
-                    coords={'Ehv':segBlock[:,0], 'XC data':attibs[1:-1:2], 'Type':attibs[2:-1:2]},
-                    dims = ['Ehv', 'XC data', 'Type'])
+            # Create Xarray - basic
+            # daTmp = xr.DataArray(np.asarray(segBlock[:,2:]),
+            #         coords={'Ehv':segBlock[:,1], 'XC data':attribs[1:-1:2]}, # 'Type':attribs[2:-1:2]},
+            #         dims = ['Ehv', 'XC data']) #, 'Type'])
+
+            # Create Xarray - set MultiIndex first & then rearrange.
+            tList = [c[0] for c in attribs[2::2]]  # Set type as char
+            typesPD = pd.MultiIndex.from_arrays([attribs[1:-1:2], tList], names = ['XC', 'Type'])
+            daTmp = xr.DataArray(np.asarray(segBlock[:,2:]),
+                    coords={'Ehv':segBlock[:,1], 'Ctype':typesPD},
+                    dims = ['Ehv', 'Ctype']).unstack()
 
             # Add singleton dim and store.
             # Note this assumes len(symSegs) >= len(dumpSegs)
             # Symmetries are not listed in getCro output.
-            dataList.append(daTmp.expand_dims({'Sym':symSegs[n]}))
+
+            sRep = {'ScatSym':'Total', 'ScatContSym':'Cont'}    # Dicitonary look-up for sym names
+            try:
+                # dataList.append(daTmp.expand_dims({'Sym':symSegs[n]}))
+                symList = [symString[2].split()[1][1:3] for symString in symSegs[n]]
+                symRep = [stringRepMap(symString[2].split()[0],sRep) for symString in symSegs[n]]
+
+            except IndexError as e:
+                if e.args[0] != 'list index out of range':
+                    raise
+                # dataList.append(daTmp.expand_dims({'Sym':'Missing'}))
+                symList = ['All', 'All']
+                symRep = ['Total', 'Cont']
+
+            # Set MultiIndex for syms
+            Syms = pd.MultiIndex.from_arrays([[symList[0]], [symList[1]]], names=symRep)  # Works as expected, rather ugly!
+            dataList.append(daTmp.expand_dims({'Sym':Syms}))
 
         else:
             blankSegs += 1
@@ -1175,9 +1202,9 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
             ekeList = scatEngFileParse(file)
             symSegs = symFileParse(file)
             print('Scanning CrossSection segments.')
-            print('Expecting {0} CrossSection segments.'.format(ekeList.size * len(symSegs)))
+            print('Expecting {0} CrossSection segments.'.format(len(symSegs)+1))  # Assuming 1 segment per symmetry, plus symm-summed case.
             lines, dumpSegs = getCroFileParse(file)
-            data, blankSegs = getCroSegsParseX(dumpSegs) # , ekeList, symSegs)
+            data, blankSegs = getCroSegsParseX(dumpSegs, symSegs) # , ekeList, symSegs)
 
 
         # Add some additional properties to the output

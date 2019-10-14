@@ -11,3 +11,4 @@ docs/build/
 venv/
 wheelhouse/
 docs/docs-build/
+.ipynb_checkpoints

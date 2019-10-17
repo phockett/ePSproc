@@ -16,6 +16,10 @@ Main function: :py:func:`epsproc.IO.readMatEle`:
 History
 -------
 
+14/10/19        Added/debugged read functions for CrossSecion segments.
+
+27/09/19        Added read functions for EDCS segments.
+
 17/09/19        Added read/write to/from netCDF files for Xarrays.
                 Use built-in methods, with work-arounds for complex number format issues.
 
@@ -61,7 +65,7 @@ except ImportError as e:
     print('* pyevtk not found, VTK export not available. ')
 
 # Package fns.
-from epsproc.util import matEleSelector, dataGroupSel, matEdimList, BLMdimList
+from epsproc.util import matEleSelector, dataGroupSel, matEdimList, BLMdimList, stringRepMap
 
 # ***** Ancillary functions
 
@@ -105,8 +109,9 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
         for (i, line) in enumerate(f):  # Note enumerate() here gives lines with numbers, e.g. fullFile=enumerate(f) will read in file with numbers
             i = i + 1  # Offset for file line numbers (1 indexed)
             # If line matches startPhrase, print line & append to list.
+            # Note use of lstrip to skip any leading whitespace.
             # if startPhrase in line:
-            if line.startswith(startPhrase):
+            if line.lstrip().startswith(startPhrase):
                 if verbose:
                     print('Found "', startPhrase, '" at line: ', i)
 
@@ -171,6 +176,71 @@ def dumpIdyFileParse(fileName):
 
     return lines, dumpSegs[:-1]
 
+# Simple wrapper for general fileParse function, ePS EDCS segments
+def EDCSFileParse(fileName):
+    """
+    Parse an ePS file for EDCS segments.
+
+    Parameters
+    ----------
+    fileName : str
+        File to read (file in working dir, or full path)
+
+    Returns
+    -------
+    list
+        [lineStart, lineStop], ints for line #s found from start and end phrases.
+    list
+        dumpSegs, list of lines read from file.
+
+    Lists contain entries for each dumpIdy segment found in the file.
+
+    """
+
+    startPhrase = "EDCS - differential cross section program"
+    endPhrase = ["+ Command", "Time Now"]  # In this case may have multiple end phrases
+
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase) # , '>')
+
+    # NOTE - with current code dumpSegs has one final blank segment
+    print('Found {0} EDCS segments (sets of scattering results).'.format(len(dumpSegs) - 1))
+
+    return lines, dumpSegs[:-1]
+
+# Simple wrapper for general fileParse function, ePS GetCro/CrossSection segments
+def getCroFileParse(fileName):
+    """
+    Parse an ePS file for GetCro/CrossSection segments.
+
+    Parameters
+    ----------
+    fileName : str
+        File to read (file in working dir, or full path)
+
+    Returns
+    -------
+    list
+        [lineStart, lineStop], ints for line #s found from start and end phrases.
+    list
+        dumpSegs, list of lines read from file.
+
+    Lists contain entries for each dumpIdy segment found in the file.
+
+    """
+
+    # startPhrase = "CrossSection - compute photoionization cross section"  # For full file segment
+    startPhrase = "COMPOSITE CROSS SECTIONS AT ALL ENERGIES"  # Final table of XSect values
+    endPhrase = ["+ Command", "Time Now"]  # In this case may have multiple end phrases
+
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase) # , '>')
+
+    # NOTE - with current code dumpSegs has one final blank segment
+    print('Found {0} CrossSection segments (sets of results).'.format(len(dumpSegs) - 1))
+
+    return lines, dumpSegs[:-1]
+
+
+
 # Simple wrapper for general fileParse function, check ScatEng and return Eke list
 def scatEngFileParse(fileName):
     """
@@ -222,7 +292,7 @@ def symFileParse(fileName):
 
     """
     startPhrase = "ScatSym"
-    endPhrase = "FileName"
+    endPhrase = ["FileName", "\n"]
     comment = "+"
 
     (lines, symSegs) = fileParse(fileName, startPhrase, endPhrase, comment) # , '>')
@@ -231,7 +301,6 @@ def symFileParse(fileName):
     print('Expecting {0} symmetries.'.format(len(symSegs) - 1))
 
     return symSegs[:-1]
-
 
 
 # Parse digits from a line using re
@@ -243,6 +312,8 @@ def parseLineDigits(testLine):
 
     """
     return re.findall("[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?", testLine)
+
+# ************* DumpIdy parsing
 
 # Parse a DumpIdy segment
 #TODO: More attribs, and convert attribs to dict, or other more structured format.
@@ -317,7 +388,6 @@ def dumpIdySegParse(dumpSeg):
     return np.asarray(rawIdy), attribs
 
 
-
 # Functional form for parsing full set of mat elements and putting in xarray
 def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
     """
@@ -326,7 +396,10 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
     Parameters
     ----------
     dumpSegs : list
-        Set of dumpIdy segments, i.e. dumpSegs, as returned by dumpIdyFileParse()
+        Set of dumpIdy segments, i.e. dumpSegs, as returned by :py:func:`epsproc.IO.dumpIdyFileParse()`
+
+    ekeListUn : list
+        List of energies, used for error-checking and Xarray rearraging, as returned by :py:func:`epsproc.IO.scatEngFileParse()`
 
     Returns
     -------
@@ -341,7 +414,7 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
     Example
     -------
 
-    >>> data = parseDumpSegX(dumpSegs)
+    >>> data = dumpIdySegsParseX(dumpSegs)
 
     """
 
@@ -352,7 +425,7 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
     # Loop over DumpIdy segments, extract data & reformat
     # If blank, skip parser and append blankSegs.
     for dumpSeg in dumpSegs:
-        if len(dumpSeg)>4:
+        if len(dumpSeg)>6:
             segBlock, attribs = dumpIdySegParse(dumpSeg)
             dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])
             # Switch l,m - with advanced indexing, other methods faster...? https://stackoverflow.com/questions/4857927/swapping-columns-in-a-numpy-array
@@ -529,6 +602,256 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
     daOut.attrs['dataType'] = 'matE'    # Set dataType for use later.
 
     return daOut.transpose(), blankSegs     # NOTE transpose to reverse ordering of dims.
+
+
+
+# ************* EDCS parsing
+
+# Parse a EDCS segment (roughly)
+def EDCSSegParse(dumpSeg):
+    """
+    Extract values from EDCS file segments.
+
+    Parameters
+    ----------
+    dumpSeg : list
+        One EDCS segment, from dumpSegs[], as returned by :py:func:`epsproc.IO.EDCSFileParse()`
+
+    Returns
+    -------
+    np.array
+        EDCS, array of scattering XS, [theta, Cross Section (Angstrom^2)]
+    list
+        attribs, list [Label, value, units]
+
+    Notes
+    -----
+    Currently this is a bit messy, and relies on fixed EDCS format.
+    No error checking as yet.
+    Not yet reading all attribs.
+
+    Example
+    -------
+
+    >>> EDCS, attribs = EDCSSegParse(dumpSegs[0])
+
+    """
+    # Use lists to collect data, and convert format at the end
+    attribs = []
+    EDCS = []
+
+    attribs.append(['E', np.float(parseLineDigits(dumpSeg[13][2])[0]), 'eV'])
+
+    # For each line convert to float - bit ugly, but works
+    for testLine in dumpSeg[67:]:
+        EDCS.append(np.genfromtxt(StringIO(testLine[2])))
+
+    return np.asarray(EDCS), attribs
+
+# Functional form for parsing full set of mat elements and putting in xarray
+def EDCSSegsParseX(dumpSegs):
+    """
+    Extract data from ePS EDCS segments into usable form.
+
+    Parameters
+    ----------
+    dumpSegs : list
+        Set of dumpIdy segments, i.e. dumpSegs, as returned by :py:func:`epsproc.IO.EDCSFileParse()`
+
+    Returns
+    -------
+    xr.array
+        Xarray data array, containing cross sections.
+        Dimensions (Eke, theta)
+
+    int
+        Number of blank segments found.
+        (CURRENTLY not implemented.)
+
+
+    Example
+    -------
+
+    >>> data = EDCSSegsParseX(dumpSegs)
+
+    Notes
+    ------
+
+    A rather cut-down version of :py:func:`epsproc.IO.dumpIdySegsParseX()`, no error checking currently implemented.
+
+    """
+
+    dataList = []
+    dataArray = []
+    ekeList = []
+    blankSegs = 0
+
+    # Loop over DumpIdy segments, extract data & reformat
+    # If blank, skip parser and append blankSegs.
+    for dumpSeg in dumpSegs:
+        if len(dumpSeg)>4:
+            segBlock, attribs = EDCSSegParse(dumpSeg)
+            dataArray.append(segBlock[:,1])         # For brevity, just stack XS data here - will save Xarray sorting later.
+            dataList.append([segBlock[:,0], segBlock[:,1], attribs])
+            ekeList.append(attribs[0][1])
+
+        else:
+            blankSegs += 1
+            ekeList.append(np.nan)
+
+    # Dump lists into Xarray - will work provided same theta over all records.
+    daOut = xr.DataArray(np.asarray(dataArray), coords={'E':ekeList, 'Theta':segBlock[:,0]}, dims = ['E','Theta'])
+
+    daOut.attrs['dataType'] = 'EDCS'    # Set dataType for use later.
+
+    # Set units - should set from file ideally.
+    daOut.attrs['units'] = 'Angs^2'
+    daOut.E.attrs['units'] = 'eV'
+    daOut.Theta.attrs['units'] = 'deg.'
+
+    return daOut, blankSegs
+
+
+# ************* CrossSection parsing
+# Basically same as EDCS, except read a table of values per symmetry.
+
+# Parse a getCro/CrossSection segment (roughly)
+def getCroSegParse(dumpSeg):
+    """
+    Extract values from GetCro/CrossSection file segments.
+
+    Parameters
+    ----------
+    dumpSeg : list
+        One CrossSection segment, from dumpSegs[], as returned by :py:func:`epsproc.IO.getCroFileParse()`
+
+    Returns
+    -------
+    np.array
+        CrossSections, table of results vs. energy.
+    list
+        attribs, list [Label, value, units]
+
+    Notes
+    -----
+    Currently this is a bit messy, and relies on fixed CrossSection output format.
+    No error checking as yet.
+    Not yet reading all attribs.
+
+    Example
+    -------
+
+    >>> XS, attribs = getCroSegParse(dumpSegs[0])
+
+    """
+    # Use lists to collect data, and convert format at the end
+    # attribs = []
+    XS = []
+
+    # attribs.append(['E', np.float(parseLineDigits(dumpSeg[13][2])[0]), 'eV'])
+    # attribs.append(dumpSeg[1][2].split())  # Set header line
+    attribs = dumpSeg[1][2].split()  # Set header line
+    # For each line convert to float - bit ugly, but works
+    for testLine in dumpSeg[2:]:
+        XS.append(np.genfromtxt(StringIO(testLine[2])))
+
+    return np.asarray(XS), attribs
+
+# Functional form for parsing full set of mat elements and putting in xarray
+def getCroSegsParseX(dumpSegs, symSegs):
+    """
+    Extract data from ePS getCro/CrossSecion segments into usable form.
+
+    Parameters
+    ----------
+    dumpSegs : list
+        Set of dumpIdy segments, i.e. dumpSegs, as returned by :py:func:`epsproc.IO.getCroFileParse()`
+
+    Returns
+    -------
+    xr.array
+        Xarray data array, containing cross sections.
+        Dimensions (Eke, theta)
+
+    int
+        Number of blank segments found.
+        (CURRENTLY not implemented.)
+
+
+    Example
+    -------
+
+    >>> data = getCroSegsParseX(dumpSegs)
+
+    Notes
+    ------
+
+    A rather cut-down version of :py:func:`epsproc.IO.dumpIdySegsParseX()`, no error checking currently implemented.
+
+    """
+
+    dataList = []
+    dataArray = []
+    #ekeList = []
+    blankSegs = 0
+
+    # Loop over DumpIdy segments, extract data & reformat
+    # If blank, skip parser and append blankSegs.
+    for n, dumpSeg in enumerate(dumpSegs):
+        if len(dumpSeg)>1:
+            segBlock, attribs = getCroSegParse(dumpSeg)
+
+            # Create Xarray - basic
+            # daTmp = xr.DataArray(np.asarray(segBlock[:,2:]),
+            #         coords={'Ehv':segBlock[:,1], 'XC data':attribs[1:-1:2]}, # 'Type':attribs[2:-1:2]},
+            #         dims = ['Ehv', 'XC data']) #, 'Type'])
+
+            # Create Xarray - set MultiIndex first & then rearrange.
+            tList = [c[0] for c in attribs[2::2]]  # Set type as char
+            typesPD = pd.MultiIndex.from_arrays([attribs[1:-1:2], tList], names = ['XC', 'Type'])
+            daTmp = xr.DataArray(np.asarray(segBlock[:,2:]),
+                    coords={'Ehv':segBlock[:,1], 'Ctype':typesPD},
+                    dims = ['Ehv', 'Ctype']).unstack()
+
+            # Add singleton dim and store.
+            # Note this assumes len(symSegs) >= len(dumpSegs)
+            # Symmetries are not listed in getCro output.
+
+            sRep = {'ScatSym':'Total', 'ScatContSym':'Cont'}    # Dicitonary look-up for sym names
+            try:
+                # dataList.append(daTmp.expand_dims({'Sym':symSegs[n]}))
+                symList = [symString[2].split()[1][1:3] for symString in symSegs[n]]
+                symRep = [stringRepMap(symString[2].split()[0],sRep) for symString in symSegs[n]]
+
+            except IndexError as e:
+                if e.args[0] != 'list index out of range':
+                    raise
+                # dataList.append(daTmp.expand_dims({'Sym':'Missing'}))
+                symList = ['All', 'All']
+                symRep = ['Total', 'Cont']
+
+            # Set MultiIndex for syms
+            Syms = pd.MultiIndex.from_arrays([[symList[0]], [symList[1]]], names=symRep)  # Works as expected, rather ugly!
+            dataList.append(daTmp.expand_dims({'Sym':Syms}))
+
+        else:
+            blankSegs += 1
+            #ekeList.append(np.nan)
+
+    # Stack lists by symmetry - this is currently assumed from symSegs
+    # if len(dumpSegs) == len(symSegs):
+    daOut = xr.combine_nested(dataList, concat_dim = ['Sym'])
+
+    daOut.attrs['dataType'] = 'XSect'    # Set dataType for use later.
+
+    # Set units - should set from file ideally.
+    daOut.Ehv.attrs['units'] = 'eV'
+
+    return daOut, blankSegs
+
+
+
+# ************* MatEle parsing/sorting - needs a tidy up.
 
 # Linear version of code, for very specific cases.
 # Linear tree ip > mu >it
@@ -791,8 +1114,9 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out'):
 # Some of the logic and methods could do with a revisit/tidy-up here...
 #TODO: Add error checking on paths using os.path.isdir/isfile etc.
 #TODO: Check/fix paths if incorrectly passed, e.g. https://stackoverflow.com/a/21605790
+# ADDED: type switch for matEle or EDCS, probably more to come. Should rename function!
 
-def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
+def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'DumpIdy'):
     r"""
     Read ePS file(s) and return results as Xarray data structures.
     File endings specified by fType, default *.out.
@@ -812,6 +1136,11 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
 
     fType : str, optional
         File ending for ePS output files, default '.out'
+
+    recordType : str, optional, default 'DumpIdy'
+        Type of record to scan for, currently set for 'DumpIdy', 'EDCS' or 'CrossSection'.
+        For a full list of descriptions, types and sources, run:
+        >>> epsproc.util.dataTypesList()
 
 
     Returns
@@ -842,7 +1171,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
     #   - file(s) and add to list with full path
     #   - default case is scan current working dir.
 
-    print('*** ePSproc readMatEle(): scanning files for DumpIdy segments (matrix elements)')
+    print('*** ePSproc readMatEle(): scanning files for ' + recordType + ' segments.')
 
     # Call function to check files or scan dir.
     fList = getFiles(fileIn = fileIn, fileBase = fileBase, fType = fType)
@@ -854,11 +1183,29 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
 
         # Scan the file and parse segments
         #lines, dumpSegs = dumpIdyFileParse(os.path.join(fileBase, file))
-        ekeList = scatEngFileParse(file)
-        symSegs = symFileParse(file)
-        print('Expecting {0} dumpIdy segments.'.format(ekeList.size * len(symSegs)))
-        lines, dumpSegs = dumpIdyFileParse(file)
-        data, blankSegs = dumpIdySegsParseX(dumpSegs, ekeList, symSegs)
+
+        if recordType is 'DumpIdy':
+            ekeList = scatEngFileParse(file)
+            symSegs = symFileParse(file)
+            print('Scanning CrossSection segments.')
+            print('Expecting {0} DumpIdy segments.'.format(ekeList.size * len(symSegs)))
+            lines, dumpSegs = dumpIdyFileParse(file)
+            data, blankSegs = dumpIdySegsParseX(dumpSegs, ekeList, symSegs)
+
+        if recordType is 'EDCS':
+            # print('Expecting {0} EDCS segments.'.format(ekeList.size))
+            print('Scanning EDCS segments.')
+            lines, dumpSegs = EDCSFileParse(file)
+            data, blankSegs = EDCSSegsParseX(dumpSegs) # , ekeList, symSegs)
+
+        if recordType is 'CrossSection':
+            ekeList = scatEngFileParse(file)
+            symSegs = symFileParse(file)
+            print('Scanning CrossSection segments.')
+            print('Expecting {0} CrossSection segments.'.format(len(symSegs)+1))  # Assuming 1 segment per symmetry, plus symm-summed case.
+            lines, dumpSegs = getCroFileParse(file)
+            data, blankSegs = getCroSegsParseX(dumpSegs, symSegs) # , ekeList, symSegs)
+
 
         # Add some additional properties to the output
         fName = os.path.split(file)
@@ -866,7 +1213,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out'):
         data.attrs['file'] = fName[1]
         data.attrs['fileBase'] = fName[0]
 
-        print('Processed {0} sets of matrix elements ({1} blank)'.format(len(dumpSegs),blankSegs))
+        print('Processed {0} sets of {1} file segments, ({2} blank)'.format(len(dumpSegs),recordType,blankSegs))
 
         # Put in a list for now, might want to use Xarray dataset here, and/or combine results from multiple files.
         dataSet.append(data)

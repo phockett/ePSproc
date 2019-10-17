@@ -239,6 +239,8 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
     return BLMX
 
 
+# Master BLM calculation routine.
+# TODO: set for differnt calc routines, once developed!
 def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), verbose = 1):
     """
     Calculate MFBLMs for a range of (E, sym) cases. Default is to calculated for all symmetries at each energy.
@@ -339,5 +341,76 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     BLMXout.attrs['sumDims'] = sumDims # May want to explicitly propagate symmetries here...?
     BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
     BLMXout.attrs['dataType'] = 'BLM'
+
+    return BLMXout
+
+
+# Wrapper for mfblm for a set of Euler angles
+def mfblmEuler(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), verbose = 1):
+    """
+    Wrapper for `epsproc.mfblm()` for a set of Euler angles.  All other parameters are simply passed to mfblm().
+    Calculate MFBLMs for a range of (E, sym) cases. Default is to calculated for all symmetries at each energy.
+
+    Parameters
+    ----------
+    da : Xarray
+        Contains matrix elements to use for calculation.
+        Matrix elements will be sorted by energy and BLMs calculated for each set.
+
+    selDims : dict, optional, default = {'Type':'L'}
+        Additional sub-selection to be applied to matrix elements before BLM calculation.
+        Default selects just length gauge results.
+
+    eAngs : [phi,theta,chi], optional, default = [0,0,0]
+        Set of Euler angles defining polarization geometry.
+        List or np.array, dims(N, 3).
+
+    thres : float, optional, default = 1e-4
+        Threshold value for testing significance of terms. Terms < thres will be dropped.
+
+    sumDims : tuple, optional, default = ('l','m','mu','Cont','Targ','Total','it')
+        Defines which terms are summed over (coherent) in the MFBLM calculation.
+        (These are used to flatten the Xarray before calculation.)
+        Default includes sum over (l,m), symmetries and degeneracies (but not energies).
+
+    verbose : int, optional, default 1
+        Verbosity level:
+
+         - 0: Silent run.
+         - 1: Print basic info.
+         - 2: Print intermediate C parameter array to termina when running.
+
+    Returns
+    -------
+    Xarray
+        Calculation results BLM, dims (Euler, Eke, l,m). Some global attributes are also appended.
+
+    Limitations
+    -----------
+    Currently set to loop calcualtions over energy only, and all symmetries.
+    Pass single {'Cont':'sym'} to calculated for only one symmetry group.
+
+    TODO: In future this will be more elegant.
+    TODO: Setting selDims in output structure needs more thought for netCDF save compatibility.
+
+    """
+
+    # Check size of passed set of Euler angles
+    # For ease of manipulation, just change to np.array if necessary!
+    if isinstance(eAngs, list):
+        eAngs = np.array(eAngs)
+
+    # For a single set of eAngs, just pass directly.
+    if eAngs.ndim == 1:
+        BLMXout = mfblm(da, selDims = selDims, eAngs = eAngs, thres = thres, sumDims = sumDims, verbose = verbose)
+    else:
+    # Loop over eAngs and calculate
+        BLM = []
+        for angsIn in range(0, eAngs.shape[0]):
+            BLM.append(mfblm(da, selDims = selDims, eAngs = eAngs[angsIn,:], thres = thres, verbose = verbose))
+
+        # Stack results
+        BLMXout = xr.combine_nested(BLM,'Euler')
+
 
     return BLMXout

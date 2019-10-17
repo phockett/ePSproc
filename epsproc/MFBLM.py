@@ -70,7 +70,7 @@ def Wigner_D_element_Cached(pRot, P, Rp, R):
 
 
 # Try basic looping version, similar to Matlab code...
-def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
+def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
     """
     Calculate inner loop for MFBLMs, based on passed set of matrix elements (Xarray).
 
@@ -96,8 +96,12 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
     R : int, optional, default R = 0
         LF polarization term (from tensor contraction). Currently only valid for p = 0
 
-    verbose : bool, optional, default False
-        Print intermediate C parameter array to termina when running.
+    verbose : int, optional, default 1
+        Verbosity level:
+
+         - 0: Silent run.
+         - 1: Print basic info.
+         - 2: Print intermediate C parameter array to termina when running.
 
     Returns
     -------
@@ -127,7 +131,8 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
     LMlist = pd.MultiIndex.from_product([matE.SumDim, matE.SumDim], names = ['LM1','LM2'])
     indList = pd.MultiIndex.from_product([np.arange(0, matE.size), np.arange(0, matE.size)], names = ['ind1','ind2'])
 
-    print('Calculating MFBLMs for {0} pairs... Eke = {1} eV, eAngs = ({2})'.format(indList.size, matE.Eke.data, eAngs))
+    if verbose > 0:
+        print('Calculating MFBLMs for {0} pairs... Eke = {1} eV, eAngs = ({2})'.format(indList.size, matE.Eke.data, eAngs))
 
     # Set pol terms - now passed
     # p = 0
@@ -209,7 +214,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
         indThres = np.abs(C[:,6]) > thres
         Cthres = C[indThres,:]
 
-        if verbose:
+        if verbose > 1:
             print(Cthres)
 
         # Calculate output values as sum over (L,M) terms
@@ -234,7 +239,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
     return BLMX
 
 
-def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it')):
+def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), verbose = 1):
     """
     Calculate MFBLMs for a range of (E, sym) cases. Default is to calculated for all symmetries at each energy.
 
@@ -258,6 +263,13 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
         Defines which terms are summed over (coherent) in the MFBLM calculation.
         (These are used to flatten the Xarray before calculation.)
         Default includes sum over (l,m), symmetries and degeneracies (but not energies).
+
+    verbose : int, optional, default 1
+        Verbosity level:
+
+         - 0: Silent run.
+         - 1: Print basic info.
+         - 2: Print intermediate C parameter array to termina when running.
 
     Returns
     -------
@@ -300,7 +312,7 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     BLMXlist = []
     if daSumDim.Eke.size > 1:
         for n, daE in daSumDim.groupby('Eke'):
-            BLMXlist.append(MFBLMCalcLoop(daE, eAngs = eAngs, thres = thres))
+            BLMXlist.append(MFBLMCalcLoop(daE, eAngs = eAngs, thres = thres, verbose = verbose))
 
             # Add dims - currently set for Euler angles only (single set)
             # Can't seem to add mutiindex as a single element, so set dummy coord here and replace below.

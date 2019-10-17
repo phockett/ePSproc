@@ -13,7 +13,7 @@ import numpy as np
 import re
 
 # Selector function for matrix elements in Xarray
-def matEleSelector(da, thres = None, inds = None, sq = False, drop=True):
+def matEleSelector(da, thres = None, inds = None, dims = None, sq = False, drop=True):
     """
     Select & threshold raw matrix elements in an Xarray
 
@@ -23,10 +23,15 @@ def matEleSelector(da, thres = None, inds = None, sq = False, drop=True):
         Set of matrix elements to sub-select
     thres : float, optional, default None
         Threshold value for abs(matElement), keep only elements > thres.
+        This is *element-wise*.
     inds : dict, optional, default None
         Dicitonary of additional selection criteria, in name:value format.
         These correspond to parameter dimensions in the Xarray structure.
         E.g. inds = {'Type':'L','Cont':'A2'}
+    dims : str or list of strs, dimensions to look for max & threshold, default None
+        Set for *dimension-wise* thresholding. If set, this is used *instead* of element-wise thresholding.
+        List of dimensions, which will be checked vs. threshold for max value, according to abs(dim.max) > threshold
+        This allows for consistent selection of continuous parameters over a dimension, by a threshold.
     sq : bool, optional, default False
         Squeeze output singleton dimensions.
     drop : bool, optional, default True
@@ -55,10 +60,15 @@ def matEleSelector(da, thres = None, inds = None, sq = False, drop=True):
 
     # Reduce dims by thesholding on abs values
     # Do this after selection to ensure Nans removed.
-    if thres is not None:
+    if thres is not None and dims is None:
         daOut = da.where(np.abs(da) > thres, drop = drop)
     else:
         daOut = da
+
+    # If dims is set, check over dims for consistency.
+    # WILL this just produce same results as thres then squeeze...?
+    if dims is not None:
+        daOut = daOut.where(np.abs(da).max(dim = dims) > thres, drop = True)
 
     if sq:
         daOut = daOut.squeeze()  # Squeeze dims.
@@ -140,9 +150,13 @@ def BLMdimList(sType = 'stacked'):
 # Return a dict of allowed dataTypes, corresponding to ePS commands/file segments, or epsproc processed data.
 def dataTypesList():
     """
-    Return a dict of allowed dataTypes, corresponding to ePS commands/file segments, or epsproc processed data.
-    Each dataType lists 'source' and 'desc' fields.
-    'Source' fields correspond to 'recordType' in ePS files (and for associated parser), or give epsproc function.
+    Return a dict of allowed dataTypes, corresponding to epsproc processed data.
+
+    Each dataType lists 'source', 'desc' and 'recordType' fields.
+
+    - 'source' fields correspond to ePS functions which get or generate the data.
+    - 'desc' brief description of the dataType.
+    - 'recordType' gives the required segment in ePS files (and associated parser). If the segment is not present in the source file, then the dataType will not be available.
 
     TODO: best choice of data structure here?  Currently nested dictionary.
 
@@ -150,19 +164,23 @@ def dataTypesList():
 
     dataDict = {'BLM' :
                     {'source':'epsproc.MFBLM',
-                    'desc':'Calcualted MF beta parameters from epsproc.MFBLM().'
+                    'desc':'Calcualted MF beta parameters from epsproc.MFBLM(), based on dipole matrix elements from ePS.',
+                    'recordType':'DumpIdy'
                     },
                 'matE' :
-                    {'source':'DumpIdy',
-                    'desc':'Raw photoionization matrix elements from ePS, DumpIdy command and file segments.'
+                    {'source':'epsproc.IO.readMatEle',
+                    'desc':'Raw photoionization matrix elements from ePS, DumpIdy command and file segments.',
+                    'recordType':'DumpIdy'
                     },
                 'EDCS' :
-                    {'source':'EDCS',
-                    'desc':'Electron scattering DCS results from ePS, EDCS command and file segments.'
+                    {'source':'epsproc.IO.readMatEle',
+                    'desc':'Electron scattering DCS results from ePS, EDCS command and file segments.',
+                    'recordType':'EDCS'
                     },
                 'XSect' :
                     {'source':'CrossSection',
-                    'desc':'Photoionziation cross section results from ePS, GetCro command and CrossSection file segments.'
+                    'desc':'Photoionziation cross section results from ePS, GetCro command and CrossSection file segments.',
+                    'recordType':'CrossSection'
                     }
                 }
 

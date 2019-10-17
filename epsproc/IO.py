@@ -846,6 +846,7 @@ def getCroSegsParseX(dumpSegs, symSegs):
 
     # Set units - should set from file ideally.
     daOut.Ehv.attrs['units'] = 'eV'
+    daOut.attrs['units'] = 'Mb'
 
     return daOut, blankSegs
 

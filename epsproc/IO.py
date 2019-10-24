@@ -766,7 +766,7 @@ def getCroSegParse(dumpSeg):
     return np.asarray(XS), attribs
 
 # Functional form for parsing full set of mat elements and putting in xarray
-def getCroSegsParseX(dumpSegs, symSegs):
+def getCroSegsParseX(dumpSegs, symSegs, ekeList):
     """
     Extract data from ePS getCro/CrossSecion segments into usable form.
 
@@ -855,6 +855,13 @@ def getCroSegsParseX(dumpSegs, symSegs):
     # Set units - should set from file ideally.
     daOut.Ehv.attrs['units'] = 'eV'
     daOut.attrs['units'] = 'Mb'
+
+    # Reset energies to Eke, and shift key dim - might be a simpler/shorter way to do this...?
+    daOut['EhvOrig'] = daOut['Ehv']
+    daOut['Ehv'] = ekeList
+    daOut = daOut.rename({'Ehv':'Eke', 'EhvOrig':'Ehv'})
+    # daOut.rename({'Ehv':'Eke'})
+    # daOut.rename({'EhvOrig':'Ehv'})
 
     return daOut, blankSegs
 
@@ -1213,7 +1220,8 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
             print('Scanning CrossSection segments.')
             print('Expecting {0} CrossSection segments.'.format(len(symSegs)+1))  # Assuming 1 segment per symmetry, plus symm-summed case.
             lines, dumpSegs = getCroFileParse(file)
-            data, blankSegs = getCroSegsParseX(dumpSegs, symSegs) # , ekeList, symSegs)
+            data, blankSegs = getCroSegsParseX(dumpSegs, symSegs, ekeList)
+
 
 
         # Add some additional properties to the output

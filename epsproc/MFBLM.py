@@ -77,7 +77,7 @@ def blmXarray(BLM, Eke):
     """
 
     # Set up Xarray
-    if BLM:
+    if BLM is not None:
         QNs = pd.MultiIndex.from_arrays(BLM[:,0:2].real.T.astype('int8'), names = ['l','m'])  # Set small (l,m) here for compatibility with sphCalc()
         BLMX = xr.DataArray(BLM[:,2], coords={'BLM':QNs}, dims = ['BLM'])
         # Set other dims - this might fail for multi symmetry cases... or if pre-selected?  Best done in calling/chunking function.

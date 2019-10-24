@@ -67,6 +67,31 @@ def Wigner_D_element_Cached(pRot, P, Rp, R):
     """Wrapper for WignerD caching with functools.lru_cache"""
     return  sf.Wigner_D_element(pRot, P, Rp, R)
 
+# Create Xarray from set of BLMs
+def blmXarray(BLM, Eke):
+    """
+    Create Xarray from BLM list, format BLM = [L, M, Beta], at a single energy Eke.
+
+    Array sorting only valid for 2D BLM array, for B00=0 case pass BLM = None.
+
+    """
+
+    # Set up Xarray
+    if BLM:
+        QNs = pd.MultiIndex.from_arrays(BLM[:,0:2].real.T.astype('int8'), names = ['l','m'])  # Set small (l,m) here for compatibility with sphCalc()
+        BLMX = xr.DataArray(BLM[:,2], coords={'BLM':QNs}, dims = ['BLM'])
+        # Set other dims - this might fail for multi symmetry cases... or if pre-selected?  Best done in calling/chunking function.
+        # BLMX = BLMX.expand_dims({'Sym':[matE.Sym.data], 'Eke':[matE.Eke.data]})
+
+    # Case for BLM = None, set array with B00 = 0
+    else:
+        QNs = pd.MultiIndex.from_arrays([[0],[0]], names = ['l','m'])  # Set small (l,m) here for compatibility with sphCalc()
+        BLMX = xr.DataArray([0], coords={'BLM':QNs}, dims = ['BLM'])
+
+
+    BLMX = BLMX.expand_dims({'Eke':[Eke]})
+
+    return BLMX
 
 
 # Try basic looping version, similar to Matlab code...
@@ -107,6 +132,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
     -------
     BLMX : Xarray
         Set of B(L,M; eAngs, Eke) terms for supplied matrix elements, in an Xarray.
+        For cases where no values are calculated (below threshold), return an array with B00 = 0 only.
 
     Limitations \& To Do
     --------------------
@@ -214,27 +240,36 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
         indThres = np.abs(C[:,6]) > thres
         Cthres = C[indThres,:]
 
-        if verbose > 1:
-            print(Cthres)
+        # Sun values that remain after thresholding
+        if Cthres.size > 0:
+            if verbose > 1:
+                print(Cthres)
 
-        # Calculate output values as sum over (L,M) terms
-        BLM = []
-        for L in np.arange(0, int(Cthres[:,4].max().real)+1):
-           for M in np.arange(-L, L+1):
-               maskLM = (Cthres[:,4].real.astype(int)==L)*(Cthres[:,5].real.astype(int)==M);
-               BLM.append([L, M, Cthres[maskLM,6].sum()])
+            # Calculate output values as sum over (L,M) terms
+            BLM = []
+            for L in np.arange(0, int(Cthres[:,4].max().real)+1):
+               for M in np.arange(-L, L+1):
+                   maskLM = (Cthres[:,4].real.astype(int)==L)*(Cthres[:,5].real.astype(int)==M);
+                   BLM.append([L, M, Cthres[maskLM,6].sum()])
 
-        BLM = np.array(BLM)
+            BLM = np.array(BLM)
 
-        # Set output as Xarray with coords
-        QNs = pd.MultiIndex.from_arrays(BLM[:,0:2].real.T.astype('int8'), names = ['l','m'])  # Set small (l,m) here for compatibility with sphCalc()
-        BLMX = xr.DataArray(BLM[:,2], coords={'BLM':QNs}, dims = ['BLM'])
-        # Set other dims - this might fail for multi symmetry cases... or if pre-selected?  Best done in calling/chunking function.
-        # BLMX = BLMX.expand_dims({'Sym':[matE.Sym.data], 'Eke':[matE.Eke.data]})
-        BLMX = BLMX.expand_dims({'Eke':[matE.Eke]})
+            # # Set output as Xarray with coords - NOW moved to function
+            # QNs = pd.MultiIndex.from_arrays(BLM[:,0:2].real.T.astype('int8'), names = ['l','m'])  # Set small (l,m) here for compatibility with sphCalc()
+            # BLMX = xr.DataArray(BLM[:,2], coords={'BLM':QNs}, dims = ['BLM'])
+            # # Set other dims - this might fail for multi symmetry cases... or if pre-selected?  Best done in calling/chunking function.
+            # # BLMX = BLMX.expand_dims({'Sym':[matE.Sym.data], 'Eke':[matE.Eke.data]})
+            # BLMX = BLMX.expand_dims({'Eke':[matE.Eke]})
+
+            # Set output as Xarray with coords
+            BLMX = blmXarray(BLM, matE.Eke)
+
+        else:
+            BLMX = blmXarray(None, matE.Eke)
 
     else:
-        BLMX = None
+        # BLMX = None
+        BLMX = blmXarray(None, matE.Eke)
 
     return BLMX
 

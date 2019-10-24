@@ -502,8 +502,16 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
         QNs = QNs.swaplevel(0, 1)  # Switch l,m indexes
         Syms = pd.MultiIndex.from_tuples([(attribs[4][1],attribs[5][1],attribs[6][1])],names=[attribs[4][0],attribs[5][0],attribs[6][0]])
 
+        # Original code - set according to LM, then expand dims.
         tmp = xr.DataArray(np.asarray(data[1]), coords={'LM':QNs}, dims = ['LM'])
         tmp = tmp.expand_dims({'Sym':Syms, 'Eke':[attribs[0][1]]})
+
+        # New code 24/10/19 - set all coords, including non-dim coords such as SF and Ehv
+        # Should be able to set in one call... but get dim issues here, probably with multiple singletons.
+        # tmp = xr.DataArray(np.asarray(data[1]), coords={'LM':QNs, 'Sym':Syms, 'Eke':[attribs[0][1]], 'Ehv':[attribs[1][1]], 'SF':[attribs[2][1]]}, dims = ['LM', 'Sym', 'Eke'])
+        # Setting as per previous code, then adding addtional singleton non-dimensional coords seems to be OK however...
+        tmp['Ehv']=(('Eke'),[attribs[1][1]])  # Link to single dim... should be OK?
+        tmp['SF']=(('Eke'),[attribs[2][1]])  # Link to single dim... should be OK?
 
         # Assign any other attributes - note that some attributes may be dropped when combining arrays below
         for a in attribs:

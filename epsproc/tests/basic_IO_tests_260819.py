@@ -33,7 +33,7 @@ import epsproc as ep
 #%% Set files
 
 # Set data dir
-dataPath = os.path.join(os.getcwd(), 'data')
+dataPath = os.path.join(os.getcwd(), 'data', 'photoionization')
 
 fList = ep.getFiles(fileBase = dataPath)
 

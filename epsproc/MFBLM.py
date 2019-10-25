@@ -276,7 +276,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
 
 # Master BLM calculation routine.
 # TODO: set for differnt calc routines, once developed!
-def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), verbose = 1):
+def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), SFflag = True, verbose = 1):
     """
     Calculate MFBLMs for a range of (E, sym) cases. Default is to calculated for all symmetries at each energy.
 
@@ -301,6 +301,9 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
         (These are used to flatten the Xarray before calculation.)
         Default includes sum over (l,m), symmetries and degeneracies (but not energies).
 
+    SFflag : bool, default = True
+        Normalise by scale factor to give X-sections (B00) in Mb
+
     verbose : int, optional, default 1
         Verbosity level:
 
@@ -322,6 +325,10 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     TODO: Setting selDims in output structure needs more thought for netCDF save compatibility.
 
     """
+
+    # Use SF (scale factor)
+    if SFflag:
+        da = da * da.SF
 
     # Unstack & sub-select data array
     daUnStack = da.unstack()
@@ -349,7 +356,10 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     BLMXlist = []
     if daSumDim.Eke.size > 1:
         for n, daE in daSumDim.groupby('Eke'):
-            BLMXlist.append(MFBLMCalcLoop(daE, eAngs = eAngs, thres = thres, verbose = verbose))
+            if SFflag:
+                BLMXlist.append(MFBLMCalcLoop(daE, eAngs = eAngs, thres = thres, verbose = verbose)) #/daE.SF)  # Rescale by SF if required
+            else:
+                BLMXlist.append(MFBLMCalcLoop(daE, eAngs = eAngs, thres = thres, verbose = verbose))
 
             # Add dims - currently set for Euler angles only (single set)
             # Can't seem to add mutiindex as a single element, so set dummy coord here and replace below.
@@ -377,11 +387,27 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
     BLMXout.attrs['dataType'] = 'BLM'
 
+    # Fix XS issue due to SF^2 - in tests this matchs GetCro results
+    # ISSUE: in current form, with SF(Eke,Sym), this reintroduces Sym axis even if already summed over.
+    # Q: Is SF sym dependent...?  If not, remove link.  If so, sum before division.
+    # NOW: checked in dumpIdySegsParseX, set to single dim (Eke only) if diff < machine epsilon
+    if SFflag:
+        # Check dims on SF are OK...
+        if da.SF.ndims > 1:
+            print(f'*** Warning: SF has {} dims, skipping renormalisation of BLMs by 1/SF.', da.SF.ndims)
+        else:
+            BLMXout = BLMXout / da.SF  # Renorm - should be able to sort this so it's not required...?  Multiply MFBLMCalcLoop result by SF only, rather than all matE?
+
+    # Reorder & normalise by X-sect (B00)
+    BLMXout = BLMXout.transpose()
+    BLMXout['XS'] = (('Eke','Euler'), BLMXout[0].data)  # Set XS = B00
+    BLMXout = BLMXout/BLMXout.XS  # Normalise
+
     return BLMXout
 
 
 # Wrapper for mfblm for a set of Euler angles
-def mfblmEuler(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), verbose = 1):
+def mfblmEuler(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), SFflag = True, verbose = 1):
     """
     Wrapper for `epsproc.mfblm()` for a set of Euler angles.  All other parameters are simply passed to mfblm().
     Calculate MFBLMs for a range of (E, sym) cases. Default is to calculated for all symmetries at each energy.
@@ -407,6 +433,9 @@ def mfblmEuler(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDim
         Defines which terms are summed over (coherent) in the MFBLM calculation.
         (These are used to flatten the Xarray before calculation.)
         Default includes sum over (l,m), symmetries and degeneracies (but not energies).
+
+    SFflag : bool, default = True
+        Normalise by scale factor to give X-sections (B00) in Mb
 
     verbose : int, optional, default 1
         Verbosity level:
@@ -437,12 +466,12 @@ def mfblmEuler(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDim
 
     # For a single set of eAngs, just pass directly.
     if eAngs.ndim == 1:
-        BLMXout = mfblm(da, selDims = selDims, eAngs = eAngs, thres = thres, sumDims = sumDims, verbose = verbose)
+        BLMXout = mfblm(da, selDims = selDims, eAngs = eAngs, thres = thres, sumDims = sumDims, SFflag = SFflag, verbose = verbose)
     else:
     # Loop over eAngs and calculate
         BLM = []
         for angsIn in range(0, eAngs.shape[0]):
-            BLM.append(mfblm(da, selDims = selDims, eAngs = eAngs[angsIn,:], thres = thres, verbose = verbose))
+            BLM.append(mfblm(da, selDims = selDims, eAngs = eAngs[angsIn,:], thres = thres, SFflag = SFflag, verbose = verbose))
 
         # Stack results
         BLMXout = xr.combine_nested(BLM,'Euler')

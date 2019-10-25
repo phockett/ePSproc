@@ -12,6 +12,8 @@ Collection of small functions for sorting etc.
 import numpy as np
 import re
 
+#*************** Selection functions
+
 # Selector function for matrix elements in Xarray
 def matEleSelector(da, thres = None, inds = None, dims = None, sq = False, drop=True):
     """
@@ -92,6 +94,34 @@ def dataGroupSel(data, dInd):
 
     return dataSub
 
+
+# Xarray groupby + compare values
+# STARTED... but not finished.  For basic diff along a dimension, just use da.diff(dim), see http://xarray.pydata.org/en/stable/generated/xarray.DataArray.diff.html#xarray.DataArray.diff
+# def groupCmp(data, dim):
+#     """
+#     Basic routine to compare sets of values by dimension, using Xarray groupby functionality.
+#
+#     Parameters
+#     ----------
+#     data : Xarray
+#         Data for comparison
+#
+#     dim : str
+#         Dimension label for grouping
+#
+#     Returns
+#     -------
+#
+#     """
+#
+#     dGroup = data.groupby(dim)
+#
+#     # Check differences between groups
+#     for gTest in dGroup:
+
+
+
+#************************** LIST functions
 
 # Return list of standard dataArray dims for matrix elements
 def matEdimList(sType = 'stacked'):

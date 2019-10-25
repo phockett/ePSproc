@@ -511,7 +511,8 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
         # tmp = xr.DataArray(np.asarray(data[1]), coords={'LM':QNs, 'Sym':Syms, 'Eke':[attribs[0][1]], 'Ehv':[attribs[1][1]], 'SF':[attribs[2][1]]}, dims = ['LM', 'Sym', 'Eke'])
         # Setting as per previous code, then adding addtional singleton non-dimensional coords seems to be OK however...
         tmp['Ehv']=(('Eke'),[attribs[1][1]])  # Link to single dim... should be OK?
-        tmp['SF']=(('Eke'),[attribs[2][1]])  # Link to single dim... should be OK?
+        # tmp['SF']=(('Eke'),[attribs[2][1]])  # Link to single dim... should be OK?
+        tmp['SF']=(('Eke','Sym'),np.array(attribs[2][1]).reshape(1,1))  # Link to Eke & sym (i.e. single set of matE)
 
         # Assign any other attributes - note that some attributes may be dropped when combining arrays below
         for a in attribs:
@@ -608,6 +609,12 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
 
     # Set any other global attribs
     daOut.attrs['dataType'] = 'matE'    # Set dataType for use later.
+
+    # SF testing vs. symmetry - remove Sym dim if not necessary, for easier computation later!
+    # Added 25/10/19, not yet well tested.
+    if daOut.SF.diff('Sym').max().pipe(np.abs) < np.finfo(complex).eps:
+        daOut['SF'] = ('Eke', daOut.SF.values[:,0])
+
 
     return daOut.transpose(), blankSegs     # NOTE transpose to reverse ordering of dims.
 

@@ -393,8 +393,8 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     # NOW: checked in dumpIdySegsParseX, set to single dim (Eke only) if diff < machine epsilon
     if SFflag:
         # Check dims on SF are OK...
-        if da.SF.ndims > 1:
-            print(f'*** Warning: SF has {} dims, skipping renormalisation of BLMs by 1/SF.', da.SF.ndims)
+        if da.SF.ndim > 1:
+            print(f'*** Warning: SF has {0} dims, skipping renormalisation of BLMs by 1/SF.', da.SF.ndim)
         else:
             BLMXout = BLMXout / da.SF  # Renorm - should be able to sort this so it's not required...?  Multiply MFBLMCalcLoop result by SF only, rather than all matE?
 

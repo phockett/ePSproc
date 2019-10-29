@@ -1511,6 +1511,17 @@ def writeXarray(dataIn, fileName = None, filePath = None):
     dataOut = xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag})
     dataOut.attrs = dataIn.attrs
 
+    # Allow for SF & XS coords which may also be complex
+    if 'XS' in dataOut.coords:
+        dataOut['XSr'] = dataOut.XS.real
+        dataOut['XSi'] = dataOut.XS.imag
+        dataOut = dataOut.drop('XS')
+
+    if 'SF' in dataOut.coords:
+        dataOut['SFr'] = dataOut.SF.real
+        dataOut['SFi'] = dataOut.SF.imag
+        dataOut = dataOut.drop('SF')
+
     dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'))
     saveMsg = ['Written to netCDF3 (re/im format)']
     saveMsg.append(os.path.join(filePath, fileName + '.nc'))
@@ -1554,6 +1565,16 @@ def readXarray(fileName, filePath = None):
     # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!
     dataOut = dataIn.Re + dataIn.Im*1j
     dataOut.attrs = dataIn.attrs
+
+    # Rest SF & XS coords which may also be complex
+    if 'XS' in dataOut.coords:
+        dataOut['XS'] = dataOut.XSr + dataOut.XSi*1j
+        dataOut = dataOut.drop('XSr').drop('XSi')
+
+    if 'SF' in dataOut.coords:
+        dataOut['SF'] = dataOut.SFr + dataOut.SFi
+        dataOut = dataOut.drop('SFr').drop('SFi')
+
 
     # Recreate MultiIndex from serialized version  - testing here for BLM case.
     # if 'BLM' in dataIn.dims:

@@ -162,7 +162,7 @@ Cite the software directly via either Github or Figshare repositories for the so
     pages = {arXiv:1611.04043}
   }
 
-(Citation styles for software `from StackExcahnge <https://academia.stackexchange.com/questions/14010/how-do-you-cite-a-github-repository>`_.)
+(Citation styles for software `from StackExchange <https://academia.stackexchange.com/questions/14010/how-do-you-cite-a-github-repository>`_.)
 
 .. .. include:: citation.txt (keep duplicate details here, since this doesn't work for basic Github readme!)
 

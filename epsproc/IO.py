@@ -123,6 +123,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
             if readFlag:
                 # Check for end of segment (start of next Command sequence)
                 if endPhrase and ([line.startswith(endP) for endP in endPhrase].count(True) > 0):  # This allows for multiple endPhases
+                                                                                                    # NOTE: this will iterate over all chars in a phrase if a single str is passed.
                     # Log stop line and list
                     lineStop.append(i)
                     readFlag = False
@@ -143,6 +144,89 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
         print('Found {0} segments.'.format(n))
 
     return ([lineStart, lineStop], segments) # [:-1])
+
+# Simple wrapper for general fileParse function, ePS file header & input parsing
+def headerFileParse(fileName, verbose = True):
+    """
+    Parse an ePS file for header & input job info.
+
+    Parameters
+    ----------
+    fileName : str
+        File to read (file in working dir, or full path)
+
+    verbose : bool, default True
+        Print job info from file header if true.
+
+    Returns
+    -------
+    jobInfo : dict
+        Dictionary generated from job details.
+
+    TO DO
+    -----
+    Tidy up dict output.
+
+    """
+
+    startPhrase = "ePolyScat Version" # Read from top of file
+    endPhrase = ["+ End of input reached"]  # In this case only have a single end phrases, but need to pass as list to avoid iterating over phrase
+
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase) # , '>')
+
+    # NOTE - with current code dumpSegs has one final blank segment
+    # print('Read {0} dumpIdy segments (sets of matrix elements).'.format(len(dumpSegs) - 1))
+
+    # Parse info to dict - bit ugly, assumes fixed format for start lines
+    # This might be workable if keys are set from ePS source/web list?
+    # jobKeys = ['ePolyScat', 'Authors', 'http', 'cite', 'Starting', 'Using']
+    # jobInfo = {}
+    #
+    # for line in dumpSegs[0]:
+    #     for key in jobKeys:
+    #         if line[2].startswith(key):
+    #             jobInfo[key] = line[2].strip()
+
+    # Generate from file directly - good for key:value pairs, but might mangle prose
+    jobInfo = {}
+    jobInfo['comments'] = []    # Keep comments in this list.
+
+    # Loop over lines, split and sort if possible - UGLY!
+    for n, line in enumerate(dumpSegs[0]):
+    #     elements = dumpSegs[0][n][2].strip().split()
+        elements = line[2].strip().split()
+
+        # print(elements)
+        if len(elements)>0:
+            if elements[0].startswith('#'):
+                jobInfo['comments'].append(line[2].strip())
+            elif elements[0].startswith('Orb'):
+                jobInfo[elements[0]] = dumpSegs[0][n+1][2].strip()  # Set next line for OrbOccs
+            else:
+                if len(elements) == 2:
+                    jobInfo[elements[0]] = elements[1]  # Case for data record value assignments
+
+                # Check for lines with comments in
+                elif '#' in line[2]:
+                    test = line[2].strip().split('#')  # Split at comment
+                    testStart = test[0].split()
+                    if len(testStart) == 2:
+                        jobInfo[testStart[0]] = testStart[1]  # Case for data record assignments
+
+                    # This might be redundant... but keep for safety.
+                    else:
+                        jobInfo[elements[0]] = line[2].strip().split('#')   # For other cases keep full line, split at comments
+
+                # For all other cases keep full line, split at comments
+                else:
+                    jobInfo[elements[0]] = line[2].strip().split('#')
+
+    # Print jobInfo
+    if verbose:
+        print('*** Job info from file header.\n')
+        [print(line.strip('#')) for line in jobInfo['comments'][0:4]]
+
+    return jobInfo
 
 
 # Simple wrapper for general fileParse function, ePS dumpIdy segments

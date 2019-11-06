@@ -1468,7 +1468,7 @@ def writeXarray(dataIn, fileName = None, filePath = None):
     -----
     The default option for Xarray is to use Scipy netCDF writer, which does not support complex datatypes. In this case, the data array is written as a dataset with a real and imag component.
 
-    TODO: implement try/except to handle various cases here.
+    TODO: implement try/except to handle various cases here, and test other netCDF writers (see http://xarray.pydata.org/en/stable/io.html#netcdf).
 
     Multi-level indexing is also not supported, and must be serialized first. Ugh.
 

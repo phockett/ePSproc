@@ -123,6 +123,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
             if readFlag:
                 # Check for end of segment (start of next Command sequence)
                 if endPhrase and ([line.startswith(endP) for endP in endPhrase].count(True) > 0):  # This allows for multiple endPhases
+                                                                                                    # NOTE: this will iterate over all chars in a phrase if a single str is passed.
                     # Log stop line and list
                     lineStop.append(i)
                     readFlag = False
@@ -312,6 +313,153 @@ def parseLineDigits(testLine):
 
     """
     return re.findall("[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?", testLine)
+
+
+
+# ************** Header info parsing functions
+
+# Simple wrapper for general fileParse function, extract ePS file header & input, and parse
+def headerFileParse(fileName, verbose = True):
+    """
+    Parse an ePS file for header & input job info.
+
+    Parameters
+    ----------
+    fileName : str
+        File to read (file in working dir, or full path)
+
+    verbose : bool, default True
+        Print job info from file header if true.
+
+    Returns
+    -------
+    jobInfo : dict
+        Dictionary generated from job details.
+
+    TO DO
+    -----
+    - Tidy up methods - maybe with parseDigits?
+    - Tidy up dict output.
+
+    """
+
+    startPhrase = "ePolyScat Version" # Read from top of file
+    endPhrase = ["+ End of input reached"]  # In this case only have a single end phrases, but need to pass as list to avoid iterating over phrase
+
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase) # , '>')
+
+    # NOTE - with current code dumpSegs has one final blank segment
+    # print('Read {0} dumpIdy segments (sets of matrix elements).'.format(len(dumpSegs) - 1))
+
+    # Parse info to dict - bit ugly, assumes fixed format for start lines
+    # This might be workable if keys are set from ePS source/web list?
+    # jobKeys = ['ePolyScat', 'Authors', 'http', 'cite', 'Starting', 'Using']
+    # jobInfo = {}
+    #
+    # for line in dumpSegs[0]:
+    #     for key in jobKeys:
+    #         if line[2].startswith(key):
+    #             jobInfo[key] = line[2].strip()
+
+    # Generate from file directly - good for key:value pairs, but might mangle prose
+    jobInfo = {}
+    jobInfo['comments'] = []    # Keep comments in this list.
+
+    # Loop over lines, split and sort if possible - UGLY!
+    for n, line in enumerate(dumpSegs[0]):
+    #     elements = dumpSegs[0][n][2].strip().split()
+        elements = line[2].strip().split()
+
+        # print(elements)
+        if len(elements)>0:
+            if elements[0].startswith('#'):
+                jobInfo['comments'].append(line[2].strip())
+            elif elements[0].startswith('Orb'):
+                jobInfo[elements[0]] = dumpSegs[0][n+1][2].strip()  # Set next line for OrbOccs
+            else:
+                if len(elements) == 2:
+                    jobInfo[elements[0]] = elements[1]  # Case for data record value assignments
+
+                # Check for lines with comments in
+                elif '#' in line[2]:
+                    test = line[2].strip().split('#')  # Split at comment
+                    testStart = test[0].split()
+                    if len(testStart) == 2:
+                        jobInfo[testStart[0]] = testStart[1]  # Case for data record assignments
+
+                    # This might be redundant... but keep for safety.
+                    else:
+                        jobInfo[elements[0]] = line[2].strip().split('#')   # For other cases keep full line, split at comments
+
+                # For all other cases keep full line, split at comments
+                else:
+                    jobInfo[elements[0]] = line[2].strip().split('#')
+
+    # Print jobInfo
+    if verbose:
+        print('*** Job info from file header.\n')
+        [print(line.strip('#')) for line in jobInfo['comments'][0:4]]
+
+    return jobInfo
+
+# Simple wrapper for general fileParse function, extract ePS molecular info, and parse
+def molInfoParse(fileName, verbose = True):
+    """
+    Parse an ePS file for header & input job info.
+
+    Parameters
+    ----------
+    fileName : str
+        File to read (file in working dir, or full path)
+
+    verbose : bool, default True
+        Print job info from file header if true.
+
+    Returns
+    -------
+    molInfo : dict
+        Dictionary with atom & orbital details.
+
+    """
+
+    # Extract mol segment
+    startPhrase = "Selecting orbitals" # Read from top of file
+    endPhrase = ["+ "]  # In this case only have a single end phrases, but need to pass as list to avoid iterating over phrase
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase)
+
+    # Basic parsing to lists
+    orbList = []
+    atomList = []
+
+    for line in dumpSegs[0]:
+        if line[2].startswith('Selecting'):
+            orbList.append(line[2].strip().lstrip('Selecting '))
+        if line[2].startswith('Z'):
+            atomList.append(line[2].strip())
+
+    orbList = orbList[1:]
+
+    if verbose:
+        print('\n*** Found orbitals')
+        print(*orbList, sep='\n')
+        print('\n*** Found atoms')
+        print(*atomList, sep='\n')
+
+    # Sort orbs to np.array
+    orbTable = []
+    [orbTable.append(parseLineDigits(orb)) for orb in orbList]
+    orbTable = np.asarray(orbTable).astype('float')
+
+    # Sort coords to np.array
+    atomTable = []
+    [atomTable.append(parseLineDigits(atom)) for atom in atomList]
+    atomTable = np.asarray(atomTable).astype('float')
+
+    # Compile to dict
+    molInfo = {'atomList':atomList, 'atomTable':atomTable, 'orbList':orbList, 'orbTable':orbTable}
+
+    return molInfo
+
 
 # ************* DumpIdy parsing
 
@@ -1511,6 +1659,17 @@ def writeXarray(dataIn, fileName = None, filePath = None):
     dataOut = xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag})
     dataOut.attrs = dataIn.attrs
 
+    # Allow for SF & XS coords which may also be complex
+    if 'XS' in dataOut.coords:
+        dataOut['XSr'] = dataOut.XS.real
+        dataOut['XSi'] = dataOut.XS.imag
+        dataOut = dataOut.drop('XS')
+
+    if 'SF' in dataOut.coords:
+        dataOut['SFr'] = dataOut.SF.real
+        dataOut['SFi'] = dataOut.SF.imag
+        dataOut = dataOut.drop('SF')
+
     dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'))
     saveMsg = ['Written to netCDF3 (re/im format)']
     saveMsg.append(os.path.join(filePath, fileName + '.nc'))
@@ -1554,6 +1713,16 @@ def readXarray(fileName, filePath = None):
     # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!
     dataOut = dataIn.Re + dataIn.Im*1j
     dataOut.attrs = dataIn.attrs
+
+    # Rest SF & XS coords which may also be complex
+    if 'XS' in dataOut.coords:
+        dataOut['XS'] = dataOut.XSr + dataOut.XSi*1j
+        dataOut = dataOut.drop('XSr').drop('XSi')
+
+    if 'SF' in dataOut.coords:
+        dataOut['SF'] = dataOut.SFr + dataOut.SFi
+        dataOut = dataOut.drop('SFr').drop('SFi')
+
 
     # Recreate MultiIndex from serialized version  - testing here for BLM case.
     # if 'BLM' in dataIn.dims:

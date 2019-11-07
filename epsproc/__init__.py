@@ -26,6 +26,7 @@ __version__ = '1.1.0 dev'
 # Direct * import for modules - probably a bad idea.
 from epsproc.IO import *
 from epsproc.util import *
+from epsproc.basicPlotters import *
 from epsproc.sphCalc import *
 from epsproc.sphPlot import *
 from epsproc.MFPAD import *

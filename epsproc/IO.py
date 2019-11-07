@@ -15,6 +15,8 @@ Main function: :py:func:`epsproc.IO.readMatEle`:
 
 History
 -------
+06/11/19        Added jobInfo and molInfo data structures, from ePS file via :py:func:`epsproc.IO.headerFileParse()` and :py:func:`epsproc.IO.molInfoParse()`.
+                Still needs a bit of work, and may want to implement other (comp chem) libraries here.
 
 14/10/19        Added/debugged read functions for CrossSecion segments.
 
@@ -43,6 +45,7 @@ To do
 * Add IO for other file segments (only DumpIdy supported so far).
 * Better logic & flexibility for file scanning.
 * Restructure as class for brevity...?
+* More sophisticated methods/data structures for job & molecule info handling.
 
 
 
@@ -375,7 +378,7 @@ def headerFileParse(fileName, verbose = True):
             if elements[0].startswith('#'):
                 jobInfo['comments'].append(line[2].strip())
             elif elements[0].startswith('Orb'):
-                jobInfo[elements[0]] = dumpSegs[0][n+1][2].strip()  # Set next line for OrbOccs
+                jobInfo[elements[0]] = np.asarray(parseLineDigits(dumpSegs[0][n+1][2].strip())).astype('int')  # Set next line for OrbOccs
             else:
                 if len(elements) == 2:
                     jobInfo[elements[0]] = elements[1]  # Case for data record value assignments

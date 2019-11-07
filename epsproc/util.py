@@ -12,6 +12,25 @@ Collection of small functions for sorting etc.
 import numpy as np
 import re
 
+# Package fns.
+from epsproc.basicPlotters import molPlot
+
+#*************** Summary & display functions
+
+# Print some jobInfo stuff & plot molecular structure
+def jobSummary(jobInfo, molInfo):
+    """Print some jobInfo stuff & plot molecular structure. (Currently very basic.)"""
+    print('\n*** Job summary data')
+    [print(line.strip('#')) for line in jobInfo['comments'][0:4]]
+    print(f"\nElectronic structure input: {jobInfo['Convert'][0].split()[1].strip()}")
+    print(f"Initial state occ:\t {jobInfo['OrbOccInit']}")
+    print(f"Final state occ:\t {jobInfo['OrbOcc']}")
+
+    # Display structure
+    print('\n*** Molecular structure\n')
+    molPlot(molInfo)
+
+
 #*************** Selection functions
 
 # Selector function for matrix elements in Xarray

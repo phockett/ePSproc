@@ -1718,14 +1718,14 @@ def readXarray(fileName, filePath = None):
     dataOut.attrs = dataIn.attrs
 
     # Rest SF & XS coords which may also be complex
-    if 'XS' in dataOut.coords:
-        dataOut['XS'] = dataOut.XSr + dataOut.XSi*1j
-        dataOut = dataOut.drop('XSr').drop('XSi')
+    # Note: need to check vs. dataIn here, since dataOut already has dropped vars
+    if 'XSr' in dataIn.data_vars:
+        dataOut['XS'] = dataIn.XSr + dataIn.XSi*1j
+    #     dataOut = dataOut.drop('XSr').drop('XSi')
 
-    if 'SF' in dataOut.coords:
-        dataOut['SF'] = dataOut.SFr + dataOut.SFi
-        dataOut = dataOut.drop('SFr').drop('SFi')
-
+    if 'SFr' in dataIn.data_vars:
+        dataOut['SF'] = dataIn.SFr + dataIn.SFi
+    #     dataOut = dataOut.drop('SFr').drop('SFi')
 
     # Recreate MultiIndex from serialized version  - testing here for BLM case.
     # if 'BLM' in dataIn.dims:

@@ -380,13 +380,6 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     Euler = pd.MultiIndex.from_arrays(np.tile(eAngs,(1,1)).T, names = ['P','T','C'])    # Left tile code here to prevent pd errors on lists.
     BLMXout = BLMXout.expand_dims({'Euler':Euler})
 
-    # Set/propagate global properties
-    BLMXout.attrs = da.attrs
-    BLMXout.attrs['thres'] = thres
-    BLMXout.attrs['sumDims'] = sumDims # May want to explicitly propagate symmetries here...?
-    BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
-    BLMXout.attrs['dataType'] = 'BLM'
-
     # Fix XS issue due to SF^2 - in tests this matchs GetCro results
     # ISSUE: in current form, with SF(Eke,Sym), this reintroduces Sym axis even if already summed over.
     # Q: Is SF sym dependent...?  If not, remove link.  If so, sum before division.
@@ -402,6 +395,13 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     BLMXout = BLMXout.transpose()
     BLMXout['XS'] = (('Eke','Euler'), BLMXout[0].data)  # Set XS = B00
     BLMXout = BLMXout/BLMXout.XS  # Normalise
+
+    # Set/propagate global properties
+    BLMXout.attrs = da.attrs
+    BLMXout.attrs['thres'] = thres
+    BLMXout.attrs['sumDims'] = sumDims # May want to explicitly propagate symmetries here...?
+    BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
+    BLMXout.attrs['dataType'] = 'BLM'
 
     return BLMXout
 

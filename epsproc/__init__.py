@@ -1,4 +1,4 @@
-__version__ = '1.1.0'
+__version__ = '1.2.0'
 
 # Import shared packages - actually, should be at module (file) level?
 # https://stackoverflow.com/questions/8165703/python-imports-across-modules-and-global-variables
@@ -26,6 +26,7 @@ __version__ = '1.1.0'
 # Direct * import for modules - probably a bad idea.
 from epsproc.IO import *
 from epsproc.util import *
+from epsproc.basicPlotters import *
 from epsproc.sphCalc import *
 from epsproc.sphPlot import *
 from epsproc.MFPAD import *

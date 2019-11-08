@@ -2,6 +2,9 @@ r"""
 ePSproc MFBLM functions
 -----------------------
 
+23/09/19        Testing function caching...
+
+19/09/19        Working & verified basic version (slow loop).
 
 05/09/19    v1  Initial python version.
                 Based on original Matlab code ePS_MFBLM.m
@@ -40,6 +43,7 @@ Exact numerics may vary.
 import numpy as np
 import pandas as pd
 import xarray as xr
+from functools import lru_cache  # For function result caching
 
 # Special functions
 # from scipy.special import sph_harm
@@ -50,8 +54,48 @@ import quaternion
 # TODO: tidy this up!
 from epsproc.util import matEleSelector
 
+
+# Wrappers for function caching
+# Tested for mfblm calcs, N2 vs. E, NO2 vs. Euler angs. (in test Jupyter notebook).  No change vs. bare functions in this case.
+@lru_cache(maxsize = None)
+def Wigner3jCached(j_1,j_2,j_3,m_1,m_2,m_3):
+    """Wrapper for 3j caching with functools.lru_cache"""
+    return sf.Wigner3j(j_1,j_2,j_3,m_1,m_2,m_3)
+
+@lru_cache(maxsize = None)
+def Wigner_D_element_Cached(pRot, P, Rp, R):
+    """Wrapper for WignerD caching with functools.lru_cache"""
+    return  sf.Wigner_D_element(pRot, P, Rp, R)
+
+# Create Xarray from set of BLMs
+def blmXarray(BLM, Eke):
+    """
+    Create Xarray from BLM list, format BLM = [L, M, Beta], at a single energy Eke.
+
+    Array sorting only valid for 2D BLM array, for B00=0 case pass BLM = None.
+
+    """
+
+    # Set up Xarray
+    if BLM is not None:
+        QNs = pd.MultiIndex.from_arrays(BLM[:,0:2].real.T.astype('int8'), names = ['l','m'])  # Set small (l,m) here for compatibility with sphCalc()
+        BLMX = xr.DataArray(BLM[:,2], coords={'BLM':QNs}, dims = ['BLM'])
+        # Set other dims - this might fail for multi symmetry cases... or if pre-selected?  Best done in calling/chunking function.
+        # BLMX = BLMX.expand_dims({'Sym':[matE.Sym.data], 'Eke':[matE.Eke.data]})
+
+    # Case for BLM = None, set array with B00 = 0
+    else:
+        QNs = pd.MultiIndex.from_arrays([[0],[0]], names = ['l','m'])  # Set small (l,m) here for compatibility with sphCalc()
+        BLMX = xr.DataArray([0], coords={'BLM':QNs}, dims = ['BLM'])
+
+
+    BLMX = BLMX.expand_dims({'Eke':[Eke]})
+
+    return BLMX
+
+
 # Try basic looping version, similar to Matlab code...
-def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
+def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
     """
     Calculate inner loop for MFBLMs, based on passed set of matrix elements (Xarray).
 
@@ -77,13 +121,18 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
     R : int, optional, default R = 0
         LF polarization term (from tensor contraction). Currently only valid for p = 0
 
-    verbose : bool, optional, default False
-        Print intermediate C parameter array to termina when running.
+    verbose : int, optional, default 1
+        Verbosity level:
+
+         - 0: Silent run.
+         - 1: Print basic info.
+         - 2: Print intermediate C parameter array to termina when running.
 
     Returns
     -------
     BLMX : Xarray
         Set of B(L,M; eAngs, Eke) terms for supplied matrix elements, in an Xarray.
+        For cases where no values are calculated (below threshold), return an array with B00 = 0 only.
 
     Limitations \& To Do
     --------------------
@@ -108,7 +157,8 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
     LMlist = pd.MultiIndex.from_product([matE.SumDim, matE.SumDim], names = ['LM1','LM2'])
     indList = pd.MultiIndex.from_product([np.arange(0, matE.size), np.arange(0, matE.size)], names = ['ind1','ind2'])
 
-    print('Calculating MFBLMs for {0} pairs... Eke = {1} eV, eAngs = ({2})'.format(indList.size, matE.Eke.data, eAngs))
+    if verbose > 0:
+        print('Calculating MFBLMs for {0} pairs... Eke = {1} eV, eAngs = ({2})'.format(indList.size, matE.Eke.data, eAngs))
 
     # Set pol terms - now passed
     # p = 0
@@ -160,7 +210,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
                    # Sum over R,R' projections omitted - only R=0 set above
                    # Note polarization terms, here mu is MF, and p is LF.
                    # Note use of matEprod.data here - otherwise output is kept as Xarray (which could be useful in future...)
-                   gammaP = gammaP + (2*P+1) * (-1)**(Rp-R) * sf.Wigner3j(1,1,P,mu1,-mu2,Rp) * sf.Wigner3j(1,1,P,p,-p,R) * sf.Wigner_D_element(pRot, P,-Rp,-R).conj()
+                   gammaP = gammaP + (2*P+1) * (-1)**(Rp-R) * Wigner3jCached(1,1,P,mu1,-mu2,Rp) * Wigner3jCached(1,1,P,p,-p,R) * Wigner_D_element_Cached(pRot, P,-Rp,-R).conj()
 
            # Loop over allowed B(LM) and calculate
            # NOTE - for multiindex coords matE.l[r1] works, but matE[r1].l DOESN'T (Xarray v0.12.3)
@@ -169,7 +219,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
                    # print(L)
 
                    # Calculate associated gamma term, (L,M) values
-                   gammaLM = sf.Wigner3j(l1, l2, L, 0, 0, 0) * sf.Wigner3j(l1, l2, L, -m1, m2, -M)
+                   gammaLM = Wigner3jCached(l1, l2, L, 0, 0, 0) * Wigner3jCached(l1, l2, L, -m1, m2, -M)
 
                    # Set any remaining terms and sum
                    phase = (-1)**M *(-1)**m1 * (-1)**(mu2-p)
@@ -190,32 +240,43 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=False):
         indThres = np.abs(C[:,6]) > thres
         Cthres = C[indThres,:]
 
-        if verbose:
-            print(Cthres)
+        # Sun values that remain after thresholding
+        if Cthres.size > 0:
+            if verbose > 1:
+                print(Cthres)
 
-        # Calculate output values as sum over (L,M) terms
-        BLM = []
-        for L in np.arange(0, int(Cthres[:,4].max().real)+1):
-           for M in np.arange(-L, L+1):
-               maskLM = (Cthres[:,4].real.astype(int)==L)*(Cthres[:,5].real.astype(int)==M);
-               BLM.append([L, M, Cthres[maskLM,6].sum()])
+            # Calculate output values as sum over (L,M) terms
+            BLM = []
+            for L in np.arange(0, int(Cthres[:,4].max().real)+1):
+               for M in np.arange(-L, L+1):
+                   maskLM = (Cthres[:,4].real.astype(int)==L)*(Cthres[:,5].real.astype(int)==M);
+                   BLM.append([L, M, Cthres[maskLM,6].sum()])
 
-        BLM = np.array(BLM)
+            BLM = np.array(BLM)
 
-        # Set output as Xarray with coords
-        QNs = pd.MultiIndex.from_arrays(BLM[:,0:2].real.T.astype('int8'), names = ['l','m'])  # Set small (l,m) here for compatibility with sphCalc()
-        BLMX = xr.DataArray(BLM[:,2], coords={'BLM':QNs}, dims = ['BLM'])
-        # Set other dims - this might fail for multi symmetry cases... or if pre-selected?  Best done in calling/chunking function.
-        # BLMX = BLMX.expand_dims({'Sym':[matE.Sym.data], 'Eke':[matE.Eke.data]})
-        BLMX = BLMX.expand_dims({'Eke':[matE.Eke]})
+            # # Set output as Xarray with coords - NOW moved to function
+            # QNs = pd.MultiIndex.from_arrays(BLM[:,0:2].real.T.astype('int8'), names = ['l','m'])  # Set small (l,m) here for compatibility with sphCalc()
+            # BLMX = xr.DataArray(BLM[:,2], coords={'BLM':QNs}, dims = ['BLM'])
+            # # Set other dims - this might fail for multi symmetry cases... or if pre-selected?  Best done in calling/chunking function.
+            # # BLMX = BLMX.expand_dims({'Sym':[matE.Sym.data], 'Eke':[matE.Eke.data]})
+            # BLMX = BLMX.expand_dims({'Eke':[matE.Eke]})
+
+            # Set output as Xarray with coords
+            BLMX = blmXarray(BLM, matE.Eke)
+
+        else:
+            BLMX = blmXarray(None, matE.Eke)
 
     else:
-        BLMX = None
+        # BLMX = None
+        BLMX = blmXarray(None, matE.Eke)
 
     return BLMX
 
 
-def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it')):
+# Master BLM calculation routine.
+# TODO: set for differnt calc routines, once developed!
+def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), SFflag = True, verbose = 1):
     """
     Calculate MFBLMs for a range of (E, sym) cases. Default is to calculated for all symmetries at each energy.
 
@@ -240,6 +301,16 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
         (These are used to flatten the Xarray before calculation.)
         Default includes sum over (l,m), symmetries and degeneracies (but not energies).
 
+    SFflag : bool, default = True
+        Normalise by scale factor to give X-sections (B00) in Mb
+
+    verbose : int, optional, default 1
+        Verbosity level:
+
+         - 0: Silent run.
+         - 1: Print basic info.
+         - 2: Print intermediate C parameter array to termina when running.
+
     Returns
     -------
     Xarray
@@ -254,6 +325,10 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     TODO: Setting selDims in output structure needs more thought for netCDF save compatibility.
 
     """
+
+    # Use SF (scale factor)
+    if SFflag:
+        da = da * da.SF
 
     # Unstack & sub-select data array
     daUnStack = da.unstack()
@@ -281,7 +356,10 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     BLMXlist = []
     if daSumDim.Eke.size > 1:
         for n, daE in daSumDim.groupby('Eke'):
-            BLMXlist.append(MFBLMCalcLoop(daE, eAngs = eAngs, thres = thres))
+            if SFflag:
+                BLMXlist.append(MFBLMCalcLoop(daE, eAngs = eAngs, thres = thres, verbose = verbose)) #/daE.SF)  # Rescale by SF if required
+            else:
+                BLMXlist.append(MFBLMCalcLoop(daE, eAngs = eAngs, thres = thres, verbose = verbose))
 
             # Add dims - currently set for Euler angles only (single set)
             # Can't seem to add mutiindex as a single element, so set dummy coord here and replace below.
@@ -302,11 +380,101 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     Euler = pd.MultiIndex.from_arrays(np.tile(eAngs,(1,1)).T, names = ['P','T','C'])    # Left tile code here to prevent pd errors on lists.
     BLMXout = BLMXout.expand_dims({'Euler':Euler})
 
+    # Fix XS issue due to SF^2 - in tests this matchs GetCro results
+    # ISSUE: in current form, with SF(Eke,Sym), this reintroduces Sym axis even if already summed over.
+    # Q: Is SF sym dependent...?  If not, remove link.  If so, sum before division.
+    # NOW: checked in dumpIdySegsParseX, set to single dim (Eke only) if diff < machine epsilon
+    if SFflag:
+        # Check dims on SF are OK...
+        if da.SF.ndim > 1:
+            print(f'*** Warning: SF has {0} dims, skipping renormalisation of BLMs by 1/SF.', da.SF.ndim)
+        else:
+            BLMXout = BLMXout / da.SF  # Renorm - should be able to sort this so it's not required...?  Multiply MFBLMCalcLoop result by SF only, rather than all matE?
+
+    # Reorder & normalise by X-sect (B00)
+    BLMXout = BLMXout.transpose()
+    BLMXout['XS'] = (('Eke','Euler'), BLMXout[0].data)  # Set XS = B00
+    BLMXout = BLMXout/BLMXout.XS  # Normalise
+
     # Set/propagate global properties
     BLMXout.attrs = da.attrs
     BLMXout.attrs['thres'] = thres
     BLMXout.attrs['sumDims'] = sumDims # May want to explicitly propagate symmetries here...?
     BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
     BLMXout.attrs['dataType'] = 'BLM'
+
+    return BLMXout
+
+
+# Wrapper for mfblm for a set of Euler angles
+def mfblmEuler(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), SFflag = True, verbose = 1):
+    """
+    Wrapper for `epsproc.mfblm()` for a set of Euler angles.  All other parameters are simply passed to mfblm().
+    Calculate MFBLMs for a range of (E, sym) cases. Default is to calculated for all symmetries at each energy.
+
+    Parameters
+    ----------
+    da : Xarray
+        Contains matrix elements to use for calculation.
+        Matrix elements will be sorted by energy and BLMs calculated for each set.
+
+    selDims : dict, optional, default = {'Type':'L'}
+        Additional sub-selection to be applied to matrix elements before BLM calculation.
+        Default selects just length gauge results.
+
+    eAngs : [phi,theta,chi], optional, default = [0,0,0]
+        Set of Euler angles defining polarization geometry.
+        List or np.array, dims(N, 3).
+
+    thres : float, optional, default = 1e-4
+        Threshold value for testing significance of terms. Terms < thres will be dropped.
+
+    sumDims : tuple, optional, default = ('l','m','mu','Cont','Targ','Total','it')
+        Defines which terms are summed over (coherent) in the MFBLM calculation.
+        (These are used to flatten the Xarray before calculation.)
+        Default includes sum over (l,m), symmetries and degeneracies (but not energies).
+
+    SFflag : bool, default = True
+        Normalise by scale factor to give X-sections (B00) in Mb
+
+    verbose : int, optional, default 1
+        Verbosity level:
+
+         - 0: Silent run.
+         - 1: Print basic info.
+         - 2: Print intermediate C parameter array to termina when running.
+
+    Returns
+    -------
+    Xarray
+        Calculation results BLM, dims (Euler, Eke, l,m). Some global attributes are also appended.
+
+    Limitations
+    -----------
+    Currently set to loop calcualtions over energy only, and all symmetries.
+    Pass single {'Cont':'sym'} to calculated for only one symmetry group.
+
+    TODO: In future this will be more elegant.
+    TODO: Setting selDims in output structure needs more thought for netCDF save compatibility.
+
+    """
+
+    # Check size of passed set of Euler angles
+    # For ease of manipulation, just change to np.array if necessary!
+    if isinstance(eAngs, list):
+        eAngs = np.array(eAngs)
+
+    # For a single set of eAngs, just pass directly.
+    if eAngs.ndim == 1:
+        BLMXout = mfblm(da, selDims = selDims, eAngs = eAngs, thres = thres, sumDims = sumDims, SFflag = SFflag, verbose = verbose)
+    else:
+    # Loop over eAngs and calculate
+        BLM = []
+        for angsIn in range(0, eAngs.shape[0]):
+            BLM.append(mfblm(da, selDims = selDims, eAngs = eAngs[angsIn,:], thres = thres, SFflag = SFflag, verbose = verbose))
+
+        # Stack results
+        BLMXout = xr.combine_nested(BLM,'Euler')
+
 
     return BLMXout

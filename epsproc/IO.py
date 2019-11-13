@@ -1322,6 +1322,9 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
     list
         List of Xarray data arrays, containing matrix elements etc. from each file scanned.
 
+    To do
+    -----
+    - Change to pathlib paths.
 
     Examples
     --------
@@ -1593,7 +1596,7 @@ def writeOrb3Dvtk(dataSet):
 #**************** Wrappers for Xarray load/save netCDF
 
 # File write wrapper.
-def writeXarray(dataIn, fileName = None, filePath = None):
+def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf'):
     """
     Write file to netCDF format via Xarray method.
 
@@ -1609,6 +1612,9 @@ def writeXarray(dataIn, fileName = None, filePath = None):
     filePath : str, optional, default = None
         Full path to file.
         If set to None (default) the file will be written in the current working directory (as returned by `os.getcwd()`).
+
+    engine : str, optional, default = 'h5netcdf'
+        netCDF engine for Xarray to_netcdf method. Some libraries may not support multidim data formats.
 
     Returns
     -------
@@ -1657,8 +1663,9 @@ def writeXarray(dataIn, fileName = None, filePath = None):
     #
     # return 'File not written.'
 
-# Safe version with re/im split save type only.
-    # xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag}).to_netcdf(os.path.join(filePath, fileName + '.nc'))  # This works, but drops attrs!
+
+    # Safe version with re/im split save type only.
+    # Works for scipy and h5netcdf OK, latter will save complex type too, but is strictly not valid.
     dataOut = xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag})
     dataOut.attrs = dataIn.attrs
 
@@ -1673,8 +1680,15 @@ def writeXarray(dataIn, fileName = None, filePath = None):
         dataOut['SFi'] = dataOut.SF.imag
         dataOut = dataOut.drop('SF')
 
-    dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'))
-    saveMsg = ['Written to netCDF3 (re/im format)']
+    # For netCDF3 can't have multidim attrs, quick fix here for removing them (BLM case)
+    if engine is 'scipy':
+        if 'sumDims' in dataOut.attrs:
+            dataOut.attrs['sumDims'] = [] # test.attrs['selDims'][0]
+        if 'selDims' in dataOut.attrs:
+            dataOut.attrs['selDims'] = []
+
+    dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine)
+    saveMsg = [f'Written to {engine} format']
     saveMsg.append(os.path.join(filePath, fileName + '.nc'))
     print(saveMsg)
 
@@ -1682,7 +1696,7 @@ def writeXarray(dataIn, fileName = None, filePath = None):
 
 
 # File read wrapper.
-def readXarray(fileName, filePath = None):
+def readXarray(fileName, filePath = None, engine = 'scipy'):
     """
     Read file from netCDF format via Xarray method.
 

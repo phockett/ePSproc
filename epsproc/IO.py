@@ -1725,7 +1725,7 @@ def readXarray(fileName, filePath = None, engine = 'scipy'):
 
     """
     # Read file
-    dataIn = xr.open_dataset(fileName)
+    dataIn = xr.open_dataset(fileName, engine = engine)
 
     # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!
     dataOut = dataIn.Re + dataIn.Im*1j

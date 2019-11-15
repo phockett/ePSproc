@@ -62,11 +62,12 @@ def molPlot(molInfo):
 
         lShift = 0.01* np.array([1., 1., 1.])
         for row in molInfo['atomTable']:
-            ax.text(row[2] + lShift[0], row[3] + lShift[1], row[4] + lShift[2], f"Z = {row[0]}") # molInfo['atomTable'][:,0])
+            # ax.text(row[2] + lShift[0], row[3] + lShift[1], row[4] + lShift[2], f"Z = {row[0]}") # molInfo['atomTable'][:,0])
+            ax.text(row[2] + lShift[0], row[3] + lShift[1], row[4] + lShift[2], f"Z = {row[0].data}") # Version for Xarray input
 
     else:
         # Generate legend from scatter data, as per https://matplotlib.org/3.1.1/gallery/lines_bars_and_markers/scatter_with_legend.html
-        legend1 = ax.legend(*scatter.legend_elements(),loc="lower left", title="Z")
+        legend1 = ax.legend(*scatter.legend_elements(), loc="lower left", title="Z")
         ax.add_artist(legend1)
 
 

@@ -11,6 +11,7 @@ Collection of small functions for sorting etc.
 
 import numpy as np
 import re
+import scipy.constants
 
 # Package fns.
 from epsproc.basicPlotters import molPlot
@@ -41,22 +42,33 @@ def jobSummary(jobInfo = None, molInfo = None):
         print('\n*** Job summary data')
         [print(line.strip('#')) for line in jobInfo['comments'][0:4]]
         print(f"\nElectronic structure input: {jobInfo['Convert'][0].split()[1].strip()}")
-        print(f"Initial state occ:\t {jobInfo['OrbOccInit']}")
-        print(f"Final state occ:\t {jobInfo['OrbOcc']}")
+        print(f"Initial state occ:\t\t {jobInfo['OrbOccInit']}")
+        print(f"Final state occ:\t\t {jobInfo['OrbOcc']}")
+        print(f"IPot (input vertical IP, eV):\t\t {jobInfo['IPot']}")
 
         # Additional orb info
+        print("\n*** Additional orbital info")
         iList = jobInfo['OrbOccInit'] - jobInfo['OrbOcc']
-        print(f"Ionizing orb:\t\t {iList}")
+        print(f"Ionizing orb:\t\t\t {iList}")
 
         if molInfo is not None:
             # Get orbGrp for event
             iOrbGrp = np.flatnonzero(iList) + 1
-            # Find entries in orbTableX
-            orbIP = molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == iOrbGrp, drop = True).sel(props = 'E')
-            print(f"Orb IP:\t {np.unique(orbIP)}")
 
+            # Find entries in orbTableX
             orbSym = molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == iOrbGrp, drop = True).coords['Sym']
-            print(f"Orb sym:\t {np.unique(orbSym)}")
+            print(f"Ionizing orb sym:\t\t {np.unique(orbSym)}")
+
+            orbIP = molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == iOrbGrp, drop = True).sel(props = 'E')
+            orbIPH = molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == iOrbGrp, drop = True).sel(props = 'EH')
+            print(f"Orb energy (eV):\t\t {np.unique(orbIP)}")
+            print(f"Orb energy (H):\t\t\t {np.unique(orbIPH)}")
+
+            orbIPnm = conv_ev_nm(np.unique(orbIP))
+            print(f"Orb energy (cm^-1):\t\t {1/orbIPnm*1e7}")
+            print(f"Threshold wavelength (nm):\t {np.abs(orbIPnm)[0]}")
+
+
 
     # Display structure
     if molInfo is not None:
@@ -345,11 +357,33 @@ def conv_ev_atm(data, to = 'ev'):
     """
 
     # Define H in eV, value from https://en.wikipedia.org/wiki/Hartree_atomic_units#Units
-    H = 27.211386245
+    # H = 27.211386245
+    H = scipy.constants.physical_constants['Hartree energy in eV'][0]  # Use scipy value
 
     if to is 'ev':
         dataOut = data*H
     else:
         dataOut = data/H
+
+    return dataOut
+
+# Convert energy in eV to wavelength in nm
+def conv_ev_nm(data): #, to = 'nm'):
+    """Convert E(eV) <> nu(nm)."""
+
+    # Define constants from scipy.constants
+    h = scipy.constants.h
+    c = scipy.constants.c
+    evJ = scipy.constants.physical_constants['electron volt-joule relationship'][0]
+
+    # Define output units - wavelength in m
+    waveConv = 1e-9
+    dataOut = (h * c)/(data * evJ)/waveConv
+
+    # if to is 'nm':
+    #     dataOut = (h * c)/(data * evJ)/waveConv
+    #
+    # else:
+    #     dataOut = (data/waveConv)*evJ/(h * c)
 
     return dataOut

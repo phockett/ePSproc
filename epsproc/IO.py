@@ -505,9 +505,33 @@ def molInfoParse(fileName, verbose = True):
     orbList = np.asarray(orbList).astype('int')
     temp = np.c_[orbTable[:,1:], orbList[:,1:]]
 
-    # Set as Xarray
+    # Parse ExpOrb output to check orbital expansion convergence
+    startPhrase = "ExpOrb - Single Center Expansion Program" # Read from top of file
+    endPhrase = ["Time Now ="]  # In this case only have a single end phrases, but need to pass as list to avoid iterating over phrase
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase)
+
+    # Parse 'Orbital' lines
+    # Note - these are orbital groups
+    orbIntList = []
+    for item in dumpSegs[0]:
+        if(item[2].startswith('Orbital')):
+            # temp = item[2].split()
+            orbIntList.append(parseLineDigits(item[2]))
+
+    orbIntList = np.asarray(orbIntList).astype('float')
+
+    # Assign to main table by orbGrp
+    # - THIS IS HORRIBLE, should do with Xarrays directly, or just better sorting code, but not happening right now. It's Monday.
+    ogInt = np.zeros(temp.shape[0])
+    for n, row in enumerate(temp):
+        ind = row[6] == orbIntList[:,0]  # Find corresponding row
+        ogInt[n]=orbIntList[ind, 2]  # Set int value
+
+    temp = np.c_[temp, ogInt]
+
+    #*** Set as Xarray
     # TODO: make this neater/better!
-    cols = ['N', 'EH', 'Occ', 'E', 'Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen']
+    cols = ['N', 'EH', 'Occ', 'E', 'Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt']
     orbTableX = xr.DataArray(temp, coords = {'orb':orbTable[:,0], 'props':cols}, dims=['orb','props'])
     orbTableX['Sym'] = ('orb', orbSymList)  # Add symmetries, E and OrbGrp as non-dim coords - possibly not a great thing to do...?  Not easy to index with these
     orbTableX['E'] = ('orb', temp[:,3])

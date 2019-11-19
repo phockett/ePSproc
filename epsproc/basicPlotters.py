@@ -3,7 +3,9 @@ ePSproc basic plotting functions
 
 Some basic functions for 2D/3D plots.
 
-07/11/19    v1
+19/11/19        Adding plotting routines for matrix elements & beta values, to supercede existing basic methods.
+
+07/11/19    v1  Molecular plotter for job info.
 
 
 TODO
@@ -113,3 +115,53 @@ def molPlot(molInfo):
     # ax.view_init(0,20)  # Set view, (az,el)
 
     plt.show()
+
+
+
+#*** BLM surface plots
+
+def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr'):
+    """
+    Plotting routines for BLM values from Xarray.
+    Plot line or surface plot, with various backends available.
+
+    Parameters
+    ----------
+    BLM : Xarray
+        Input data for plotting, dims assumed to be as per :py:func:`ePSproc.util.BLMdimList()`
+
+    thres : float, optional, default 1e-2
+        Value used for thresholding results, only values > thres will be included in the plot.
+        Either abs or relative (%) value, according to thresType setting.
+
+    thresType : str, optional, default = 'abs'
+        Set to 'abs' or 'pc' for absolute threshold, or relative value (%age of max value in dataset)
+
+    xDim : str, optional, default = 'Eke'
+        Dimension to use for x-axis, also used for thresholding. Default plots (Eke, BLM) surfaces with subplots for (Euler).
+        Change to 'Euler' to plot (Euler, BLM) with (Eke) subplots.
+
+    backend : str, optional, default = 'xr'
+        Plotter to use. Default is 'xr' for Xarray internal plotting. May be switched according to plot type in future...
+
+    """
+
+    # Check dims, and set facet dim
+    dims = BLMdimList()
+    dims.remove(xDim)
+    cDims = dims.remove('BLM')
+
+    # For %age case
+    if thresType is 'pc':
+        thres = thres * BLM.max()
+
+    # Threshold results. Set to check along Eke dim, but may want to pass this as an option.
+    BLMplot = ep.matEleSelector(BLM, thres=thres, dims = xDim)
+
+    # Set BLM index for plotting.
+    # Necessary for Xarray plotter with multi-index categories it seems.
+    BLMplot['BLMind'] = ('BLM', np.arange(0, BLMplot.BLM.size))
+
+    #*** Plot
+    if backend is 'xr':
+        BLMplot.real.squeeze().plot(x=xDim, y='BLMind', col=cDims, size = 5)

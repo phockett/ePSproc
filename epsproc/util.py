@@ -145,7 +145,7 @@ def matEleSelector(da, thres = None, inds = None, dims = None, sq = False, drop=
     # If dims is set, check over dims for consistency.
     # WILL this just produce same results as thres then squeeze...?
     if dims is not None:
-        daOut = daOut.where(np.abs(da).max(dim = dims) > thres, drop = True)
+        daOut = daOut.where(np.abs(da).max(dim = dims) > thres, drop = drop)
 
     if sq:
         daOut = daOut.squeeze()  # Squeeze dims.

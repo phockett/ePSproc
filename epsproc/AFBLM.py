@@ -1,13 +1,12 @@
 r"""
-ePSproc MFBLM functions
+ePSproc AFBLM functions
 -----------------------
 
-23/09/19        Testing function caching...
+Calculate aligned frame (AF) and lab frame (AF) parameters for given matrix elements and alignment paramters.
 
-19/09/19        Working & verified basic version (slow loop).
-
-05/09/19    v1  Initial python version.
-                Based on original Matlab code ePS_MFBLM.m
+20/11/19    v1  Initial python version.
+                Based on working MFBLM code, :py:func:`epsproc.MFBLM.MFBLMCalcLoop()`. (Slow, but working and verified outputs.)
+                Also based on original Matlab codes ePSproc_AFBLM_2019_R_300719.m (plus other development versions April - July 2019).
 
 
 Formalism
@@ -24,18 +23,29 @@ Should be something like this, with possible substitutions or phase swaps.
     l & l' & L\\
     -m & m' & -M
     \end{array}\right)\nonumber \\
-     & \times & \sum_{P,R',R}(2P+1)(-1)^{(R'-R)}\left(\begin{array}{ccc}
-    1 & 1 & P\\
-    \mu & -\mu' & R'
-    \end{array}\right)\left(\begin{array}{ccc}
+     & \times & I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)I_{l',m',\mu'}^{p_{i}\mu_{i},p_{f}\mu_{f}*}(E)\\
+     & \times & \sum_{P,R,R'}(2P+1)(-1)^{(R'-R)}\left(\begin{array}{ccc}
     1 & 1 & P\\
     \mu_{0} & -\mu_{0} & R
-    \end{array}\right)D_{-R',-R}^{P}(R_{\hat{n}})I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)I_{l',m',\mu'}^{p_{i}\mu_{i},p_{f}\mu_{f}*}(E)
+    \end{array}\right)\left(\begin{array}{ccc}
+    1 & 1 & P\\
+    \mu & -\mu' & R'
+    \end{array}\right)\\
+     & \times & \sum_{K,Q,S}(2K+1)^{1/2}(-1)^{K+Q}\left(\begin{array}{ccc}
+    P & K & L\\
+    R & -Q & -M
+    \end{array}\right)\left(\begin{array}{ccc}
+    P & K & L\\
+    R' & -S & S-R'
+    \end{array}\right)A_{Q,S}^{K}(t)
     \end{eqnarray}
 
 
 Exact numerics may vary.
 
+Note
+----
+Code is currently more-or-less duplicated from MFBLM.py, with additional summation terms.
 
 """
 
@@ -95,7 +105,7 @@ def blmXarray(BLM, Eke):
 
 
 # Try basic looping version, similar to Matlab code...
-def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
+def AFBLMCalcLoop(matE, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
     """
     Calculate inner loop for MFBLMs, based on passed set of matrix elements (Xarray).
 
@@ -107,7 +117,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
     ----------
     matE : Xarray
         Contains one set of matrix elements to use for calculation.
-        Currently assumes these are a 1D list, with associated (l,m,mu) parameters, as set by :py:func:`epsproc.MFBLM.mfblm()`.
+        Currently assumes these are a 1D list, with associated (l,m,mu) parameters, as set by mfblm().
 
     eAngs : [phi,theta,chi], optional, default = [0,0,0]
         Single set of Euler angles defining polarization geometry.
@@ -142,10 +152,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
     * Not explicitly parallelized here, should be done by calling function.
     (Either via Xarray methods, or numba/dask...?  http://xarray.pydata.org/en/stable/computation.html#wrapping-custom-computation)
     * Coded for ease, not efficiency - there will be lots of repeated ang. mom. calcs. when run over many sets of matrix elements.
-    .. rst-class:: strike
     * Scale factor currently not propagated.
-
-    * (SF now propagated via Xarrays and implemented in main calling function )
 
     """
 
@@ -168,7 +175,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
     # R = 0 # For single pol state only, i.e. p-p'=0
     # pRot = quaternion.from_euler_angles(alpha, beta, gamma)
     # pRot = quaternion.from_euler_angles(0,0,0)
-    pRot = quaternion.from_euler_angles(eAngs)
+    # pRot = quaternion.from_euler_angles(eAngs)
 
     # Set variable for outputs
     C = []
@@ -201,24 +208,45 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
 
        if np.abs(matEprod) > thres:
 
-           # Gamma terms for polarization - sum over P
-           gammaP = 0
+           # Loop over allowed B(LM) and calculate
+           # NOTE - for multiindex coords matE.l[r1] works, but matE[r1].l DOESN'T (Xarray v0.12.3)
+           # if np.abs(gammaP) > thres:
+           for L in np.arange(0, l1 + l2 +1):
 
-           # Loop over allowed P = [0...2] for 2-photon case
-           for P in np.arange(0, 3):
-               Rp = mu2 - mu1     # mu2-mu1, includes Rp > -Rp for numerics.
+               # Gamma terms for polarization - sum over P
+               gammaP = 0
 
-               if np.abs(Rp) <= P:  # Check for allowed terms
+               # Loop over allowed P = [0...2] for 2-photon case
+               # NOTE THIS IS NOW INNER LOOP (as compared to MFBLM case) as gammaAKQS depends on L
+               for P in np.arange(0, 3):
+                   Rp = mu2 - mu1     # mu2-mu1, includes Rp > -Rp for numerics.
+
+                   if np.abs(Rp) <= P:  # Check for allowed terms
+                        # Inner sum over AKQS terms
+                        gammaAKQS = 0
+
+                        # Set dims - now fixed in input
+                        # if len(AKQS.shape) == 1:
+                        #     AKQSrows = 0
+                        # else:
+                        #     AKQSrows = AKQS.shape[0]
+                        AKQSrows = AKQS.shape[0]
+
+                        for AKQSind in np.arange(0, AKQSrows):
+                            K = AKQS[AKQSind,0]    # Assign values for clarity
+                            Q = AKQS[AKQSind,1]    # Sign flip on Q...?
+                            S = AKQS[AKQSind,2]
+
+                            # M or -M here? Doesn't seem to make a difference (for Q=S=0 at least)
+                            gammaAKQS = gammaAKQS + np.sqrt(2*K+1)*(-1)**(K+Q)*Wigner3jCached(P,K,L,R,-Q,-M)*Wigner3jCached(P,K,L,Rp,-S,S-Rp)*(AKQS[AKQSind,3])
+
 
                    # Sum over R,R' projections omitted - only R=0 set above
                    # Note polarization terms, here mu is MF, and p is LF.
                    # Note use of matEprod.data here - otherwise output is kept as Xarray (which could be useful in future...)
-                   gammaP = gammaP + (2*P+1) * (-1)**(Rp-R) * Wigner3jCached(1,1,P,mu1,-mu2,Rp) * Wigner3jCached(1,1,P,p,-p,R) * Wigner_D_element_Cached(pRot, P,-Rp,-R).conj()
+                   gammaP = gammaP + (2*P+1) * (-1)**(Rp-R) * Wigner3jCached(1,1,P,mu1,-mu2,Rp) * Wigner3jCached(1,1,P,p,-p,R) * gammaAKQS
 
-           # Loop over allowed B(LM) and calculate
-           # NOTE - for multiindex coords matE.l[r1] works, but matE[r1].l DOESN'T (Xarray v0.12.3)
-           if np.abs(gammaP) > thres:
-               for L in np.arange(0, l1 + l2 +1):
+               if np.abs(gammaP) > thres:
                    # print(L)
 
                    # Calculate associated gamma term, (L,M) values
@@ -235,6 +263,9 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
                    C.append([l1, m1, l2, m2, L, M, LMterm, gammaLM, gammaP, phase, degen])
                    # print(C[-1])
 
+    if verbose > 1:
+        print("C list")
+        print(C)
 
     if len(C) > 0:
         # Threshold terms
@@ -276,10 +307,9 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
 
     return BLMX
 
-
 # Master BLM calculation routine.
 # TODO: set for differnt calc routines, once developed!
-def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), SFflag = True, verbose = 1):
+def afblm(da, selDims = {'Type':'L'}, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), SFflag = True, verbose = 1):
     """
     Calculate MFBLMs for a range of (E, sym) cases. Default is to calculated for all symmetries at each energy.
 
@@ -360,9 +390,9 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     if daSumDim.Eke.size > 1:
         for n, daE in daSumDim.groupby('Eke'):
             if SFflag:
-                BLMXlist.append(MFBLMCalcLoop(daE, eAngs = eAngs, thres = thres, verbose = verbose)) #/daE.SF)  # Rescale by SF if required
+                BLMXlist.append(AFBLMCalcLoop(daE, AKQS = AKQS, eAngs = eAngs, thres = thres, verbose = verbose)) #/daE.SF)  # Rescale by SF if required
             else:
-                BLMXlist.append(MFBLMCalcLoop(daE, eAngs = eAngs, thres = thres, verbose = verbose))
+                BLMXlist.append(AFBLMCalcLoop(daE, AKQS = AKQS, eAngs = eAngs, thres = thres, verbose = verbose))
 
             # Add dims - currently set for Euler angles only (single set)
             # Can't seem to add mutiindex as a single element, so set dummy coord here and replace below.
@@ -372,7 +402,7 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
         BLMXout = xr.combine_nested(BLMXlist, concat_dim=['Eke'])
 
     else:
-        BLMXout = MFBLMCalcLoop(daSumDim, eAngs = eAngs, thres = thres)  # .expand_dims({'Euler':[0]})
+        BLMXout = AFBLMCalcLoop(daSumDim, AKQS = AKQS, eAngs = eAngs, thres = thres)  # .expand_dims({'Euler':[0]})
 
     # Set Euler angles used (cf. MFPAD.py code), assumed same for each Eke
     # May fail for singleton Eke dim...?
@@ -405,79 +435,5 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     BLMXout.attrs['sumDims'] = sumDims # May want to explicitly propagate symmetries here...?
     BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
     BLMXout.attrs['dataType'] = 'BLM'
-
-    return BLMXout
-
-
-# Wrapper for mfblm for a set of Euler angles
-def mfblmEuler(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), SFflag = True, verbose = 1):
-    """
-    Wrapper for :py:func:`epsproc.MFBLM.mfblm()` for a set of Euler angles.  All other parameters are simply passed to mfblm().
-    Calculate MFBLMs for a range of (E, sym) cases. Default is to calculated for all symmetries at each energy.
-
-    Parameters
-    ----------
-    da : Xarray
-        Contains matrix elements to use for calculation.
-        Matrix elements will be sorted by energy and BLMs calculated for each set.
-
-    selDims : dict, optional, default = {'Type':'L'}
-        Additional sub-selection to be applied to matrix elements before BLM calculation.
-        Default selects just length gauge results.
-
-    eAngs : [phi,theta,chi], optional, default = [0,0,0]
-        Set of Euler angles defining polarization geometry.
-        List or np.array, dims(N, 3).
-
-    thres : float, optional, default = 1e-4
-        Threshold value for testing significance of terms. Terms < thres will be dropped.
-
-    sumDims : tuple, optional, default = ('l','m','mu','Cont','Targ','Total','it')
-        Defines which terms are summed over (coherent) in the MFBLM calculation.
-        (These are used to flatten the Xarray before calculation.)
-        Default includes sum over (l,m), symmetries and degeneracies (but not energies).
-
-    SFflag : bool, default = True
-        Normalise by scale factor to give X-sections (B00) in Mb
-
-    verbose : int, optional, default 1
-        Verbosity level:
-
-         - 0: Silent run.
-         - 1: Print basic info.
-         - 2: Print intermediate C parameter array to terminal when running.
-
-    Returns
-    -------
-    Xarray
-        Calculation results BLM, dims (Euler(P,T,C), Eke, BLM(l,m)) - as per :py:func:`epsproc.util.BLMdimList`. Some global attributes are also appended.
-
-    Limitations
-    -----------
-    Currently set to loop calcualtions over energy only, and all symmetries.
-    Pass single {'Cont':'sym'} to calculated for only one symmetry group.
-
-    TODO: In future this will be more elegant.
-    TODO: Setting selDims in output structure needs more thought for netCDF save compatibility.
-
-    """
-
-    # Check size of passed set of Euler angles
-    # For ease of manipulation, just change to np.array if necessary!
-    if isinstance(eAngs, list):
-        eAngs = np.array(eAngs)
-
-    # For a single set of eAngs, just pass directly.
-    if eAngs.ndim == 1:
-        BLMXout = mfblm(da, selDims = selDims, eAngs = eAngs, thres = thres, sumDims = sumDims, SFflag = SFflag, verbose = verbose)
-    else:
-    # Loop over eAngs and calculate
-        BLM = []
-        for angsIn in range(0, eAngs.shape[0]):
-            BLM.append(mfblm(da, selDims = selDims, eAngs = eAngs[angsIn,:], thres = thres, SFflag = SFflag, verbose = verbose))
-
-        # Stack results
-        BLMXout = xr.combine_nested(BLM,'Euler')
-
 
     return BLMXout

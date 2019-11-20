@@ -233,9 +233,9 @@ def AFBLMCalcLoop(matE, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], 
                         AKQSrows = AKQS.shape[0]
 
                         for AKQSind in np.arange(0, AKQSrows):
-                            K = AKQS[AKQSind,0]    # Assign values for clarity
-                            Q = AKQS[AKQSind,1]    # Sign flip on Q...?
-                            S = AKQS[AKQSind,2]
+                            K = AKQS[AKQSind,0].real.astype('int')    # Assign values for clarity
+                            Q = AKQS[AKQSind,1].real.astype('int')    # Sign flip on Q...?
+                            S = AKQS[AKQSind,2].real.astype('int')
 
                             # M or -M here? Doesn't seem to make a difference (for Q=S=0 at least)
                             gammaAKQS = gammaAKQS + np.sqrt(2*K+1)*(-1)**(K+Q)*Wigner3jCached(P,K,L,R,-Q,-M)*Wigner3jCached(P,K,L,Rp,-S,S-Rp)*(AKQS[AKQSind,3])

@@ -270,12 +270,14 @@ def dataTypesList():
     dataDict = {'BLM' :
                     {'source':'epsproc.MFBLM',
                     'desc':'Calcualted MF beta parameters from epsproc.MFBLM(), based on dipole matrix elements from ePS.',
-                    'recordType':'DumpIdy'
+                    'recordType':'DumpIdy',
+                    'dims': BLMdimList(sType = 'sDict')
                     },
                 'matE' :
                     {'source':'epsproc.IO.readMatEle',
                     'desc':'Raw photoionization matrix elements from ePS, DumpIdy command and file segments.',
-                    'recordType':'DumpIdy'
+                    'recordType':'DumpIdy',
+                    'dims': matEdimList(sType = 'sDict')
                     },
                 'EDCS' :
                     {'source':'epsproc.IO.readMatEle',

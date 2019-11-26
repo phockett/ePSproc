@@ -50,7 +50,7 @@ from epsproc.sphCalc import sphCalc
 #***** Plotting top-level functions & logic
 
 # Define plot types
-def plotTypeSelector(dataPlot, pType = 'a'):
+def plotTypeSelector(dataPlot, pType = 'a', axisUW = 'Eke'):
     """
     Set plotting data type.
 
@@ -63,9 +63,16 @@ def plotTypeSelector(dataPlot, pType = 'a'):
         Set type of plot.
 
         * 'a' (abs)       = np.abs(dataPlot)
+        * 'a2' (abs^2)    = np.abs(dataPlot**2)
         * 'r' (real)      = np.real(dataPlot)
         * 'i' (imag)      = np.imag(dataPlot)
         * 'p' (product)   = dataPlot * np.conj(dataPlot)
+        * 'phase'         = np.angle(dataPlot)
+        * 'phaseUW'       = np.unwrap(np.angle(dataPlot), axis = axisUW)
+
+    axisUW : str, optional, default 'Eke'
+        Axis to use for phase unwrapping (for pType = 'phaseUW').
+        Axis name must be in passed Xarray.
 
     Returns
     -------
@@ -86,6 +93,11 @@ def plotTypeSelector(dataPlot, pType = 'a'):
         dataPlot = np.abs(dataPlot * np.conj(dataPlot))
     elif pType == 'a2':
         dataPlot = np.abs(dataPlot**2)
+    elif pType == 'phase':
+        dataPlot = np.angle(dataPlot)
+    elif pType == 'phaseUW':
+        axisNum = dataPlot.get_axis_num(axisUW)
+        dataPlot = np.unwrap(np.angle(dataPlot), axis = axisNum)
 
     # Set pType in output plotting data Xarray
     dataPlot.attrs['pType'] = pType

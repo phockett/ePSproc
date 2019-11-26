@@ -22,6 +22,20 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
+# Package functions
+from epsproc.sphPlot import plotTypeSelector
+from epsproc.util import matEleSelector
+
+# Additional plotters
+try:
+    import seaborn as sns
+    import epsproc._matrix as snsMatMod  # SNS code with modified clustermap
+except ImportError as e:
+    if e.msg != "No module named 'seaborn'":
+        raise
+    print('* Seaborn not found, clustermap plots not available. ')
+
+
 
 # Arrow3D class from https://stackoverflow.com/questions/22867620/putting-arrowheads-on-vectors-in-matplotlibs-3d-plot
 # Code: https://stackoverflow.com/a/22867877
@@ -165,3 +179,120 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr'):
     #*** Plot
     if backend is 'xr':
         BLMplot.real.squeeze().plot(x=xDim, y='BLMind', col=cDims, size = 5)
+
+
+
+#************************* Routines for matrix element plotting
+
+
+def lmPlot(data, pType = 'a', thres = 1e-2, SFflag = True, logFlag = False,
+        selDims = {'Type':'L'}, plotDims = ('l','m','mu','Cont','Targ','Total','it','Type'), sumDims = None,
+        xDim = 'Eke', thresType = 'abs', backend = 'sns'):
+    """
+    Plotting routine for ePS matrix elements & BLMs.
+
+    First pass - based on new codes + util functions from sphPlot.py, and matE sorting codes.
+
+    Parameters
+    -----------
+    data : Xarray, data to plot, containing matrix elements or BLM paramters.
+
+    pType : char, optional, default 'a' (abs values)
+        Set (data) type to plot. See :py:func:`plotTypeSelector`.
+
+    thres : float, optional, default 1e-2
+        Value used for thresholding results, only values > thres will be included in the plot.
+        Either abs or relative (%) value, according to thresType setting.
+
+    thresType : str, optional, default = 'abs'
+        Set to 'abs' or 'pc' for absolute threshold, or relative value (%age of max value in dataset)
+
+    xDim : str, optional, default = 'Eke'
+        Dimension to use for x-axis, also used for thresholding. Default plots (Eke, LM) surfaces.
+
+    backend : str, optional, default = 'xr'
+        Plotter to use. Default is 'xr' for Xarray internal plotting. May be switched according to plot type in future...
+
+    Notes
+    -----
+    * For clustermap use local version - code from Seaborn, version from PR1393 with Cluster plot fixes.
+        * https://github.com/mwaskom/seaborn/pull/1393
+        * https://github.com/mwaskom/seaborn/blob/fb1f87e800e69ba2e9309f922f9dac470e3a6c78/seaborn/matrix.py
+    * Currently only set for single colourmap choice, should set as dict.
+
+    """
+
+#*** Data prep
+    # Make explicit copy of data
+    # daPlot = data.copy()
+
+    # Use SF (scale factor)
+    # Write to data.values to make sure attribs are maintained.
+    if SFflag:
+        daPlot.values = daPlot * daPlot.SF
+
+    # For %age case
+    if thresType is 'pc':
+        thres = thres * daPlot.max()
+
+# Restack code from mfblm()
+    # # Unstack & sub-select data array
+    # daUnStack = da.unstack()
+    # daUnStack = matEleSelector(daUnStack, thres = thres, inds = selDims, sq = True)
+    #
+    # # Check dims vs. inds selection and/or key dims in output
+    # for indTest in sumDims:
+    #     # if (indTest in inds) or (indTest not in unstackTest.dims):
+    #     if indTest not in daUnStack.dims:
+    #         daUnStack = daUnStack.expand_dims(indTest)
+    #
+    # # Restack array along sumInds dimensions, drop NaNs and squeeze.
+    # daSumDim = daUnStack.stack(SumDim = sumDims).dropna('SumDim').squeeze()
+
+    # Sum & threshold
+    if sumDims is not None:
+        daPlot = daPlot.sum(sumDims).squeeze()
+
+    daPlot = plotTypeSelector(daPlot, pType = pType, axisUW = xDim)
+    daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = 'Eke', sq = True)
+
+#*** Plotting routines
+    # Rough code for xr plotter.
+    if backend is 'xr':
+        # Set index for plotting
+        daPlot['LMind'] = ('LM',np.arange(0, daPlot.LM.size))
+
+        # Plot abs values, with faceting on symmetry (all mu)
+        # TODO: faceting with passed or smart dims.
+        daPlot.plot(x='Eke', y='LMind', col='Sym', row='Type', robust = True)
+
+    if backend is 'sns':
+        # Convert to Pandas 2D array, stacked along plotDims
+        # TO DO: fix hard-coded axis number for dropna()
+        daPlotpd = daPlot.unstack().stack(plotDim = plotDims).to_pandas().dropna(axis = 1).T
+
+        # Set multi-index indicies & colour mapping
+        cList = []
+        for dim in daPlotpd.index.names:
+            Labels = daPlotpd.index.get_level_values(dim).astype('str')
+
+            # TO DO: add multiple cmaps here, via a list?
+            pal = sns.light_palette("green", n_colors=Labels.unique().size)
+            lut = dict(zip(map(str, Labels.unique()), pal))
+            cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
+
+        # Stack to dataframe
+        colors = pd.DataFrame(cList[0])
+        for c in cList[1:]:
+            colors = colors.join(pd.DataFrame(c))
+
+        # Plot with modified clustermap code.
+        g = snsMatMod.clustermap(daPlotpd, cmap="vlag", center = 0,
+                  # Turn off the clustering
+                  row_cluster=False, col_cluster=False,
+                  # Add colored class labels
+                  row_colors=colors, col_colors=None, # )  # ,
+                  # Make the plot look better when many rows/cols
+                  linewidths=0, xticklabels=True, yticklabels=False)
+
+    return daPlot

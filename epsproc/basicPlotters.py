@@ -29,7 +29,7 @@ from epsproc.util import matEleSelector
 # Additional plotters
 try:
     import seaborn as sns
-    import epsproc._matrix as snsMatMod  # SNS code with modified clustermap
+    import epsproc._sns_matrixMod as snsMatMod  # SNS code with modified clustermap
 except ImportError as e:
     if e.msg != "No module named 'seaborn'":
         raise

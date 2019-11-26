@@ -330,8 +330,9 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     """
 
     # Use SF (scale factor)
+    # Write to data.values to make sure attribs are maintained. (Not the case for da = da*da.SF)
     if SFflag:
-        da = da * da.SF
+        da.values = da * da.SF
 
     # Unstack & sub-select data array
     daUnStack = da.unstack()

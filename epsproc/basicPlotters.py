@@ -185,10 +185,16 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr'):
 
 #************************* Routines for matrix element plotting
 
+# Function for getting list of unique syms
+def symListGen(data):
+    symList = []
+    [symList.append(list(item)) for item in data.get_index('Sym').to_list()]
 
-def lmPlot(data, pType = 'a', thres = 1e-2, SFflag = True, logFlag = False,
-        selDims = {'Type':'L'}, plotDims = ('l','m','mu','Cont','Targ','Total','it','Type'), sumDims = None,
-        xDim = 'Eke', thresType = 'abs', backend = 'sns'):
+    return np.ravel(symList)
+
+def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False,
+        selDims = {'Type':'L'}, sumDims = None, plotDims = ('l','m','mu','Cont','Targ','Total','it','Type'),
+        xDim = 'Eke', backend = 'sns', figsize = None, verbose = False):
     """
     Plotting routine for ePS matrix elements & BLMs.
 
@@ -208,11 +214,47 @@ def lmPlot(data, pType = 'a', thres = 1e-2, SFflag = True, logFlag = False,
     thresType : str, optional, default = 'abs'
         Set to 'abs' or 'pc' for absolute threshold, or relative value (%age of max value in dataset)
 
+    SFflag : bool, optional, default = True
+        Multiply by E-dependent scale factor.
+
+    logFlag : bool, optional, default = False
+        Plot values on log10 scale.
+
+    selDims : dict, optional, default = {'Type':'L'}
+        Dimensions to select from input Xarray.
+
+    sumDims : tuple, optional, default = None
+        Dimensions to sum over from the input Xarray.
+
+    plotDims : tuple, optional, default = ('l','m','mu','Cont','Targ','Total','it','Type')
+        Dimensions to stack for plotting.
+        TO DO: auto generation for different dataType, also based on selDims and sumDims selections.
+
     xDim : str, optional, default = 'Eke'
         Dimension to use for x-axis, also used for thresholding. Default plots (Eke, LM) surfaces.
 
-    backend : str, optional, default = 'xr'
-        Plotter to use. Default is 'xr' for Xarray internal plotting. May be switched according to plot type in future...
+    backend : str, optional, default = 'sns'
+        Plotter to use. Default is 'sns' for Seaborn clustermap plot.
+        Set to 'xr' for Xarray internal plotting (not all passed args will be used in this case). May be switched according to plot type in future...
+
+    figsize : tuple, optional, default None
+        Tuple for Seaborn figure size (ratio), e.g. figsize = (15,5).
+        Useful for setting a long axis explicitly in cases with large dimensional disparity.
+        Default results in a square (ish) aspect.
+
+    verbose : bool, optional, default False
+        Print debug info.
+
+    Returns
+    -------
+    daPlot : Xarray
+        Data subset as plotted.
+
+    legendList : list
+        Labels & colour maps
+
+    g : figure object
+
 
     Notes
     -----
@@ -223,24 +265,36 @@ def lmPlot(data, pType = 'a', thres = 1e-2, SFflag = True, logFlag = False,
     * Clustermap methods from:
         * https://stackoverflow.com/questions/27988846/how-to-express-classes-on-the-axis-of-a-heatmap-in-seaborn
         * https://seaborn.pydata.org/examples/structured_heatmap.html
+    * Seaborn global settings currently not included here... good settings are:
+        * sns.set(rc={'figure.dpi':(120)})
+        * sns.set_context("paper")
 
     """
     # Local/deferred import to avoid circular import issues at module level.
     # TO DO: Should fix with better __init__!
-    from epsproc.util import matEleSelector
+    from epsproc.util import matEleSelector, matEdimList, BLMdimList
 
 #*** Data prep
     # Make explicit copy of data
     daPlot = data.copy()
+    daPlot.attrs = data.attrs
+#     daPlot = data
 
     # Use SF (scale factor)
     # Write to data.values to make sure attribs are maintained.
-    if SFflag:
+    if SFflag and (daPlot.attrs['dataType'] is 'matE'):
         daPlot.values = daPlot * daPlot.SF
 
     # For %age case
     if thresType is 'pc':
         thres = thres * daPlot.max()
+
+    # Get full dim list
+    if daPlot.attrs['dataType'] is 'matE':
+        dimMap = matEdimList(sType = 'sDict')
+    else:
+        dimMap = BLMdimList(sType = 'sDict')
+
 
 # Restack code from mfblm()
     # # Unstack & sub-select data array
@@ -260,9 +314,14 @@ def lmPlot(data, pType = 'a', thres = 1e-2, SFflag = True, logFlag = False,
     if sumDims is not None:
         daPlot = daPlot.sum(sumDims).squeeze()
 
-    daPlot = plotTypeSelector(daPlot, pType = pType, axisUW = xDim)
+    # Threshold on abs() value before setting type, otherwise all terms will appear for some cases (e.g. phase plot)
     daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = 'Eke', sq = True)
+    daPlot = plotTypeSelector(daPlot, pType = pType, axisUW = xDim)
+
     # daPlot = ep.util.matEleSelector(daPlot, thres=thres, inds = selDims, dims = 'Eke', sq = True)
+
+    if logFlag:
+        daPlot.values = daPlot.pipe(np.log10)
 
 #*** Plotting routines
     # Rough code for xr plotter.
@@ -274,33 +333,140 @@ def lmPlot(data, pType = 'a', thres = 1e-2, SFflag = True, logFlag = False,
         # TODO: faceting with passed or smart dims.
         daPlot.plot(x='Eke', y='LMind', col='Sym', row='Type', robust = True)
 
+
     if backend is 'sns':
-        # Convert to Pandas 2D array, stacked along plotDims
+
+        print(f"Plotting data {daPlot.attrs['file']}, pType={pType}, thres={thres}, with Seaborn")
+
+        # *** Dims & cmaps
+        # Get sym list if applicable, this is used for unique colour-mapping over dims and legends.
+        if 'Sym' in daPlot.dims:
+            symList = symListGen(daPlot)
+            symFlag = True
+            palSym = sns.color_palette("hls", np.unique(symList).size)  # Generate unified cmap
+            lutSym = dict(zip(map(str, np.unique(symList)), palSym))
+        else:
+            symFlag = False
+
+        # Set unified cmap for (m,mu) if both in
+#         if ('m' in daPlot.dims) and ('mu' in daPlot.dims):
+        mList = np.unique(daPlot.LM.m)
+        mColours = mList.size
+
+        if mColours < 3:  # Minimal value to ensure mu mapped - may be better to generate without ref here?
+            mColours = 3
+
+#         palM = sns.diverging_palette(220, 20, n=mColours) # sns.color_palette("hls", mList.size)
+        palM = sns.color_palette("coolwarm", mColours)
+        lutM = dict(zip(map(str, mList), palM))
+
+
+        # Convert to Pandas 2D array, stacked along plotDims - these will be used for colour bar.
         # TO DO: fix hard-coded axis number for dropna()
+        # TO DO: check plotDims exist, otherwise may throw errors with defaults
         daPlotpd = daPlot.unstack().stack(plotDim = plotDims).to_pandas().dropna(axis = 1).T
 
         # Set multi-index indicies & colour mapping
         cList = []
+        legendList = []
         for dim in daPlotpd.index.names:
-            Labels = daPlotpd.index.get_level_values(dim).astype('str')
+            Labels = daPlotpd.index.get_level_values(dim) #.astype('str')
 
-            # TO DO: add multiple cmaps here, via a list?
-            pal = sns.light_palette("green", n_colors=Labels.unique().size)
-            lut = dict(zip(map(str, Labels.unique()), pal))
-            cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
+            if verbose:
+                print(dim)
+                print(Labels.unique().size)
+
+            # For (l,m,mu) set colour scales as linear (l), and diverging (m,mu)
+            # May want to modify (m,mu) mappings to be shared?
+            if dim is 'l':
+                pal = sns.light_palette("green", n_colors=Labels.unique().size)
+                lut = dict(zip(map(str, Labels.unique()), pal))
+                cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
+                legendList.append((Labels.unique(), lut))
+
+            elif (dim is 'm') or (dim is 'mu'):
+#                 pal = sns.diverging_palette(220, 20, n=Labels.unique().size)
+#                 lut = dict(zip(map(str, Labels.unique().sort_values()), pal))  # Note .sort_values() required here.
+                pal = palM
+                lut = lutM
+                cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
+                legendList.append((Labels.unique().sort_values(), lut))
+
+            # If mapping symmetries, use flattened list set above for colour mapping
+            # This will keep things consistent over all sym sub-labels
+            # NOTE - symFlag setting allows for case when dimMap['Sym'] is missing (will throw an error otherwise)
+            elif symFlag and (dim in dimMap['Sym']):
+#                 pal = sns.color_palette("hls", np.unique(symList).size)
+#                 lut = dict(zip(map(str, np.unique(symList)), pal))
+                pal = palSym
+                lut = lutSym
+                cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
+                legendList.append((Labels.unique(), lut))
+
+            # For other dims, set to categorical mapping.
+            # Should check for shared dims here, e.g. Syms, for mapping...?
+            else:
+#                 pass
+#                 print(dim)
+#                 print(Labels.unique().size)
+#                 pal = sns.color_palette("hls", Labels.unique().size)
+                pal = sns.color_palette("dark", Labels.unique().size)
+#                 pal = sns.light_palette("blue", n_colors=Labels.unique().size)
+                lut = dict(zip(map(str, Labels.unique()), pal))
+                cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
+                legendList.append((Labels.unique(), lut))
+
+            # For legend, keep also Labels.unique, lut, pairs
+#             legendList.append((Labels.unique(), lut, dim))  # Include dim... redundant if Labels is pd.index with name
+#             legendList.append((Labels.unique(), lut))
+
 
         # Stack to dataframe
         colors = pd.DataFrame(cList[0])
         for c in cList[1:]:
             colors = colors.join(pd.DataFrame(c))
 
-        # Plot with modified clustermap code.
-        g = snsMatMod.clustermap(daPlotpd, cmap="vlag", center = 0,
+        # *** Plot with modified clustermap code.
+        g = snsMatMod.clustermap(daPlotpd,
+                  # cmap="vlag", center = 0,
                   # Turn off the clustering
                   row_cluster=False, col_cluster=False,
                   # Add colored class labels
                   row_colors=colors, col_colors=None, # )  # ,
                   # Make the plot look better when many rows/cols
-                  linewidths=0, xticklabels=True, yticklabels=False)
+                  linewidths=0, xticklabels=True, yticklabels=False,
+                  # Some other additional, optional, args...
+                  figsize = figsize)
 
-    return daPlot
+
+        # Add keys for each label - loop over all sets of variables assigned previously as (labels, lut) pairs and set as (invisible) bar plots
+        # Using this method it's only possible to set two sets of legends, split these based on n here.
+        # Method from https://stackoverflow.com/questions/27988846/how-to-express-classes-on-the-axis-of-a-heatmap-in-seaborn
+        for n, item in enumerate(legendList):
+            for label in item[0].astype('str'):
+#                 label = string(label)
+#                 if n%2:
+                if item[0].name in ['l','m']:
+                    g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
+                elif item[0].name is 'mu':  # Skip to avoid repetition, assuming m already plotted.
+                    pass
+#                 elif symFlag and (item[0].name is 'Cont'):
+#                     g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
+                elif symFlag and (item[0].name in dimMap['Sym']):  # Skip symmetries
+                    pass
+                else:
+                    g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
+
+        # Add symmetry labels separately from master list to avoid repetition
+        if symFlag:
+            for label in np.unique(symList):
+                g.ax_row_dendrogram.bar(0, 0, color=lutSym[label],label=label, linewidth=0)
+
+#             g.ax_col_dendrogram.legend(title=n, loc="center") #, ncol=n+1) # , bbox_to_anchor=(0.47, 0.8), bbox_transform=plt.gcf().transFigure)
+
+        # Add legends for the bar plots
+        ncol = 2  #np.unique(daPlot.LM.l).size
+        g.ax_col_dendrogram.legend(title='(l,m,mu)', loc="center", ncol = ncol, bbox_to_anchor=(0.1, 0.6), bbox_transform=plt.gcf().transFigure)
+        g.ax_row_dendrogram.legend(title='Categories', loc="center", ncol = 2, bbox_to_anchor=(0.1, 0.4), bbox_transform=plt.gcf().transFigure)
+
+    return daPlot, legendList, g

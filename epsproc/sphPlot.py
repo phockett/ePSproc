@@ -82,22 +82,23 @@ def plotTypeSelector(dataPlot, pType = 'a', axisUW = 'Eke'):
 
     """
 
+    # Set dataPlot.values, otherwise attrs are dropped.
     if pType == 'a':
-        dataPlot = np.abs(dataPlot)
+        dataPlot.values = np.abs(dataPlot)
     elif pType == 'r':
-        dataPlot = np.real(dataPlot)
+        dataPlot.values = np.real(dataPlot)
     elif pType == 'i':
-        dataPlot = np.imag(dataPlot)
+        dataPlot.values = np.imag(dataPlot)
     elif pType == 'p':
         # TODO: check conj defns with Xarray
-        dataPlot = np.abs(dataPlot * np.conj(dataPlot))
+        dataPlot.values = np.abs(dataPlot * np.conj(dataPlot))
     elif pType == 'a2':
-        dataPlot = np.abs(dataPlot**2)
+        dataPlot.values = np.abs(dataPlot**2)
     elif pType == 'phase':
-        dataPlot = np.angle(dataPlot)
+        dataPlot.values = np.angle(dataPlot)
     elif pType == 'phaseUW':
         axisNum = dataPlot.get_axis_num(axisUW)
-        dataPlot = np.unwrap(np.angle(dataPlot), axis = axisNum)
+        dataPlot.values = np.unwrap(np.angle(dataPlot), axis = axisNum)
 
     # Set pType in output plotting data Xarray
     dataPlot.attrs['pType'] = pType

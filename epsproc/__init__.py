@@ -36,4 +36,4 @@ from epsproc.AFBLM import afblm, AFBLMCalcLoop
 
 
 # TODO - move from individual modules.
-# from epsproc.ePSproc_util import matEleSelector
+# from epsproc.util import matEleSelector

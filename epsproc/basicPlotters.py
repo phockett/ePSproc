@@ -15,6 +15,7 @@ TODO
 """
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -24,7 +25,7 @@ from mpl_toolkits.mplot3d import proj3d
 
 # Package functions
 from epsproc.sphPlot import plotTypeSelector
-from epsproc.util import matEleSelector
+# from epsproc.util import matEleSelector  # Throws error, due to circular import refs?
 
 # Additional plotters
 try:
@@ -219,12 +220,18 @@ def lmPlot(data, pType = 'a', thres = 1e-2, SFflag = True, logFlag = False,
         * https://github.com/mwaskom/seaborn/pull/1393
         * https://github.com/mwaskom/seaborn/blob/fb1f87e800e69ba2e9309f922f9dac470e3a6c78/seaborn/matrix.py
     * Currently only set for single colourmap choice, should set as dict.
+    * Clustermap methods from:
+        * https://stackoverflow.com/questions/27988846/how-to-express-classes-on-the-axis-of-a-heatmap-in-seaborn
+        * https://seaborn.pydata.org/examples/structured_heatmap.html
 
     """
+    # Local/deferred import to avoid circular import issues at module level.
+    # TO DO: Should fix with better __init__!
+    from epsproc.util import matEleSelector
 
 #*** Data prep
     # Make explicit copy of data
-    # daPlot = data.copy()
+    daPlot = data.copy()
 
     # Use SF (scale factor)
     # Write to data.values to make sure attribs are maintained.
@@ -255,6 +262,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, SFflag = True, logFlag = False,
 
     daPlot = plotTypeSelector(daPlot, pType = pType, axisUW = xDim)
     daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = 'Eke', sq = True)
+    # daPlot = ep.util.matEleSelector(daPlot, thres=thres, inds = selDims, dims = 'Eke', sq = True)
 
 #*** Plotting routines
     # Rough code for xr plotter.

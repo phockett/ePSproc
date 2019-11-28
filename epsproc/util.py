@@ -86,6 +86,26 @@ def jobSummary(jobInfo = None, molInfo = None, tolConv = 1e-2):
 
     return jobInfo
 
+# Print (LM) and symmetry sets with Pandas tables
+def lmSymSummary(data):
+    """Display summary info data tables.
+
+    Works nicely in a notebook cell, with Pandas formatted table... but not from function?
+
+    """
+
+    print('\n*** Index summary\n')
+
+    test = daPlot.Sym.to_pandas()
+    print('Symmetry sets')
+    print(test.unstack())
+
+    test = daPlot.LM.to_pandas()
+    print('\n(L,M) sets')
+    print(test.unstack().T)
+
+
+
 
 #*************** Selection functions
 

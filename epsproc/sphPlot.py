@@ -9,6 +9,9 @@ Main plotters are:
 * :py:func:`sphSumPlotX` for arrays of :math:`I(\\theta,\\phi)`
 * :py:func:`sphFromBLMPlot` for arrays of :math:`\\beta_{LM}` parameters.
 
+28/11/19
+            * Changed plotTypeSelector to dictionary method (and added more methods).
+
 13/09/19
 
             * Added sphFromBLMPlot().
@@ -50,7 +53,7 @@ from epsproc.sphCalc import sphCalc
 #***** Plotting top-level functions & logic
 
 # Define plot types
-def plotTypeSelector(dataPlot, pType = 'a', axisUW = 'Eke'):
+def plotTypeSelector(dataPlot, pType = 'a', axisUW = 'Eke', returnDict = False):
     """
     Set plotting data type.
 
@@ -74,34 +77,62 @@ def plotTypeSelector(dataPlot, pType = 'a', axisUW = 'Eke'):
         Axis to use for phase unwrapping (for pType = 'phaseUW').
         Axis name must be in passed Xarray.
 
+    returnDict : optional, default = False
+        If true, return dictionary of types & methods instead of data array.
+
     Returns
     -------
 
-    Xarray, np.array
+    dataPlot : Xarray or np.array
         Input data structure converted to pType.
+
+    pTypeDict : dictionary
+        Structure of valid types, formula and functions.
 
     """
 
-    # Set dataPlot.values, otherwise attrs are dropped.
-    if pType == 'a':
-        dataPlot.values = np.abs(dataPlot)
-    elif pType == 'r':
-        dataPlot.values = np.real(dataPlot)
-    elif pType == 'i':
-        dataPlot.values = np.imag(dataPlot)
-    elif pType == 'p':
-        # TODO: check conj defns with Xarray
-        dataPlot.values = np.abs(dataPlot * np.conj(dataPlot))
-    elif pType == 'a2':
-        dataPlot.values = np.abs(dataPlot**2)
-    elif pType == 'phase':
-        dataPlot.values = np.angle(dataPlot)
-    elif pType == 'phaseUW':
-        axisNum = dataPlot.get_axis_num(axisUW)
-        dataPlot.values = np.unwrap(np.angle(dataPlot), axis = axisNum)
+    # # Set dataPlot.values, otherwise attrs are dropped.
+    # if pType == 'a':
+    #     dataPlot.values = np.abs(dataPlot)
+    # elif pType == 'r':
+    #     dataPlot.values = np.real(dataPlot)
+    # elif pType == 'i':
+    #     dataPlot.values = np.imag(dataPlot)
+    # elif pType == 'p':
+    #     # TODO: check conj defns with Xarray
+    #     dataPlot.values = np.abs(dataPlot * np.conj(dataPlot))
+    # elif pType == 'a2':
+    #     dataPlot.values = np.abs(dataPlot**2)
+    # elif pType == 'phase':
+    #     dataPlot.values = np.angle(dataPlot)
+    # elif pType == 'phaseUW':
+    #     axisNum = dataPlot.get_axis_num(axisUW)
+    #     dataPlot.values = np.unwrap(np.angle(dataPlot), axis = axisNum)
+
+    # 28/11/19 Set plot type as dictionary
+    # Use this instead of if/el list above, and can also be returned for further use.
+    # Implement fns as lambdas for flexibility
+    pTypeDict = {'a':   {'Type':'abs',  'Formula':'np.abs(dataPlot)',   'Exec': lambda x: np.abs(x)},
+                 'a2':  {'Type':'abs(^2)','Formula':'np.abs(dataPlot**2)','Exec': lambda x: np.abs(x**2)},
+                 'a2b': {'Type':'(abs)^2','Formula':'np.abs(dataPlot)**2','Exec': lambda x: np.abs(x)**2},
+                 'r':   {'Type':'real', 'Formula':'np.real(dataPlot)',  'Exec': lambda x: np.real(x)},
+                 'i':   {'Type':'imaginary', 'Formula':'np.imag(dataPlot)',  'Exec': lambda x: np.imag(x)},
+                 'p':   {'Type':'product', 'Formula':'dataPlot * np.conj(dataPlot)',  'Exec': lambda x: x * np.conj(x)},
+                 'phase':{'Type':'phase', 'Formula':'np.angle(dataPlot)',  'Exec': lambda x: np.angle(x)},
+                 'phaseUW':{'Type':'phase (unwrapped)', 'Formula':'np.unwrap(np.angle(dataPlot), axis = axisUW)',  'Exec': lambda x: np.unwrap(np.angle(x), axis = axisNum)}
+                 }
+
+    if returnDict:
+        return pTypeDict
 
     # Set pType in output plotting data Xarray
+    if pType is 'phaseUW':
+        axisNum = dataPlot.get_axis_num(axisUW)  # Special case with axis set
+
+    dataPlot.values = pTypeDict[pType]['Exec'](dataPlot)
+
     dataPlot.attrs['pType'] = pType
+    dataPlot.attrs['pTypeDetails'] = pTypeDict[pType]
 
     return dataPlot
 

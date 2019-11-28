@@ -193,7 +193,7 @@ def symListGen(data):
     return np.ravel(symList)
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False,
-        selDims = {'Type':'L'}, sumDims = None, plotDims = ('l','m','mu','Cont','Targ','Total','it','Type'),
+        selDims = None, sumDims = None, plotDims = ('l','m','mu','Cont','Targ','Total','it','Type'),
         xDim = 'Eke', backend = 'sns', figsize = None, verbose = False):
     """
     Plotting routine for ePS matrix elements & BLMs.
@@ -258,6 +258,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     Notes
     -----
+    * Data is automagically sorted by dims in order set in plotDim.
     * For clustermap use local version - code from Seaborn, version from PR1393 with Cluster plot fixes.
         * https://github.com/mwaskom/seaborn/pull/1393
         * https://github.com/mwaskom/seaborn/blob/fb1f87e800e69ba2e9309f922f9dac470e3a6c78/seaborn/matrix.py
@@ -274,6 +275,16 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     # TO DO: Should fix with better __init__!
     from epsproc.util import matEleSelector, matEdimList, BLMdimList
 
+    # Set Seaborn style
+    # TO DO: should pass args here or set globally.
+    # sns.set()
+    sns.set_context("paper")  # "paper", "talk", "poster", sets relative scale of elements
+                            # https://seaborn.pydata.org/tutorial/aesthetics.html
+    # sns.set(rc={'figure.figsize':(11.7,8.27)})  # Set figure size explicitly (inch)
+                            # https://stackoverflow.com/questions/31594549/how-do-i-change-the-figure-size-for-a-seaborn-plot
+                            # Wraps Matplotlib rcParams, https://matplotlib.org/tutorials/introductory/customizing.html
+    sns.set(rc={'figure.dpi':(120)})
+
 #*** Data prep
     # Make explicit copy of data
     daPlot = data.copy()
@@ -287,7 +298,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     # For %age case
     if thresType is 'pc':
-        thres = thres * daPlot.max()
+        thres = thres * np.abs(daPlot.max()).values  # Take abs here to ensure thres remains real (float)
+                                              # However, does work without this for xr.where() - supports complex comparison.
 
     # Get full dim list
     if daPlot.attrs['dataType'] is 'matE':
@@ -313,6 +325,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     # Sum & threshold
     if sumDims is not None:
         daPlot = daPlot.sum(sumDims).squeeze()
+        daPlot.attrs = data.attrs  # Reset attribs
 
     # Threshold on abs() value before setting type, otherwise all terms will appear for some cases (e.g. phase plot)
     daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = 'Eke', sq = True)
@@ -363,8 +376,17 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
         # Convert to Pandas 2D array, stacked along plotDims - these will be used for colour bar.
         # TO DO: fix hard-coded axis number for dropna()
-        # TO DO: check plotDims exist, otherwise may throw errors with defaults
-        daPlotpd = daPlot.unstack().stack(plotDim = plotDims).to_pandas().dropna(axis = 1).T
+
+        # Check plotDims exist, otherwise may throw errors with defaults
+        plotDimsRed = []
+        # for dim in daPlot.unstack().dims:
+        #     if dim in plotDims:
+        #         plotDimsRed.append(dim)
+        for dim in plotDims:
+            if dim in daPlot.unstack().dims:
+                plotDimsRed.append(dim)
+
+        daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).to_pandas().dropna(axis = 1).T
 
         # Set multi-index indicies & colour mapping
         cList = []
@@ -442,6 +464,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # Add keys for each label - loop over all sets of variables assigned previously as (labels, lut) pairs and set as (invisible) bar plots
         # Using this method it's only possible to set two sets of legends, split these based on n here.
         # Method from https://stackoverflow.com/questions/27988846/how-to-express-classes-on-the-axis-of-a-heatmap-in-seaborn
+        # TO DO: For further control over legend layout may need to add dummy items: https://stackoverflow.com/questions/34212241/control-the-number-of-rows-within-a-legend
         for n, item in enumerate(legendList):
             for label in item[0].astype('str'):
 #                 label = string(label)
@@ -466,7 +489,14 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
         # Add legends for the bar plots
         ncol = 2  #np.unique(daPlot.LM.l).size
-        g.ax_col_dendrogram.legend(title='(l,m,mu)', loc="center", ncol = ncol, bbox_to_anchor=(0.1, 0.6), bbox_transform=plt.gcf().transFigure)
+        g.ax_col_dendrogram.legend(title='l,(m,mu)', loc="center", ncol = ncol, bbox_to_anchor=(0.1, 0.6), bbox_transform=plt.gcf().transFigure)
         g.ax_row_dendrogram.legend(title='Categories', loc="center", ncol = 2, bbox_to_anchor=(0.1, 0.4), bbox_transform=plt.gcf().transFigure)
 
-    return daPlot, legendList, g
+        # Additional anootations etc.
+        # Plot titles: https://stackoverflow.com/questions/49254337/how-do-i-add-a-title-to-a-seaborn-clustermap
+        # g.fig.suptitle(f"{daPlot.attrs['file']}, pType={pType}, thres={thres}")  # Full figure title
+        g.ax_heatmap.set_title(f"{daPlot.attrs['file']}, plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {np.round(thres, 2)}")  # Title heatmap subplot
+
+        return daPlot, daPlotpd, legendList, g
+
+    return daPlot

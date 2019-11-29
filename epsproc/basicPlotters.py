@@ -194,7 +194,7 @@ def symListGen(data):
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False,
         selDims = None, sumDims = None, plotDims = ('l','m','mu','Cont','Targ','Total','it','Type'),
-        xDim = 'Eke', backend = 'sns', figsize = None, verbose = False):
+        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False):
     """
     Plotting routine for ePS matrix elements & BLMs.
 
@@ -236,6 +236,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     backend : str, optional, default = 'sns'
         Plotter to use. Default is 'sns' for Seaborn clustermap plot.
         Set to 'xr' for Xarray internal plotting (not all passed args will be used in this case). May be switched according to plot type in future...
+
+    cmap : str, optional, default = None
+        Cmap option to pass to sns clustermap plot.
 
     figsize : tuple, optional, default None
         Tuple for Seaborn figure size (ratio), e.g. figsize = (15,5).
@@ -328,7 +331,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         daPlot.attrs = data.attrs  # Reset attribs
 
     # Threshold on abs() value before setting type, otherwise all terms will appear for some cases (e.g. phase plot)
-    daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = 'Eke', sq = True)
+    daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = xDim, sq = True)
     daPlot = plotTypeSelector(daPlot, pType = pType, axisUW = xDim)
 
     # daPlot = ep.util.matEleSelector(daPlot, thres=thres, inds = selDims, dims = 'Eke', sq = True)
@@ -361,9 +364,13 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         else:
             symFlag = False
 
-        # Set unified cmap for (m,mu) if both in
+        # Set unified cmap for (m,mu)
+        # Switch for matE or BLM data type.
 #         if ('m' in daPlot.dims) and ('mu' in daPlot.dims):
-        mList = np.unique(daPlot.LM.m)
+        if 'LM' in daPlot.dims:
+            mList = np.unique(daPlot.LM.m)
+        if 'BLM' in daPlot.dims:
+            mList = np.unique(daPlot.BLM.m)
         mColours = mList.size
 
         if mColours < 3:  # Minimal value to ensure mu mapped - may be better to generate without ref here?
@@ -458,7 +465,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                   # Make the plot look better when many rows/cols
                   linewidths=0, xticklabels=True, yticklabels=False,
                   # Some other additional, optional, args...
-                  figsize = figsize)
+                  figsize = figsize, cmap = cmap)
 
 
         # Add keys for each label - loop over all sets of variables assigned previously as (labels, lut) pairs and set as (invisible) bar plots

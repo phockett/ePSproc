@@ -215,7 +215,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         Set to 'abs' or 'pc' for absolute threshold, or relative value (%age of max value in dataset)
 
     SFflag : bool, optional, default = True
-        Multiply by E-dependent scale factor.
+        For dataType = matE: Multiply by E-dependent scale factor.
+        For dataType = BLM: Multiply by cross-section (XS) (I.e. if False, normalised BLMs are plotted, with B00 = 1)
 
     logFlag : bool, optional, default = False
         Plot values on log10 scale.
@@ -227,7 +228,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         Dimensions to sum over from the input Xarray.
 
     plotDims : tuple, optional, default = ('l','m','mu','Cont','Targ','Total','it','Type')
-        Dimensions to stack for plotting.
+        Dimensions to stack for plotting, also controls order of stacking (hence sorting and plotting).
         TO DO: auto generation for different dataType, also based on selDims and sumDims selections.
 
     xDim : str, optional, default = 'Eke'
@@ -476,6 +477,11 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # Method from https://stackoverflow.com/questions/27988846/how-to-express-classes-on-the-axis-of-a-heatmap-in-seaborn
         # TO DO: For further control over legend layout may need to add dummy items: https://stackoverflow.com/questions/34212241/control-the-number-of-rows-within-a-legend
         for n, item in enumerate(legendList):
+            # To avoid issues with long floats, round to 3dp
+            # TODO: fix this, currently fails for Euler angles case?
+            # if item[0].dtype == np.float:
+            #     item[0] = np.round(item[0],3)
+
             for label in item[0].astype('str'):
 #                 label = string(label)
 #                 if n%2:
@@ -505,7 +511,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # Additional anootations etc.
         # Plot titles: https://stackoverflow.com/questions/49254337/how-do-i-add-a-title-to-a-seaborn-clustermap
         # g.fig.suptitle(f"{daPlot.attrs['file']}, pType={pType}, thres={thres}")  # Full figure title
-        g.ax_heatmap.set_title(f"{daPlot.attrs['file']}, plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {np.round(thres, 2)}")  # Title heatmap subplot
+        g.ax_heatmap.set_title(f"{daPlot.attrs['file']}, plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {np.round(thres, 2)}, inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
 
         return daPlot, daPlotpd, legendList, g
 

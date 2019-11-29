@@ -299,6 +299,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     if SFflag and (daPlot.attrs['dataType'] is 'matE'):
         daPlot.values = daPlot * daPlot.SF
 
+    if SFflag and (daPlot.attrs['dataType'] is 'BLM'):
+        daPlot.values = daPlot * daPlot.XS
+
     # For %age case
     if thresType is 'pc':
         thres = thres * np.abs(daPlot.max()).values  # Take abs here to ensure thres remains real (float)

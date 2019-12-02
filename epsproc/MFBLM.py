@@ -279,7 +279,7 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
 
 # Master BLM calculation routine.
 # TODO: set for differnt calc routines, once developed!
-def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), SFflag = True, verbose = 1):
+def mfblm(daIn, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), SFflag = True, verbose = 1):
     """
     Calculate MFBLMs for a range of (E, sym) cases. Default is to calculated for all symmetries at each energy.
 
@@ -328,6 +328,10 @@ def mfblm(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims = (
     TODO: Setting selDims in output structure needs more thought for netCDF save compatibility.
 
     """
+
+    # Make explicit copy of data to avoid any overwrite issues
+    da = daIn.copy()
+    da.attrs = daIn.attrs
 
     # Use SF (scale factor)
     # Write to data.values to make sure attribs are maintained. (Not the case for da = da*da.SF)

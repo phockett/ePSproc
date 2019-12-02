@@ -2,7 +2,7 @@
 """
 ePSproc spherical function calculations.
 
-Collection of functions for calculating Ylm, wignerD etc.
+Collection of functions for calculating Spherical Tensors: Ylm, wignerD etc.
 
 For spherical harmonics, currently using scipy.special.sph_harm
 
@@ -11,6 +11,7 @@ https://github.com/moble/spherical_functions
 
 See tests/Spherical function testing Aug 2019.ipynb
 
+02/12/19        Added basic TKQ multipole frame rotation routine.
 27/08/19        Added wDcalc for Wigner D functions.
 14/08/19    v1  Implmented sphCalc
 
@@ -23,6 +24,7 @@ import xarray as xr
 from scipy.special import sph_harm
 import spherical_functions as sf
 import quaternion
+from sympy.physics.quantum.spin import Rotation  # For basic frame rotation code, should update to use sf
 
 # Calculate a set of sph function
 def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
@@ -204,3 +206,77 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
 
     else:
         return wD, R, np.asarray(lmmp).T
+
+
+
+#*** Basic frame rotation code, see https://github.com/phockett/Quantum-Metrology-with-Photoelectrons/blob/master/Alignment/Alignment-1.ipynb
+# Define frame rotation of state multipoles.
+# Eqn. 4.41 in Blum (p127)
+# Currently a bit ugly!
+# Also set for numerical output only, although uses Sympy functions which can be used symbolically.
+# Pass TKQ np.array [K,Q,TKQ], eAngs list of Euler angles (theta,phi,chi) to define rotation.
+def TKQarrayRot(TKQ,eAngs):
+    r"""
+    Frame rotation for multipoles $T_{K,Q}$.
+
+    Basic frame rotation code, see https://github.com/phockett/Quantum-Metrology-with-Photoelectrons/blob/master/Alignment/Alignment-1.ipynb for examples.
+
+    Parameters
+    ----------
+    TKQ : np.array
+        Values defining the initial distribution, [K,Q,TKQ]
+
+    eAngs : list or np.array
+        List of Euler angles (theta,phi,chi) defining rotated frame.
+
+    Returns
+    -------
+
+    TKQRot : np.array
+        Multipoles $T'_{K,Q}$ in rotated frame, as an np.array [K,Q,TKQ].
+
+    TODO: redo with Moble's functions, and Xarray input & output.
+
+    Formalism
+    ----------
+
+    For the state multipoles, frame rotations are fairly straightforward
+    (Eqn. 4.41 in Blum):
+
+    .. math::
+        \begin{equation}
+        \left\langle T(J',J)_{KQ}^{\dagger}\right\rangle =\sum_{q}\left\langle T(J',J)_{Kq}^{\dagger}\right\rangle D(\Omega)_{qQ}^{K*}
+        \end{equation}
+
+    Where $D(\Omega)_{qQ}^{K*}$ is a Wigner rotation operator, for a
+    rotation defined by a set of Euler angles $\Omega=\{\theta,\phi,\chi\}$.
+    Hence the multipoles transform, as expected, as irreducible tensors,
+    i.e. components $q$ are mixed by rotation, but terms of different
+    rank $K$ are not.
+
+    """
+
+    TKQRot = []
+    thres = 1E-5
+    Kmax = 6
+
+    # Easy way - loop over possible output values & sum based on input TKQ. Can probably do this in a smarter way.
+    for K in range(0,Kmax+1):
+        for q in range(-K,K+1):
+
+            # Set summation variable and add relevant terms from summation
+            TKQRotSum = 0.0
+            for row in range(TKQ.shape[0]):
+                Kin = TKQ[row][0]
+                Qin = TKQ[row][1]
+
+                if Kin == K:
+                    Dval = Rotation.D(K,Qin,q,eAngs[0],eAngs[1],eAngs[2])
+                    TKQRotSum += conjugate(Dval.doit())*TKQ[row][2]
+                else:
+                    pass
+
+            if np.abs(N(TKQRotSum)) > thres:
+                TKQRot.append([K,q,N(TKQRotSum)])  # Use N() here to ensure Sympy numerical output only
+
+    return np.array(TKQRot)

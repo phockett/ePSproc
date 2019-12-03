@@ -309,7 +309,7 @@ def AFBLMCalcLoop(matE, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], 
 
 # Master BLM calculation routine.
 # TODO: set for differnt calc routines, once developed!
-def afblm(da, selDims = {'Type':'L'}, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), SFflag = True, verbose = 1):
+def afblm(daIn, selDims = {'Type':'L'}, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], thres = 1e-4, sumDims = ('l','m','mu','Cont','Targ','Total','it'), SFflag = True, verbose = 1):
     """
     Calculate MFBLMs for a range of (E, sym) cases. Default is to calculated for all symmetries at each energy.
 
@@ -358,10 +358,13 @@ def afblm(da, selDims = {'Type':'L'}, AKQS = np.array([0,0,0,1], ndmin = 2), eAn
     TODO: Setting selDims in output structure needs more thought for netCDF save compatibility.
 
     """
+    # Make copy to avoid accidental overwrite of source data.
+    da = daIn.copy()
+    da.attrs = daIn.attrs
 
     # Use SF (scale factor)
     if SFflag:
-        da = da * da.SF
+        da.values = da * da.SF
 
     # Unstack & sub-select data array
     daUnStack = da.unstack()

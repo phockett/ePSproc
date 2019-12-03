@@ -194,7 +194,7 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
         # Put into Xarray
         #TODO: this will currently fail for a single set of QNs.
         QNs = pd.MultiIndex.from_arrays(np.asarray(lmmp).T, names = ['lp','mu','mu0'])
-        if eAngs.size == 3:  # Ugh, special case for only one set of angles.
+        if (eAngs is not None) and (eAngs.size == 3):  # Ugh, special case for only one set of angles.
             Euler = pd.MultiIndex.from_arrays([[eAngs[0]],[eAngs[1]],[eAngs[2]]], names = ['P','T','C'])
             wDX = xr.DataArray(np.asarray(wD), coords=[('QN',QNs)])
             wDX = wDX.expand_dims({'Euler':Euler})

@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
+# %%
 """
 Script for testing spherical functions & products in ePSproc
 
 27/08/19
 """
 
-#%% Package imports
-#%% Imports
+# %% Package imports
+# %% Imports
 import os
 import re
 import numpy as np
@@ -21,7 +22,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from matplotlib import cm, colors
 
-#%% Function defs
+# %% Function defs
 
 # Define in root namespace
 # runfile('E:/code/ePSproc/ePSproc/epsproc/ePSproc_IO.py', wdir='E:/code/ePSproc/ePSproc/epsproc')
@@ -29,7 +30,7 @@ from matplotlib import cm, colors
 # Define via import
 import epsproc as ep
 
-#%% Set files
+# %% Set files
 
 # Set data dir
 dataPath = os.path.join(os.getcwd(), 'data')
@@ -38,7 +39,7 @@ fList = ep.getFiles(fileBase = dataPath)
 
 dataSet = ep.readMatEle(fileIn = fList[1])  # Load NO2 matrix elements for testing.
 
-#%% Calculate spherical functions
+# %% Calculate spherical functions
 
 # Spherical harmonics
 YlmX = ep.sphCalc(6, res = 50)
@@ -46,7 +47,7 @@ YlmX = ep.sphCalc(6, res = 50)
 # Wigner D
 wDX = ep.wDcalc(eAngs = np.array([0,0,0]))
 
-#%% Test direct multiplications
+# %% Test direct multiplications
 
 # Set matrix elements
 daRed = ep.matEleSelector(dataSet[0], thres = 1e-2)
@@ -62,14 +63,14 @@ testRe.sel({'Cont':'A2'}).max()  # Should be non-zero
 testRe.sel({'Cont':'B2'}).max() # Should be zero
 testRe.sel({'Cont':'B1'}).max() # Should be zero
 
-#%% Check MFPAD directly by multiplication...
+# %% Check MFPAD directly by multiplication...
 #   MFPAD is matE * D * Ylm
 
 testReY = testRe * YlmX
 testPlot = testReY.sel({'Type':'L','it':1}).sum('mu') # Select on remaining dims
 ep.sphSumPlotX(testPlot.squeeze().sum('Sym'), pType = 'p')
 
-#%% Check (x,y,z) pol geometries
+# %% Check (x,y,z) pol geometries
 
 pRot = [0, 0, np.pi/2]
 tRot = [0, np.pi/2, np.pi/2]

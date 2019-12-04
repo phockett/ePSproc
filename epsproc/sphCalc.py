@@ -11,6 +11,7 @@ https://github.com/moble/spherical_functions
 
 See tests/Spherical function testing Aug 2019.ipynb
 
+04/12/19        Added `setPolGeoms()` to define frames as Xarray.
 02/12/19        Added basic TKQ multipole frame rotation routine.
 27/08/19        Added wDcalc for Wigner D functions.
 14/08/19    v1  Implmented sphCalc
@@ -25,6 +26,97 @@ from scipy.special import sph_harm
 import spherical_functions as sf
 import quaternion
 from sympy.physics.quantum.spin import Rotation  # For basic frame rotation code, should update to use sf
+
+
+# Master function for setting geometries/frame rotations
+def setPolGeoms(eulerAngs = None, quat = None, labels = None):
+    """
+    Generate Xarray containing polarization geometries as Euler angles and corresponding quaternions.
+
+    Define LF > MF polarization geometry/rotations.
+    Provide either eulerAngs or quaternions, but not both.
+
+    For default case (eulerAngs = None, quat = None), 3 geometries are calculated,
+    corresponding to z-pol, x-pol and y-pol cases.
+    Defined by Euler angles:
+    (p,t,c) = [0 0 0] for z-pol,
+    (p,t,c) = [0 pi/2 0] for x-pol,
+    (p,t,c) = [pi/2 pi/2 0] for y-pol.
+
+
+    Parameters
+    ----------
+    eulerAngs : list or np.array of Euler angles (p(hi), t(heta), c(hi)), optional.
+        List or array [p,t,c...], shape (Nx3).
+        List or array including set labels, [label,p,t,c...], shape (Nx4)
+
+    quat : list or np.array of quaternions, optional.
+
+    labels : list of labels, one per set of angles. Optional.
+        If not set, states will be labelled numerically.
+
+    Returns
+    -------
+    RX : Xarray of quaternions, with Euler angles as dimensional params.
+
+    To do
+    -----
+    - Better label handling, as dictionary?
+
+    """
+
+    # Default case, set (x,y,z) geometries
+    if (eulerAngs is None) and (quat is None):
+        # As arrays, with labels
+        pRot = [0, 0, np.pi/2]
+        tRot = [0, np.pi/2, np.pi/2]
+        cRot = [0, 0, 0]
+        labels = ['z','x','y']
+        eulerAngs = np.array([labels, pRot, tRot, cRot]).T   # List form to use later, rows per set of angles
+
+    # Get quaternions from Eulers, if provided or as set above for default case.
+    if eulerAngs is not None:
+        if type(eulerAngs) is not np.ndarray:
+            eulerAngs = np.asarray(eulerAngs)
+
+        if eulerAngs.shape[1] is 3:
+            if labels is None:
+                # Set labels if missing, alphabetic or numeric
+                if eulerAngs.shape[0] < 27:
+                    labels = list(string.ascii_uppercase[0:eulerAngs.shape[0]])
+                else:
+                    labels = np.arange(1,eulerAngs.shape[0]+1)
+
+            eulerAngs = np.c_[labels, eulerAngs]
+
+    # If quaternions are passed, set corresponding Eulers
+    if quat is not None:
+        eulerFromQuat = quaternion.as_euler_angles(quat) # Set Eulers from quaternions
+
+        if labels is None:
+            # Set labels if missing
+            labels = np.arange(1,eulerFromQuat.shape[0]+1)
+
+        if eulerAngs is not None:
+            print('***Warning: Euler angles and Quaternions passed, using Quaternions only.')
+
+        eulerAngs = np.c_[labels, eulerFromQuat]
+
+    # Otherwise set from Eulers
+    else:
+        quat = quaternion.from_euler_angles(eulerAngs[:,1:]) # Convert Eulers to quaternions
+
+
+    #*** Set up Xarray
+
+    # Set Pandas MultiIndex - note transpose for eulerAngs to (angs,set) order
+    eulerInd = pd.MultiIndex.from_arrays(eulerAngs.T, names = ['Label','P','T','C'])
+
+    # Create Xarray
+    RX = xr.DataArray(quat, coords={'Euler':eulerInd}, dims='Euler')
+
+    return RX
+
 
 # Calculate a set of sph function
 def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):

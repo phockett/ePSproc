@@ -34,7 +34,7 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None):
     Generate Xarray containing polarization geometries as Euler angles and corresponding quaternions.
 
     Define LF > MF polarization geometry/rotations.
-    Provide either eulerAngs or quaternions, but not both.
+    Provide either eulerAngs or quaternions, but not both (supplied quaternions only will be used in this case).
 
     For default case (eulerAngs = None, quat = None), 3 geometries are calculated,
     corresponding to z-pol, x-pol and y-pol cases.
@@ -116,6 +116,82 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None):
     RX = xr.DataArray(quat, coords={'Euler':eulerInd}, dims='Euler')
 
     return RX
+
+
+# Create Xarray from set of ADMs - adapted from existing blmXarray()
+def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False):
+    """
+    Create Xarray from ADMs, or create default case ADM(K,Q,S) = [0,0,0,1].
+
+    Parameters
+    ----------
+    ADMs : list or np.array, default = [0,0,0,1]
+        Set of ADMs = [K, Q, S, ADM].
+        If multiple ADMs are provided per (K,Q,S) index, they are set to the t axis (if provided), or indexed numerically.
+
+    KQSLabels : list or np.array, optional, default = None
+        If passed, assume ADMs are unabelled, and use (K,Q,S) indicies provided here.
+
+    t : list or np.array, optional, default = None
+        If passed, use for dimension defining ADM sets (usually time).
+        Defaults to numerical label if not passed, t = np.arange(0,ADMs.shape[1])
+
+    addS : bool, default = False
+        If set, append S = 0 to ADMs.
+        This allows for passing of [K,Q,ADM] type values (e.g. for symmetric top case)
+
+    Returns
+    -------
+    ADMX : Xarray
+        ADMs in Xarray format, dims as per :py:func:`epsproc.utils.ADMdimList()`
+
+    Examples
+    ---------
+    >>> # Default case
+    >>> ADMX = setADMs()
+    >>> ADMX
+
+    >>> # With full N2 rotational wavepacket ADM set from demo data (ePSproc\data\alignment), where modPath defines root...
+    >>> # Load ADMs for N2
+    >>> from scipy.io import loadmat
+    >>> ADMdataFile = os.path.join(modPath, 'data', 'alignment', 'N2_ADM_VM_290816.mat')
+    >>> ADMs = loadmat(ADMdataFile)
+    >>> ADMX = setADMs(ADMs = ADMs['ADM'], KQSLabels = ADMs['ADMlist'], addS = True)
+    >>> ADMX
+
+    """
+
+    # Check size of passed set of ADMs
+    # For ease of manipulation, just change to np.array if necessary!
+    if isinstance(ADMs, list):
+        ADMs = np.array(ADMs, ndmin = 2)
+
+    # Set lables explicitly if not passed, and resize ADMs
+    if KQSLabels is None:
+        if addS:
+            KQSLabels = ADMs[:,0:2]
+            KQSLabels = np.c_[KQSLabels, np.zeros(KQSLabels.shape[0])]
+            ADMs = ADMs[:,2:]
+        else:
+            KQSLabels = ADMs[:,0:3]
+            ADMs = ADMs[:,3:]
+    else:
+        if addS:
+            KQSLabels = np.c_[KQSLabels, np.zeros(KQSLabels.shape[0])]  # Add S for labels passed case
+
+
+    # Set indexing, default to numerical
+    if t is None:
+        t = np.arange(0,ADMs.shape[1])
+
+
+    # Set up Xarray
+    QNs = pd.MultiIndex.from_arrays(KQSLabels.real.T.astype('int8'), names = ['K','Q','S'])  # Set lables, enforce type
+    ADMX = xr.DataArray(ADMs, coords={'ADM':QNs,'t':t}, dims = ['ADM','t'])
+
+    ADMX.attrs['dataType'] = 'ADM'
+
+    return ADMX
 
 
 # Calculate a set of sph function
@@ -266,6 +342,9 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
     if eAngs is not None:
         if eAngs.shape[-1] != 3:    # Check dims, should be (N X 3) for quaternion... but transpose for pd.MultiIndex
             eAngs = eAngs.T
+    else:
+        if R is not None:
+            eAngs = quaternion.as_euler_angles(quat) # Set Eulers from quaternions
 
     if R is None:
         # Convert to quaternions

@@ -272,6 +272,63 @@ def BLMdimList(sType = 'stacked'):
         # unstackedDims
         return ['Eke', 'l', 'm', 'P', 'T', 'C']
 
+# Return list of standard dataArray dims for Euer angles
+def eulerDimList(sType = 'stacked'):
+    """
+    Return standard list of dimensions for frame definitions, from :py:func:`epsproc.sphCalc.setPolGeoms()`.
+
+    Parameters
+    ----------
+    sType : string, optional, default = 'stacked'
+        Selected 'stacked' or 'unstacked' dimensions.
+        Set 'sDict' to return a dictionary of unstacked <> stacked dims mappings for use with xr.stack({dim mapping}).
+
+    Returns
+    -------
+    list : set of dimension labels.
+
+    """
+    if sType is 'stacked':
+        # stackedDims
+        return ['Euler']
+
+    elif sType is 'sDict':
+        return {'Euler':eulerDimList(sType = 'unstacked')}
+
+    else:
+        # unstackedDims
+        return ['Label','P','T','C']
+
+# Return list of standard dataArray dims for Euer angles
+def ADMdimList(sType = 'stacked'):
+    """
+    Return standard list of dimensions for frame definitions, from :py:func:`epsproc.sphCalc.setADMs()`.
+
+    Parameters
+    ----------
+    sType : string, optional, default = 'stacked'
+        Selected 'stacked' or 'unstacked' dimensions.
+        Set 'sDict' to return a dictionary of unstacked <> stacked dims mappings for use with xr.stack({dim mapping}).
+
+    Returns
+    -------
+    list : set of dimension labels.
+
+    """
+    if sType is 'stacked':
+        # stackedDims
+        return ['ADM','t']
+
+    elif sType is 'sDict':
+        return {'ADM':['K','Q','S'],'t':'t'}
+
+    else:
+        # unstackedDims
+        return ['K','Q','S','t']
+
+
+
+
 # Return a dict of allowed dataTypes, corresponding to ePS commands/file segments, or epsproc processed data.
 def dataTypesList():
     """
@@ -308,7 +365,17 @@ def dataTypesList():
                     {'source':'CrossSection',
                     'desc':'Photoionziation cross section results from ePS, GetCro command and CrossSection file segments.',
                     'recordType':'CrossSection'
-                    }
+                    },
+                'Euler' :
+                    {'source':'epsproc.sphCalc.setPolGeoms()',
+                     'desc':'Frame rotation definitions in terms of Euler angles and corresponding Quaternions.',
+                     'dims':eulerDimList(sType = 'sDict')
+                     },
+                 'ADM' :
+                     {'source':'epsproc.sphCalc.setADMs()',
+                      'desc':'Defines ADMs, A(K,Q,S), for aligned frame distributions.',
+                      'dims':ADMdimList(sType = 'sDict')
+                      }
                 }
 
     return dataDict

@@ -274,6 +274,11 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         * sns.set(rc={'figure.dpi':(120)})
         * sns.set_context("paper")
 
+    To do
+    -----
+    - Improved dim handling, maybe use :py:func:`epsproc.util.matEdimList()` (and related functions) to avoid hard-coding multiple cases here.
+    - Improved handling of sets of polarization geometries (angles).
+
     """
     # Local/deferred import to avoid circular import issues at module level.
     # TO DO: Should fix with better __init__!

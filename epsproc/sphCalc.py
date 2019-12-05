@@ -12,6 +12,7 @@ https://github.com/moble/spherical_functions
 See tests/Spherical function testing Aug 2019.ipynb
 
 04/12/19        Added `setPolGeoms()` to define frames as Xarray.
+                Added `setADMs()` to define ADMs as Xarray
 02/12/19        Added basic TKQ multipole frame rotation routine.
 27/08/19        Added wDcalc for Wigner D functions.
 14/08/19    v1  Implmented sphCalc
@@ -25,11 +26,13 @@ import xarray as xr
 from scipy.special import sph_harm
 import spherical_functions as sf
 import quaternion
+import string
+
 from sympy.physics.quantum.spin import Rotation  # For basic frame rotation code, should update to use sf
 
 
 # Master function for setting geometries/frame rotations
-def setPolGeoms(eulerAngs = None, quat = None, labels = None):
+def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
     """
     Generate Xarray containing polarization geometries as Euler angles and corresponding quaternions.
 
@@ -55,13 +58,60 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None):
     labels : list of labels, one per set of angles. Optional.
         If not set, states will be labelled numerically.
 
+    vFlag : version of routine to use, optional, default = 2
+        Options:
+        - 1, use labels as sub-dimensional coord.
+        - 2, set labels as non-dimensional coord.
+
     Returns
     -------
     RX : Xarray of quaternions, with Euler angles as dimensional params.
 
     To do
     -----
-    - Better label handling, as dictionary?
+    - Better label handling, as dictionary? With mixed-type array may get issues later.
+        (sf.quaternion doesn't seem to have an issue however.)
+    - Xarray MultiIndex with mixed types?
+        Tested with pd - not supported:
+        >>> eulerInd = pd.MultiIndex.from_arrays([eulerAngs[:,0].T, eulerAngs[:,1:].T.astype('float')], names = ['Label','P','T','C'])
+        # Gives error:
+        #   NotImplementedError: > 1 ndim Categorical are not supported at this time
+
+
+    Examples
+    --------
+
+    >>> # Defaults
+    >>> RXdefault = setPolGeoms()
+    >>> print(RXdefault)
+
+    >>> # Pass Eulers, no labels
+    >>> pRot = [1.666, 0, np.pi/2]
+    >>> tRot = [0, np.pi/2, np.pi/2]
+    >>> cRot = [-1.5, 0, 0]
+
+    >>> eulerAngs = np.array([pRot, tRot, cRot]).T
+
+    >>> RXePass = setPolGeoms(eulerAngs = eulerAngs)
+    >>> print(RXePass)
+
+    >>> # Pass labels separately
+    >>> RXePass = setPolGeoms(eulerAngs = eulerAngs, labels = ['1','23','ff'])
+    >>> print(RXePass)
+
+    >>> # Pass Eulers with existing labels
+    >>> labels = ['A','B','C']
+    >>> eulerAngs = np.array([labels, pRot, tRot, cRot]).T
+    >>> RXePass = setPolGeoms(eulerAngs = eulerAngs)
+    >>> print(RXePass)
+
+    >>> # Pass Quaternions and labels
+    >>> RXqPass = setPolGeoms(quat = RXePass, labels = labels)
+    >>> print(RXqPass)
+
+    >>> # Pass both - only quaternions will be used in this case, and warning displayed.
+    >>> RXqeTest = setPolGeoms(eulerAngs = eulerAngs, quat = RXePass, labels = labels)
+    >>> print(RXqeTest)
 
     """
 
@@ -109,11 +159,19 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None):
 
     #*** Set up Xarray
 
-    # Set Pandas MultiIndex - note transpose for eulerAngs to (angs,set) order
-    eulerInd = pd.MultiIndex.from_arrays(eulerAngs.T, names = ['Label','P','T','C'])
+    if vFlag == 1:
+        # v1    keep Labels as subdim.
+        #       This works, and allows selection by label, but Euler coords may be string type
+        # Set Pandas MultiIndex - note transpose for eulerAngs to (angs,set) order
+        eulerInd = pd.MultiIndex.from_arrays(eulerAngs.T, names = ['Label','P','T','C'])
+        # Create Xarray
+        RX = xr.DataArray(quat, coords={'Euler':eulerInd}, dims='Euler')
 
-    # Create Xarray
-    RX = xr.DataArray(quat, coords={'Euler':eulerInd}, dims='Euler')
+    elif vFlag == 2:
+        # v2    Labels as non-dim coords.
+        #       Doesn't allow selection, but keeps Euler coords as floats in all cases.
+        Euler = pd.MultiIndex.from_arrays(eulerAngs[:,1:].T.astype('float'), names = ['P','T','C'])
+        RX = xr.DataArray(quat, coords={'Euler':Euler,'Labels':('Euler',eulerAngs[:,0].T)}, dims='Euler')
 
     return RX
 
@@ -344,7 +402,7 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
             eAngs = eAngs.T
     else:
         if R is not None:
-            eAngs = quaternion.as_euler_angles(quat) # Set Eulers from quaternions
+            eAngs = quaternion.as_euler_angles(R) # Set Eulers from quaternions
 
     if R is None:
         # Convert to quaternions

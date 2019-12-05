@@ -173,6 +173,9 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
         Euler = pd.MultiIndex.from_arrays(eulerAngs[:,1:].T.astype('float'), names = ['P','T','C'])
         RX = xr.DataArray(quat, coords={'Euler':Euler,'Labels':('Euler',eulerAngs[:,0].T)}, dims='Euler')
 
+    else:
+        print('***Version not recognized')
+
     return RX
 
 

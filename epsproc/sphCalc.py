@@ -514,7 +514,7 @@ def TKQarrayRot(TKQ,eAngs):
     return np.array(TKQRot)
 
 # 05/12/19 Rewriting with new eAngs and ADM defns... (Xarrays)
-def TKQarrayRotX(TKQ,RX, form = 2):
+def TKQarrayRotX(TKQ, RX, form = 2):
     r"""
     Frame rotation for multipoles $T_{K,Q}$.
 
@@ -522,19 +522,18 @@ def TKQarrayRotX(TKQ,RX, form = 2):
 
     Parameters
     ----------
-    TKQ : np.array
-        Values defining the initial distribution, [K,Q,TKQ]
+    TKQ : Xarray
+        Values defining the initial distribution, [K,Q,TKQ]. Other dimensions will be propagated.
 
-    eAngs : list or np.array
-        List of Euler angles (theta,phi,chi) defining rotated frame.
+    RX : Xarray defining frame rotations, from :py:func:`epsproc.setPolGeoms()`
+        List of Euler angles (theta,phi,chi) and corresponding quaternions defining rotated frame.
 
     Returns
     -------
 
-    TKQRot : np.array
+    TKQRot : Xarray
         Multipoles $T'_{K,Q}$ in rotated frame, as an np.array [K,Q,TKQ].
 
-    TODO: redo with Moble's functions, and Xarray input & output.
 
     Formalism
     ----------
@@ -556,12 +555,15 @@ def TKQarrayRotX(TKQ,RX, form = 2):
     Examples
     --------
 
-    testADMX = ep.setADMs(ADMs=[[0,0,0,1],[2,0,0,0.5]])
-    testADMX
-    testADMrot, wDX, wDXre = TKQarrayRotX(testADMX, RX)
-    testADMrot
-    testADMrot.attrs['dataType'] = 'ADM'
-    sph, _ = sphFromBLMPlot(testADMrot, facetDim = 'Euler', plotFlag = True)
+    >>> vFlag = 2
+    >>> RX = ep.setPolGeoms(vFlag = vFlag)  # Package version
+    >>> RX
+    >>> testADMX = ep.setADMs(ADMs=[[0,0,0,1],[2,0,0,0.5]])
+    >>> testADMX
+    >>> testADMrot, wDX, wDXre = TKQarrayRotX(testADMX, RX)
+    >>> testADMrot
+    >>> testADMrot.attrs['dataType'] = 'ADM'
+    >>> sph, _ = sphFromBLMPlot(testADMrot, facetDim = 'Euler', plotFlag = True)
 
     """
 

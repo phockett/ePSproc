@@ -593,7 +593,7 @@ def TKQarrayRotX(TKQ, RX, form = 2):
         #*** Formulate using existing wDX code, then multiply - should be faster and transparent (?), and allow multiple dims
 
     # Calculate Wigner Ds
-    wDX = ep.wDcalc(Lrange=TKQ.K.values, R = RX.values)  # NOTE - alternatively can pass angles as Eulers, but may need type conversion for RX.Euler depending on format, and/or loop over angle sets.
+    wDX = wDcalc(Lrange=TKQ.K.values, R = RX.values)  # NOTE - alternatively can pass angles as Eulers, but may need type conversion for RX.Euler depending on format, and/or loop over angle sets.
 
         # Rename coords, use dataType for this
 #         dtList = ep.dataTypesList()
@@ -634,7 +634,9 @@ def TKQarrayRotX(TKQ, RX, form = 2):
     # NOW INCLUDED ABOVE for different test cases
 
 
-    # Propagate frame labels
+    # Propagate frame labels & attribs
+    # TODO: fix Labels propagation - this seems to drop sometimes, dim issue?
     TKQrot['Labels'] = RX.Labels
+    TKQrot.attrs = TKQ.attrs
 
     return TKQrot, wDX, wDXre

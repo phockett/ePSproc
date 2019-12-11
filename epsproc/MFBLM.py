@@ -91,6 +91,8 @@ def blmXarray(BLM, Eke):
 
     BLMX = BLMX.expand_dims({'Eke':[Eke]})
 
+    BLMX.attrs['dataType'] = 'BLM'
+
     return BLMX
 
 

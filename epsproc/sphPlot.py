@@ -208,6 +208,8 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
     # NOTE - this should work if other singleton dims are present, but will need to explicitly set facetDims for plots, otherwise will throw an error
     if (BLMXin.attrs['dataType'] is 'ADM'):
         if all(BLMXin.S == 0):
+            # NOTE: Squeeze here to kill S dim, but this will also drop (l,m) if singleton. Needs a fix.
+            # TODO: fix this!
             BLMX = BLMXin.copy().unstack('ADM').rename({'K':'l', 'Q':'m'}).drop('S').stack({'BLM':('l','m')}).squeeze()
         else:
             print('***ADM set with non-zero S, skipping Ylm routine.')

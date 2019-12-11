@@ -512,3 +512,127 @@ def TKQarrayRot(TKQ,eAngs):
                 TKQRot.append([K,q,N(TKQRotSum)])  # Use N() here to ensure Sympy numerical output only
 
     return np.array(TKQRot)
+
+# 05/12/19 Rewriting with new eAngs and ADM defns... (Xarrays)
+def TKQarrayRotX(TKQ,RX, form = 2):
+    r"""
+    Frame rotation for multipoles $T_{K,Q}$.
+
+    Basic frame rotation code, see https://github.com/phockett/Quantum-Metrology-with-Photoelectrons/blob/master/Alignment/Alignment-1.ipynb for examples.
+
+    Parameters
+    ----------
+    TKQ : np.array
+        Values defining the initial distribution, [K,Q,TKQ]
+
+    eAngs : list or np.array
+        List of Euler angles (theta,phi,chi) defining rotated frame.
+
+    Returns
+    -------
+
+    TKQRot : np.array
+        Multipoles $T'_{K,Q}$ in rotated frame, as an np.array [K,Q,TKQ].
+
+    TODO: redo with Moble's functions, and Xarray input & output.
+
+    Formalism
+    ----------
+
+    For the state multipoles, frame rotations are fairly straightforward
+    (Eqn. 4.41 in Blum):
+
+    .. math::
+        \begin{equation}
+        \left\langle T(J',J)_{KQ}^{\dagger}\right\rangle =\sum_{q}\left\langle T(J',J)_{Kq}^{\dagger}\right\rangle D(\Omega)_{qQ}^{K*}
+        \end{equation}
+
+    Where $D(\Omega)_{qQ}^{K*}$ is a Wigner rotation operator, for a
+    rotation defined by a set of Euler angles $\Omega=\{\theta,\phi,\chi\}$.
+    Hence the multipoles transform, as expected, as irreducible tensors,
+    i.e. components $q$ are mixed by rotation, but terms of different
+    rank $K$ are not.
+
+    Examples
+    --------
+
+    testADMX = ep.setADMs(ADMs=[[0,0,0,1],[2,0,0,0.5]])
+    testADMX
+    testADMrot, wDX, wDXre = TKQarrayRotX(testADMX, RX)
+    testADMrot
+    testADMrot.attrs['dataType'] = 'ADM'
+    sph, _ = sphFromBLMPlot(testADMrot, facetDim = 'Euler', plotFlag = True)
+
+    """
+
+    # Test if S is set, and flag for later
+    # Better way to get MultiIndexes here?
+    if 'S' in TKQ.unstack().dims:
+#         incS = TKQ.S.pipe(np.abs).values.max() > 0
+        incS = True
+    else:
+        incS = False
+
+    # If S = 0, apply basic TKQ transformation
+#     if not incS:
+
+        #*** Formulate using existing style (looped)
+#         # Loop over rotations, extract quaternion value from Xarray (better way to do this...?)
+#         # Note this will fail for looping over RX, then taking values - seems to give size=1 array which throws errors... weird...
+#         for R in RX.values:
+#             # Loop over input K values, for all Q
+#             for Kin in ADMX.K:
+
+#                 # Set QNs
+
+#                 # Rotation matrix elements
+#                 sf.Wigner_D_element(R, QNs)
+
+        #*** Formulate using existing wDX code, then multiply - should be faster and transparent (?), and allow multiple dims
+
+    # Calculate Wigner Ds
+    wDX = ep.wDcalc(Lrange=TKQ.K.values, R = RX.values)  # NOTE - alternatively can pass angles as Eulers, but may need type conversion for RX.Euler depending on format, and/or loop over angle sets.
+
+        # Rename coords, use dataType for this
+#         dtList = ep.dataTypesList()
+#         dtDims = dtList[TKQ.dataType]['dims']  # Best way to get relevant QNs here...?  Maybe need to start labelling these in dataTypesList?
+
+    # Rename for ADMs for testing...
+    # ... then mutliply (with existing dims), resort & sum over Q
+    if incS:
+
+        # Test cases
+        if form == 1:
+            wDXre = wDX.unstack('QN').rename({'lp':'K','mu':'Q','mu0':'Qp'}).expand_dims({'S':[0]}).stack({'ADM':('K','Q','S')})  # Restack according to D^l_{mu,mu0} > D^K_{Q,Qp}
+                                                                                                                                # This matches Blum 4.41 for CONJ(wD) and conj(TKQ)
+             # Here formulated as TKQp* = sum_Q(TKQ* x D^K_{Q,Qp}*)
+            TKQrot = (TKQ.conj() * wDXre.conj()).unstack('ADM').sum('Q').rename({'Qp':'Q'}).stack({'ADM':('K','Q','S')}).conj()
+            # Gives *no difference* between (x,y) cases? Should be phase rotation?
+
+        if form == 2:  # ******************* THINK THIS is the correct case.
+
+            wDXre = wDX.unstack('QN').rename({'lp':'K','mu':'Qp','mu0':'Q'}).expand_dims({'S':[0]}).stack({'ADM':('K','Q','S')})  # Restack according to D^l_{mu,mu0} > D^K_{Qp,Q}
+                                                                                                                             # This matches Zare, eqn. 3.83, for D*xTKQ
+            # Here formulated as TKQrot = sum_q(TKq x D^K_{q,Q}*)
+            TKQrot = (TKQ * wDXre.conj()).unstack('ADM').sum('Q').rename({'Qp':'Q'}).stack({'ADM':('K','Q','S')})
+            # Gives re/im difference between (x,y) cases? Should be phase rotation?
+
+        if form == 3:
+            wDXre = wDX.unstack('QN').rename({'lp':'K','mu':'Q','mu0':'Qp'}).expand_dims({'S':[0]}).stack({'ADM':('K','Q','S')})  # Restack according to D^l_{mu,mu0} > D^K_{Q,Qp}
+                                                                                                                                # This matches Zare, eqn. 5.8, for sum over Q and REAL wD
+            # Here formulated as TKQp = sum_Q(TKQ x D^K_{Q,Qp})
+            TKQrot = (TKQ * wDXre).unstack('ADM').sum('Q').rename({'Qp':'Q'}).stack({'ADM':('K','Q','S')})
+            # TKQrot = (wDXre * TKQ).unstack('ADM').sum('Q').rename({'Qp':'Q'}).stack({'ADM':('K','Q','S')})
+            # Gives *no difference* between (x,y) cases? Should be phase rotation?
+
+    else:
+        wDXre = wDX.unstack('QN').rename({'lp':'K','mu':'Q','mu0':'Qp'}).stack({'ADM':('K','Q','S')})  # Restack according to D^l_{mu,mu0} > D^K_{Q,Qp}
+
+    #***  Mutliply (with existing dims), then resort & sum over Q
+    # NOW INCLUDED ABOVE for different test cases
+
+
+    # Propagate frame labels
+    TKQrot['Labels'] = RX.Labels
+
+    return TKQrot, wDX, wDXre

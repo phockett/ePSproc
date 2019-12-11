@@ -172,7 +172,7 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
     Parameters
     ----------
     dataIn : Xarray
-        Input set of BLM parameters.
+        Input set of BLM parameters, or other (L,M) exapansion dataType.
 
     res : int, optional, default 50
         Resolution for output (theta,phi) grids.
@@ -202,19 +202,34 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
 
     '''
 
-    # Calculate YLMs
-    YLMX = sphCalc(BLMXin.l.max(), res=res)
-    YLMX = YLMX.rename({'LM':'BLM'})    # Switch naming for multiplication & plotting
+    #*** Check dataType
 
-    # Calculate MFPADs (theta,phi)
-    dataPlot = BLMXin*YLMX
-    dataPlot = dataPlot.rename({'BLM':'LM'})    # Switch naming back for plotting function
+    # For ADMs, can use this plotting routine if S=0 only.
+    # NOTE - this should work if other singleton dims are present, but will need to explicitly set facetDims for plots, otherwise will throw an error
+    if (BLMXin.attrs['dataType'] is 'ADM'):
+        if all(BLMXin.S == 0):
+            BLMX = BLMXin.copy().unstack('ADM').rename({'K':'l', 'Q':'m'}).drop('S').stack({'BLM':('l','m')}).squeeze()
+        else:
+            print('***ADM set with non-zero S, skipping Ylm routine.')
+            BLMX = None
 
-    # Pass data to plotting function
-    if plotFlag:
-        fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend)
-    else:
-        fig = None
+    # For normal BLMs, no action required.
+    if BLMXin.attrs['dataType'] is 'BLM':
+        BLMX = BLMXin
+
+    fig = None
+    if BLMX is not None:
+        # Calculate YLMs
+        YLMX = sphCalc(BLMX.l.max(), res=res)
+        YLMX = YLMX.rename({'LM':'BLM'})    # Switch naming for multiplication & plotting
+
+        # Calculate MFPADs (theta,phi)
+        dataPlot = BLMX*YLMX
+        dataPlot = dataPlot.rename({'BLM':'LM'})    # Switch naming back for plotting function
+
+        # Pass data to plotting function
+        if plotFlag:
+            fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend)
 
 
     return dataPlot, fig

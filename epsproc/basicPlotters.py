@@ -192,7 +192,7 @@ def symListGen(data):
 
     return np.ravel(symList)
 
-def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False,
+def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
         selDims = None, sumDims = None, plotDims = ('l','m','mu','Cont','Targ','Total','it','Type'),
         xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False):
     """
@@ -220,6 +220,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     logFlag : bool, optional, default = False
         Plot values on log10 scale.
+
+    eulerGroup : bool, optional, default = True
+        Group Euler angles by set and use labels (currenly a bit flakey...)
 
     selDims : dict, optional, default = {'Type':'L'}
         Dimensions to select from input Xarray.
@@ -319,6 +322,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     else:
         dimMap = BLMdimList(sType = 'sDict')
 
+    # Eulers >>> Labels
+    if eulerGroup:
+        daPlot = daPlot.drop('Euler').swap_dims({'Euler':'Labels'})   # Set Euler dim to labels
+        
 
 # Restack code from mfblm()
     # # Unstack & sub-select data array

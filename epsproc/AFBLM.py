@@ -162,6 +162,13 @@ def AFBLMCalcLoop(matE, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], 
 #            for L in np.arange(0, matE1.LM[0] + matE2.l +1):
 #                print(L)
 
+    # Set ADM type - np.array or Xarray.
+    # Hacked in to use existing code (for np.arrays), should improve on this...
+    if type(AKQS) is np.array:
+        npFlag = True
+    else:
+        npFlag = False
+
 
     # Generate LM pairs list via indexing
     LMlist = pd.MultiIndex.from_product([matE.SumDim, matE.SumDim], names = ['LM1','LM2'])
@@ -233,12 +240,26 @@ def AFBLMCalcLoop(matE, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], 
                         AKQSrows = AKQS.shape[0]
 
                         for AKQSind in np.arange(0, AKQSrows):
-                            K = AKQS[AKQSind,0].real.astype('int')    # Assign values for clarity
-                            Q = AKQS[AKQSind,1].real.astype('int')    # Sign flip on Q...?
-                            S = AKQS[AKQSind,2].real.astype('int')
+
+                            if npFlag:
+                                K = AKQS[AKQSind,0].real.astype('int')    # Assign values for clarity
+                                Q = AKQS[AKQSind,1].real.astype('int')    # Sign flip on Q...?
+                                S = AKQS[AKQSind,2].real.astype('int')
+                                AKQSval = AKQS[AKQSind,3]
+
+                            # Case for Xarrays.  Need to use .values.item() here to retireve singleton values...?
+                            else:
+                                K = AKQS.ADM.K[AKQSind].values.item()    # Assign values for clarity
+                                Q = AKQS.ADM.Q[AKQSind].values.item()    # Sign flip on Q...?
+                                S = AKQS.ADM.S[AKQSind].values.item()
+                                AKQSval = AKQS[AKQSind].values.item()
+
+                            # K = AKQS[AKQSind,0].real.astype('int')    # Assign values for clarity
+                            # Q = AKQS[AKQSind,1].real.astype('int')    # Sign flip on Q...?
+                            # S = AKQS[AKQSind,2].real.astype('int')
 
                             # M or -M here? Doesn't seem to make a difference (for Q=S=0 at least)
-                            gammaAKQS = gammaAKQS + np.sqrt(2*K+1)*(-1)**(K+Q)*Wigner3jCached(P,K,L,R,-Q,-M)*Wigner3jCached(P,K,L,Rp,-S,S-Rp)*(AKQS[AKQSind,3])
+                            gammaAKQS = gammaAKQS + np.sqrt(2*K+1)*(-1)**(K+Q)*Wigner3jCached(P,K,L,R,-Q,-M)*Wigner3jCached(P,K,L,Rp,-S,S-Rp)*(AKQSval)
 
 
                    # Sum over R,R' projections omitted - only R=0 set above

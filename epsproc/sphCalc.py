@@ -514,7 +514,7 @@ def TKQarrayRot(TKQ,eAngs):
     return np.array(TKQRot)
 
 # 05/12/19 Rewriting with new eAngs and ADM defns... (Xarrays)
-def TKQarrayRotX(TKQ, RX, form = 2):
+def TKQarrayRotX(TKQin, RX, form = 2):
     r"""
     Frame rotation for multipoles $T_{K,Q}$.
 
@@ -522,7 +522,7 @@ def TKQarrayRotX(TKQ, RX, form = 2):
 
     Parameters
     ----------
-    TKQ : Xarray
+    TKQin : Xarray
         Values defining the initial distribution, [K,Q,TKQ]. Other dimensions will be propagated.
 
     RX : Xarray defining frame rotations, from :py:func:`epsproc.setPolGeoms()`
@@ -566,6 +566,15 @@ def TKQarrayRotX(TKQ, RX, form = 2):
     >>> sph, _ = sphFromBLMPlot(testADMrot, facetDim = 'Euler', plotFlag = True)
 
     """
+
+    # Check dataType and rename if required
+    if TKQin.dataType is 'ADM':
+        TKQ = TKQin.copy()
+    elif TKQin.dataType is 'BLM':
+        TKQ = TKQin.copy().unstack('BLM').rename({'l':'K','m':'Q'}).stack({'ADM':('K','Q')})
+    else:
+        print('***TKQ dataType not recognized, skipping frame rotation.')
+        return None, None, None
 
     # Test if S is set, and flag for later
     # Better way to get MultiIndexes here?
@@ -638,5 +647,9 @@ def TKQarrayRotX(TKQ, RX, form = 2):
     # TODO: fix Labels propagation - this seems to drop sometimes, dim issue?
     TKQrot['Labels'] = RX.Labels
     TKQrot.attrs = TKQ.attrs
+
+    # For BLM data, rename vars.
+    if TKQin.dataType is 'BLM':
+        TKQrot = TKQrot.unstack('ADM').rename({'K':'l','Q':'m'}).stack({'BLM':('l','m')})
 
     return TKQrot, wDX, wDXre

@@ -164,7 +164,7 @@ def AFBLMCalcLoop(matE, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], 
 
     # Set ADM type - np.array or Xarray.
     # Hacked in to use existing code (for np.arrays), should improve on this...
-    if type(AKQS) is np.array:
+    if type(AKQS) is np.ndarray:
         npFlag = True
     else:
         npFlag = False
@@ -237,6 +237,17 @@ def AFBLMCalcLoop(matE, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], 
                         #     AKQSrows = 0
                         # else:
                         #     AKQSrows = AKQS.shape[0]
+
+                        # Alt form for array type Switching
+                        # Set dims from np.array or Xarray
+#                         if npFlag:
+#                             if len(AKQS.shape) == 1:
+#                                 AKQSrows = 1
+#                             else:
+#                                 AKQSrows = AKQS.shape[0]
+#                         else:
+#                             AKQSrows = AKQS.ADM.size
+                        # This is OK as long as shape has 2 dims.
                         AKQSrows = AKQS.shape[0]
 
                         for AKQSind in np.arange(0, AKQSrows):

@@ -166,12 +166,14 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
         eulerInd = pd.MultiIndex.from_arrays(eulerAngs.T, names = ['Label','P','T','C'])
         # Create Xarray
         RX = xr.DataArray(quat, coords={'Euler':eulerInd}, dims='Euler')
+        RX.attrs['dataType'] = 'Euler'
 
     elif vFlag == 2:
         # v2    Labels as non-dim coords.
         #       Doesn't allow selection, but keeps Euler coords as floats in all cases.
         Euler = pd.MultiIndex.from_arrays(eulerAngs[:,1:].T.astype('float'), names = ['P','T','C'])
         RX = xr.DataArray(quat, coords={'Euler':Euler,'Labels':('Euler',eulerAngs[:,0].T)}, dims='Euler')
+        RX.attrs['dataType'] = 'Euler'
 
     else:
         print('***Version not recognized')
@@ -637,7 +639,14 @@ def TKQarrayRotX(TKQin, RX, form = 2):
             # Gives *no difference* between (x,y) cases? Should be phase rotation?
 
     else:
-        wDXre = wDX.unstack('QN').rename({'lp':'K','mu':'Q','mu0':'Qp'}).stack({'ADM':('K','Q','S')})  # Restack according to D^l_{mu,mu0} > D^K_{Q,Qp}
+        # wDXre = wDX.unstack('QN').rename({'lp':'K','mu':'Q','mu0':'Qp'}).stack({'ADM':('K','Q')})  # Restack according to D^l_{mu,mu0} > D^K_{Q,Qp}
+        # TKQrot = (TKQ * wDXre).unstack('ADM').sum('Q').rename({'Qp':'Q'}).stack({'ADM':('K','Q')})
+
+        # form = 2 case only.
+        wDXre = wDX.unstack('QN').rename({'lp':'K','mu':'Qp','mu0':'Q'}).expand_dims({'S':[0]}).stack({'ADM':('K','Q')})  # Restack according to D^l_{mu,mu0} > D^K_{Qp,Q}
+                                                                                                 # This matches Zare, eqn. 3.83, for D*xTKQ
+        # Here formulated as TKQrot = sum_q(TKq x D^K_{q,Q}*)
+        TKQrot = (TKQ * wDXre.conj()).unstack('ADM').sum('Q').rename({'Qp':'Q'}).stack({'ADM':('K','Q')})
 
     #***  Mutliply (with existing dims), then resort & sum over Q
     # NOW INCLUDED ABOVE for different test cases
@@ -645,7 +654,8 @@ def TKQarrayRotX(TKQin, RX, form = 2):
 
     # Propagate frame labels & attribs
     # TODO: fix Labels propagation - this seems to drop sometimes, dim issue?
-    TKQrot['Labels'] = RX.Labels
+    # TKQrot['Labels'] = RX.Labels
+    TKQrot['Labels']=('Euler',RX.Labels.values)  # This seems to work...
     TKQrot.attrs = TKQ.attrs
 
     # For BLM data, rename vars.

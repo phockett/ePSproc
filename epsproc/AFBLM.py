@@ -119,6 +119,12 @@ def AFBLMCalcLoop(matE, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], 
         Contains one set of matrix elements to use for calculation.
         Currently assumes these are a 1D list, with associated (l,m,mu) parameters, as set by mfblm().
 
+    AKQS : Xarray or np.array, optional, default = np.array([0,0,0,1], ndmin = 2)
+        Array containing alignment parameters (axis distribution moments), $A_{Q,S}^{K}(t)$.
+        Format is [K,Q,S,value...] if np.array.
+        For Xarray, (K,Q,S) coords are set as multindex dimension `ADM`, as per :py:func:`epsproc.setADMs()`.
+        Default value corresponds to an isotropic axis distribution.
+
     eAngs : [phi,theta,chi], optional, default = [0,0,0]
         Single set of Euler angles defining polarization geometry.
 

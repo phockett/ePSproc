@@ -202,7 +202,11 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     Parameters
     -----------
-    data : Xarray, data to plot, containing matrix elements or BLM paramters.
+    data : Xarray, data to plot.
+        Should work for any Xarray, but optimised for dataTypes:
+        - matE, matrix elements
+        - BLM paramters
+        - ADMs
 
     pType : char, optional, default 'a' (abs values)
         Set (data) type to plot. See :py:func:`plotTypeSelector`.
@@ -273,14 +277,19 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     * Clustermap methods from:
         * https://stackoverflow.com/questions/27988846/how-to-express-classes-on-the-axis-of-a-heatmap-in-seaborn
         * https://seaborn.pydata.org/examples/structured_heatmap.html
-    * Seaborn global settings currently not included here... good settings are:
+    * Seaborn global settings currently included here:
         * sns.set(rc={'figure.dpi':(120)})
         * sns.set_context("paper")
+        * These are reset at end of routine, apart from dpi.
 
     To do
     -----
     - Improved dim handling, maybe use :py:func:`epsproc.util.matEdimList()` (and related functions) to avoid hard-coding multiple cases here.
     - Improved handling of sets of polarization geometries (angles).
+
+    Examples
+    --------
+    (See https://github.com/phockett/ePSproc/blob/master/epsproc/tests/ePSproc_demo_matE_plotting_Nov2019.ipynb)
 
     """
     # Local/deferred import to avoid circular import issues at module level.
@@ -302,6 +311,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     daPlot = data.copy()
     daPlot.attrs = data.attrs
 #     daPlot = data
+
+    # Set filename if missing
+    if 'file' not in daPlot.attrs:
+        daPlot.attrs['file'] = '(No filename)'
 
     # Use SF (scale factor)
     # Write to data.values to make sure attribs are maintained.
@@ -325,7 +338,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     # Eulers >>> Labels
     if eulerGroup:
         daPlot = daPlot.drop('Euler').swap_dims({'Euler':'Labels'})   # Set Euler dim to labels
-        
+
 
 # Restack code from mfblm()
     # # Unstack & sub-select data array
@@ -387,6 +400,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             mList = np.unique(daPlot.LM.m)
         if 'BLM' in daPlot.dims:
             mList = np.unique(daPlot.BLM.m)
+        if 'ADM' in daPlot.dims:
+            mList = np.unique([daPlot.ADM.Q, daPlot.ADM.S])
         mColours = mList.size
 
         if mColours < 3:  # Minimal value to ensure mu mapped - may be better to generate without ref here?
@@ -423,13 +438,13 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
             # For (l,m,mu) set colour scales as linear (l), and diverging (m,mu)
             # May want to modify (m,mu) mappings to be shared?
-            if dim is 'l':
+            if dim in ['l','K']:
                 pal = sns.light_palette("green", n_colors=Labels.unique().size)
                 lut = dict(zip(map(str, Labels.unique()), pal))
                 cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
                 legendList.append((Labels.unique(), lut))
 
-            elif (dim is 'm') or (dim is 'mu'):
+            elif dim in ['m', 'mu', 'Q', 'S']:
 #                 pal = sns.diverging_palette(220, 20, n=Labels.unique().size)
 #                 lut = dict(zip(map(str, Labels.unique().sort_values()), pal))  # Note .sort_values() required here.
                 pal = palM
@@ -497,9 +512,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             for label in item[0].astype('str'):
 #                 label = string(label)
 #                 if n%2:
-                if item[0].name in ['l','m']:
+                if item[0].name in ['l','m','K','Q']:
                     g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
-                elif item[0].name is 'mu':  # Skip to avoid repetition, assuming m already plotted.
+                elif item[0].name in ['mu','S']:  # Skip to avoid repetition, assuming m or Q already plotted on same colour scale.
                     pass
 #                 elif symFlag and (item[0].name is 'Cont'):
 #                     g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
@@ -517,13 +532,21 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
         # Add legends for the bar plots
         ncol = 2  #np.unique(daPlot.LM.l).size
-        g.ax_col_dendrogram.legend(title='l,(m,mu)', loc="center", ncol = ncol, bbox_to_anchor=(0.1, 0.6), bbox_transform=plt.gcf().transFigure)
+        if 'ADM' in daPlot.dims:
+            QNlabels = 'K,(Q,S)'
+        else:
+            QNlabels = 'l,(m,mu)'
+
+        g.ax_col_dendrogram.legend(title=QNlabels, loc="center", ncol = ncol, bbox_to_anchor=(0.1, 0.6), bbox_transform=plt.gcf().transFigure)
         g.ax_row_dendrogram.legend(title='Categories', loc="center", ncol = 2, bbox_to_anchor=(0.1, 0.4), bbox_transform=plt.gcf().transFigure)
 
         # Additional anootations etc.
         # Plot titles: https://stackoverflow.com/questions/49254337/how-do-i-add-a-title-to-a-seaborn-clustermap
         # g.fig.suptitle(f"{daPlot.attrs['file']}, pType={pType}, thres={thres}")  # Full figure title
         g.ax_heatmap.set_title(f"{daPlot.attrs['file']}, plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {np.round(thres, 2)}, inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
+
+        # sns.reset_orig()  # Reset gloabl plot params - leaves rc settings, also triggers Matplotlib errors
+        sns.reset_defaults()
 
         return daPlot, daPlotpd, legendList, g
 

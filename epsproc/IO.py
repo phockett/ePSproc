@@ -532,7 +532,7 @@ def molInfoParse(fileName, verbose = True):
     #*** Set as Xarray
     # TODO: make this neater/better!
     cols = ['N', 'EH', 'Occ', 'E', 'Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt']
-    orbTableX = xr.DataArray(temp, coords = {'orb':orbTable[:,0], 'props':cols}, dims=['orb','props'])
+    orbTableX = xr.DataArray(temp, coords = {'orb':orbTable[:,0].astype(int), 'props':cols}, dims=['orb','props'])  # TODO: fix type here - changes to float in Xarray...?
     orbTableX['Sym'] = ('orb', orbSymList)  # Add symmetries, E and OrbGrp as non-dim coords - possibly not a great thing to do...?  Not easy to index with these
     orbTableX['E'] = ('orb', temp[:,3])
     orbTableX['OrbGrp'] = ('orb', orbList[:,3])

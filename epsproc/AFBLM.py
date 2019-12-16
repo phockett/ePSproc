@@ -170,6 +170,7 @@ def AFBLMCalcLoop(matE, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], 
 
     # Set ADM type - np.array or Xarray.
     # Hacked in to use existing code (for np.arrays), should improve on this...
+    # ACTUALLY - may want to convert to np.array here, since main loop with Xarrays is signficantly slower.
     if type(AKQS) is np.ndarray:
         npFlag = True
     else:

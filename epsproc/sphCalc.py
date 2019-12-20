@@ -604,7 +604,7 @@ def TKQarrayRotX(TKQin, RX, form = 2):
         #*** Formulate using existing wDX code, then multiply - should be faster and transparent (?), and allow multiple dims
 
     # Calculate Wigner Ds
-    wDX = wDcalc(Lrange=TKQ.K.values, R = RX.values)  # NOTE - alternatively can pass angles as Eulers, but may need type conversion for RX.Euler depending on format, and/or loop over angle sets.
+    wDX = wDcalc(Lrange = np.unique(TKQ.K.values), R = RX.values)  # NOTE - alternatively can pass angles as Eulers, but may need type conversion for RX.Euler depending on format, and/or loop over angle sets.
 
         # Rename coords, use dataType for this
 #         dtList = ep.dataTypesList()
@@ -643,7 +643,8 @@ def TKQarrayRotX(TKQin, RX, form = 2):
         # TKQrot = (TKQ * wDXre).unstack('ADM').sum('Q').rename({'Qp':'Q'}).stack({'ADM':('K','Q')})
 
         # form = 2 case only.
-        wDXre = wDX.unstack('QN').rename({'lp':'K','mu':'Qp','mu0':'Q'}).expand_dims({'S':[0]}).stack({'ADM':('K','Q')})  # Restack according to D^l_{mu,mu0} > D^K_{Qp,Q}
+        # wDXre = wDX.unstack('QN').rename({'lp':'K','mu':'Qp','mu0':'Q'}).expand_dims({'S':[0]}).stack({'ADM':('K','Q','S')})  # Restack according to D^l_{mu,mu0} > D^K_{Qp,Q}
+        wDXre = wDX.unstack('QN').rename({'lp':'K','mu':'Qp','mu0':'Q'}).stack({'ADM':('K','Q')})
                                                                                                  # This matches Zare, eqn. 3.83, for D*xTKQ
         # Here formulated as TKQrot = sum_q(TKq x D^K_{q,Q}*)
         TKQrot = (TKQ * wDXre.conj()).unstack('ADM').sum('Q').rename({'Qp':'Q'}).stack({'ADM':('K','Q')})

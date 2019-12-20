@@ -172,10 +172,13 @@ def AFBLMCalcLoop(matE, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], 
     # Hacked in to use existing code (for np.arrays), should improve on this...
     # ACTUALLY - may want to convert to np.array here, since main loop with Xarrays is signficantly slower.
     if type(AKQS) is np.ndarray:
-        npFlag = True
+        # npFlag = True
+        pass
     else:
-        npFlag = False
-
+        # npFlag = False
+        # For Xarray, reformat as np.array for speed later.
+        AKQSred = ep.matEleSelector(AKQS, thres = thres)
+        AKQS = np.asarray([AKQSred.K.values, AKQSred.Q.values, AKQSred.S.values, AKQSred]).T
 
     # Generate LM pairs list via indexing
     LMlist = pd.MultiIndex.from_product([matE.SumDim, matE.SumDim], names = ['LM1','LM2'])
@@ -259,18 +262,19 @@ def AFBLMCalcLoop(matE, AKQS = np.array([0,0,0,1], ndmin = 2), eAngs = [0,0,0], 
 
                         for AKQSind in np.arange(0, AKQSrows):
 
-                            if npFlag:
-                                K = AKQS[AKQSind,0].real.astype('int')    # Assign values for clarity
-                                Q = AKQS[AKQSind,1].real.astype('int')    # Sign flip on Q...?
-                                S = AKQS[AKQSind,2].real.astype('int')
-                                AKQSval = AKQS[AKQSind,3]
+                            # if npFlag:
+                            K = AKQS[AKQSind,0].real.astype('int')    # Assign values for clarity
+                            Q = AKQS[AKQSind,1].real.astype('int')    # Sign flip on Q...?
+                            S = AKQS[AKQSind,2].real.astype('int')
+                            AKQSval = AKQS[AKQSind,3]
 
                             # Case for Xarrays.  Need to use .values.item() here to retireve singleton values...?
-                            else:
-                                K = AKQS.ADM.K[AKQSind].values.item()    # Assign values for clarity
-                                Q = AKQS.ADM.Q[AKQSind].values.item()    # Sign flip on Q...?
-                                S = AKQS.ADM.S[AKQSind].values.item()
-                                AKQSval = AKQS[AKQSind].values.item()
+                            # NOW SET AS np.array at head of function, since this code was significantly slower.
+                            # else:
+                            #     K = AKQS.ADM.K[AKQSind].values.item()    # Assign values for clarity
+                            #     Q = AKQS.ADM.Q[AKQSind].values.item()    # Sign flip on Q...?
+                            #     S = AKQS.ADM.S[AKQSind].values.item()
+                            #     AKQSval = AKQS[AKQSind].values.item()
 
                             # K = AKQS[AKQSind,0].real.astype('int')    # Assign values for clarity
                             # Q = AKQS[AKQSind,1].real.astype('int')    # Sign flip on Q...?
@@ -459,12 +463,12 @@ def afblm(daIn, selDims = {'Type':'L'}, AKQS = np.array([0,0,0,1], ndmin = 2), e
     # ISSUE: in current form, with SF(Eke,Sym), this reintroduces Sym axis even if already summed over.
     # Q: Is SF sym dependent...?  If not, remove link.  If so, sum before division.
     # NOW: checked in dumpIdySegsParseX, set to single dim (Eke only) if diff < machine epsilon
-    if SFflag:
-        # Check dims on SF are OK...
-        if da.SF.ndim > 1:
-            print(f'*** Warning: SF has {0} dims, skipping renormalisation of BLMs by 1/SF.', da.SF.ndim)
-        else:
-            BLMXout = BLMXout / da.SF  # Renorm - should be able to sort this so it's not required...?  Multiply MFBLMCalcLoop result by SF only, rather than all matE?
+    # if SFflag:
+    #     # Check dims on SF are OK...
+    #     if da.SF.ndim > 1:
+    #         print(f'*** Warning: SF has {0} dims, skipping renormalisation of BLMs by 1/SF.', da.SF.ndim)
+    #     else:
+    #         BLMXout = BLMXout / da.SF  # Renorm - should be able to sort this so it's not required...?  Multiply MFBLMCalcLoop result by SF only, rather than all matE?
 
     # Reorder & normalise by X-sect (B00)
     BLMXout = BLMXout.transpose()

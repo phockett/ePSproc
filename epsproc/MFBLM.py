@@ -170,7 +170,10 @@ def MFBLMCalcLoop(matE, eAngs = [0,0,0], thres = 1e-6, p=0, R=0, verbose=1):
     # R = 0 # For single pol state only, i.e. p-p'=0
     # pRot = quaternion.from_euler_angles(alpha, beta, gamma)
     # pRot = quaternion.from_euler_angles(0,0,0)
-    pRot = quaternion.from_euler_angles(eAngs)
+    if not isinstance(eAngs, xr.DataArray):
+        pRot = quaternion.from_euler_angles(eAngs)
+    else:
+        pRot = eAngs.values.item()  # For Xarray case will already be passed as quaternion. Get issues later if value in np array.
 
     # Set variable for outputs
     C = []
@@ -386,9 +389,18 @@ def mfblm(daIn, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDims =
     # Euler = pd.MultiIndex.from_arrays(np.tile(eAngs,(BLMXout.Eke.size,1)).T, names = ['P','T','C'])
     # BLMXout = BLMXout.assign_coords(Euler = Euler)
 
-    # Set instead as singleton dim
-    Euler = pd.MultiIndex.from_arrays(np.tile(eAngs,(1,1)).T, names = ['P','T','C'])    # Left tile code here to prevent pd errors on lists.
-    BLMXout = BLMXout.expand_dims({'Euler':Euler})
+    if isinstance(eAngs, xr.DataArray):
+        # For Xarray defined case, use existing multindex & propagate corresponding labels.
+        # BLMXout = BLMXout.expand_dims({'Euler':eAngs.get_index('Euler')})  # THIS DOESN'T WORK FOR A 0D ARRAY, DOH.
+        Euler = pd.MultiIndex.from_arrays(np.tile(np.asarray(eAngs.Euler.values.item()),(1,1)).T, names = ['P','T','C'])    # Reconstruct as for normal case below.
+        BLMXout = BLMXout.expand_dims({'Euler':Euler})
+        # BLMXout['Labels']=('Euler', eAngs.Labels.values)  # Now set for all eAngs in mfblmEuler
+    else:
+        # For other cases set from eAngs array values directly.
+        # Set instead as singleton dim
+        Euler = pd.MultiIndex.from_arrays(np.tile(eAngs,(1,1)).T, names = ['P','T','C'])    # Left tile code here to prevent pd errors on lists.
+        BLMXout = BLMXout.expand_dims({'Euler':Euler})
+
 
     # Fix XS issue due to SF^2 - in tests this matchs GetCro results
     # ISSUE: in current form, with SF(Eke,Sym), this reintroduces Sym axis even if already summed over.
@@ -474,17 +486,27 @@ def mfblmEuler(da, selDims = {'Type':'L'}, eAngs = [0,0,0], thres = 1e-4, sumDim
     if isinstance(eAngs, list):
         eAngs = np.array(eAngs)
 
-    # For a single set of eAngs, just pass directly.
-    if eAngs.ndim == 1:
-        BLMXout = mfblm(da, selDims = selDims, eAngs = eAngs, thres = thres, sumDims = sumDims, SFflag = SFflag, verbose = verbose)
-    else:
-    # Loop over eAngs and calculate
+    if isinstance(eAngs, np.ndarray):
+        # For a single set of eAngs, just pass directly.
+        if eAngs.ndim == 1:
+            BLMXout = mfblm(da, selDims = selDims, eAngs = eAngs, thres = thres, sumDims = sumDims, SFflag = SFflag, verbose = verbose)
+        else:
+        # Loop over eAngs and calculate
+            BLM = []
+            for angsIn in range(0, eAngs.shape[0]):
+                BLM.append(mfblm(da, selDims = selDims, eAngs = eAngs[angsIn,:], thres = thres, SFflag = SFflag, verbose = verbose))
+
+            # Stack results
+            BLMXout = xr.combine_nested(BLM,'Euler')
+
+    # Quick hack for Xarray case - 1D array with quaternions already defined, as returned by `setPolGeoms()`
+    if isinstance(eAngs, xr.DataArray):
         BLM = []
         for angsIn in range(0, eAngs.shape[0]):
-            BLM.append(mfblm(da, selDims = selDims, eAngs = eAngs[angsIn,:], thres = thres, SFflag = SFflag, verbose = verbose))
+            BLM.append(mfblm(da, selDims = selDims, eAngs = eAngs[angsIn], thres = thres, SFflag = SFflag, verbose = verbose))
 
         # Stack results
         BLMXout = xr.combine_nested(BLM,'Euler')
-
+        BLMXout['Labels']=('Euler', eAngs.Labels.values) # Propagate labels
 
     return BLMXout

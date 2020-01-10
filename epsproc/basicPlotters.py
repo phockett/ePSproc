@@ -336,8 +336,18 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         dimMap = BLMdimList(sType = 'sDict')
 
     # Eulers >>> Labels
-    if eulerGroup:
-        daPlot = daPlot.drop('Euler').swap_dims({'Euler':'Labels'})   # Set Euler dim to labels
+    if eulerGroup and ('Euler' in daPlot.dims):
+        if 'Labels' in daPlot.drop('Euler').dims:
+            daPlot = daPlot.drop('Euler').swap_dims({'Euler':'Labels'})   # Set Euler dim to labels
+        else:
+            pass
+            # TODO: add labels here if missing. See setPolGeoms()
+            # Set labels if missing, alphabetic or numeric
+            # if eulerAngs.shape[0] < 27:
+            #     labels = list(string.ascii_uppercase[0:eulerAngs.shape[0]])
+            # else:
+            #     labels = np.arange(1,eulerAngs.shape[0]+1)
+
 
 
 # Restack code from mfblm()

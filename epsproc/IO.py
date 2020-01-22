@@ -516,7 +516,9 @@ def molInfoParse(fileName, verbose = True):
     for item in dumpSegs[0]:
         if(item[2].startswith('Orbital')):
             # temp = item[2].split()
-            orbIntList.append(parseLineDigits(item[2]))
+            # orbIntList.append(parseLineDigits(item[2]))
+            orbMetrics = parseLineDigits(item[2])
+            orbIntList.append([orbMetrics[0], orbMetrics[-1]])  # Set explicitly here, length may change depending on whether symmetries have digits in!
 
     orbIntList = np.asarray(orbIntList).astype('float')
 
@@ -525,7 +527,7 @@ def molInfoParse(fileName, verbose = True):
     ogInt = np.zeros(temp.shape[0])
     for n, row in enumerate(temp):
         ind = row[6] == orbIntList[:,0]  # Find corresponding row
-        ogInt[n]=orbIntList[ind, 2]  # Set int value
+        ogInt[n]=orbIntList[ind, 1]  # Set int value
 
     temp = np.c_[temp, ogInt]
 

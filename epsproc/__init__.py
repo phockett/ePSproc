@@ -1,4 +1,4 @@
-__version__ = '1.2.3'
+__version__ = '1.2.4'
 
 # Import shared packages - actually, should be at module (file) level?
 # https://stackoverflow.com/questions/8165703/python-imports-across-modules-and-global-variables

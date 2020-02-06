@@ -39,7 +39,7 @@ release = version
 # ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
                 'sphinxcontrib.apidoc', 'recommonmark',
-                'sphinx.ext.viewcode']
+                'sphinx.ext.viewcode', 'nbsphinx']
 
 # api doc settings
 apidoc_module_dir = '../../epsproc'

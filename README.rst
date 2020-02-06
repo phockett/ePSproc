@@ -103,7 +103,8 @@ See `ePSproc: Post-processing suite for ePolyScat electron-molecule scattering c
 Resources
 ---------
 
-An ongoing repository of `ePS results can be found on OSF <https://osf.io/psjxt/>`_.
+An ongoing repository of `ePS results can be found at ePSdata <https://phockett.github.io/ePSdata/index.html>`_ (as of Jan 2020, this replaces `the previous repository on OSF <https://osf.io/psjxt/>`_).
+
 
 
 ePolyScat

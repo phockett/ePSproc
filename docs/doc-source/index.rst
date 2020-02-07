@@ -27,7 +27,7 @@ Welcome to ePSproc
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Function ref:
 
    modules/epsproc

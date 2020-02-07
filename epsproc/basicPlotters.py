@@ -193,7 +193,7 @@ def symListGen(data):
     return np.ravel(symList)
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
-        selDims = None, sumDims = None, plotDims = ('l','m','mu','Cont','Targ','Total','it','Type'),
+        selDims = None, sumDims = None, plotDims = ('l','m','mu','Cont','Targ','Total','it','Type'), squeeze = True,
         xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False):
     """
     Plotting routine for ePS matrix elements & BLMs.
@@ -237,6 +237,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     plotDims : tuple, optional, default = ('l','m','mu','Cont','Targ','Total','it','Type')
         Dimensions to stack for plotting, also controls order of stacking (hence sorting and plotting).
         TO DO: auto generation for different dataType, also based on selDims and sumDims selections.
+
+    squeeze : bool, optional, default = True
+        Drop singleton dimensions from plot.
 
     xDim : str, optional, default = 'Eke'
         Dimension to use for x-axis, also used for thresholding. Default plots (Eke, LM) surfaces.
@@ -337,7 +340,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     # Eulers >>> Labels
     if eulerGroup and ('Euler' in daPlot.dims):
-        if 'Labels' in daPlot.drop('Euler').dims:
+        # if 'Labels' in daPlot.drop('Euler').dims:  # This did work, but no longer (Jan 2020) - may be an Xarray version issue?  Using cords should be safe however.
+        if 'Labels' in daPlot.coords:
             daPlot = daPlot.drop('Euler').swap_dims({'Euler':'Labels'})   # Set Euler dim to labels
         else:
             pass
@@ -434,7 +438,11 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             if dim in daPlot.unstack().dims:
                 plotDimsRed.append(dim)
 
-        daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).to_pandas().dropna(axis = 1).T
+        # Restack for plotting, and drop singleton dimensions if desired.
+        if squeeze:
+            daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).squeeze().to_pandas().dropna(axis = 1).T
+        else:
+            daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).to_pandas().dropna(axis = 1).T
 
         # Set multi-index indicies & colour mapping
         cList = []

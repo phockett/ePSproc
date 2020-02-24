@@ -380,6 +380,85 @@ def dataTypesList():
 
     return dataDict
 
+#****** QN lists
+
+# Generate LM index from 0:Lmax
+# Should be able to use sf.LM_range here, but throwing type errors for some reason.
+def genLM(Lmax):
+    """
+    Return array of (L,M) up to supplied Lmax
+
+    TODO: add return type options, include conversion to SHtools types.
+    """
+
+    # Loop version
+#    LM = np.empty((Lmax * (Lmax + 2) + 1, 2), dtype=int)
+#    n=0
+#    for L in np.arange(Lmax+1):
+#        for M in np.arange(-L,L+1):
+#            LM[n,:] = [L,M]
+#            n+=1
+
+    # List version
+    LM = []
+    for L in np.arange(Lmax+1):
+        LM.extend(np.c_[np.tile(L,2*L+1), np.arange(-L,L+1)])
+#        LM.append([np.tile(L,2*L+1), np.arange(-L,L+1)])
+
+    return np.asarray(LM)
+
+# Generate 6D coords for Wigner 3j terms.
+def genllL(Lmin = 0, Lmax = 10, mFlag = True):
+    """
+    Generate quantum numbers for angular momentum contractions (l, lp, L)
+    
+    Parameters
+    ----------
+    Lmin, Lmax : int, optional, default 0, 10
+        Integer values for Lmin and Lmax respectively.
+
+    mFlag : bool, optional, default = True
+        m, mp take all values -l...+l if mFlag=True, or =0 only if mFlag=False
+
+    Returns
+    -------
+    QNs : 2D np.array
+        Values take all allowed combinations ['l','lp','L','m','mp','M'] up to l=lp=Lmax, one set per row.
+
+    Examples
+    ---------
+    # Calculate up to Lmax = 2
+    >>> QNs = genllL(Lmax=2)
+    # Use with w3jTable function to calculate Wigner 3j terms
+    >>> w3j = w3jTable(QNs = QNs)
+
+    To do
+    -----
+    - Implement output options (see dev. function w3jTable).
+    -
+    """
+
+    # Set QNs for calculation, (l,m,mp)
+    QNs = []
+    for l in np.arange(Lmin, Lmax+1):
+        for lp in np.arange(Lmin, Lmax+1):
+
+            if mFlag:
+                mMax = l
+                mpMax = lp
+            else:
+                mMax = 0
+                mpMax = 0
+
+            for m in np.arange(-mMax, mMax+1):
+                for mp in np.arange(-mpMax, mpMax+1):
+                    for L in np.arange(np.abs(l-lp), l+lp+1):
+                        M = -(m+mp)
+                        QNs.append([l, lp, L, m, mp, M])
+
+    return np.array(QNs)
+
+
 
 #***************** Convenience functions...
 

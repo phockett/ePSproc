@@ -372,6 +372,8 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
     Moble's quaternion package for angles and conversions.
     https://github.com/moble/quaternion
 
+    For testing, see https://epsproc.readthedocs.io/en/latest/tests/Spherical_function_testing_Aug_2019.html
+
     Examples
     --------
     >>> wDX1 = wDcalc(eAngs = np.array([0,0,0]))

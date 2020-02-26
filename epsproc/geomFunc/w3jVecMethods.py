@@ -6,7 +6,10 @@ Functions for accelerated (vector, parallel, GPU) Wigner 3j calculations.
 26/02/20    v1  Functions for accelerated Wigner 3j calcs plus sorting.
 
 """"
-
+# Imports
+import numpy as np
+import numba as nb
+import spherical_functions as sf
 
 #*****************  Wrappers for functions
 # For tests, see

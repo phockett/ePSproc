@@ -475,3 +475,83 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d'):
         EPRtable.attrs['dataType'] = 'EPR'
 
     return EPRtable
+
+
+# BetaTerm for BLM tensor coupling.
+def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'L', 'm', 'mp', 'M']):
+    """Define BLM coupling tensor
+
+    Define field terms (from QM book, corrected vs. original S\&U version
+    - see ``beta-general-forms\_rewrite\_290917.lyx''):
+
+.. math::
+    \begin{equation}
+    B_{L,M}=(-1)^{m}\left(\frac{(2l+1)(2l'+1)(2L+1)}{4\pi}\right)^{1/2}\left(\begin{array}{ccc}
+    l & l' & L\\
+    0 & 0 & 0
+    \end{array}\right)\left(\begin{array}{ccc}
+    l & l' & L\\
+    -m & m' & M
+    \end{array}\right)
+    \end{equation}
+
+    Parameters
+    ----------
+    QNs : np.array, optional, default = None
+        List of QNs [l, lp, L, m, mp, M] to compute 3j terms for.
+        If not supplied all allowed terms for {Lmin, Lmax} will be set.
+        (If supplied, values for Lmin, Lmax and mFlag are not used.)
+
+    Lmin, Lmax : int, optional, default 0, 10
+        Integer values for Lmin and Lmax respectively.
+
+    mFlag : bool, optional, default = True
+        m, mp take all values -l...+l if mFlag=True, or =0 only if mFlag=False
+
+    nonzeroFlag : bool, optional, default = True
+        Drop null terms before returning values if true.
+
+    form : string, optional, default = '2d'
+        For options see :py:func:`ep.w3jTable()`
+
+    dlist : list of labels, optional, default ['l','lp','L','m','mp','M']
+        Used to label array for Xarray output case.
+
+
+    Examples
+    ---------
+
+    >>> Lmax = 2
+    >>> BLMtable = betaTerm(Lmax = Lmax, form = 'xds')
+    >>> BLMtable = betaTerm(Lmax = Lmax, form = 'xdaLM')
+
+    """
+
+    # Set dim labels for reference/Xarray case
+
+
+    # Tabulate 3j terms
+    BLMtable = w3jTable(QNs = QNs, Lmin = Lmin, Lmax = Lmax, nonzeroFlag = nonzeroFlag, form = form, dlist = dlist)
+
+    # Phase & degen terms
+    # Currently only implemented for some cases.
+
+#     if form == '2d':
+#         Rphase = np.power(-1, np.abs(EPRtable[:,5]))
+#         Pdegen = np.sqrt(2*EPRtable[:,2] + 1)
+#         EPRtable[:,-1] = EPRtable[:,-1]*Rphase*Pdegen
+
+#     elif form == 'xarray':
+#         Rphase = np.power(-1, np.abs(EPRtable.R))
+#         Pdegen = np.sqrt(2*EPRtable.P + 1)
+#         EPRtable *= Rphase*Pdegen
+
+    if (form == 'xdaLM') or (form == 'xds'):
+        mPhase = np.power(-1, np.abs(BLMtable.m))
+        degen = (2*BLMtable.l+1)*(2*BLMtable.lp+1)*((2*BLMtable.L+1))/(4*np.pi)
+
+        # 3j product term
+        BLMtable *= mPhase*np.sqrt(degen)*BLMtable.sel(m=0,mp=0,M=0)
+
+
+    return BLMtable

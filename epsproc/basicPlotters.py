@@ -194,7 +194,7 @@ def symListGen(data):
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
         selDims = None, sumDims = None, plotDims = ('l','m','mu','Cont','Targ','Total','it','Type'), squeeze = True,
-        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False):
+        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10):
     """
     Plotting routine for ePS matrix elements & BLMs.
 
@@ -243,6 +243,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     xDim : str, optional, default = 'Eke'
         Dimension to use for x-axis, also used for thresholding. Default plots (Eke, LM) surfaces.
+        NOTE: if xDim is a MultiIndex, pass as a dictionary mapping, otherwise it may be unstacked during data prep.
+        E.g. for plotting stacked (L,M), set xDim = {'LM':['L','M']}
+        NOTE: this is currently also passed to matEleSelector(), so stacked dims *must* exist in inital Xarray.
+        THIS SHOULD BE FIXED, since it's a pain.
 
     backend : str, optional, default = 'sns'
         Plotter to use. Default is 'sns' for Seaborn clustermap plot.
@@ -258,6 +262,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     verbose : bool, optional, default False
         Print debug info.
+
+    mMax : int, optional, default = 10
+        Used as default for m colour mapping, in cases where coords are not parsed.
+        TODO: fix this, it's ugly.
 
     Returns
     -------
@@ -289,6 +297,17 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     -----
     - Improved dim handling, maybe use :py:func:`epsproc.util.matEdimList()` (and related functions) to avoid hard-coding multiple cases here.
     - Improved handling of sets of polarization geometries (angles).
+    - CONSOLIDATE stacked/unstacked dim handling.  At the moment some functions use stacked, some unstacked, which is leading to annoying bugs.
+
+    History
+    -------
+
+    * 27/02/20 - handling for MultiIndex cases for Wigner 3j type data (function of (l,lp,L,m,mp,M))
+        * Fixed issue with conversion to Pandas table - should now handle dims better.
+        * Improved multidim dropna() using Xarray version (previously used Pandas version).
+        * Added xDim as dict mapping capability.
+    * 05/12/19 - debug
+    * 29/11/19 - initial version.
 
     Examples
     --------
@@ -373,6 +392,14 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         daPlot = daPlot.sum(sumDims).squeeze()
         daPlot.attrs = data.attrs  # Reset attribs
 
+    # If xDim is stacked, check it exists and create it if not.
+    # TOTAL FUDGE HERE - this may be problematic due to unstack() UGH.
+    # HOWEVER, without this xDim must exist in passed daPlot array, otherwise later code may fail.
+    if type(xDim) == dict:
+        dimCheck = any([item in xDim for item in daPlot.dims])
+        if not dimCheck:
+            daPlot = daPlot.unstack().stack(xDim)
+
     # Threshold on abs() value before setting type, otherwise all terms will appear for some cases (e.g. phase plot)
     daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = xDim) # , sq = True)  # Squeeze may cause issues here if a singleton dim is used for xDim.
     daPlot = plotTypeSelector(daPlot, pType = pType, axisUW = xDim)
@@ -410,12 +437,31 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # Set unified cmap for (m,mu)
         # Switch for matE or BLM data type.
 #         if ('m' in daPlot.dims) and ('mu' in daPlot.dims):
+
+        # Set a default case to allow for arb. dim names
+        # TODO: fix this to select based on max in passed QNs.
+        mList = np.arange(-mMax, mMax+1)
+
         if 'LM' in daPlot.dims:
-            mList = np.unique(daPlot.LM.m)
+            try:
+                mList = np.unique(daPlot.LM.m)   # For Wigner 3j functions, allow for m or M
+            except AttributeError as e:
+                pass
+                # if e != "'DataArray' object has no attribute 'm'":
+                #     raise
+            try:
+                mList = np.unique(daPlot.LM.M)
+            except AttributeError as e:
+                # if e != "'DataArray' object has no attribute 'M'":
+                #     raise
+                pass
+
         if 'BLM' in daPlot.dims:
             mList = np.unique(daPlot.BLM.m)
+
         if 'ADM' in daPlot.dims:
             mList = np.unique([daPlot.ADM.Q, daPlot.ADM.S])
+
         mColours = mList.size
 
         if mColours < 3:  # Minimal value to ensure mu mapped - may be better to generate without ref here?
@@ -428,6 +474,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
         # Convert to Pandas 2D array, stacked along plotDims - these will be used for colour bar.
         # TO DO: fix hard-coded axis number for dropna()
+        # 27/02/20: switched to use xr.dropna(dim = 'plotDim', how = 'all') instead of pd.dropna.  This should be more robust... hopefully won't break old code.
+        #           Also added stack(xDim = xDim) to allow for multilevel X plotting.
 
         # Check plotDims exist, otherwise may throw errors with defaults
         plotDimsRed = []
@@ -439,10 +487,42 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                 plotDimsRed.append(dim)
 
         # Restack for plotting, and drop singleton dimensions if desired.
+        daPlot = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all')
+
+        # Restack xDim in cases where it is a MultiIndex
+        if type(xDim) == dict:
+            daPlot = daPlot.stack(xDim)
+
         if squeeze:
-            daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).squeeze().to_pandas().dropna(axis = 1).T
+            # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).squeeze().to_pandas().dropna(axis = 1).T
+            # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all').squeeze().to_pandas().T
+            daPlotpd = daPlot.squeeze().to_pandas()
+
         else:
-            daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).to_pandas().dropna(axis = 1).T
+            # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).to_pandas().dropna(axis = 1).T
+            # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all').to_pandas().T
+            daPlotpd = daPlot.to_pandas()
+
+        # Transpose Pandas table if necessary - xDim must be columns
+        if type(xDim) != dict:
+            if xDim not in daPlotpd.columns.names:
+                daPlotpd = daPlotpd.T
+
+        # For dictionary case, check items for each key are in column names.
+        # THIS CODE IS HORRIBLE - should be a neater way to do this.
+        # TODO: fix case for some levels missing, at the moment assumes any present is OK.
+        # TODO: test for single vs. MultiIndex case - columns.names vs. columns.name?
+        else:
+            for key in xDim:
+                dimList = xDim[key]
+                check = [item in daPlotpd.columns.names for item in dimList]
+                if not any(check):
+                    daPlotpd = daPlotpd.T
+
+
+        # For Wigner3j datatypes, still get some illegal values creeping through - now try removing again...
+        if daPlot.dataType == 'Wigner3j':
+            daPlotpd = daPlotpd.dropna(axis = 1, how = 'all')
 
         # Set multi-index indicies & colour mapping
         cList = []
@@ -456,13 +536,13 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
             # For (l,m,mu) set colour scales as linear (l), and diverging (m,mu)
             # May want to modify (m,mu) mappings to be shared?
-            if dim in ['l','K']:
+            if dim in ['l', 'K', 'lp']:
                 pal = sns.light_palette("green", n_colors=Labels.unique().size)
                 lut = dict(zip(map(str, Labels.unique()), pal))
                 cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
                 legendList.append((Labels.unique(), lut))
 
-            elif dim in ['m', 'mu', 'Q', 'S']:
+            elif dim in ['m', 'mp', 'mu', 'Q', 'S']:
 #                 pal = sns.diverging_palette(220, 20, n=Labels.unique().size)
 #                 lut = dict(zip(map(str, Labels.unique().sort_values()), pal))  # Note .sort_values() required here.
                 pal = palM

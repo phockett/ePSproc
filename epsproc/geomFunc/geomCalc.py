@@ -80,7 +80,7 @@ except ImportError as e:
 
 def remapllpL(dataIn, QNs, form = 'dict', method = 'sel', dlist = ['l','lp','L','m','mp','M']):
     """
-    Remp Wigner 3j table, with QNs (l,lp,L,m,mp,M) > tensor forms.
+    Remap Wigner 3j table, with QNs (l,lp,L,m,mp,M) > tensor forms.
 
     Tensors are stored by (l,lp,L) triples, with corresponding arrays [m,mp,M], as a dictionary, or Xarray dataarray or dataset.
 
@@ -555,3 +555,29 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
 
 
     return BLMtable
+
+
+#
+def MFproj():
+    """
+    Define MF projection term, $\Lambda_{R',R}(R_{\hat{n}})$:
+
+.. math::
+    \begin{equation}
+    \Lambda_{R',R}(R_{\hat{n}})=(-1)^{(R')}\left(\begin{array}{ccc}
+    1 & 1 & P\\
+    \mu & -\mu' & R'
+    \end{array}\right)D_{-R',-R}^{P}(R_{\hat{n}})
+    \end{equation}
+
+
+    Then...
+.. math::
+    \begin{eqnarray*}
+    \beta_{L,-M}^{\mu_{i},\mu_{f}} & = & \sum_{P,R',R}{\color{red}E_{P-R}(\hat{e};\mu_{0})}\sum_{l,m,\mu}\sum_{l',m',\mu'}(-1)^{(\mu'-\mu_{0})}{\color{red}\Lambda_{R',R}(R_{\hat{n}};\mu,P,R,R')B_{L,-M}(l,l',m,m')}I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)I_{l',m',\mu'}^{p_{i}\mu_{i},p_{f}\mu_{f}*}(E)
+    \end{eqnarray*}
+
+
+    """
+
+    print('Not implemented')

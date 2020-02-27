@@ -14,6 +14,18 @@ import xarray as xr
 
 # Fast calc functions
 from epsproc.geomFunc.w3jVecMethods import w3jguVecCPU, w3jprange
+# from epsproc.geomFunc import w3jVecMethods
+
+# Util funcs.
+from epsproc.geomFunc.geomUtils import genllL, selQNsRow
+
+# Optional imports
+try:
+    import sparse
+except ImportError as e:
+    if e.msg != "No module named 'sparse'":
+        raise
+    print('* sparse not found, sparse matrix forms not available. ')
 
 
 
@@ -87,7 +99,7 @@ def remapllpL(dataIn, QNs, form = 'dict', method = 'sel', dlist = ['l','lp','L',
         Type of output structure.
         - 'dict' : dictionary with keys (l,lp,L), coordinate tables
         - '3d' : dictionary with keys (l,lp,L), 3D arrays indexed by [l+m, lp+mp, L+M]; this case also sets (0,0,0) term as 'w3j0'.
-        - 'xda' : Xarray dataarray, with stacked dims ['lSet','mSet']
+        - 'xdaLM' : Xarray dataarray, with stacked dims ['lSet','mSet']
         - 'xds' : Xarray dataset, with one array per (l,lp,L)
         - 'xdalist' : List of Xarray dataarrays, one per (l,lp,L)
 
@@ -177,11 +189,11 @@ def remapllpL(dataIn, QNs, form = 'dict', method = 'sel', dlist = ['l','lp','L',
     if (form == 'dict') or (form == '3d'):
         return w3jDict
 
-    elif form == 'xda':
+    elif form == 'xdaLM':
         # Stack list of dataarrays
         daOut = xr.combine_nested(w3jXlist, concat_dim=['lSet'])  # To combine list
         daOut.name = 'w3jStacked'
-        return
+        return daOut
 
     elif form == 'xdalist':
         return w3jXlist
@@ -240,7 +252,14 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
                 This is nice for easy selection/indexing, but may be problematic for large Lmax if unstacked (essentailly similar to nd case).
             - nd, return ND np.array, dims indexed as [l, lp, L, l+m, lp+mp, L+M], with values 3j.
                 This is suitable for direct indexing, but will have a lot of zero entries and may be large.
-            - dict, return dictionary of arrays, one entry per L, M
+            - ndsparse, return ND sparse array, dims indexed as [l, lp, L, l+m, lp+mp, L+M], with values 3j.
+
+        Additional options are set via :py:func:`remapllpL()`. This additionally sorts values by (l,lp,L) triples, which is useful in some cases.
+            - 'dict' : dictionary with keys (l,lp,L), coordinate tables
+            - '3d' : dictionary with keys (l,lp,L), 3D arrays indexed by [l+m, lp+mp, L+M]; this case also sets (0,0,0) term as 'w3j0'.
+            - 'xdaLM' : Xarray dataarray, with stacked dims ['lSet','mSet']
+            - 'xds' : Xarray dataset, with one array per (l,lp,L)
+            - 'xdalist' : List of Xarray dataarrays, one per (l,lp,L)
 
     dlist : list of labels, optional, default ['l','lp','L','m','mp','M']
         Used to label array for Xarray output case.
@@ -328,10 +347,12 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
         w3jND[QNs[:,0], QNs[:,1], QNs[:,2], QNs[:,0]+QNs[:,3], QNs[:,1]+QNs[:,4], QNs[:,2]+QNs[:,5]] = w3j_QNs
         return w3jND
 
+    # Set to sparse matrix form as defined by Sparse library.
+    # https://sparse.pydata.org/
     elif form == 'ndsparse':
-        print('Not implemented')
-
-        return None
+        # print('Not implemented')
+        w3js = sparse.COO(QNs.T, w3j_QNs)  # Set matrix from ND cood list + data array.
+        return w3js
 
     else:
         # Try additional dict-based outputs in remapllpL

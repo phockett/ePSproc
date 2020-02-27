@@ -5,7 +5,8 @@ Functions for accelerated (vector, parallel, GPU) Wigner 3j calculations.
 
 26/02/20    v1  Functions for accelerated Wigner 3j calcs plus sorting.
 
-""""
+"""
+
 # Imports
 import numpy as np
 import numba as nb
@@ -23,10 +24,10 @@ def Wigner3jQNs(QNs):
     return w3j_QNs
 
 # Cached function, only for single set of QNs.
-@lru_cache(maxsize = None)
-def Wigner3jLRUCached(QNlist):
-    """Wrapper for 3j caching with functools.lru_cache"""
-    return sf.Wigner3j(QNlist[0], QNlist[1], QNlist[2], QNlist[3], QNlist[4], QNlist[5])
+# @lru_cache(maxsize = None)
+# def Wigner3jLRUCached(QNlist):
+#     """Wrapper for 3j caching with functools.lru_cache"""
+#     return sf.Wigner3j(QNlist[0], QNlist[1], QNlist[2], QNlist[3], QNlist[4], QNlist[5])
 
 # Try joblib Memory for caching too... this is likely moot unless very large arrays are required
 # https://joblib.readthedocs.io/en/latest/memory.html

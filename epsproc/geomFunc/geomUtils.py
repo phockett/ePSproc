@@ -91,6 +91,7 @@ def genllL(Lmin = 0, Lmax = 10, mFlag = True):
                 for mp in np.arange(-mpMax, mpMax+1):
                     for L in np.arange(np.abs(l-lp), l+lp+1):
                         M = -(m+mp)
-                        QNs.append([l, lp, L, m, mp, M])
+                        if np.abs(M) <= L:  # Skip terms with invalid M
+                            QNs.append([l, lp, L, m, mp, M])
 
     return np.array(QNs)

@@ -9,8 +9,19 @@ Functions for accelerated (vector, parallel, GPU) Wigner 3j calculations.
 
 # Imports
 import numpy as np
-import numba as nb
+# import numba as nb
 import spherical_functions as sf
+
+# Set numba as an optional import for RTD testing.
+# Should add a wrapper here, see https://github.com/moble/quaternion/blob/master/numba_wrapper.py
+# Optional imports
+try:
+    import numba as nb
+except ImportError as e:
+    if e.msg != "No module named 'numba'":
+        raise
+    print('* Numba not found, fast 3j functions not available. ')
+    
 
 #*****************  Wrappers for functions
 # For tests, see

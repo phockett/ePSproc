@@ -459,6 +459,13 @@ def stringRepMap(string, replacements, ignore_case=False):
     # For each match, look up the new string in the replacements, being the key the normalized old string
     return pattern.sub(lambda match: replacements[normalize_old(match.group(0))], string)
 
+# Sort a 2D numpy array.
+def arraySort2D(a, col):
+    """
+    Sort np array by specified column.
+    From https://thispointer.com/sorting-2d-numpy-array-by-column-or-row-in-python/
+    """
+    return a[a[:,col].argsort()]
 
 #********************** Calculations
 

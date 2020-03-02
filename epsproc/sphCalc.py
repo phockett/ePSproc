@@ -328,9 +328,9 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
 # Calculate wignerD functions
 #   Adapted directly from Matlab code,
 #   via Jupyter test Notebook "Spherical function testing Aug 2019.ipynb"
-def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
+def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, QNs = None):
     '''
-    Calculate set of Wigner D functions D(l,m,mp,R) on a grid.
+    Calculate set of Wigner D functions D(l,m,mp; R) on a grid.
 
     Parameters
     ----------
@@ -338,6 +338,10 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
         Range of L to calculate parameters for.
         If len(Lrange) == 2 assumed to be of form [Lmin, Lmax], otherwise list is used directly.
         For a given l, all (m, mp) combinations are calculated.
+
+    QNs : np.array, optional, default = None
+        List of QNs [l,m,mp] to compute Wigner D terms for.
+        If supplied, use this instead of Lrange setting.
 
     Options for setting angles (use one only):
     Nangs : int, optional, default None
@@ -387,14 +391,16 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
     else:
         Ls = Lrange
 
-    QNs = []
+    # Set QNs based on Lrange if not passed to function.
+    if QNs is None:
+        QNs = []
 
-    for l in Ls:
-        for m in np.arange(-l, l+1):
-            for mp in np.arange(-l, l+1):
-                QNs.append([l, m, mp])
+        for l in Ls:
+            for m in np.arange(-l, l+1):
+                for mp in np.arange(-l, l+1):
+                    QNs.append([l, m, mp])
 
-    QNs = np.array(QNs)
+        QNs = np.array(QNs)
 
     # Set angles - either input as a range, a set or as quaternions
     if Nangs is not None:

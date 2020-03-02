@@ -16,6 +16,9 @@ import xarray as xr
 from epsproc.geomFunc.w3jVecMethods import w3jguVecCPU, w3jprange
 # from epsproc.geomFunc import w3jVecMethods
 
+# Other geom functions
+from epsproc.sphCalc import setPolGeoms, wDcalc
+
 # Util funcs.
 from epsproc.geomFunc.geomUtils import genllL, selQNsRow
 
@@ -364,7 +367,7 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
 
 
 
-def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d'):
+def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'P', 'p', 'R-p', 'R']):
     """Define polarization tensor (LF) for 1-photon case.
 
     Define field terms (from QM book, corrected vs. original S\&U version
@@ -411,8 +414,8 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d'):
 
     """
 
-    # Set dim labels for reference/Xarray case
-    dlist = ['l', 'lp', 'P', 'p', 'R-p', 'R']
+    # Set dim labels for reference/Xarray case - now passed
+    # dlist = ['l', 'lp', 'P', 'p', 'R-p', 'R']
 
     # If p is not passed, set for all allowed values
     if p is None:
@@ -558,7 +561,7 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
 
 
 #
-def MFproj():
+def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'P', 'mu', 'mup', 'Rp', 'R']):
     """
     Define MF projection term, $\Lambda_{R',R}(R_{\hat{n}})$:
 
@@ -577,7 +580,48 @@ def MFproj():
     \beta_{L,-M}^{\mu_{i},\mu_{f}} & = & \sum_{P,R',R}{\color{red}E_{P-R}(\hat{e};\mu_{0})}\sum_{l,m,\mu}\sum_{l',m',\mu'}(-1)^{(\mu'-\mu_{0})}{\color{red}\Lambda_{R',R}(R_{\hat{n}};\mu,P,R,R')B_{L,-M}(l,l',m,m')}I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)I_{l',m',\mu'}^{p_{i}\mu_{i},p_{f}\mu_{f}*}(E)
     \end{eqnarray*}
 
+    Notes
+    -----
+    This is very similar to $E_{PR}$ term.
 
     """
 
-    print('Not implemented')
+    # If no QNs are passed, set for all possible terms
+    if QNs is None:
+        QNs = []
+
+        # Set photon terms
+        l = 1
+        lp = 1
+
+        # Loop to set all other QNs
+        for mu in np.arange(-l, l+1):
+            for muP in np.arange(-lP, lP+1):
+                #for R in np.arange(-(l+lp)-1, l+lp+2):
+                #    for P in np.arange(0, l+lp+1):
+                for P in np.arange(0, l+lp+1):
+                    for Rp in np.arange(-P, P+1):
+                        for R in np.arange(-P, P+1):
+                            QNs.append([l, lp, P, mu, -mup, R, Rp])
+
+        QNs = np.array(QNs)
+
+    # Set to calculate for default (x,y,z) pol geoms.
+    if RX is None:
+        RX = setPolGeoms()
+
+    #*********************** Calculate terms
+    # 3j term with w3jTable()
+    lambdaTable = w3jTable(QNs = QNs[:,:,-1], nonzeroFlag = nonzeroFlag, form = form, dlist = dlist[:-1])
+
+    # D term with wDcalc(), includes order switch for (R,Rp)
+    # Pass RX.data since wDcalc is curently only set for np.array inputs.
+    # Set XFlag by form.
+    if form.startswith('x'):
+        XFlag = True
+    else:
+        XFlag = False
+
+    lambdaD = wDcalc(QNs = QNs[:, np.array([2, 6, 5])], R = RX.data)
+
+    return lambdaTable, lambdaD

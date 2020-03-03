@@ -560,7 +560,7 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
     return BLMtable
 
 
-#
+# Define lambdaTerm, MF projection.
 def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'P', 'mu', 'mup', 'Rp', 'R']):
     """
     Define MF projection term, $\Lambda_{R',R}(R_{\hat{n}})$:
@@ -584,6 +584,10 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
     -----
     This is very similar to $E_{PR}$ term.
 
+    Examples
+    --------
+    >>> lTerm, lambdaTable, lambdaD, QNs = MFproj(form = 'xarray')
+
     """
 
     # If no QNs are passed, set for all possible terms
@@ -596,7 +600,7 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
 
         # Loop to set all other QNs
         for mu in np.arange(-l, l+1):
-            for muP in np.arange(-lP, lP+1):
+            for mup in np.arange(-lp, lp+1):
                 #for R in np.arange(-(l+lp)-1, l+lp+2):
                 #    for P in np.arange(0, l+lp+1):
                 for P in np.arange(0, l+lp+1):
@@ -612,7 +616,11 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
 
     #*********************** Calculate terms
     # 3j term with w3jTable()
-    lambdaTable = w3jTable(QNs = QNs[:,:,-1], nonzeroFlag = nonzeroFlag, form = form, dlist = dlist[:-1])
+    # lambdaTable = w3jTable(QNs = QNs[:,:-1], nonzeroFlag = nonzeroFlag, form = form, dlist = dlist[:-1])  # Pass only dims for 3j term
+    if form == '2d':
+        nonzeroFlag = False   # For 2d case override to ensure consistent size.
+
+    lambdaTable = w3jTable(QNs = QNs, nonzeroFlag = nonzeroFlag, form = form, dlist = dlist)  # Pass all QNs to keep R label. w3jpRange will select/use QN[:,0:5] only
 
     # D term with wDcalc(), includes order switch for (R,Rp)
     # Pass RX.data since wDcalc is curently only set for np.array inputs.
@@ -622,6 +630,67 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
     else:
         XFlag = False
 
-    lambdaD = wDcalc(QNs = QNs[:, np.array([2, 6, 5])], R = RX.data)
+    # Subselect on QNs and calculate
+    QNind = np.array([2, 6, 5])
+    dRed = [dlist[n] for n in QNind]
 
-    return lambdaTable, lambdaD
+    QNwD = QNs[:,QNind]
+    QNun = np.unique(QNs[:,QNind], axis=0)
+
+    # Set for (-Rp, -R) phase convention
+    phaseNegR = True
+    if phaseNegR:
+        QNwD[:,1:] *= -1
+        QNun[:,1:] *= -1
+
+    if form == '2d':
+        # Cal for all values - in cases with duplicate QNs this may lead to indexing issues later in Xarray case.
+        # Should be OK for 2d case however, will provide table matching full QN list.
+        # NOTE in 2d case, wDcalc() also outputs R, QNs - skip these since they're already set in this case
+        lambdaD, *RQN = wDcalc(QNs = QNwD, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'])
+        lambdaD = np.asarray(lambdaD)
+
+    elif form.startswith('x'):
+        # Calc for unique values only to avoid duplicate coords
+        lambdaD = wDcalc(QNs = QNun, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'])
+
+        lambdaD['Labels']=('Euler',RX.Labels.values)  # Propagate labels, currently wDcalc only takes RX.data
+        lambdaD.attrs['dataType'] = 'WignerD'
+
+
+
+    #***************** Multiplications & phase
+    if form.startswith('x'):
+        lun = lambdaTable.unstack('QN')
+        lDun = lambdaD.unstack('QN')
+
+        # Reset phase choices here to allow for correct multiplication of +Rp and D(P,-Rp,-R) terms in Xarray
+        if phaseNegR:
+            lDun['R'] *= -1
+            lDun['Rp'] *= -1
+
+        # Additional phase term (-1)^(-Rp)
+        Rpphase = np.power(-1, np.abs(lun.Rp))
+
+        lTerm = Rpphase * lun * lDun
+
+        lTerm.attrs['dataType'] = 'LambdaTerm'
+
+    # Array multiplication case
+    elif form == '2d':
+
+        # Additional phase term (-1)^(-Rp)
+        Rpphase = np.power(-1, np.abs(QNs[:,-1]))
+
+        # Loop over sets of Euler angles
+        lTerm = []
+        for eInd in range(lambdaD.shape[1]):
+            lTerm.append(Rpphase * lambdaD[:,eInd] * lambdaTable[:,-1])
+
+        lTerm = np.array(lTerm).T
+
+    else:
+        print(f'Form {form} not supported.')
+
+
+    return lTerm, lambdaTable, lambdaD, QNs

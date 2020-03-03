@@ -19,6 +19,40 @@ import numpy as np
 # %timeit QNsMask, mask = selQNsRow(QNs,[None, None, None, 0, 0, 0], verbose = False)
 # 19.8 µs ± 59.5 ns per loop (mean ± std. dev. of 7 runs, 10000 loops each)
 def selQNsRow(QNs, QNmask, fields = None, verbose = 1):
+    """
+    Basic routine for selecting/filtering valid rows from an input array of QNs.
+
+    This is similar to methods used in Matlab version, but likely rather slow.
+
+    Parameters
+    ----------
+    QNs : np.array
+        Values to be filtered.
+
+    QNmask : list or np.array
+        Values to be matched.
+        Must be same dims as QNs, unless fields is also set.
+        If set to None field will be skipped (i.e. match all values)
+
+    fields : list or np.array, optional, default = None
+        Which fields to match in QNs.
+
+    verbose : int, optional, default = 1
+        Print info to terminal.
+
+    Returns
+    -------
+    QNs[boolMask] : np.array of selected values.
+
+    boolMask : np.array corresponding to selected values.
+
+    Examples
+    ---------
+    >>> QNsMask, mask = selQNsRow(QNs,[None, None, None, 0, 0, 0], verbose = False)
+    >>> # With fields
+    >>> QNsMask, mask = selQNsRow(QNs,[0, 0, 0], fields = [3,4,5], verbose = False)
+
+    """
 
     # With sorting
     if fields is None:

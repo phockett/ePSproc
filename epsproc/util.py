@@ -462,7 +462,7 @@ def stringRepMap(string, replacements, ignore_case=False):
 # Sort a 2D numpy array.
 def arraySort2D(a, col):
     """
-    Sort np array by specified column.
+    Sort np.array `a` by specified column `col`.
     From https://thispointer.com/sorting-2d-numpy-array-by-column-or-row-in-python/
     """
     return a[a[:,col].argsort()]

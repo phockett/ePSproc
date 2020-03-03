@@ -328,7 +328,7 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
 # Calculate wignerD functions
 #   Adapted directly from Matlab code,
 #   via Jupyter test Notebook "Spherical function testing Aug 2019.ipynb"
-def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, QNs = None):
+def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, QNs = None, dlist = ['lp','mu','mu0'], eNames = ['P','T','C']):
     '''
     Calculate set of Wigner D functions D(l,m,mp; R) on a grid.
 
@@ -358,6 +358,10 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, 
     XFlag : bool, optional, default True
         Flag for output. If true, output is Xarray. If false, np.arrays
 
+    dlist : list, optional, default ['lp','mu','mu0']
+        Labels for Xarray QN dims.
+    eNames : list, optional, default ['P','T','C']
+        Labels for Xarray Euler dims.
 
     Outputs
     -------
@@ -435,13 +439,13 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, 
     if XFlag:
         # Put into Xarray
         #TODO: this will currently fail for a single set of QNs.
-        QNs = pd.MultiIndex.from_arrays(np.asarray(lmmp).T, names = ['lp','mu','mu0'])
+        QNs = pd.MultiIndex.from_arrays(np.asarray(lmmp).T, names = dlist)
         if (eAngs is not None) and (eAngs.size == 3):  # Ugh, special case for only one set of angles.
-            Euler = pd.MultiIndex.from_arrays([[eAngs[0]],[eAngs[1]],[eAngs[2]]], names = ['P','T','C'])
+            Euler = pd.MultiIndex.from_arrays([[eAngs[0]],[eAngs[1]],[eAngs[2]]], names = eNames)
             wDX = xr.DataArray(np.asarray(wD), coords=[('QN',QNs)])
             wDX = wDX.expand_dims({'Euler':Euler})
         else:
-            Euler = pd.MultiIndex.from_arrays(eAngs.T, names = ['P','T','C'])
+            Euler = pd.MultiIndex.from_arrays(eAngs.T, names = eNames)
             wDX = xr.DataArray(np.asarray(wD), coords=[('QN',QNs), ('Euler',Euler)])
 
         return wDX

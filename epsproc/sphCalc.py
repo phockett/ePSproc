@@ -28,7 +28,13 @@ import spherical_functions as sf
 import quaternion
 import string
 
-from sympy.physics.quantum.spin import Rotation  # For basic frame rotation code, should update to use sf
+try:
+    from sympy.physics.quantum.spin import Rotation  # For basic frame rotation code, should update to use sf
+except ImportError as e:
+    if e.msg != "No module named 'sympy'":
+        raise
+    print('* Sympy not found, some (legacy) sph functions may not be available. ')
+
 
 
 # Master function for setting geometries/frame rotations

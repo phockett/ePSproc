@@ -30,7 +30,7 @@ from epsproc.sphPlot import plotTypeSelector
 # Additional plotters
 try:
     import seaborn as sns
-    import epsproc._sns_matrixMod as snsMatMod  # SNS code with modified clustermap
+    import epsproc._sns_matrixMod as snsMatMod  # SNS code with modified clustermap - NOTE this may need Seaborn 0.9.0 - TBC
 except ImportError as e:
     if e.msg != "No module named 'seaborn'":
         raise
@@ -284,6 +284,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     * For clustermap use local version - code from Seaborn, version from PR1393 with Cluster plot fixes.
         * https://github.com/mwaskom/seaborn/pull/1393
         * https://github.com/mwaskom/seaborn/blob/fb1f87e800e69ba2e9309f922f9dac470e3a6c78/seaborn/matrix.py
+        * This may break for versions of Seaborn other than 0.9.0 (tested version)
     * Currently only set for single colourmap choice, should set as dict.
     * Clustermap methods from:
         * https://stackoverflow.com/questions/27988846/how-to-express-classes-on-the-axis-of-a-heatmap-in-seaborn

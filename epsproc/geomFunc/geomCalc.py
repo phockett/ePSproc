@@ -556,6 +556,9 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
         # 3j product term
         BLMtable *= mPhase*np.sqrt(degen)*BLMtable.sel(m=0,mp=0,M=0)
 
+    else:
+        print(f"Form {form} not implemented.")
+        BLMtable = None
 
     return BLMtable
 

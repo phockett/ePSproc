@@ -193,7 +193,7 @@ def symListGen(data):
     return np.ravel(symList)
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
-        selDims = None, sumDims = None, plotDims = ('l','m','mu','Cont','Targ','Total','it','Type'), squeeze = True,
+        selDims = None, sumDims = None, plotDims = None, squeeze = True,
         xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10):
     """
     Plotting routine for ePS matrix elements & BLMs.
@@ -234,9 +234,12 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     sumDims : tuple, optional, default = None
         Dimensions to sum over from the input Xarray.
 
-    plotDims : tuple, optional, default = ('l','m','mu','Cont','Targ','Total','it','Type')
+    plotDims : tuple, optional, default = None
         Dimensions to stack for plotting, also controls order of stacking (hence sorting and plotting).
+        Default case plots all dims not included in (xDim, sumDims, selDims).
+        E.g. for matrix elements this  will be ('l','m','mu','Cont','Targ','Total','it','Type')
         TO DO: auto generation for different dataType, also based on selDims and sumDims selections.
+        11/03/20: partially fixed, now add any missing dims to plot automatically.
 
     squeeze : bool, optional, default = True
         Drop singleton dimensions from plot.
@@ -317,7 +320,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     """
     # Local/deferred import to avoid circular import issues at module level.
     # TO DO: Should fix with better __init__!
-    from epsproc.util import matEleSelector, matEdimList, BLMdimList
+    from epsproc.util import matEleSelector, matEdimList, BLMdimList, dataTypesList
 
     # Set Seaborn style
     # TO DO: should pass args here or set globally.
@@ -339,6 +342,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     if 'file' not in daPlot.attrs:
         daPlot.attrs['file'] = '(No filename)'
 
+    # Set dataType if missing
+    if 'dataType' not in daPlot.attrs:
+        daPlot.attrs['dataType'] = '(No dataType)'
+
     # Use SF (scale factor)
     # Write to data.values to make sure attribs are maintained.
     if SFflag and (daPlot.attrs['dataType'] is 'matE'):
@@ -353,10 +360,20 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                                               # However, does work without this for xr.where() - supports complex comparison.
 
     # Get full dim list
-    if daPlot.attrs['dataType'] is 'matE':
-        dimMap = matEdimList(sType = 'sDict')
+    # Manual
+    # if daPlot.attrs['dataType'] is 'matE':
+    #     dimMap = matEdimList(sType = 'sDict')
+    # else:
+    #     dimMap = BLMdimList(sType = 'sDict')
+
+    # Using util.dataTypesList() - THIS IS NOT yet used in the main plotting routine.
+    dataTypes = dataTypesList()
+    if daPlot.attrs['dataType'] in dataTypes:
+        dimMap = dataTypes[daPlot.attrs['dataType']]['dims']
     else:
-        dimMap = BLMdimList(sType = 'sDict')
+        dimMap = None
+
+
 
     # Eulers >>> Labels
     if eulerGroup and ('Euler' in daPlot.dims):
@@ -443,6 +460,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # TODO: fix this to select based on max in passed QNs.
         mList = np.arange(-mMax, mMax+1)
 
+        # Set unstaked (full) dim list
+        dimUS = daPlot.unstack().dims
+
         if 'LM' in daPlot.dims:
             try:
                 mList = np.unique(daPlot.LM.m)   # For Wigner 3j functions, allow for m or M
@@ -477,6 +497,18 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # TO DO: fix hard-coded axis number for dropna()
         # 27/02/20: switched to use xr.dropna(dim = 'plotDim', how = 'all') instead of pd.dropna.  This should be more robust... hopefully won't break old code.
         #           Also added stack(xDim = xDim) to allow for multilevel X plotting.
+        # 11/03/20: added auto setting for plotDims, based on sets, plus checks for missing dims.
+
+        # Work-around for dict case - get list of unstacked dims for comparison
+        if type(xDim) == dict:
+            xDimList = list(xDim.items())[0][1]
+        else:
+            xDimList = xDim
+
+        if plotDims is None:
+            plotDims = list(set(dimUS) - set(xDimList))   # Use set arithmetic to get items
+            plotDims.sort()                      # Set sort to return alphebetical list.
+            
 
         # Check plotDims exist, otherwise may throw errors with defaults
         plotDimsRed = []
@@ -484,8 +516,20 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         #     if dim in plotDims:
         #         plotDimsRed.append(dim)
         for dim in plotDims:
-            if dim in daPlot.unstack().dims:
+            if dim in dimUS:
                 plotDimsRed.append(dim)
+
+        # Additional check for any missing dims
+        # Check # of dims and correct for any additional/skipped dims
+        # Bit ugly - should be integrated with above code
+        if (len(xDimList) + len(plotDimsRed)) != len(dimUS):
+            for dim in dimUS:
+                if not (dim in xDimList) and not (dim in plotDimsRed):
+                    plotDimsRed.append(dim)
+
+                    if verbose:
+                        print(f'Adding {dim} to plotting dim list.')
+
 
         # Restack for plotting, and drop singleton dimensions if desired.
         daPlot = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all')
@@ -493,6 +537,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # Restack xDim in cases where it is a MultiIndex
         if type(xDim) == dict:
             daPlot = daPlot.stack(xDim)
+
 
         if squeeze:
             # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).squeeze().to_pandas().dropna(axis = 1).T

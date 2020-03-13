@@ -26,6 +26,7 @@ from mpl_toolkits.mplot3d import proj3d
 # Package functions
 from epsproc.sphPlot import plotTypeSelector
 # from epsproc.util import matEleSelector  # Throws error, due to circular import refs?
+from epsproc.conversion import multiDimXrToPD
 
 # Additional plotters
 try:
@@ -240,6 +241,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         E.g. for matrix elements this  will be ('l','m','mu','Cont','Targ','Total','it','Type')
         TO DO: auto generation for different dataType, also based on selDims and sumDims selections.
         11/03/20: partially fixed, now add any missing dims to plot automatically.
+        NOTE: this currently fails for 'Labels' case, not sure why.
 
     squeeze : bool, optional, default = True
         Drop singleton dimensions from plot.
@@ -345,6 +347,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     # Set dataType if missing
     if 'dataType' not in daPlot.attrs:
         daPlot.attrs['dataType'] = '(No dataType)'
+        print(f"Set dataType {daPlot.attrs['dataType']}")
 
     # Use SF (scale factor)
     # Write to data.values to make sure attribs are maintained.
@@ -492,79 +495,81 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         palM = sns.color_palette("coolwarm", mColours)
         lutM = dict(zip(map(str, mList), palM))
 
-
-        # Convert to Pandas 2D array, stacked along plotDims - these will be used for colour bar.
-        # TO DO: fix hard-coded axis number for dropna()
-        # 27/02/20: switched to use xr.dropna(dim = 'plotDim', how = 'all') instead of pd.dropna.  This should be more robust... hopefully won't break old code.
-        #           Also added stack(xDim = xDim) to allow for multilevel X plotting.
-        # 11/03/20: added auto setting for plotDims, based on sets, plus checks for missing dims.
-
-        # Work-around for dict case - get list of unstacked dims for comparison
-        if type(xDim) == dict:
-            xDimList = list(xDim.items())[0][1]
-        else:
-            xDimList = xDim
-
-        if plotDims is None:
-            plotDims = list(set(dimUS) - set(xDimList))   # Use set arithmetic to get items
-            plotDims.sort()                      # Set sort to return alphebetical list.
-            
-
-        # Check plotDims exist, otherwise may throw errors with defaults
-        plotDimsRed = []
-        # for dim in daPlot.unstack().dims:
-        #     if dim in plotDims:
+# 12/03/20 - moving this to separate conversion function, since tabulation is handy.
+        daPlotpd, daPlot = multiDimXrToPD(daPlot, colDims = xDim, rowDims = plotDims, squeeze = squeeze)
+        # # Convert to Pandas 2D array, stacked along plotDims - these will be used for colour bar.
+        # # TO DO: fix hard-coded axis number for dropna()
+        # # 27/02/20: switched to use xr.dropna(dim = 'plotDim', how = 'all') instead of pd.dropna.  This should be more robust... hopefully won't break old code.
+        # #           Also added stack(xDim = xDim) to allow for multilevel X plotting.
+        # # 11/03/20: added auto setting for plotDims, based on sets, plus checks for missing dims.
+        #
+        # # Work-around for dict case - get list of unstacked dims for comparison
+        # if type(xDim) == dict:
+        #     xDimList = list(xDim.items())[0][1]
+        # else:
+        #     xDimList = xDim
+        #
+        # if plotDims is None:
+        #     plotDims = list(set(dimUS) - set(xDimList))   # Use set arithmetic to get items
+        #     plotDims.sort()                      # Set sort to return alphebetical list.
+        #
+        #
+        # # Check plotDims exist, otherwise may throw errors with defaults
+        # plotDimsRed = []
+        # # for dim in daPlot.unstack().dims:
+        # #     if dim in plotDims:
+        # #         plotDimsRed.append(dim)
+        # for dim in plotDims:
+        #     if dim in dimUS:
         #         plotDimsRed.append(dim)
-        for dim in plotDims:
-            if dim in dimUS:
-                plotDimsRed.append(dim)
+        #
+        # # Additional check for any missing dims
+        # # Check # of dims and correct for any additional/skipped dims
+        # # Bit ugly - should be integrated with above code
+        # if (len(xDimList) + len(plotDimsRed)) != len(dimUS):
+        #     for dim in dimUS:
+        #         if not (dim in xDimList) and not (dim in plotDimsRed):
+        #             plotDimsRed.append(dim)
+        #
+        #             if verbose:
+        #                 print(f'Adding {dim} to plotting dim list.')
+        #
+        #
+        # # Restack for plotting, and drop singleton dimensions if desired.
+        # daPlot = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all')
+        #
+        # # Restack xDim in cases where it is a MultiIndex
+        # if type(xDim) == dict:
+        #     daPlot = daPlot.stack(xDim)
+        #
+        #
+        # if squeeze:
+        #     # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).squeeze().to_pandas().dropna(axis = 1).T
+        #     # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all').squeeze().to_pandas().T
+        #     daPlotpd = daPlot.squeeze().to_pandas()
+        #
+        # else:
+        #     # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).to_pandas().dropna(axis = 1).T
+        #     # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all').to_pandas().T
+        #     daPlotpd = daPlot.to_pandas()
+        #
+        # # Transpose Pandas table if necessary - xDim must be columns
+        # if type(xDim) != dict:
+        #     if xDim not in daPlotpd.columns.names:
+        #         daPlotpd = daPlotpd.T
 
-        # Additional check for any missing dims
-        # Check # of dims and correct for any additional/skipped dims
-        # Bit ugly - should be integrated with above code
-        if (len(xDimList) + len(plotDimsRed)) != len(dimUS):
-            for dim in dimUS:
-                if not (dim in xDimList) and not (dim in plotDimsRed):
-                    plotDimsRed.append(dim)
-
-                    if verbose:
-                        print(f'Adding {dim} to plotting dim list.')
-
-
-        # Restack for plotting, and drop singleton dimensions if desired.
-        daPlot = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all')
-
-        # Restack xDim in cases where it is a MultiIndex
-        if type(xDim) == dict:
-            daPlot = daPlot.stack(xDim)
-
-
-        if squeeze:
-            # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).squeeze().to_pandas().dropna(axis = 1).T
-            # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all').squeeze().to_pandas().T
-            daPlotpd = daPlot.squeeze().to_pandas()
-
-        else:
-            # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).to_pandas().dropna(axis = 1).T
-            # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all').to_pandas().T
-            daPlotpd = daPlot.to_pandas()
-
-        # Transpose Pandas table if necessary - xDim must be columns
-        if type(xDim) != dict:
-            if xDim not in daPlotpd.columns.names:
-                daPlotpd = daPlotpd.T
 
         # For dictionary case, check items for each key are in column names.
         # THIS CODE IS HORRIBLE - should be a neater way to do this.
         # TODO: fix case for some levels missing, at the moment assumes any present is OK.
         # TODO: test for single vs. MultiIndex case - columns.names vs. columns.name?
-        else:
-            for key in xDim:
-                dimList = xDim[key]
-                check = [item in daPlotpd.columns.names for item in dimList]
-                if not any(check):
-                    daPlotpd = daPlotpd.T
-
+        # else:
+        #     for key in xDim:
+        #         dimList = xDim[key]
+        #         check = [item in daPlotpd.columns.names for item in dimList]
+        #         if not any(check):
+        #             daPlotpd = daPlotpd.T
+# --- END pandas conversion.
 
         # For Wigner3j datatypes, still get some illegal values creeping through - now try removing again...
         if daPlot.dataType == 'Wigner3j':

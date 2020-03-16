@@ -19,12 +19,18 @@ Welcome to ePSproc
 
 .. toctree::
    :maxdepth: 2
-   :caption: Tests:
+   :caption: Test Notebooks:
 
    tests/Spherical_function_testing_Aug_2019
    tests/ePSproc_frame_rotation_tests_Dec2019
    tests/Low_level_bench_tests_Wigner3j_Feb2020
 
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Method Development:
+
+   methods/geometric_method_dev_260220
 
 
 .. toctree::

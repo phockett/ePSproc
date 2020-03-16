@@ -1,0 +1,25 @@
+"""
+ePSproc utility functions.
+
+Set of tools for assignment, sorting, normalisation and conversion.
+
+16/03/20    Converted to submodule, mainly split out from old util.py, plus some new functions.
+            Imports may be buggy...
+14/10/19    Added string replacement function (generic)
+11/08/19    Added matEleSelector
+
+"""
+
+# import numpy as np
+# import re
+# import scipy.constants
+
+# # Package fns.
+# from epsproc.basicPlotters import molPlot
+
+# Set explict imports
+from .conversion import multiDimXrToPD, conv_ev_atm, conv_ev_nm
+from .listFuncs import matEdimList, BLMdimList, eulerDimList, ADMdimList, dataTypesList, genLM
+from .summary import jobSummary, lmSymSummary
+from .selectors import matEleSelector, dataGroupSel
+from .misc import stringRepMap, arraySort2D

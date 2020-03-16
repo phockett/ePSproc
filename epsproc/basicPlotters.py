@@ -26,7 +26,7 @@ from mpl_toolkits.mplot3d import proj3d
 # Package functions
 from epsproc.sphPlot import plotTypeSelector
 # from epsproc.util import matEleSelector  # Throws error, due to circular import refs?
-from epsproc.conversion import multiDimXrToPD
+# from epsproc.util.conversion import multiDimXrToPD
 
 # Additional plotters
 try:

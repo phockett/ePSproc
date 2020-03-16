@@ -5,7 +5,7 @@ ePSproc conversion functions
 
 """
 
-
+import scipy.constants
 
 def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = True, dropna = True, verbose = False):
     """
@@ -138,3 +138,58 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
 
 
     return daRestackpd, daRestack
+
+
+#********************** Calculations
+
+# Convert eV <> Hartrees (atomic units)
+def conv_ev_atm(data, to = 'ev'):
+    """
+    Convert eV <> Hartree (atomic units)
+
+    Parameters
+    ----------
+    data : int, float, np.array
+        Values to convert.
+
+    to : str, default = 'ev'
+        - 'ev' to convert H > eV
+        - 'H' to convert eV > H
+
+    Returns
+    -------
+    data converted in converted units.
+
+    """
+
+    # Define H in eV, value from https://en.wikipedia.org/wiki/Hartree_atomic_units#Units
+    # H = 27.211386245
+    H = scipy.constants.physical_constants['Hartree energy in eV'][0]  # Use scipy value
+
+    if to is 'ev':
+        dataOut = data*H
+    else:
+        dataOut = data/H
+
+    return dataOut
+
+# Convert energy in eV to wavelength in nm
+def conv_ev_nm(data): #, to = 'nm'):
+    """Convert E(eV) <> nu(nm)."""
+
+    # Define constants from scipy.constants
+    h = scipy.constants.h
+    c = scipy.constants.c
+    evJ = scipy.constants.physical_constants['electron volt-joule relationship'][0]
+
+    # Define output units - wavelength in m
+    waveConv = 1e-9
+    dataOut = (h * c)/(data * evJ)/waveConv
+
+    # if to is 'nm':
+    #     dataOut = (h * c)/(data * evJ)/waveConv
+    #
+    # else:
+    #     dataOut = (data/waveConv)*evJ/(h * c)
+
+    return dataOut

@@ -411,6 +411,9 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
     # Return as Xarray
     >>> EPRtable = EPR(form = 'xarray')
 
+    Note
+    ----
+    Currently not handling ep correctly!  Should implement as passed Xarray for correct (p,p') assignment.
 
     """
 

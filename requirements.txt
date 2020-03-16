@@ -8,6 +8,13 @@ pandas==0.25.1
 matplotlib==3.1.0
 seaborn==0.9.0
 spherical_functions==2019.7.12.23.25.11
+
+# Optional, but included here for now
+numba
+
+# Doc functionality
 sphinxcontrib.apidoc==0.3.0
 nbsphinx>=0.4
+
+# For nbsphinx formatting in Read the Docs, include ipython here, see https://github.com/spatialaudio/nbsphinx/issues/24
 ipython

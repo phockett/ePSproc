@@ -81,7 +81,7 @@ except ImportError as e:
 #     return np.array(QNs)
 #
 
-def remapllpL(dataIn, QNs, form = 'dict', method = 'sel', dlist = ['l','lp','L','m','mp','M']):
+def remapllpL(dataIn, QNs, form = 'dict', method = 'sel', dlist = ['l','lp','L','m','mp','M'], verbose = 0):
     """
     Remap Wigner 3j table, with QNs (l,lp,L,m,mp,M) > tensor forms.
 
@@ -216,7 +216,7 @@ def remapllpL(dataIn, QNs, form = 'dict', method = 'sel', dlist = ['l','lp','L',
 
 
 # Tabulate Wigner 3j terms for a given problem/set of QNs
-def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False, form = '2d', dlist = ['l','lp','L','m','mp','M'], backend = 'par'):
+def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False, form = '2d', dlist = ['l','lp','L','m','mp','M'], backend = 'par', verbose = 0):
     """
     Calculate/tabulate all wigner 3j terms for a given problem/set of QNs.
 
@@ -661,6 +661,7 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
         lambdaD = wDcalc(QNs = QNun, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'])
 
         lambdaD['Labels']=('Euler',RX.Labels.values)  # Propagate labels, currently wDcalc only takes RX.data
+        lambdaD = lambdaD.swap_dims({'Euler':'Labels'})  # Swap dims to labels.
         lambdaD.attrs['dataType'] = 'WignerD'
 
 

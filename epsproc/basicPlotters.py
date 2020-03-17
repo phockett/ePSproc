@@ -27,6 +27,7 @@ from mpl_toolkits.mplot3d import proj3d
 from epsproc.sphPlot import plotTypeSelector
 # from epsproc.util import matEleSelector  # Throws error, due to circular import refs?
 # from epsproc.util.conversion import multiDimXrToPD
+# from epsproc.util import matEdimList, BLMdimList, dataTypesList, multiDimXrToPD
 
 # Additional plotters
 try:
@@ -322,7 +323,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     """
     # Local/deferred import to avoid circular import issues at module level.
     # TO DO: Should fix with better __init__!
-    from epsproc.util import matEleSelector, matEdimList, BLMdimList, dataTypesList
+    from epsproc.util import matEleSelector, matEdimList, BLMdimList, dataTypesList, multiDimXrToPD
 
     # Set Seaborn style
     # TO DO: should pass args here or set globally.
@@ -340,11 +341,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     daPlot.attrs = data.attrs
 #     daPlot = data
 
-    # Set filename if missing
-    if 'file' not in daPlot.attrs:
-        daPlot.attrs['file'] = '(No filename)'
-
-    # Set dataType if missing
+    # Set dataType if missing - NOTE additionally set at end to avoid accidentally dropping this.
     if 'dataType' not in daPlot.attrs:
         daPlot.attrs['dataType'] = '(No dataType)'
         print(f"Set dataType {daPlot.attrs['dataType']}")
@@ -430,6 +427,17 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     if logFlag:
         daPlot.values = daPlot.pipe(np.log10)
 
+#*** Fix any missing attrs - set this LAST otherwise may be accidentally overwritten above.
+    # Set filename if missing
+    if 'file' not in daPlot.attrs:
+        daPlot.attrs['file'] = '(No filename)'
+
+    # Set dataType if missing
+    if 'dataType' not in daPlot.attrs:
+        daPlot.attrs['dataType'] = '(No dataType)'
+        print(f"Set dataType {daPlot.attrs['dataType']}")
+
+
 #*** Plotting routines
     # Rough code for xr plotter.
     if backend is 'xr':
@@ -496,7 +504,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         lutM = dict(zip(map(str, mList), palM))
 
 # 12/03/20 - moving this to separate conversion function, since tabulation is handy.
-        daPlotpd, daPlot = multiDimXrToPD(daPlot, colDims = xDim, rowDims = plotDims, squeeze = squeeze)
+        # Note thres=None set here to avoid putting holes in the pd data. This is a temp workaround!
+        daPlotpd, daPlot = multiDimXrToPD(daPlot, colDims = xDim, rowDims = plotDims, thres = thres, dropna = True, fillna = True, squeeze = squeeze)
+
         # # Convert to Pandas 2D array, stacked along plotDims - these will be used for colour bar.
         # # TO DO: fix hard-coded axis number for dropna()
         # # 27/02/20: switched to use xr.dropna(dim = 'plotDim', how = 'all') instead of pd.dropna.  This should be more robust... hopefully won't break old code.
@@ -572,8 +582,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 # --- END pandas conversion.
 
         # For Wigner3j datatypes, still get some illegal values creeping through - now try removing again...
-        if daPlot.dataType == 'Wigner3j':
-            daPlotpd = daPlotpd.dropna(axis = 1, how = 'all')
+        # if daPlot.dataType == 'Wigner3j':
+        #     daPlotpd = daPlotpd.dropna(axis = 1, how = 'all')
+        # NOW set in multiDimXrToPD, with dropna = True (default)
 
         # Set multi-index indicies & colour mapping
         cList = []

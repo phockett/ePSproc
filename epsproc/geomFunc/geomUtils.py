@@ -96,11 +96,12 @@ def genllL(Lmin = 0, Lmax = 10, mFlag = True):
     QNs : 2D np.array
         Values take all allowed combinations ['l','lp','L','m','mp','M'] up to l=lp=Lmax, one set per row.
 
+
     Examples
     ---------
-    # Calculate up to Lmax = 2
+    >>> # Calculate up to Lmax = 2
     >>> QNs = genllL(Lmax=2)
-    # Use with w3jTable function to calculate Wigner 3j terms
+    >>> # Use with w3jTable function to calculate Wigner 3j terms
     >>> w3j = w3jTable(QNs = QNs)
 
     To do
@@ -123,6 +124,56 @@ def genllL(Lmin = 0, Lmax = 10, mFlag = True):
 
             for m in np.arange(-mMax, mMax+1):
                 for mp in np.arange(-mpMax, mpMax+1):
+                    for L in np.arange(np.abs(l-lp), l+lp+1):
+                        M = -(m+mp)
+                        if np.abs(M) <= L:  # Skip terms with invalid M
+                            QNs.append([l, lp, L, m, mp, M])
+
+    return np.array(QNs)
+
+
+# Generate 3j QNs lists from matrix elements
+def genllpMatE(matE):
+    """
+    Generate quantum numbers for angular momentum contractions (l, lp, L, m, mp, M) from sets of matrix elements.
+
+    Parameters
+    ----------
+    matE : Xarray
+        Xarray containing matrix elements, with QNs (l,m), as created by :py:func:`readMatEle`
+
+    Returns
+    -------
+    QNs : 2D np.array
+        Values take all allowed combinations ['l','lp','L','m','mp','M'] from supplied matE
+
+
+    Examples
+    ---------
+    >>> # From demo matrix elements
+    >>> dataFile = os.path.join(dataPath, 'n2_3sg_0.1-50.1eV_A2.inp.out')  # Set for sample N2 data for testing
+    >>> # Scan data file
+    >>> dataSet = ep.readMatEle(fileIn = dataFile)
+    >>> QNs = genllpMatE(dataSet[0])
+    >>> # Use with w3jTable function to calculate Wigner 3j terms
+    >>> w3j = w3jTable(QNs = QNs)
+
+    To do
+    -----
+    - Implement output options (see dev. function w3jTable).
+    -
+    """
+
+    # Get QNs from matE
+    lList = matE.unstack().l.values  # Use unstack here, or np.unique(matE.l), to avoid duplicates
+    mList = matE.unstack().m.values
+
+    # Set QNs for calculation, (l,m,mp)
+    QNs = []
+    for l in lList:
+        for lp in lList:
+            for m in mList:
+                for mp in mList:
                     for L in np.arange(np.abs(l-lp), l+lp+1):
                         M = -(m+mp)
                         if np.abs(M) <= L:  # Skip terms with invalid M

@@ -229,7 +229,7 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
     \end{equation}
 
     Where l, l' take values Lmin...Lmax (default 0...10).
-    \l-lp\<=L<=l+lp
+    :math:`\l-lp\<=L<=l+lp`
     m, mp take values -l...+l if mFlag=True, or =0 only if mFlag=False
 
     Parameters
@@ -371,7 +371,7 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
     """Define polarization tensor (LF) for 1-photon case.
 
     Define field terms (from QM book, corrected vs. original S\&U version
-    - see ``beta-general-forms\_rewrite\_290917.lyx''):
+    - see ``beta-general-forms\_rewrite\_290917.lyx``):
 
 .. math::
     \begin{equation}
@@ -488,7 +488,7 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
     """Define BLM coupling tensor
 
     Define field terms (from QM book, corrected vs. original S\&U version
-    - see ``beta-general-forms\_rewrite\_290917.lyx''):
+    - see ``beta-general-forms\_rewrite\_290917.lyx``):
 
 .. math::
     \begin{equation}
@@ -569,7 +569,7 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
 # Define lambdaTerm, MF projection.
 def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'P', 'mu', 'mup', 'Rp', 'R']):
     """
-    Define MF projection term, $\Lambda_{R',R}(R_{\hat{n}})$:
+    Define MF projection term, :math:`\Lambda_{R',R}(R_{\hat{n}})`:
 
 .. math::
     \begin{equation}
@@ -590,7 +590,7 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
 
     Notes
     -----
-    This is very similar to $E_{PR}$ term.
+    This is very similar to :math:`E_{PR}` term.
 
     Examples
     --------

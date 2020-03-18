@@ -10,6 +10,22 @@ from epsproc.geomFunc.geomUtils import genllpMatE
 # Needs some tidying, and should implement BLM Xarray attrs and format for output.
 def mfblmXprod(matE, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtable = None, thres = 1e-2, thresDims = 'Eke',
                selDims = {'it':1, 'Type':'L'}, sumDims = ['P', 'mu', 'mup', 'Rp','l','lp','m','mp'], squeeze = False):
+    """
+    Implement :math:`\beta_{LM}^{MF}` calculation as product of tensors.
+
+.. math::
+    \begin{eqnarray}
+    \beta_{L,-M}^{\mu_{i},\mu_{f}} & = & \sum_{l,m,\mu}\sum_{l',m',\mu'}(-1)^{(\mu'-\mu_{0})}{B_{L,-M}}\nonumber \\
+     & \times & \sum_{P,R',R}{E_{P-R}(\hat{e})\Lambda_{R',R}(R_{\hat{n}})}I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)I_{l',m',\mu'}^{p_{i}\mu_{i},p_{f}\mu_{f}*}(E)
+    \end{eqnarray}
+
+
+    Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
+
+    16/03/20 In progress!
+
+    """
+
 
     # Fudge - set this for now to enforce additonal unstack and phase corrections later.
     BLMtableResort = None

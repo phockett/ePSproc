@@ -41,7 +41,9 @@ def mfblmXprod(matE, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtable
     if EPRX is None:
         # *** EPR
         EPRX = geomCalc.EPR(form = 'xarray', p = p).sel({'R-p':0})  # Set for R-p = 0 for p=0 case (redundant coord) - need to fix in e-field mult term!
-        EPRXresort = EPRX.unstack().squeeze().drop('l').drop('lp')  # This removes photon (l,lp) dims fully.
+        # EPRXresort = EPRX.unstack().squeeze().drop('l').drop('lp')  # This removes photon (l,lp) dims fully. Be careful with squeeze() - sends singleton dims to non-dimensional labels.
+        # EPRXresort = EPRX.unstack().drop('l').drop('lp')  # This removes photon (l,lp) dims fully, but keeps (p,R) as singleton dims.
+        EPRXresort = EPRX.unstack().squeeze(['l','lp']).drop(['l','lp'])  # Safe squeeze & drop of selected singleton dims only.
 
         Rphase = True
         if Rphase:
@@ -50,7 +52,8 @@ def mfblmXprod(matE, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtable
     if lambdaTerm is None:
         # *** Lambda term
         lambdaTerm, lambdaTable, lambdaD, _ = geomCalc.MFproj(form = 'xarray')
-        lambdaTermResort = lambdaTerm.squeeze().drop('l').drop('lp')   # This removes photon (l,lp) dims fully.
+        # lambdaTermResort = lambdaTerm.squeeze().drop('l').drop('lp')   # This removes photon (l,lp) dims fully.
+        lambdaTermResort = lambdaTerm.squeeze(['l','lp']).drop(['l','lp'])  # Safe squeeze & drop of selected singleton dims only.
 
     # *** Blm term with specified QNs
     if BLMtable is None:
@@ -118,7 +121,7 @@ def mfblmXprod(matE, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtable
     # TODO: Set XS as per old mfpad()
 #     BLMXout['XS'] = (('Eke','Euler'), BLMXout[0].data)  # Set XS = B00
 #     BLMXout = BLMXout/BLMXout.XS  # Normalise
-    mTermSumThres['XS'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()  # This basically works, and keeps all non-summed dims... but may give issues later...?
+    mTermSumThres['XS'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()  # This basically works, and keeps all non-summed dims... but may give issues later...? Make sure to .copy(), otherwise it's just a pointer.
     mTermSumThres /= mTermSumThres.sel({'L':0,'M':0}).drop('LM')
     mTermSumThres.attrs['dataType'] = 'multTest'
 

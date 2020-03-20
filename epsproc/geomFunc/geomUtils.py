@@ -133,7 +133,7 @@ def genllL(Lmin = 0, Lmax = 10, mFlag = True):
 
 
 # Generate 3j QNs lists from matrix elements
-def genllpMatE(matE):
+def genllpMatE(matE, uniqueFlag = True, mFlag = True):
     """
     Generate quantum numbers for angular momentum contractions (l, lp, L, m, mp, M) from sets of matrix elements.
 
@@ -141,6 +141,13 @@ def genllpMatE(matE):
     ----------
     matE : Xarray
         Xarray containing matrix elements, with QNs (l,m), as created by :py:func:`readMatEle`
+
+    uniqueFlag : bool, default = True
+        Check for duplicates and remove (can occur with some forms of matrix elements).
+
+    mFlag : bool, optional, default = True
+        m, mp take all passed values if mFlag=True, or =0 only if mFlag=False
+
 
     Returns
     -------
@@ -166,7 +173,12 @@ def genllpMatE(matE):
 
     # Get QNs from matE
     lList = matE.unstack().l.values  # Use unstack here, or np.unique(matE.l), to avoid duplicates
-    mList = matE.unstack().m.values
+
+    # Use passed (m,mp) values, or run for m=mp=0 only.
+    if mFlag:
+        mList = matE.unstack().m.values
+    else:
+        mList = 0
 
     # Set QNs for calculation, (l,m,mp)
     QNs = []
@@ -179,4 +191,7 @@ def genllpMatE(matE):
                         if np.abs(M) <= L:  # Skip terms with invalid M
                             QNs.append([l, lp, L, m, mp, M])
 
-    return np.array(QNs)
+    if uniqueFlag:
+        return np.unique(QNs, axis = 0)
+    else:
+        return np.array(QNs)

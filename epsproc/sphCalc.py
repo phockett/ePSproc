@@ -334,7 +334,7 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
 # Calculate wignerD functions
 #   Adapted directly from Matlab code,
 #   via Jupyter test Notebook "Spherical function testing Aug 2019.ipynb"
-def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, QNs = None, dlist = ['lp','mu','mu0'], eNames = ['P','T','C']):
+def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, QNs = None, dlist = ['lp','mu','mu0'], eNames = ['P','T','C'], conjFlag = False):
     '''
     Calculate set of Wigner D functions D(l,m,mp; R) on a grid.
 
@@ -368,6 +368,9 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, 
         Labels for Xarray QN dims.
     eNames : list, optional, default ['P','T','C']
         Labels for Xarray Euler dims.
+
+    conjFlag : bool, optional, default = False
+        If true, return complex conjuage values.
 
     Outputs
     -------
@@ -439,7 +442,11 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, 
     lmmp = []
     for n in np.arange(0, QNs.shape[0]):
         lmmp.append(QNs[n,:])
-        wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]))
+
+        if conjFlag:
+            wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]).conj())
+        else:
+            wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]))
 
     # Return values as Xarray or np.arrays
     if XFlag:

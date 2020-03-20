@@ -76,9 +76,11 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtab
 
     # *** Blm term with specified QNs
     if BLMtable is None:
-        BLMmPhase = False
+
         QNsBLMtable = QNs.copy()
-        if BLMmPhase:
+
+        # Switch signs (m,M) before 3j calcs.
+        if phaseCons['betaCons']['BLMmPhase']:
             QNsBLMtable[:,3] *= -1
             QNsBLMtable[:,5] *= -1
 

@@ -103,7 +103,7 @@ def setPhaseConventions(phaseConvention = 'S'):
     # Set master dict to hold choices.
     phaseCons = {}
 
-    # For EPR tensor
+    #*** For EPR tensor
     EPRcons = {}
     if phaseConvention == 'S':
         EPRcons['Rphase'] = True        # Apply (-1)^R phase?
@@ -112,7 +112,7 @@ def setPhaseConventions(phaseConvention = 'S'):
         EPRcons['negRcoordSwap'] = False    # Swap -R and +R in QN coords? (Will affect Xarray-based calculations.)
 
     elif phaseConvention == 'R':
-        EPRcons['Rphase'] = False       # Apply (-1)^R phase?
+        EPRcons['Rphase'] = True       # Apply (-1)^R phase?
         EPRcons['negR'] = True          # Use -R or +R in 3j?
         EPRcons['negRlabel'] = False    # Use -R or +R in QN labels? (Will affect Xarray-based calculations.)
         EPRcons['negRcoordSwap'] = False    # Swap -R and +R in QN coords? (Will affect Xarray-based calculations.)
@@ -125,9 +125,82 @@ def setPhaseConventions(phaseConvention = 'S'):
 
     phaseCons['EPR'] = EPRcons
 
-    # For
+    #*** For Lambda term (as set by MFproj())
+    lambdaCons = {}
+    if phaseConvention == 'S':
+        lambdaCons['negMup'] = True     # Use -mup term in 3j?
+        lambdaCons['phaseNegR'] = True  # Set for (-Rp, -R) phase convention (in Wigner D term)?
+        lambdaCons['conjFlag'] = False  # Set for conjuate Wigner D?
+        lambdaCons['RpPhase'] = True    # Apply (-1)^Rp phase term?
+
+    elif phaseConvention == 'R':
+        lambdaCons['negMup'] = True     # Use -mup term in 3j?
+        lambdaCons['phaseNegR'] = True  # Set for (-Rp, -R) phase convention (in Wigner D term)?
+        lambdaCons['conjFlag'] = False  # Set for conjuate Wigner D?
+        lambdaCons['RpPhase'] = True    # Apply (-1)^Rp phase term?
+
+    elif phaseConvention == 'E':
+        lambdaCons['negMup'] = True     # Use -mup term in 3j?
+        lambdaCons['phaseNegR'] = True  # Set for (-Rp, -R) phase convention (in Wigner D term)?
+        lambdaCons['conjFlag'] = True  # Set for conjuate Wigner D?
+        lambdaCons['RpPhase'] = True    # Apply (-1)^Rp phase term?
+
+    phaseCons['lambdaCons'] = lambdaCons
 
 
+    #*** For Beta term (as set by betaTerm())
+    betaCons = {}
+    if phaseConvention == 'S':
+        betaCons['negM'] = False       # Use -M term in 3j?
+        betaCons['mPhase'] = True     # Apply (-1)^m phase term?
+
+    elif phaseConvention == 'R':
+        betaCons['negM'] = False       # Use -M term in 3j?
+        betaCons['mPhase'] = True     # Apply (-1)^m phase term?
+
+    elif phaseConvention == 'E':
+        betaCons['negM'] = True       # Use -M term in 3j?
+        betaCons['mPhase'] = True     # Apply (-1)^m phase term?
+
+    phaseCons['betaCons'] = betaCons
+
+
+    #*** For MFPAD product case, as calculated in mfblmXprod()
+    mfblmCons = {}
+    if phaseConvention == 'S':
+        mfblmCons['negRcoordSwap'] = True       # Swap -R and +R in EPR Xarray coords?
+
+        mfblmCons['negMcoordSwap'] = True       # Swap +/-M coords.
+        mfblmCons['Mphase'] = True              # Apply (-1)^M phase term.
+
+        mfblmCons['negmCoordSwap'] = True       # Swap +/-m coords.
+        mfblmCons['mPhase'] = True              # Apply (-1)^m phase term.
+
+        mfblmCons['mupPhase'] = True            # Apply (-1)^(mup - p) phase term.
+
+    if phaseConvention == 'R':
+        mfblmCons['negRcoordSwap'] = True       # Swap -R and +R in EPR Xarray coords?
+
+        mfblmCons['negMcoordSwap'] = True       # Swap +/-M coords.
+        mfblmCons['Mphase'] = False              # Apply (-1)^M phase term.
+
+        mfblmCons['negmCoordSwap'] = True       # Swap +/-m coords.
+        mfblmCons['mPhase'] = True              # Apply (-1)^m phase term.
+
+        mfblmCons['mupPhase'] = True            # Apply (-1)^(mup - p) phase term.
+
+    if phaseConvention == 'E':
+        mfblmCons['negRcoordSwap'] = True       # Swap -R and +R in EPR Xarray coords?
+
+        mfblmCons['negMcoordSwap'] = False       # Swap +/-M coords.
+        mfblmCons['Mphase'] = False              # Apply (-1)^M phase term.
+
+        mfblmCons['negmCoordSwap'] = False       # Swap +/-m coords.
+        mfblmCons['mPhase'] = False              # Apply (-1)^m phase term.
+
+        mfblmCons['mupPhase'] = True            # Apply (-1)^(mup - p) phase term.
+
+    phaseCons['betaCons'] = betaCons
 
     return phaseCons
 
@@ -296,7 +369,7 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
     mFlag : bool, optional, default = True
         m, mp take all values -l...+l if mFlag=True, or =0 only if mFlag=False
 
-    nonzeroFlag : bool, optional, default = True
+    nonzeroFlag : bool, optional, default = False
         Drop null terms before returning values if true.
 
     form : string, optional, default = '2d'
@@ -453,6 +526,12 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
     form : string, optional, default = '2d'
         For options see :py:func:`ep.w3jTable()`
 
+    phaseConvention : optional, str, default = 'S'
+        Set phase conventions:
+        - 'S' : Standard derivation.
+        - 'R' : Reduced form geometric tensor derivation.
+        - 'E' : ePolyScat, may have additional changes in numerics, e.g. conjugate Wigner D.
+        See :py:func:`setPhaseConventions` for more details.
 
     Examples
     ---------
@@ -559,7 +638,7 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
 
 
 # BetaTerm for BLM tensor coupling.
-def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'L', 'm', 'mp', 'M']):
+def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'L', 'm', 'mp', 'M'], phaseConvention = 'S'):
     """Define BLM coupling tensor
 
     Define field terms (from QM book, corrected vs. original S\&U version
@@ -598,6 +677,12 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
     dlist : list of labels, optional, default ['l','lp','L','m','mp','M']
         Used to label array for Xarray output case.
 
+    phaseConvention : optional, str, default = 'S'
+        Set phase conventions:
+        - 'S' : Standard derivation.
+        - 'R' : Reduced form geometric tensor derivation.
+        - 'E' : ePolyScat, may have additional changes in numerics, e.g. conjugate Wigner D.
+        See :py:func:`setPhaseConventions` for more details.
 
     Examples
     ---------
@@ -608,8 +693,12 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
 
     """
 
-    # Set dim labels for reference/Xarray case
+    # Define phase conventions for different forms of the term
+    phaseCons = setPhaseConventions(phaseConvention = phaseConvention)
 
+    # Set -M for 3j term if required - only if QNs passed however.
+    if phaseCons['betaCons']['negM'] and (QNs is not None):
+        QNs[:,-1] *= -1
 
     # Tabulate 3j terms
     BLMtable = w3jTable(QNs = QNs, Lmin = Lmin, Lmax = Lmax, nonzeroFlag = nonzeroFlag, form = form, dlist = dlist)
@@ -628,25 +717,26 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
 #         EPRtable *= Rphase*Pdegen
 
     if (form == 'xdaLM') or (form == 'xds'):
-        mPhase = np.power(-1, np.abs(BLMtable.m))
-        degen = (2*BLMtable.l+1)*(2*BLMtable.lp+1)*((2*BLMtable.L+1))/(4*np.pi)
-        #
-        # # 3j product term
-        # BLMtable *= mPhase*np.sqrt(degen)*BLMtable.sel(m=0,mp=0,M=0)
 
+        # 3j product term
         try:
-            # mPhase = np.power(-1, np.abs(BLMtable.m))
-            # degen = (2*BLMtable.l+1)*(2*BLMtable.lp+1)*((2*BLMtable.L+1))/(4*np.pi)
-
             # 3j product term
             # BLMtable *= mPhase*np.sqrt(degen)*BLMtable.sel(m=0,mp=0,M=0)  # Accidental correlations in results...?
-            BLMtable = mPhase*np.sqrt(degen)*BLMtable*BLMtable.sel(m=0,mp=0,M=0).drop('mSet').squeeze()  # NOTE - drop dims here to prevent correlated product.
+            BLMtable = BLMtable*BLMtable.sel(m=0,mp=0,M=0).drop('mSet').squeeze()  # NOTE - drop dims here to prevent correlated product.
 
         # If (0,0,0) terms are not already calculated, do so.
         # Might be cleaner just to use this in all cases?
         except KeyError:
-            thrj0 = ep.geomFunc.w3jTable(QNs = genllpMatE(matE, mFlag = False), nonzeroFlag = True, form = 'xdaLM', dlist = ['l', 'lp', 'L', 'm', 'mp', 'M'])
-            BLMtable = mPhase*np.sqrt(degen)*BLMtable*thrj0.drop('mSet').squeeze()
+            thrj0 = ep.geomFunc.w3jTable(QNs = genllpMatE(matE, mFlag = False), nonzeroFlag = True, form = form, dlist = ['l', 'lp', 'L', 'm', 'mp', 'M'])
+            BLMtable = BLMtable*thrj0.drop('mSet').squeeze()
+
+        mPhase = np.power(-1, np.abs(BLMtable.m))
+        degen = (2*BLMtable.l+1)*(2*BLMtable.lp+1)*((2*BLMtable.L+1))/(4*np.pi)
+
+        if phaseCons['betaCons']['mPhase']:
+            BLMtable *= mPhase*np.sqrt(degen)
+        else:
+            BLMtable *= np.sqrt(degen)
 
     else:
         print(f"Form {form} not implemented.")
@@ -682,8 +772,9 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
     phaseConvention : optional, str, default = 'S'
         Set phase conventions:
         - 'S' : Standard derivation.
+        - 'R' : Reduced form geometric tensor derivation.
         - 'E' : ePolyScat, conjugate Wigner D.
-
+        See :py:func:`setPhaseConventions` for more details.
 
     Notes
     -----
@@ -698,14 +789,16 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
     # Define phase conventions for different forms of the term
     # phaseNegR: Set for (-Rp, -R) phase convention (otherwise use (+Rp,+R))
     # conjFlag: Set for conjugate Wigner D terms
-    if phaseConvention == 'E':
-        phaseNegR = True
-        conjFlag = True
-        # QNphase = True
-    else:
-        phaseNegR = True
-        conjFlag = False
-        # QNphase = False
+    # if phaseConvention == 'E':
+    #     phaseNegR = True
+    #     conjFlag = True
+    #     # QNphase = True
+    # else:
+    #     phaseNegR = True
+    #     conjFlag = False
+    #     # QNphase = False
+    # Set phase conventions
+    phaseCons = setPhaseConventions(phaseConvention = phaseConvention)
 
     # If no QNs are passed, set for all possible terms
     if QNs is None:
@@ -723,11 +816,11 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
                 for P in np.arange(0, l+lp+1):
                     for Rp in np.arange(-P, P+1):
                         for R in np.arange(-P, P+1):
-                            QNs.append([l, lp, P, mu, -mup, R, Rp])
-                            # if QNphase:
-                            #     QNs.append([l, lp, P, mu, -mup, R, Rp])
-                            # else:
-                            #     QNs.append([l, lp, P, mu, -mup, R, Rp])
+                            # QNs.append([l, lp, P, mu, -mup, R, Rp])
+                            if phaseCons['lambdaCons']['negMup']:
+                                QNs.append([l, lp, P, mu, -mup, R, Rp])
+                            else:
+                                QNs.append([l, lp, P, mu, mup, R, Rp])
 
         QNs = np.array(QNs)
 
@@ -752,14 +845,14 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
         XFlag = False
 
     # Subselect on QNs and calculate
-    QNind = np.array([2, 6, 5])
+    QNind = np.array([2, 6, 5])   # Set (P,Rp,R)
     dRed = [dlist[n] for n in QNind]
 
     QNwD = QNs[:,QNind]
     QNun = np.unique(QNs[:,QNind], axis=0)
 
     # Set for (-Rp, -R) phase convention
-    if phaseNegR:
+    if phaseCons['lambdaCons']['phaseNegR']:
         QNwD[:,1:] *= -1
         QNun[:,1:] *= -1
 
@@ -767,12 +860,14 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
         # Cal for all values - in cases with duplicate QNs this may lead to indexing issues later in Xarray case.
         # Should be OK for 2d case however, will provide table matching full QN list.
         # NOTE in 2d case, wDcalc() also outputs R, QNs - skip these since they're already set in this case
-        lambdaD, *RQN = wDcalc(QNs = QNwD, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'], conjFlag = conjFlag)
+        lambdaD, *RQN = wDcalc(QNs = QNwD, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'],
+                                conjFlag = phaseCons['lambdaCons']['conjFlag'])
         lambdaD = np.asarray(lambdaD)
 
     elif form.startswith('x'):
         # Calc for unique values only to avoid duplicate coords
-        lambdaD = wDcalc(QNs = QNun, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'], conjFlag = conjFlag)
+        lambdaD = wDcalc(QNs = QNun, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'],
+                         conjFlag = phaseCons['lambdaCons']['conjFlag'])
 
         lambdaD['Labels']=('Euler',RX.Labels.values)  # Propagate labels, currently wDcalc only takes RX.data
         lambdaD = lambdaD.swap_dims({'Euler':'Labels'})  # Swap dims to labels.
@@ -786,14 +881,16 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
         lDun = lambdaD.unstack('QN')
 
         # Reset phase choices here to allow for correct multiplication of +Rp and D(P,-Rp,-R) terms in Xarray
-        if phaseNegR:
+        if phaseCons['lambdaCons']['phaseNegR']:
             lDun['R'] *= -1
             lDun['Rp'] *= -1
 
         # Additional phase term (-1)^(-Rp)
-        Rpphase = np.power(-1, np.abs(lun.Rp))
-
-        lTerm = Rpphase * lun * lDun
+        if phaseCons['lambdaCons']['RpPhase']:
+            Rpphase = np.power(-1, np.abs(lun.Rp))
+            lTerm = Rpphase * lun * lDun
+        else:
+            lTerm = lun * lDun
 
         lTerm.attrs['dataType'] = 'LambdaTerm'
 
@@ -801,7 +898,10 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
     elif form == '2d':
 
         # Additional phase term (-1)^(-Rp)
-        Rpphase = np.power(-1, np.abs(QNs[:,-1]))
+        if phaseCons['lambdaCons']['RpPhase']:
+            Rpphase = np.power(-1, np.abs(QNs[:,-1]))
+        else:
+            Rpphase = np.ones(QNs[:,-1].size)
 
         # Loop over sets of Euler angles
         lTerm = []

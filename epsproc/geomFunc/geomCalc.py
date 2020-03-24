@@ -81,7 +81,7 @@ except ImportError as e:
 #     return np.array(QNs)
 #
 
-def setPhaseConventions(phaseConvention = 'S'):
+def setPhaseConventions(phaseConvention = 'S', typeList = False):
     """
     Set phase convention/choices for geometric functions.
 
@@ -99,7 +99,18 @@ def setPhaseConventions(phaseConvention = 'S'):
         - 'R' : Reduced form geometric tensor derivation.
         - 'E' : ePolyScat, may have additional changes in numerics, e.g. conjugate Wigner D.
 
+    typeList : optional, bool, default = False
+        If true, return list of supported options instead of list of phase choices.
+
     """
+
+    # Return just typeList if option set - this also defines master list.
+    if typeList:
+        # Supported types
+        typeList = ['S', 'R', 'E']
+        return typeList
+
+
     # Set master dict to hold choices.
     phaseCons = {'phaseConvention':phaseConvention}
 

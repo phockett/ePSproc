@@ -8,6 +8,8 @@ Main function for data types is :py:func:`dataTypesList`
 """
 
 import numpy as np
+# import ..geomFunc.setPhaseConventions
+from epsproc.geomFunc import setPhaseConventions
 
 #************************** LIST functions
 
@@ -168,6 +170,12 @@ def dataTypesList():
                      {'source':'epsproc.sphCalc.setADMs()',
                       'desc':'Defines ADMs, A(K,Q,S), for aligned frame distributions.',
                       'dims':ADMdimList(sType = 'sDict')
+                      },
+                'phaseCons' :
+                     {'source':'epsproc.geomFunc.setPhaseConventions()',
+                      'desc':'Defines sets of phase choices for calculations, implemented on in geomFuncs.',
+                      'dims': setPhaseConventions(typeList = True),   # Currently supported types, should integrate in fn.
+                      'defns': [setPhaseConventions(item) for item in setPhaseConventions(typeList = True)]
                       }
                 }
 

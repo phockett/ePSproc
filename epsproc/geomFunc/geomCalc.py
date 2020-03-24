@@ -101,7 +101,7 @@ def setPhaseConventions(phaseConvention = 'S'):
 
     """
     # Set master dict to hold choices.
-    phaseCons = {}
+    phaseCons = {'phaseConvention':phaseConvention}
 
     #*** For EPR tensor
     EPRcons = {}
@@ -178,6 +178,8 @@ def setPhaseConventions(phaseConvention = 'S'):
 
         mfblmCons['mupPhase'] = True            # Apply (-1)^(mup - p) phase term.
 
+        mfblmCons['BLMmPhase'] = False          # TESTING ONLY - switch signs (m, M) terms before 3j calcs.
+
     if phaseConvention == 'R':
         mfblmCons['negRcoordSwap'] = True       # Swap -R and +R in EPR Xarray coords?
 
@@ -189,6 +191,8 @@ def setPhaseConventions(phaseConvention = 'S'):
 
         mfblmCons['mupPhase'] = True            # Apply (-1)^(mup - p) phase term.
 
+        mfblmCons['BLMmPhase'] = False          # TESTING ONLY - switch signs (m, M) terms before 3j calcs.
+
     if phaseConvention == 'E':
         mfblmCons['negRcoordSwap'] = True       # Swap -R and +R in EPR Xarray coords?
 
@@ -199,6 +203,8 @@ def setPhaseConventions(phaseConvention = 'S'):
         mfblmCons['mPhase'] = False              # Apply (-1)^m phase term.
 
         mfblmCons['mupPhase'] = True            # Apply (-1)^(mup - p) phase term.
+
+        mfblmCons['BLMmPhase'] = False          # TESTING ONLY - switch signs (m, M) terms before 3j calcs.
 
     phaseCons['betaCons'] = betaCons
 
@@ -633,6 +639,7 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
             # NOTE: Without dropna here dims grow! Default settings have 18 elements, but end up with 135 and lots of NaNs.
 
         EPRtable.attrs['dataType'] = 'EPR'
+        EPRtable.attrs['phaseCons'] = phaseCons
 
     return EPRtable
 
@@ -737,6 +744,9 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
             BLMtable *= mPhase*np.sqrt(degen)
         else:
             BLMtable *= np.sqrt(degen)
+
+        BLMtable.attrs['dataType'] = 'betaTerm'
+        BLMtable.attrs['phaseCons'] = phaseCons
 
     else:
         print(f"Form {form} not implemented.")
@@ -893,6 +903,7 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
             lTerm = lun * lDun
 
         lTerm.attrs['dataType'] = 'LambdaTerm'
+        lTerm.attrs['phaseCons'] = phaseCons
 
     # Array multiplication case
     elif form == '2d':

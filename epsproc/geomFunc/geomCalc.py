@@ -20,7 +20,7 @@ from epsproc.geomFunc.w3jVecMethods import w3jguVecCPU, w3jprange
 from epsproc.sphCalc import setPolGeoms, wDcalc
 
 # Util funcs.
-from epsproc.geomFunc.geomUtils import genllL, selQNsRow, genllpMatE
+from epsproc.geomFunc.geomUtils import genllL, selQNsRow, genllpMatE, genllLList
 
 # Optional imports
 try:
@@ -98,9 +98,15 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
         - 'S' : Standard derivation.
         - 'R' : Reduced form geometric tensor derivation.
         - 'E' : ePolyScat, may have additional changes in numerics, e.g. conjugate Wigner D.
+        If a dict of phaseConventions is passed they will simply be returned - this is for transparency/consistency over multiple fns which call setPhaseConventions()... although may be an issue in some cases.
 
     typeList : optional, bool, default = False
         If true, return list of supported options instead of list of phase choices.
+
+
+    Note
+    -----
+    If a dict of phaseConventions is passed they will simply be returned - this is for transparency/consistency over multiple fns which call setPhaseConventions()... although may be an issue in some cases.
 
     """
 
@@ -109,6 +115,10 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
         # Supported types
         typeList = ['S', 'R', 'E']
         return typeList
+
+    # If phaseConventions are preset, just return them.
+    if type(phaseConvention) is dict:
+        return phaseConvention
 
 
     # Set master dict to hold choices.
@@ -217,7 +227,7 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
 
         mfblmCons['BLMmPhase'] = False          # TESTING ONLY - switch signs (m, M) terms before 3j calcs.
 
-    phaseCons['betaCons'] = betaCons
+    phaseCons['mfblmCons'] = mfblmCons
 
     return phaseCons
 
@@ -737,16 +747,22 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
     if (form == 'xdaLM') or (form == 'xds'):
 
         # 3j product term
-        try:
-            # 3j product term
-            # BLMtable *= mPhase*np.sqrt(degen)*BLMtable.sel(m=0,mp=0,M=0)  # Accidental correlations in results...?
-            BLMtable = BLMtable*BLMtable.sel(m=0,mp=0,M=0).drop('mSet').squeeze()  # NOTE - drop dims here to prevent correlated product.
+        # try:
+        #     # 3j product term
+        #     # BLMtable *= mPhase*np.sqrt(degen)*BLMtable.sel(m=0,mp=0,M=0)  # Accidental correlations in results...?
+        #     BLMtable = BLMtable*BLMtable.sel(m=0,mp=0,M=0).drop('mSet').squeeze()  # NOTE - drop dims here to prevent correlated product.
+        #
+        # # If (0,0,0) terms are not already calculated, do so.
+        # # Might be cleaner just to use this in all cases?
+        # except KeyError:
+        #     # Case for using matE directly, set for m=0 terms only.
+        #     # thrj0 = w3jTable(QNs = genllpMatE(matE, mFlag = False), nonzeroFlag = True, form = form, dlist = dlist)
+        #     # Case for list of QNs
+        #     thrj0 = w3jTable(QNs = genllLList(QNs, uniqueFlag = True, mFlag = False), nonzeroFlag = True, form = form, dlist = dlist)
+        #     BLMtable = BLMtable*thrj0.drop('mSet').squeeze()
 
-        # If (0,0,0) terms are not already calculated, do so.
-        # Might be cleaner just to use this in all cases?
-        except KeyError:
-            thrj0 = ep.geomFunc.w3jTable(QNs = genllpMatE(matE, mFlag = False), nonzeroFlag = True, form = form, dlist = ['l', 'lp', 'L', 'm', 'mp', 'M'])
-            BLMtable = BLMtable*thrj0.drop('mSet').squeeze()
+        thrj0 = w3jTable(QNs = genllLList(QNs, uniqueFlag = True, mFlag = False), nonzeroFlag = True, form = form, dlist = dlist)
+        BLMtable = BLMtable*thrj0.drop('mSet').squeeze()
 
         mPhase = np.power(-1, np.abs(BLMtable.m))
         degen = (2*BLMtable.l+1)*(2*BLMtable.lp+1)*((2*BLMtable.L+1))/(4*np.pi)
@@ -887,10 +903,21 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
 
     elif form.startswith('x'):
         # Calc for unique values only to avoid duplicate coords
-        lambdaD = wDcalc(QNs = QNun, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'],
-                         conjFlag = phaseCons['lambdaCons']['conjFlag'])
 
-        lambdaD['Labels']=('Euler',RX.Labels.values)  # Propagate labels, currently wDcalc only takes RX.data
+        # Special case for single pol geom, otherwise passes 0D array with a single value and causes issues later.
+        if RX.size == 1:
+            lambdaD = wDcalc(QNs = QNun, R = RX.data.item(), XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'],
+                             conjFlag = phaseCons['lambdaCons']['conjFlag'])
+
+            lambdaD['Labels']=('Euler', [RX.Labels.item()])  # Propagate labels, currently wDcalc only takes RX.data
+
+        else:
+            lambdaD = wDcalc(QNs = QNun, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'],
+                             conjFlag = phaseCons['lambdaCons']['conjFlag'])
+
+            # lambdaD['Labels']=('Euler', RX.Labels.values)  # Propagate labels, currently wDcalc only takes RX.data
+            lambdaD['Labels']=('Euler', RX.Labels)  # Propagate labels, currently wDcalc only takes RX.data
+
         lambdaD = lambdaD.swap_dims({'Euler':'Labels'})  # Swap dims to labels.
         lambdaD.attrs['dataType'] = 'WignerD'
 

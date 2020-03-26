@@ -1,14 +1,15 @@
 
 import numpy as np
 
-from epsproc.util import matEleSelector
+# from epsproc.util import matEleSelector   # Circular/undefined import issue - call in function instead for now.
 from epsproc.geomFunc import geomCalc
 # from epsproc.geomFunc.geomCalc import (EPR, MFproj, betaTerm, remapllpL, w3jTable,)
 from epsproc.geomFunc.geomUtils import genllpMatE
 
 # Code as developed 16/17 March 2020.
 # Needs some tidying, and should implement BLM Xarray attrs and format for output.
-def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtable = None,
+def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
+                lambdaTerm = None, RX = None, eulerAngs = None,
                 thres = 1e-2, thresDims = 'Eke', selDims = {'it':1, 'Type':'L'},
                 sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,
                 SFflag = True, squeeze = False, phaseConvention = 'S'):
@@ -26,9 +27,24 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtab
 
     16/03/20 In progress!
 
+    Parameters
+    ----------
+
+    phaseConvention : optional, str, default = 'S'
+        Set phase conventions with :py:func:`epsproc.geomCalc.setPhaseConventions`.
+        To use preset phase conventions, pass existing dictionary.
+
     """
-    # Set phase conventions
-    phaseCons = setPhaseConventions(phaseConvention = phaseConvention)
+    from epsproc.util import matEleSelector
+
+    # Set phase conventions - either from function call or via passed dict.
+    # if type(phaseConvention) is str:
+    #     phaseCons = geomCalc.setPhaseConventions(phaseConvention = phaseConvention)
+    # else:
+    #     phaseCons = phaseConvention
+
+    # For transparency/consistency with subfunctions, str/dict now set in setPhaseConventions()
+    phaseCons = geomCalc.setPhaseConventions(phaseConvention = phaseConvention)
 
     # Fudge - set this for now to enforce additonal unstack and phase corrections later.
     BLMtableResort = None
@@ -43,10 +59,12 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtab
     if SFflag:
         matE.values = matE * matE.SF
 
-    if symSum:
-        matE = matE.sum('Sym')  # Sum over ['Cont','Targ','Total'] stacked dims.
+    matEthres = matEleSelector(matE, thres = thres, inds = selDims, dims = thresDims, sq = True, drop = True)
 
-    matEthres = matEleSelector(matE, thres = thres, inds = selDims, dims = thresDims)
+    # Sum **AFTER** threshold and selection, to allow for subselection on symmetries via matEleSelector
+    if symSum:
+        if 'Sym' in matE.dims:
+            matE = matE.sum('Sym')  # Sum over ['Cont','Targ','Total'] stacked dims.
 
     # Set terms if not passed to function
     if QNs is None:
@@ -65,12 +83,16 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtab
         EPRX = geomCalc.EPR(form = 'xarray', p = p).unstack().sel({'R-p':0}).drop('R-p')
         EPRXresort = EPRX.squeeze(['l','lp']).drop(['l','lp'])  # Safe squeeze & drop of selected singleton dims only.
 
-        if phaseCons['betaCons']['negRcoordSwap']:
+        if phaseCons['mfblmCons']['negRcoordSwap']:
             EPRXresort['R'] *= -1
 
     if lambdaTerm is None:
+        # Set polGeoms if Euler angles are passed.
+        if eulerAngs is not None:
+            RX = setPolGeoms(eulerAngs = eulerAngs)
+
         # *** Lambda term
-        lambdaTerm, lambdaTable, lambdaD, _ = geomCalc.MFproj(form = 'xarray', phaseConvention = phaseConvention)
+        lambdaTerm, lambdaTable, lambdaD, _ = geomCalc.MFproj(RX = RX, form = 'xarray', phaseConvention = phaseConvention)
         # lambdaTermResort = lambdaTerm.squeeze().drop('l').drop('lp')   # This removes photon (l,lp) dims fully.
         lambdaTermResort = lambdaTerm.squeeze(['l','lp']).drop(['l','lp'])  # Safe squeeze & drop of selected singleton dims only.
 
@@ -80,7 +102,7 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtab
         QNsBLMtable = QNs.copy()
 
         # Switch signs (m,M) before 3j calcs.
-        if phaseCons['betaCons']['BLMmPhase']:
+        if phaseCons['mfblmCons']['BLMmPhase']:
             QNsBLMtable[:,3] *= -1
             QNsBLMtable[:,5] *= -1
 
@@ -93,16 +115,16 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtab
         # Apply additional phase convention
         BLMtableResort = BLMtable.copy().unstack()
 
-        if phaseCons['betaCons']['negMcoordSwap']:
+        if phaseCons['mfblmCons']['negMcoordSwap']:
             BLMtableResort['M'] *= -1
 
-        if phaseCons['betaCons']['Mphase']:
+        if phaseCons['mfblmCons']['Mphase']:
             BLMtableResort *= np.power(-1, np.abs(BLMtableResort.M))  # Associated phase term
 
-        if phaseCons['betaCons']['negmCoordSwap']:
+        if phaseCons['mfblmCons']['negmCoordSwap']:
             BLMtableResort['m'] *= -1
 
-        if phaseCons['betaCons']['mPhase']:
+        if phaseCons['mfblmCons']['mPhase']:
             BLMtableResort *= np.power(-1, np.abs(BLMtableResort.m))  # Associated phase term
 
 
@@ -114,7 +136,8 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtab
     matEmult.attrs['dataType'] = 'multTest'
 
     # Threshold product and drop dims.
-    matEmult = ep.util.matEleSelector(matEmult, thres = thres, dims = thresDims)
+    # matEmult = ep.util.matEleSelector(matEmult, thres = thres, dims = thresDims)
+    matEmult = matEleSelector(matEmult, thres = thres, dims = thresDims)
 
     # Product terms with similar dims
     BLMprod = matEmult * BLMtableResort  # Unstacked case with phase correction
@@ -122,7 +145,7 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtab
     polProd = (EPRXresort * lambdaTermResort)  # Without polarization terms sum to allow for mupPhase below (reqs. p)
 
     # Set additional phase term, (-1)^(mup-p) **** THIS MIGHT BE SPURIOUS FOR GENERAL EPR TENSOR CASE??? Not sure... but definitely won't work if p summed over above!
-    if phaseCons['betaCons']['mupPhase']:
+    if phaseCons['mfblmCons']['mupPhase']:
         mupPhaseTerm = np.power(-1, np.abs(polProd.mup - polProd.p))
         polProd *= mupPhaseTerm
 
@@ -144,8 +167,9 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtab
 
 
     # mTerm.attrs['file'] = 'MulTest'  # Temporarily adding this, not sure why this is an issue here however (not an issue for other cases...)
-    mTerm.attrs = matE.attrs  # Propagate attrs from input matrix elements.
-    mTerm.attrs['phaseConvention'] = {phaseConvention:phaseCons}  # Log phase conventions used.
+    mTerm.attrs = matEin.attrs  # Propagate attrs from input matrix elements.
+    # mTerm.attrs['phaseConvention'] = {phaseConvention:phaseCons}  # Log phase conventions used.
+    mTerm.attrs['phaseCons'] = geomCalc.setPhaseConventions(phaseConvention = phaseConvention)  # Log phase conventions used.
 
 
     # Sum and threshold
@@ -165,6 +189,12 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], lambdaTerm = None, BLMtab
 #     BLMXout = BLMXout/BLMXout.XS  # Normalise
     mTermSumThres['XS'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()  # This basically works, and keeps all non-summed dims... but may give issues later...? Make sure to .copy(), otherwise it's just a pointer.
     mTermSumThres /= mTermSumThres.sel({'L':0,'M':0}).drop('LM')
+
+    # Propagate attrs
+    mTermSum.attrs = mTerm.attrs
+    mTermSum.attrs['dataType'] = 'multTest'
+
+    mTermSumThres.attrs = mTerm.attrs
     mTermSumThres.attrs['dataType'] = 'multTest'
 
     return mTermSumThres, mTermSum, mTerm

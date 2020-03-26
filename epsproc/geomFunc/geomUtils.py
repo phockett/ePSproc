@@ -132,6 +132,70 @@ def genllL(Lmin = 0, Lmax = 10, mFlag = True):
     return np.array(QNs)
 
 
+# Generate 6D coords for Wigner 3j terms from a list of (l,l,L) coords.
+def genllLList(Llist, uniqueFlag = True, mFlag = True):
+    """
+    Generate quantum numbers for angular momentum contractions (l, lp, L) from a passed list, (m, mp, M)=0 or all allowed terms.
+
+    Parameters
+    ----------
+    Llist : list
+        Values [l, lp, L] to use for calculations.
+
+    uniqueFlag : bool, optional, default = True
+        Drop duplicate [l,lp,L] sets from list.
+
+    mFlag : bool, optional, default = True
+        m, mp take all values -l...+l if mFlag=True, or =0 only if mFlag=False
+
+    Returns
+    -------
+    QNs : 2D np.array
+        Values take all allowed combinations ['l','lp','L','m','mp','M'] up to l=lp=Lmax, one set per row.
+
+
+    Examples
+    ---------
+    >>> # Set from an array
+    >>> QNs = genllLList(np.array([[1,1,2],[1,3,2],[1,1,2]]), mFlag = True)
+    >>> # Use with w3jTable function to calculate Wigner 3j terms
+    >>> w3j = w3jTable(QNs = QNs)
+
+    To do
+    -----
+    - Implement output options (see dev. function w3jTable).
+    -
+    """
+
+    # Select unique l sets
+    if uniqueFlag:
+        Llist = np.unique(Llist[0:3, :], axis = 0)
+
+    # Set QNs for calculation, (l,m,mp)
+    # Slightly ugly repurposing of loop from genllL() code.
+    QNs = []
+    for lSet in Llist:
+        l = lSet[0]
+        lp= lSet[1]
+        L = lSet[2]
+
+        if mFlag:
+            mMax = l
+            mpMax = lp
+        else:
+            mMax = 0
+            mpMax = 0
+
+        for m in np.arange(-mMax, mMax+1):
+            for mp in np.arange(-mpMax, mpMax+1):
+                # for L in np.arange(np.abs(l-lp), l+lp+1):  # Removed for now, but may want to reinstate as valid L test?
+                M = -(m+mp)
+                if np.abs(M) <= L:  # Skip terms with invalid M
+                    QNs.append([l, lp, L, m, mp, M])
+
+    return np.array(QNs)
+
+
 # Generate 3j QNs lists from matrix elements
 def genllpMatE(matE, uniqueFlag = True, mFlag = True):
     """

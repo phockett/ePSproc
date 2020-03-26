@@ -1039,6 +1039,13 @@ def getCroSegsParseX(dumpSegs, symSegs, ekeList):
     A rather cut-down version of :py:func:`epsproc.IO.dumpIdySegsParseX()`, no error checking currently implemented.
 
     """
+    # Old skool debug code.
+    # print(ekeList)
+    # print(type(ekeList))
+    #
+    # if (type(ekeList) is not np.ndarray) and (type(ekeList) is not list):
+    #     ekeList = [ekeList]   # Wrap as list for single eKE case.
+    #     print('Converted to list')
 
     dataList = []
     dataArray = []
@@ -1099,11 +1106,18 @@ def getCroSegsParseX(dumpSegs, symSegs, ekeList):
     daOut.attrs['units'] = 'Mb'
 
     # Reset energies to Eke, and shift key dim - might be a simpler/shorter way to do this...?
-    daOut['EhvOrig'] = daOut['Ehv']
-    daOut['Ehv'] = ekeList
-    daOut = daOut.rename({'Ehv':'Eke', 'EhvOrig':'Ehv'})
-    # daOut.rename({'Ehv':'Eke'})
-    # daOut.rename({'EhvOrig':'Ehv'})
+    # This fails for singleton Ehv/Eke?
+    # daOut['EhvOrig'] = daOut['Ehv']
+    # daOut['Ehv'] = ekeList
+    # daOut = daOut.rename({'Ehv':'Eke', 'EhvOrig':'Ehv'})
+
+    # Try a different approach... assign as new dim then swap.
+    if daOut.Ehv.size == 1:
+        daOut['Eke'] = ('Ehv', [ekeList])  # Fix for singleton dim - this fails otherwise for scalar or np.ndarray case.
+    else:
+        daOut['Eke'] = ('Ehv', ekeList)
+
+    daOut = daOut.swap_dims({'Ehv':'Eke'})
 
     return daOut, blankSegs
 

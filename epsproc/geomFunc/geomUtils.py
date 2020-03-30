@@ -125,8 +125,14 @@ def genllL(Lmin = 0, Lmax = 10, mFlag = True):
             for m in np.arange(-mMax, mMax+1):
                 for mp in np.arange(-mpMax, mpMax+1):
                     for L in np.arange(np.abs(l-lp), l+lp+1):
-                        M = -(m+mp)
-                        if np.abs(M) <= L:  # Skip terms with invalid M
+                        # Set M - note this implies specific phase choice.
+                        # M = -(m+mp)
+                        # M = (-m+mp)
+                        # if np.abs(M) <= L:  # Skip terms with invalid M
+                        #     QNs.append([l, lp, L, m, mp, M])
+
+                        # Run for all possible M
+                        for M in np.arange(-L, L+1):
                             QNs.append([l, lp, L, m, mp, M])
 
     return np.array(QNs)
@@ -189,15 +195,21 @@ def genllLList(Llist, uniqueFlag = True, mFlag = True):
         for m in np.arange(-mMax, mMax+1):
             for mp in np.arange(-mpMax, mpMax+1):
                 # for L in np.arange(np.abs(l-lp), l+lp+1):  # Removed for now, but may want to reinstate as valid L test?
-                M = -(m+mp)
-                if np.abs(M) <= L:  # Skip terms with invalid M
+                # Set M - note this implies specific phase choice.
+                # M = -(m+mp)
+                # M = (-m+mp)
+                # if np.abs(M) <= L:  # Skip terms with invalid M
+                #     QNs.append([l, lp, L, m, mp, M])
+
+                # Run for all possible M
+                for M in np.arange(-L, L+1):
                     QNs.append([l, lp, L, m, mp, M])
 
     return np.array(QNs)
 
 
 # Generate 3j QNs lists from matrix elements
-def genllpMatE(matE, uniqueFlag = True, mFlag = True):
+def genllpMatE(matE, uniqueFlag = True, mFlag = True, phaseConvention = 'S'):
     """
     Generate quantum numbers for angular momentum contractions (l, lp, L, m, mp, M) from sets of matrix elements.
 
@@ -211,6 +223,11 @@ def genllpMatE(matE, uniqueFlag = True, mFlag = True):
 
     mFlag : bool, optional, default = True
         m, mp take all passed values if mFlag=True, or =0 only if mFlag=False
+
+    phaseConvention : optional, str, default = 'S'
+        Set phase conventions with :py:func:`epsproc.geomCalc.setPhaseConventions`.
+        To use preset phase conventions, pass existing dictionary.
+        If matE.attrs['phaseCons'] is already set, this will be used instead of passed args.
 
 
     Returns
@@ -235,6 +252,15 @@ def genllpMatE(matE, uniqueFlag = True, mFlag = True):
     -
     """
 
+    # Local import.
+    from epsproc.geomFunc.geomCalc import setPhaseConventions
+
+    # For transparency/consistency with subfunctions, str/dict now set in setPhaseConventions()
+    if 'phaseCons' in matE.attrs.keys():
+        phaseCons = matE.attrs['phaseCons']
+    else:
+        phaseCons = setPhaseConventions(phaseConvention = phaseConvention)
+
     # Get QNs from matE
     lList = matE.unstack().l.values  # Use unstack here, or np.unique(matE.l), to avoid duplicates
 
@@ -251,9 +277,22 @@ def genllpMatE(matE, uniqueFlag = True, mFlag = True):
             for m in mList:
                 for mp in mList:
                     for L in np.arange(np.abs(l-lp), l+lp+1):
-                        M = -(m+mp)
+                        # Set M - note this implies specific phase choice.
+                        if phaseCons['genMatEcons']['negm']:
+                            M = (-m+mp)
+                        else:
+                            M = -(m+mp)
+
+                        # This is likely redundant/misguided, since already implied in phase convention above.
+                        # if phaseCons['genMatEcons']['negM']:
+                        #     M *= -1
+
                         if np.abs(M) <= L:  # Skip terms with invalid M
                             QNs.append([l, lp, L, m, mp, M])
+
+                        # Run for all possible M
+                        # for M in np.arange(-L, L+1):
+                            # QNs.append([l, lp, L, m, mp, M])
 
     if uniqueFlag:
         return np.unique(QNs, axis = 0)

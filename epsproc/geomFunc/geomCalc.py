@@ -124,6 +124,24 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
     # Set master dict to hold choices.
     phaseCons = {'phaseConvention':phaseConvention}
 
+    #**** For generating QNs with genllpMatE()
+    # Set here to avoid issues with dropped/missing terms later!
+    # Some conventions will be tied to other choices below.
+    genMatEcons = {}
+    if phaseConvention == 'S':
+        genMatEcons['negm'] = False     # Set -m, corresponding to M = -m + mp, otherwise M = -(m+mp)
+        # genMatEcons['negM'] = False     # Set -M
+
+    elif phaseConvention == 'R':
+        genMatEcons['negm'] = False     # Set -m, corresponding to M = -m + mp, otherwise M = -(m+mp)
+        # genMatEcons['negM'] = False     # Set -M
+
+    elif phaseConvention == 'E':
+        genMatEcons['negm'] = True     # Set -m, corresponding to M = -m + mp, otherwise M = -(m+mp)
+        # genMatEcons['negM'] = False     # Set -M
+
+    phaseCons['genMatEcons'] = genMatEcons
+
     #*** For EPR tensor
     EPRcons = {}
     if phaseConvention == 'S':
@@ -180,7 +198,7 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
         betaCons['mPhase'] = True     # Apply (-1)^m phase term?
 
     elif phaseConvention == 'E':
-        betaCons['negM'] = True       # Use -M term in 3j?
+        betaCons['negM'] = True       # Use -M term in 3j? Should be correlated with genMatEcons['negM']...?
         betaCons['mPhase'] = True     # Apply (-1)^m phase term?
 
     phaseCons['betaCons'] = betaCons

@@ -68,7 +68,7 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
 
     # Set terms if not passed to function
     if QNs is None:
-        QNs = genllpMatE(matEthres)
+        QNs = genllpMatE(matEthres, phaseConvention = phaseConvention)
 
     #*** Polarization terms
     if EPRX is None:

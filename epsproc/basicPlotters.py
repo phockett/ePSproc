@@ -654,7 +654,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                   # Add colored class labels
                   row_colors=colors, col_colors=None, # )  # ,
                   # Make the plot look better when many rows/cols
-                  linewidths=0, xticklabels=True, yticklabels=False,
+                  # NOTE on ticklabels - pass true/false, auto, int or list for more control.
+                  linewidths=0, xticklabels="auto", yticklabels=False,
                   # Some other additional, optional, args...
                   figsize = figsize, cmap = cmap)
 

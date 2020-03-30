@@ -337,7 +337,11 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
 #*** Data prep
     # Make explicit copy of data
-    daPlot = data.copy()
+    if selDims is not None:
+        daPlot = data.sel(selDims).copy()   # Select here instead of via matEleSelector, to avoid issues with %age threshold case.
+    else:
+        daPlot = data.copy()
+
     daPlot.attrs = data.attrs
 #     daPlot = data
 
@@ -419,7 +423,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             daPlot = daPlot.unstack().stack(xDim)
 
     # Threshold on abs() value before setting type, otherwise all terms will appear for some cases (e.g. phase plot)
-    daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = xDim) # , sq = True)  # Squeeze may cause issues here if a singleton dim is used for xDim.
+    # daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = xDim) # , sq = True)  # Squeeze may cause issues here if a singleton dim is used for xDim.
+    daPlot = matEleSelector(daPlot, thres=thres, dims = xDim) # Version without selection, now incorporated above.
     daPlot = plotTypeSelector(daPlot, pType = pType, axisUW = xDim)
 
     # daPlot = ep.util.matEleSelector(daPlot, thres=thres, inds = selDims, dims = 'Eke', sq = True)

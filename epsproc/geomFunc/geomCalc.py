@@ -873,9 +873,9 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
                         for R in np.arange(-P, P+1):
                             # QNs.append([l, lp, P, mu, -mup, R, Rp])
                             if phaseCons['lambdaCons']['negMup']:
-                                QNs.append([l, lp, P, mu, -mup, R, Rp])
+                                QNs.append([l, lp, P, mu, -mup, Rp, R])   # 31/03/20: FIXED bug, (R,Rp) previously misordered!!!
                             else:
-                                QNs.append([l, lp, P, mu, mup, R, Rp])
+                                QNs.append([l, lp, P, mu, mup, Rp, R])
 
         QNs = np.array(QNs)
 

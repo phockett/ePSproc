@@ -50,14 +50,14 @@ def matEleSelector(da, thres = None, inds = None, dims = None, sq = False, drop=
 
     # Reduce dims by thesholding on abs values
     # Do this after selection to ensure Nans removed.
-    if thres is not None and dims is None:
+    if (thres is not None) and (dims is None):
         daOut = da.where(np.abs(da) > thres, drop = drop)
     else:
         daOut = da
 
     # If dims is set, check over dims for consistency.
     # WILL this just produce same results as thres then squeeze...?
-    if dims is not None:
+    if (dims is not None) and (thres is not None):
         daOut = daOut.where(np.abs(da).max(dim = dims) > thres, drop = drop)
 
     if sq:

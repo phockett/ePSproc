@@ -709,7 +709,12 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # Additional anootations etc.
         # Plot titles: https://stackoverflow.com/questions/49254337/how-do-i-add-a-title-to-a-seaborn-clustermap
         # g.fig.suptitle(f"{daPlot.attrs['file']}, pType={pType}, thres={thres}")  # Full figure title
-        g.ax_heatmap.set_title(f"{daPlot.attrs['file']}, plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {np.round(thres, 2)}, inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
+        if thres is not None:
+            thresStr = np.round(thres, 2)
+        else:
+            thresStr = 'None'
+            
+        g.ax_heatmap.set_title(f"{daPlot.attrs['file']}, plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {thresStr}, inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
 
         # sns.reset_orig()  # Reset gloabl plot params - leaves rc settings, also triggers Matplotlib errors
         sns.reset_defaults()

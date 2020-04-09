@@ -26,6 +26,12 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
     Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
 
     16/03/20 In progress!
+    Dev code:
+        http://localhost:8888/lab/tree/dev/ePSproc/geometric_method_dev_Betas_090320.ipynb
+        D:\code\ePSproc\python_dev\ePSproc_MFBLM_Numba_dev_tests_120220.PY
+    TOTAL MESS AT THE MOMENT>>?>>>>?DFdas<>r ty
+
+
 
     Parameters
     ----------
@@ -63,8 +69,8 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
 
     # Sum **AFTER** threshold and selection, to allow for subselection on symmetries via matEleSelector
     if symSum:
-        if 'Sym' in matE.dims:
-            matE = matE.sum('Sym')  # Sum over ['Cont','Targ','Total'] stacked dims.
+        if 'Sym' in matEthres.dims:
+            matEthres = matEthres.sum('Sym')  # Sum over ['Cont','Targ','Total'] stacked dims.
 
     # Set terms if not passed to function
     if QNs is None:
@@ -131,8 +137,10 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
     #*** Products
     # Matrix element pair-wise multiplication by (l,m,mu) dims
     matEconj = matEthres.copy().conj()
-    matEconj = matEconj.unstack().rename({'l':'lp','m':'mp','mu':'mup'})
-    matEmult = matEconj * matEthres.unstack()
+    # matEconj = matEconj.unstack().rename({'l':'lp','m':'mp','mu':'mup'})  # Full unstack
+    # matEmult = matEthres.unstack() * matEconj
+    matEconj = matEconj.unstack('LM').rename({'l':'lp','m':'mp','mu':'mup'})  # Unstack LM only.
+    matEmult = matEthres.unstack('LM') * matEconj
     matEmult.attrs['dataType'] = 'multTest'
 
     # Threshold product and drop dims.
@@ -140,7 +148,7 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
     matEmult = matEleSelector(matEmult, thres = thres, dims = thresDims)
 
     # Product terms with similar dims
-    BLMprod = matEmult * BLMtableResort  # Unstacked case with phase correction
+    BLMprod = matEmult * BLMtableResort  # Unstacked case with phase correction - THIS DROPS SYM TERMS? Takes intersection of das - http://xarray.pydata.org/en/stable/computation.html#automatic-alignment
     # polProd = (EPRXresort * lambdaTermResort).sum(sumDimsPol)  # Sum polarization terms here to keep total dims minimal in product. Here dims = (mu,mup,Euler/Labels)
     polProd = (EPRXresort * lambdaTermResort)  # Without polarization terms sum to allow for mupPhase below (reqs. p)
 
@@ -149,7 +157,13 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
         mupPhaseTerm = np.power(-1, np.abs(polProd.mup - polProd.p))
         polProd *= mupPhaseTerm
 
+    # Additional [P]^1/2 degen term, NOT included in EPR defn.
+    # Added 09/04/20
+    polProd *= np.sqrt(2*polProd.P+1)
+
     polProd = polProd.sum(sumDimsPol)
+
+    polProd = matEleSelector(polProd, thres = thres)  # Select over dims for reduction.
 
     # Test big mult...
     # mTerm = polProd.sel({'R':0,'Labels':'z'}) * BLMprod.sum(['Total'])    # With selection of z geom.  # BLMprod.sum(['Cont', 'Targ', 'Total'])

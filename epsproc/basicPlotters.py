@@ -303,6 +303,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     To do
     -----
     - Improved dim handling, maybe use :py:func:`epsproc.util.matEdimList()` (and related functions) to avoid hard-coding multiple cases here.
+        - Partially implemented in dimMap.
+        - Currently throws an error for None in symmetry plotting cases for unrecognised dataType. TO FIX!
     - Improved handling of sets of polarization geometries (angles).
     - CONSOLIDATE stacked/unstacked dim handling.  At the moment some functions use stacked, some unstacked, which is leading to annoying bugs.
 
@@ -371,6 +373,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     #     dimMap = BLMdimList(sType = 'sDict')
 
     # Using util.dataTypesList() - THIS IS NOT yet used in the main plotting routine.
+    # ACTUALLY - is used for Sym plotting case, may throw an error for None case.
     dataTypes = dataTypesList()
     if daPlot.attrs['dataType'] in dataTypes:
         dimMap = dataTypes[daPlot.attrs['dataType']]['dims']
@@ -713,7 +716,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             thresStr = np.round(thres, 2)
         else:
             thresStr = 'None'
-            
+
         g.ax_heatmap.set_title(f"{daPlot.attrs['file']}, plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {thresStr}, inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
 
         # sns.reset_orig()  # Reset gloabl plot params - leaves rc settings, also triggers Matplotlib errors

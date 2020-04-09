@@ -137,7 +137,9 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
         # genMatEcons['negM'] = False     # Set -M
 
     elif phaseConvention == 'E':
-        genMatEcons['negm'] = True     # Set -m, corresponding to M = -m + mp, otherwise M = -(m+mp)
+        genMatEcons['negm'] = False     # Set -m, corresponding to M = -m + mp (normal convention), otherwise M = -(m+mp)
+                                        # Note this is correlated with M switch terms later, incorrect settings may remove m or m' non-zero terms!
+
         # genMatEcons['negM'] = False     # Set -M
 
     phaseCons['genMatEcons'] = genMatEcons
@@ -168,18 +170,21 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
     lambdaCons = {}
     if phaseConvention == 'S':
         lambdaCons['negMup'] = True     # Use -mup term in 3j?
+        lambdaCons['negRp'] = True     # Use -Rp term in 3j?
         lambdaCons['phaseNegR'] = True  # Set for (-Rp, -R) phase convention (in Wigner D term)?
         lambdaCons['conjFlag'] = False  # Set for conjuate Wigner D?
         lambdaCons['RpPhase'] = True    # Apply (-1)^Rp phase term?
 
     elif phaseConvention == 'R':
         lambdaCons['negMup'] = True     # Use -mup term in 3j?
+        lambdaCons['negRp'] = True     # Use -Rp term in 3j?
         lambdaCons['phaseNegR'] = True  # Set for (-Rp, -R) phase convention (in Wigner D term)?
         lambdaCons['conjFlag'] = False  # Set for conjuate Wigner D?
         lambdaCons['RpPhase'] = True    # Apply (-1)^Rp phase term?
 
     elif phaseConvention == 'E':
         lambdaCons['negMup'] = True     # Use -mup term in 3j?
+        lambdaCons['negRp'] = True     # Use -Rp term in 3j?
         lambdaCons['phaseNegR'] = True  # Set for (-Rp, -R) phase convention (in Wigner D term)?
         lambdaCons['conjFlag'] = True  # Set for conjuate Wigner D?
         lambdaCons['RpPhase'] = True    # Apply (-1)^Rp phase term?
@@ -198,7 +203,7 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
         betaCons['mPhase'] = True     # Apply (-1)^m phase term?
 
     elif phaseConvention == 'E':
-        betaCons['negM'] = True       # Use -M term in 3j? Should be correlated with genMatEcons['negM']...?
+        betaCons['negM'] = genMatEcons['negm']       # Use -M term in 3j? Should be anti-correlated with genMatEcons['negm']...? 31/03/20 NOW correlated with mfblmCons['Mphase']
         betaCons['mPhase'] = True     # Apply (-1)^m phase term?
 
     phaseCons['betaCons'] = betaCons
@@ -228,20 +233,20 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
         mfblmCons['negmCoordSwap'] = True       # Swap +/-m coords.
         mfblmCons['mPhase'] = True              # Apply (-1)^m phase term.
 
-        mfblmCons['mupPhase'] = True            # Apply (-1)^(mup - p) phase term.
+        mfblmCons['mupPhase'] = False            # Apply (-1)^(mup - p) phase term. Already incoporated into MFproj()?
 
         mfblmCons['BLMmPhase'] = False          # TESTING ONLY - switch signs (m, M) terms before 3j calcs.
 
     if phaseConvention == 'E':
-        mfblmCons['negRcoordSwap'] = True       # Swap -R and +R in EPR Xarray coords?
+        mfblmCons['negRcoordSwap'] = False       # Swap -R and +R in EPR Xarray coords? Already in EPRCons()?
 
         mfblmCons['negMcoordSwap'] = False       # Swap +/-M coords.
-        mfblmCons['Mphase'] = False              # Apply (-1)^M phase term.
+        mfblmCons['Mphase'] = betaCons['negM']   # Apply (-1)^M phase term. Correlated with +/-M term switch.
 
         mfblmCons['negmCoordSwap'] = False       # Swap +/-m coords.
         mfblmCons['mPhase'] = False              # Apply (-1)^m phase term.
 
-        mfblmCons['mupPhase'] = True            # Apply (-1)^(mup - p) phase term.
+        mfblmCons['mupPhase'] = True            # Apply (-1)^(mup - p) phase term. Already incoporated into MFproj()?
 
         mfblmCons['BLMmPhase'] = False          # TESTING ONLY - switch signs (m, M) terms before 3j calcs.
 
@@ -661,7 +666,8 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
         EPRtable[:,-1] = EPRtable[:,-1]*Rphase*Pdegen
 
     elif form == 'xarray':
-        Pdegen = np.sqrt(2*EPRtable.P + 1)
+        Pdegen = np.sqrt(2*EPRtable.P + 1)  # Note sqrt here - as per U&S defn.
+        # Pdegen = 2*EPRtable.P + 1
 
         # Set phase choice for 3j term
         if phaseCons['EPR']['Rphase']:
@@ -779,8 +785,14 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
         #     thrj0 = w3jTable(QNs = genllLList(QNs, uniqueFlag = True, mFlag = False), nonzeroFlag = True, form = form, dlist = dlist)
         #     BLMtable = BLMtable*thrj0.drop('mSet').squeeze()
 
+        # This version currently doesn't work - WHY?  Seems to drop necessary (l,lp,L) correlations?
+        # thrj0 = w3jTable(QNs = genllLList(QNs, uniqueFlag = True, mFlag = False), nonzeroFlag = True, form = form, dlist = dlist)
+        # BLMtable = BLMtable*thrj0.drop('mSet').squeeze()
+
+        # Now with unstack to ensure QN dims.
+        # Pass also local QNs to ensure phase conventions set above.
         thrj0 = w3jTable(QNs = genllLList(QNs, uniqueFlag = True, mFlag = False), nonzeroFlag = True, form = form, dlist = dlist)
-        BLMtable = BLMtable*thrj0.drop('mSet').squeeze()
+        BLMtable = BLMtable.unstack()*thrj0.drop('mSet').squeeze().unstack()
 
         mPhase = np.power(-1, np.abs(BLMtable.m))
         degen = (2*BLMtable.l+1)*(2*BLMtable.lp+1)*((2*BLMtable.L+1))/(4*np.pi)
@@ -869,13 +881,33 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
                 #for R in np.arange(-(l+lp)-1, l+lp+2):
                 #    for P in np.arange(0, l+lp+1):
                 for P in np.arange(0, l+lp+1):
-                    for Rp in np.arange(-P, P+1):
-                        for R in np.arange(-P, P+1):
-                            # QNs.append([l, lp, P, mu, -mup, R, Rp])
-                            if phaseCons['lambdaCons']['negMup']:
-                                QNs.append([l, lp, P, mu, -mup, Rp, R])   # 31/03/20: FIXED bug, (R,Rp) previously misordered!!!
-                            else:
-                                QNs.append([l, lp, P, mu, mup, Rp, R])
+                    # for Rp in np.arange(-P, P+1):  # Allow all Rp
+                    # Rp = -(mu+mup)   # Fix Rp terms - not valid here, depends on other phase cons!
+                    # for R in np.arange(-P, P+1):
+                    #     # QNs.append([l, lp, P, mu, -mup, R, Rp])
+                    #     if phaseCons['lambdaCons']['negRp']:
+                    #         Rp *= -1
+                    #     if phaseCons['lambdaCons']['negMup']:
+                    #         QNs.append([l, lp, P, mu, -mup, Rp, R])   # 31/03/20: FIXED bug, (R,Rp) previously misordered!!!
+                    #     else:
+                    #         QNs.append([l, lp, P, mu, mup, Rp, R])
+
+                    # Rearranged for specified Rp case
+                    for R in np.arange(-P, P+1):
+                        # if phaseCons['lambdaCons']['negMup']:
+                        #     mup = -mup
+
+                        if phaseCons['lambdaCons']['negRp']:
+                            # Rp = mu+mup
+                            Rp = mup - mu
+                        else:
+                            Rp = -(mu+mup)
+
+                        # Switch mup sign for 3j?  To match old numerics, this is *after* Rp assignment (sigh).
+                        if phaseCons['lambdaCons']['negMup']:
+                            mup = -mup
+
+                        QNs.append([l, lp, P, mu, mup, Rp, R])
 
         QNs = np.array(QNs)
 
@@ -889,7 +921,8 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
     if form == '2d':
         nonzeroFlag = False   # For 2d case override to ensure consistent size.
 
-    lambdaTable = w3jTable(QNs = QNs, nonzeroFlag = nonzeroFlag, form = form, dlist = dlist)  # Pass all QNs to keep R label. w3jpRange will select/use QN[:,0:5] only
+    lambdaTable = w3jTable(QNs = QNs, nonzeroFlag = nonzeroFlag, form = form, dlist = dlist)
+    # lambdaTable = w3jTable(QNs = QNs[:,0:5], nonzeroFlag = nonzeroFlag, form = form, dlist = dlist[0:5])  # Pass all QNs to keep R label. w3jpRange will select/use QN[:,0:5] only... but may have issues with Xarray dims!!!
 
     # D term with wDcalc(), includes order switch for (R,Rp)
     # Pass RX.data since wDcalc is curently only set for np.array inputs.
@@ -900,7 +933,7 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
         XFlag = False
 
     # Subselect on QNs and calculate
-    QNind = np.array([2, 6, 5])   # Set (P,Rp,R)
+    QNind = np.array([2, 5, 6])   # Set (P,Rp,R)
     dRed = [dlist[n] for n in QNind]
 
     QNwD = QNs[:,QNind]
@@ -910,6 +943,12 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
     if phaseCons['lambdaCons']['phaseNegR']:
         QNwD[:,1:] *= -1
         QNun[:,1:] *= -1
+
+    # Correct for case where -Rp is already set in 3j
+    # ONLY want to do this is setting phase convention explicitly here?
+    if phaseCons['lambdaCons']['negRp']:
+        QNwD[:,1] *= -1
+        QNun[:,1] *= -1
 
     if form == '2d':
         # Cal for all values - in cases with duplicate QNs this may lead to indexing issues later in Xarray case.
@@ -966,9 +1005,9 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
 
         # Additional phase term (-1)^(-Rp)
         if phaseCons['lambdaCons']['RpPhase']:
-            Rpphase = np.power(-1, np.abs(QNs[:,-1]))
+            Rpphase = np.power(-1, np.abs(QNs[:,-2]))  # 08/04/20 fixed indexing for Rp (not R!)
         else:
-            Rpphase = np.ones(QNs[:,-1].size)
+            Rpphase = np.ones(QNs[:,-2].size)
 
         # Loop over sets of Euler angles
         lTerm = []

@@ -175,7 +175,7 @@ def genllLList(Llist, uniqueFlag = True, mFlag = True):
 
     # Select unique l sets
     if uniqueFlag:
-        Llist = np.unique(Llist[0:3, :], axis = 0)
+        Llist = np.unique(Llist[:, 0:3], axis = 0)
 
     # Set QNs for calculation, (l,m,mp)
     # Slightly ugly repurposing of loop from genllL() code.
@@ -208,7 +208,7 @@ def genllLList(Llist, uniqueFlag = True, mFlag = True):
     return np.array(QNs)
 
 
-# Generate 3j QNs lists from matrix elements
+# Generate 3j QNs lists from matrix elements (Xarray)
 def genllpMatE(matE, uniqueFlag = True, mFlag = True, phaseConvention = 'S'):
     """
     Generate quantum numbers for angular momentum contractions (l, lp, L, m, mp, M) from sets of matrix elements.
@@ -279,9 +279,9 @@ def genllpMatE(matE, uniqueFlag = True, mFlag = True, phaseConvention = 'S'):
                     for L in np.arange(np.abs(l-lp), l+lp+1):
                         # Set M - note this implies specific phase choice.
                         if phaseCons['genMatEcons']['negm']:
-                            M = (-m+mp)
+                            M = (-m+mp)  # Case for M -> -M switch
                         else:
-                            M = -(m+mp)
+                            M = -(m+mp)  # Usual phase convention.
 
                         # This is likely redundant/misguided, since already implied in phase convention above.
                         # if phaseCons['genMatEcons']['negM']:

@@ -195,7 +195,7 @@ def symListGen(data):
     return np.ravel(symList)
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
-        selDims = None, sumDims = None, plotDims = None, squeeze = True,
+        selDims = None, sumDims = None, plotDims = None, squeeze = True, fillna = False,
         xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10):
     """
     Plotting routine for ePS matrix elements & BLMs.
@@ -246,6 +246,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     squeeze : bool, optional, default = True
         Drop singleton dimensions from plot.
+
+    fillna : bool, optional, default = False
+        Fill NaN values with 0 if True.
 
     xDim : str, optional, default = 'Eke'
         Dimension to use for x-axis, also used for thresholding. Default plots (Eke, LM) surfaces.
@@ -513,7 +516,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
 # 12/03/20 - moving this to separate conversion function, since tabulation is handy.
         # Note thres=None set here to avoid putting holes in the pd data. This is a temp workaround!
-        daPlotpd, daPlot = multiDimXrToPD(daPlot, colDims = xDim, rowDims = plotDims, thres = thres, dropna = True, fillna = True, squeeze = squeeze)
+        daPlotpd, daPlot = multiDimXrToPD(daPlot, colDims = xDim, rowDims = plotDims, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze)
 
         # # Convert to Pandas 2D array, stacked along plotDims - these will be used for colour bar.
         # # TO DO: fix hard-coded axis number for dropna()

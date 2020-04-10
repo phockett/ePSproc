@@ -30,7 +30,8 @@ Welcome to ePSproc
    :maxdepth: 2
    :caption: Method Development:
 
-   methods/geometric_method_dev_260220_tidy_160320
+   methods/geometric_method_dev_260220_090420_tidy
+   methods/geometric_method_dev_pt2_170320_v060420
 
 
 .. toctree::

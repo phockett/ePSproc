@@ -748,7 +748,11 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
     # Define phase conventions for different forms of the term
     phaseCons = setPhaseConventions(phaseConvention = phaseConvention)
 
-    # Set -M for 3j term if required - only if QNs passed however.
+    # Set QNs, if not supplied - run here (rather than in w3jTable) to provide local copy
+    if QNs is None:
+        QNs = genllL(Lmin = Lmin, Lmax = Lmax, mFlag = True)
+
+    # Set -M for 3j term if required
     if phaseCons['betaCons']['negM'] and (QNs is not None):
         QNs[:,-1] *= -1
 
@@ -790,6 +794,7 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
         # BLMtable = BLMtable*thrj0.drop('mSet').squeeze()
 
         # Now with unstack to ensure QN dims.
+        # TODO: this now breaks xdaLM expected output (stacked) - needs rationalisation over all fns however!
         # Pass also local QNs to ensure phase conventions set above.
         thrj0 = w3jTable(QNs = genllLList(QNs, uniqueFlag = True, mFlag = False), nonzeroFlag = True, form = form, dlist = dlist)
         BLMtable = BLMtable.unstack()*thrj0.drop('mSet').squeeze().unstack()

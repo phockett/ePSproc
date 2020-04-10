@@ -201,6 +201,9 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
     # TODO: Set XS as per old mfpad()
 #     BLMXout['XS'] = (('Eke','Euler'), BLMXout[0].data)  # Set XS = B00
 #     BLMXout = BLMXout/BLMXout.XS  # Normalise
+    if SFflag:
+        mTermSumThres.values = mTermSumThres/mTermSumThres.SF
+
     mTermSumThres['XS'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()  # This basically works, and keeps all non-summed dims... but may give issues later...? Make sure to .copy(), otherwise it's just a pointer.
     mTermSumThres /= mTermSumThres.sel({'L':0,'M':0}).drop('LM')
 

@@ -1,6 +1,9 @@
 
+import numpy as np
+
 # Package fns.
 from epsproc.basicPlotters import molPlot
+from epsproc.util.conversion import (conv_ev_atm, conv_ev_nm)
 
 #*************** Summary & display functions
 

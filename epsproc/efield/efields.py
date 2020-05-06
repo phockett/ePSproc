@@ -1,16 +1,7 @@
 """
-ePSproc electric field functions.
-
-Generate, propagate and model E-fields.
-
-
-27/04/20    Updating & packaging - but still very much a work-in-progress.
-
-20/3/20     Basics developed in tests/methodDev/geometric_method_dev_low-level_E-fields_200320.ipynb
-
+ePSproc Efield class
 
 """
-
 
 import numpy as np
 from scipy import constants as scipy_constants
@@ -85,6 +76,7 @@ class Efield():
     - best way to handle unit conversions?  Did some of this for FROG code already? Yes, see python\test_codes\E_fields_redux_231118_class.py
     - Consider other structures here, dataclass or namedtuple? https://stackoverflow.com/questions/354883/how-do-i-return-multiple-values-from-a-function
     - Xarray conversion?  Use Xarray directly in class?
+    - Bug with FFT/iFFT code?  If shift=True and ishift=True then get extra freq components on iFFT - must be bug in axis assignment/conversion?  OK if shift = False.
 
     '''
 
@@ -96,8 +88,9 @@ class Efield():
                                 'domain' : 't',       # Set a domain label here to switch between (t,E) domain pulse defn. - MAY WANT TO MOVE THIS TO SEPARATE LIST FN?
                                 'dfft' : 'f',        # Set conjugate domain (for FFT)
                                 'sigma' : None,
-                                'E0' : 1,
-                                'A' : 1,
+                                'E0' : 1,       # Set magnitude of field
+                                'CEP':0,        # Set CEP, only used if pulse carrier freq is also defined
+                                'A' : 1,        # Set A for Gaussian - should just set as E0?
                                 'FWHM' : None,
                                 'p' : 0    # Set polarization state. For single values {-1,0,+1} this will just label output. For 'XY' calc. spherical terms.
 #                                 'origin' : 0    # Set origin for domain
@@ -106,7 +99,8 @@ class Efield():
                      'Freq' : {'l' : None,   # Set defns. for carrier, (wavelength, freq, ang. freq). Assumed to be in working units. Also use to index units later.
                                'f' : None,
                                'w' : None,
-                               # 'Ehv' : None  # Should add here, but need to fix assignment routine first!
+                               # 'CEP':0,        # Set CEP, only used if pulse carrier freq is also defined - SET IN PULSE for now, due to use of assignment loop for Freq terms.
+                               # 'Ehv' : None  # Should add here, but need to fix assignment routine first!  Now set by fConv() method.
                                },
 
                      'Ehv' : {'Ef' : None,  # Defined energy domain to hold field converted to E(hv) units
@@ -127,9 +121,9 @@ class Efield():
 #                                  'Ef' : None
 #                                  },
 
-                     'Spectrogram' : {'gate' : None,
-                                      'data' : None
-                                     },
+#                      'Spectrogram' : {'gate' : None,
+#                                       'data' : None
+#                                      },
 
                      'Units' : {   # 'f':{'value':1e12, 'unit':'THz'},  # Set this as a derived unit, 1/t, below, otherwise may get discrepancies in unit conversion.
                                 'l':{'value':1e-9, 'unit':'nm'},
@@ -138,10 +132,14 @@ class Efield():
                                 },
 
                      # Global FFT settings
-                     'FFT' : {'pad':True, 'positiveHalf':True, 'phaseMaskFlag':False, 'thres':1e-3}
+                     # May have issues here with shift and ishift - always need the latter...?
+                     # Bug with FFT/iFFT code?  If shift=True and ishift=True then get extra freq components on iFFT - must be bug in axis assignment/conversion?  OK if shift = False.
+                     'FFT' : {'shift':False, 'ishift':True,
+                              'pad':True, 'positiveHalf':True,
+                              'phaseMaskFlag':False, 'thres':1e-3}
                     }
 
-        self.Emod = {}  # Set empty dict to hold modified fields (propagated, shaped etc.)
+        self.Emod = {'N':0, 0:{}}  # Set empty dict to hold modified fields (propagated, shaped etc.). Use N to hold next field to update value.
 
 
         # Assign any passed values
@@ -168,8 +166,8 @@ class Efield():
             if self.Edef['Units']['f']['value'] == 1e12:
                 self.Edef['Units']['f']['unit'] = 'THz'
 
-            # Set units for E
-            self.Edef['Units']['E'] = self.Edef['Units']['f'].copy()
+            # Set units for E - NOW SET DERIVED UNITS via fConv() method
+#             self.Edef['Units']['E'] = self.Edef['Units']['f'].copy()
 
             # Set c in working units
             self.Edef['Units']['c'] = {'value': scipy_constants.c * self.Edef['Units']['t']['value']/self.Edef['Units']['l']['value'],
@@ -231,7 +229,7 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
             if (self.Edef['t']['axis'] is None) and (self.Edef['Pulse']['sigma'] is not None):
 
                 if self.Edef['t']['delta'] is None:
-                    self.Edef['t']['delta'] = 1e-3*self.Edef['Pulse']['sigma']  # Step size for t axis, relative to sigma. May get large however!
+                    self.Edef['t']['delta'] = 1e-3*self.Edef['Pulse']['sigma']  # Default step size for t axis, relative to sigma. May get large however!
 
                 self.Edef['t']['axis'] = np.arange(-(5*self.Edef['Pulse']['sigma']), 5*self.Edef['Pulse']['sigma'], self.Edef['t']['delta'])
 
@@ -279,6 +277,13 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
             self.ECalc()   # Set defined field
             self.EFFT()    # Set FFT field
 
+            # Set fields in Emod too - may eventually replace above with this?
+            for key in [self.Edef['Pulse']['domain'], self.Edef['Pulse']['dfft']]:
+                self.Emod[self.Emod['N']][key] = self.Edef[key]
+
+            self.Emod['N'] += 1
+
+
 
     #***************** Basic generators
 
@@ -317,7 +322,7 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
 #             print(np.exp(1.0j*self.Edef['Freq']['w']*self.Edef[domain]['axis']))
 #             self.Edef[domain]['Ef'] = self.Edef[domain]['Ef'] * np.exp(1.0j*self.Edef['Freq']['w']*self.Edef[domain]['axis']/self.Edef['Units'][domain]['value'])
 #             self.Edef[domain]['Ef'] = self.Edef[domain]['Ef'] * np.exp(1.0j*self.Edef['Freq']['w']*self.Edef[domain]['axis']*self.Edef['Units'][domain]['value'])
-            self.Edef[domain]['Ef'] = self.Edef[domain]['Ef'] * np.exp(1.0j*self.Edef['Freq']['w']*self.Edef[domain]['axis'])
+            self.Edef[domain]['Ef'] = self.Edef[domain]['Ef'] * np.exp(1.0j*(self.Edef['Freq']['w']*self.Edef[domain]['axis'] - self.Edef['Pulse']['CEP']))
 
 
     #********************* FT functions
@@ -337,15 +342,24 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
             n = None # Default value to pass to np.fft for no padding
             nAxis = self.Edef[domain]['axis'].shape[-1]
 
-        Ebar = np.fft.fft(self.Edef[domain]['Ef'], n=n)
+        Ebar = np.fft.fft(self.Edef[domain]['Ef'], n=n)   # No fft shift, axis [0 .... +ve .... -ve], see https://numpy.org/doc/stable/reference/generated/numpy.fft.fftfreq.html?highlight=fft
         axis = np.fft.fftfreq(nAxis, d=self.Edef[domain]['delta'])
+
+        if self.Edef['FFT']['shift']:
+            Ebar = np.fft.fftshift(Ebar)   # Apply fft shift to move 0 to centre of range
+            axis = np.fft.fftshift(axis)
 
         # Set for full or half FT
         if self.Edef['FFT']['positiveHalf']:
-            inds = np.int(Ebar.shape[0]/2)   # Set for half the range
-            self.Edef[dfft]['Ef'] = Ebar[0:inds]
-            self.Edef[dfft]['axis'] = axis[0:inds]
+            if self.Edef['FFT']['shift']:
+                inds = np.arange(np.int(Ebar.shape[0]/2), Ebar.shape[0])   # Set for half the range, starting from centre
+            else:
+                inds = np.arange(0, np.int(Ebar.shape[0]/2))   # Set for half the range, starting at 0
+
+            self.Edef[dfft]['Ef'] = Ebar[inds]
+            self.Edef[dfft]['axis'] = axis[inds]
             self.Edef[dfft]['delta'] = axis[1]-axis[0]
+
         else:
             self.Edef[dfft]['Ef'] = Ebar
             self.Edef[dfft]['axis'] = axis
@@ -355,48 +369,121 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
             self.phaseMask(domain = dfft)
 
 
+#     # Function for checking for modified fields & sorting
+#     def checkEmod(self):
+# #         # Loop over domains
+# #         for domain in [self.Edef['Pulse']['domain'], self.Edef['Pulse']['dfft']]:
+
+# #             # Check for existing mod fields
+# #             if domain in self.Emod.keys():
+# #                 N = list(self.Emod[domain].keys())
+
+# #         # Should change formatting here, may want domain_N to allow for multiple cases, and looping.
+# #         if (domain + '_mod') in self.Edef.keys():
+# #             N = list(self.Edef[domain + '_mod'].keys())
+# #         else:
+# #             self.Edef[domain + '_mod'] = {}
+# #             N = 0
+
+#         # Check if entries exist
+#         if self.Emod:
+#             N = self.Emod.N
+#         else:
+#             N = 0
+
+#         # Set
+
     # Calculate iFFT(E).
     # This, sort of, assumes that the field is defined as E(w), and the spectral phase is modified.
     # But could be used for other cases.
     # Emod is used if passed, otherwise uses self.Edef[dfft]['Ef']
     # 27/04/20 Modified to use self.Emod for fields.
-    def EiFFT(self, Emod = None): #, f=None, pad=False):
+    # In this case, send either Emod to use this directly, or Ninput to use self.Emod[Ninput].
+    # Set comment = '' to pass notes on field generation.
+    def EiFFT(self, Emod = None, Ninput = None, comment = ''): #, f=None, pad=False):
 
         domain = self.Edef['Pulse']['domain']
         dfft = self.Edef['Pulse']['dfft']
 
+        Nlast = self.Emod['N'] - 1  # Most recent field index, use this as input if nothing else specified
+
+        # Set field based on input - this is currently a bit ugly!
+#         if (Emod is None) and (Ninput is None):
+#             if dfft in self.Emod[Nlast]:
+#                 Emod = self.Emod[Nlast][dfft]['Ef']   # Default to most recent field if it exists
+#                 EmodAxis = self.Emod[Nlast][dfft]['axis']
+#             else:
+#                 Emod = self.Edef[dfft]['Ef']  # Revert to original field defn. if not supplied
+#                 EmodAxis = self.Edef[dfft]['axis']
+
+#         elif (Emod is None) and (Ninput is not None):  # Set specific field from Emod
+#             Emod = self.Emod[Ninput][dfft]['Ef']
+#             EmodAxis = self.Emod[Ninput][dfft]['axis']
+
+        # Rewrite for updated Emod dict.
+        N = Nlast  # Set default
+        if Ninput is not None:
+            N = Ninput
+
         if Emod is None:
-            Emod = self.Edef[dfft]['Ef']
+            Emod = self.Emod[N][dfft]['Ef']   # Default to most recent field if it exists
+            EmodAxis = self.Emod[N][dfft]['axis']
+
+            if 'comment' in self.Emod[N][dfft].keys():
+                comment += self.Emod[N][dfft]['comment']  # Propagate comment
 
         # Transform back to time-domain, and center
-        Eifft = np.fft.ifftshift(np.fft.ifft(Emod))   # With shift
-#         Eifft = (np.fft.ifft(self.Edef[dfft]['Ef']))  # Without shift
+#         Eifft = np.fft.ifftshift(np.fft.ifft(Emod))   # With shift
+        Eifft = np.fft.ifft(Emod)  # Without shift
+        axis = np.fft.fftfreq(Eifft.shape[-1], d=self.Edef[dfft]['delta'])
 
-        if self.Edef['FFT']['positiveHalf']:  # Correct amplitudes, get x2 otherwise if positiveHalf is True.
-            Eifft /= 2.0
-
-
-
-#         self.Edef[domain]['Ef'] = np.c_[self.Edef[domain]['Ef'], Eifft]   # Basic stacking OK if pad=False and positiveHalf=False, otherwise axis lengths different
+        if self.Edef['FFT']['ishift']:
+            Eifft = np.fft.ifftshift(Eifft)  # Apply fft shift if set
+            axis = np.fft.ifftshift(axis)
 
         # Set for full or half FT - if used with iFFT shift and a pulse center at 0, this will slice result.
-        inds = np.int(Eifft.shape[0])   # Set for full range
+        inds = np.arange(0, Eifft.shape[0])   # Set for full range
+
+        if self.Edef['FFT']['positiveHalf']:
+            Eifft /= 2.0   # Correct amplitudes, get x2 otherwise if positiveHalf is True.
+
+            if self.Edef['FFT']['ishift']:
+                inds = np.arange(np.int(Eifft.shape[0]/2), Eifft.shape[0])   # Set for half the range, starting from centre
+            else:
+                inds = np.arange(0, np.int(Eifft.shape[0]/2))   # Set for half the range, starting at 0
+#         self.Edef[domain]['Ef'] = np.c_[self.Edef[domain]['Ef'], Eifft]   # Basic stacking OK if pad=False and positiveHalf=False, otherwise axis lengths different
+
+
 #         if self.Edef['FFT']['positiveHalf']:
 #             inds = np.int(Eifft.shape[0]/2)   # Set for half the range
 
-        # Set as new field, or as new dict?
-        # Should change formatting here, may want domain_N to allow for multiple cases, and looping.
-        if (domain + '_mod') in self.Edef.keys():
-            N = list(self.Edef[domain + '_mod'].keys())
-        else:
-            self.Edef[domain + '_mod'] = {}
-            N = 0
+#         # Set as new field, or as new dict?
+#         # Should change formatting here, may want domain_N to allow for multiple cases, and looping.
+#         if (domain + '_mod') in self.Edef.keys():
+#             N = list(self.Edef[domain + '_mod'].keys())
+#         else:
+#             self.Edef[domain + '_mod'] = {}
+#             N = 0
 
-        self.Edef[domain + '_mod'][N] = {'Ef':Eifft[0:inds],
-                                     'axis':np.fft.ifftshift(np.fft.fftfreq(Eifft.shape[-1], d=self.Edef[dfft]['delta'])[0:inds]),
-                                     'domain':domain
+        # Set pair of fields in output
+        # Always set to new output, or check for pair...?
+        if domain in self.Emod[Nlast]:  # If conjugate domain is already set, create a new field pair...
+            Noutput = Nlast + 1
+            self.Emod[Noutput] = {}
+            self.Emod[Noutput][dfft] = {'Ef':Emod,
+                                        'axis':EmodAxis,
+                                        'domain':domain
+                                        }
+        else:
+            Noutput = Nlast  # ...otherwise use input index.
+
+        self.Emod[Noutput][domain] = {'Ef':Eifft[inds],
+                                      'axis':axis[inds],
+                                      'domain':domain,
+                                      'comment':comment  # Add passed comment here, may also want to autogenerate note on field source?
 
                                     }
+
 
 
         #if f:
@@ -404,8 +491,14 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
         #else:
         #    t = None
 
+    # TODO
+    def finst(self):
+        """Calculate f(t) as instantaneous freq."""
+        print('Not impemented')
+
 
     #*************** Phase modification fns.
+    # TODO: add more sophisticated fns, see, e.g., froglib.phasemanipulations, for removing linear and phase offsets.
 
     # Mask phase away from pulse?
     def phaseMask(self, domain = None, thres = None):
@@ -447,7 +540,7 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
 
 
 
-    def chirp(self, A, resetPhase=True):
+    def chirp(self, A, resetPhase=False, comment = None):
         """
         Add quadratic phase (chirp) in spectral domain. Requires an E-field object, and chirp parameter A.
 
@@ -458,38 +551,206 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
         """
         domain = 'f'
 
+        Nlast = self.Emod['N']  # Last output slot, use N-1 as input if nothing else specified
+
+        # Set field - checks no longer required as now Emod[0] set at init (in setEf()).
+#         try:
+#             Ew = self.Emod[Nlast-1][domain]['Ef']
+#             EwAxis = self.Emod[Nlast-1][domain]['axis']
+#         except KeyError:
+#             Ew = self.Edef[domain]['Ef']
+#             EwAxis = self.Edef[domain]['axis']
+
+        Ew = self.Emod[Nlast-1][domain]['Ef']
+        EwAxis = self.Emod[Nlast-1][domain]['axis']
+
+
         # Remove existing phase - this is only the linear term if starting from a Gaussian pulse
         if resetPhase:
-            Ew = np.abs(self.Edef[domain]['Ef'])
-        else:
-            Ew = self.Edef[domain]['Ef']
+            Ew = np.abs(Ew)
 
         # Add chirp
 #         Ewq = np.abs(Ew)*np.exp(1.0j*(A*(self.Edef[domain]['axis']-self.Edef['Freq']['f']))**2)
-        Ewq = np.abs(Ew)*np.exp(1.0j*A*(self.Edef[domain]['axis']-self.Edef['Freq']['f'])**2)
+#         Ewq = Ew*np.exp(1.0j*A*(self.Edef[domain]['axis']-self.Edef['Freq']['f'])**2)
+        Ewq = Ew*np.exp(1.0j*A*(EwAxis-self.Edef['Freq']['f'])**2)
 
 
         # Set as new field, or as new dict?
         # Should change formatting here, may want domain_N to allow for multiple cases, and looping.
         # Or nest this? Or concatenate? (-- Only if domain axes are identical.)
-        if (domain + '_mod') in self.Edef.keys():
-            N = list(self.Edef[domain + '_mod'].keys())
-        else:
-            self.Edef[domain + '_mod'] = {}
-            N = 0
+#         if (domain + '_mod') in self.Edef.keys():
+#             N = list(self.Edef[domain + '_mod'].keys())
+#         else:
+#             self.Edef[domain + '_mod'] = {}
+#             N = 0
 
-        self.Edef[domain + '_mod'][N] = {'Ef':Ewq,
-                                     'axis':self.Edef[domain]['axis'],
-                                     'domain':domain
-
-                                    }
-#         self.Edef[domain] = {'Ef':Ewq,
+#         self.Edef[domain + '_mod'][N] = {'Ef':Ewq,
 #                                      'axis':self.Edef[domain]['axis'],
 #                                      'domain':domain
 
 #                                     }
 
-        self.EiFFT(Emod = Ewq)  # Set tmod pulse via ifft
+        self.Emod[Nlast] = {}
+        self.Emod[Nlast][domain] = {'Ef':Ewq,
+                                     'axis':EwAxis,
+                                     'domain':domain,
+                                     'comment': f'$E_{{{Nlast-1}}}$, phase {domain} chirped, A={A}',
+                                     'A':A
+                                    }
+
+        self.Emod['N'] += 1  # Update indexer
+
+#         self.EiFFT(Emod = Ewq)  # Set tmod pulse via ifft
+        self.EiFFT()  # Set tmod pulse via ifft
+
+
+    #***************** Spectrograms
+
+    # Basic (Frog) spectrograms - code adapted from Froglib, https://github.com/xmhk/froglib
+    # For code implementing various Frog methods, see "E_fields_redux_231118_class.py" - to be implemented here as frog() method
+    def calcSpectrogram(self, signal = None, gate = None, fType = 'blind'):
+
+        domain = 't'
+
+        # Set signal and gate fields. If not passed, use most recently set fields.
+        N = self.Emod['N'] - 1
+
+        if signal is None:
+            signal = self.Emod[N][domain]['Ef']
+
+        elif type(signal) is np.ndarray:
+            pass
+
+#         elif type(signal) is   ####### May want to allow for passing of pulse defn. dictionary here?
+
+        gateObj = None
+
+        if gate is None:
+            gate = signal   # Default to signal, or to short gaussian...?
+
+        elif type(gate) is float:   # Take a passed value as a Gaussian width...?
+            pass
+
+        elif type(gate) is dict:  # Generate gate pulse as new Ef object
+            gateObj = Efield(gate)
+            gate = gateObj.Edef[domain]['Ef']
+
+#         elif type(signal) is np.ndarray:
+#             pass
+
+        # TODO:
+        # - Error checking, currently needs square array.
+        # - Downsampling for cases with large FFT axis - just select ROI around features (see Frog code?)
+        # - Methods, see "E_fields_redux_231118_class.py" for more frog types.
+
+        # Following code in froglib...
+        nn = len(signal)
+        n2 = int(nn / 2)
+
+        # (1) Outer product of two fields (time-domain), blind Frog case
+#         ap = np.outer(signal, gate)
+
+        # (1) Outer product of two fields (time-domain), depending on type of Frog
+        # NOTE field ordering matters for X-Frog definitions.
+        # Set options using dictonary (see https://simonwillison.net/2004/May/7/switch/ and https://stackoverflow.com/questions/60208/replacements-for-switch-statement-in-python)
+        ap = {
+              'SHG':    lambda f1,f2: np.outer(f1, f2) + np.outer(f2, f1),  # SHG case, symmetric in time
+              'blind':  lambda f1,f2: np.outer(f1, f2),                     # Blind case, just two fields
+              'SD':     lambda f1,f2: np.outer(f1**2,f2.conjugate()),       # SD classic
+              'SDr':    lambda f1,f2: np.outer(f2**2,f1.conjugate()),       # SD classic - field ordering reversed, matters in X-Frog case
+        #      'SDb':    lambda f1,f2: np.outer(f1,f2.conjugate()**2),
+              'SD1':    lambda f1,f2: np.outer(f1, f1.conjugate()*f2),      # Various options for alternative SD cases, depending on non-linearity and field ordering
+              'SD2':    lambda f1,f2: np.outer(f1*f2,f2),
+              'SD3':    lambda f1,f2: np.outer(f1,f1*f2.conjugate()),
+              'PG':     lambda f1,f2: np.outer(f1, np.abs(f2)**2),          # PG classic - results match Trebino for cubic case (flipped relative to SD)
+              'PGr':    lambda f1,f2: np.outer(f2, np.abs(f1)**2),         # PG classic - field ordering reversed, matters in X-Frog case
+              'PG1':    lambda f1,f2: np.outer(np.abs(f1)**2, f2),          # PG classic - this defn. identical to SD case.
+              'TG1':    lambda f1,f2: np.outer(f1, f2**2)                   # TG options
+              # 'TG2':    lambda f1,f2: np.outer(f1, f2**2)
+              }[fType](signal, gate)
+
+        # (2) Defined empty arrays to hold results
+        m1 = np.zeros(np.shape(ap), dtype=np.complex128)
+        m2 = np.zeros(np.shape(ap), dtype=np.complex128)
+
+        # (3) Loop over input and roll - effectively sets tau for each row
+        for i in range(n2 - 1, -n2, -1):
+            m1[i + n2, :] = np.roll(ap[i + n2, :], -i)
+
+        m1 = np.transpose(m1)
+
+        # (4) Roll and FFT to set a freq. axis
+        for i in range(nn):
+            m2[i, :] = np.roll(np.fft.fft(np.roll(m1[i, :], +n2)), -n2)  # time-freq
+
+        m2 = np.transpose(m2)  # freq - time
+        m2 = m2 / np.max(np.max(np.abs(m2)))
+
+#         return m2
+
+        # Set outputs - should just set in Emod....?
+        self.Spectrogram = {'siganl':signal,
+                            'gate':gate,
+                            'gateObj':gateObj,
+                            'data':m2,
+                            'N':N
+                           }
+
+
+    #***************** Derived domains/unit conversion
+
+    # Set other domains via copy & rescale - would be neater just to store multiple axes, but duplicate for now.
+    def fConv(self):
+        """Convert freq. domain axis to lenght & energy units. and set fields."""
+
+        domain = 'f'
+
+        for N in np.arange(0, self.Emod['N']):
+
+            # Set wavelength scale
+            self.Emod[N]['l'] = self.Emod[N][domain].copy()   # Without .copy() this will just be a pointer.
+            self.Emod[N]['l']['axis'] = self.Edef['Units']['c']['value']/self.Emod[N]['f']['axis']
+
+            # Set energy scale
+            self.Emod[N]['Ehv'] = self.Emod[N][domain].copy()
+            self.Emod[N]['Ehv']['axis'] = (scipy_constants.h/scipy_constants.e) * self.Emod[N]['f']['axis']/self.Edef['Units']['t']['value']
+
+
+
+    #***************** Conversion...
+
+    # Convert a single set of fields to an Xarray Dataset
+    def toXarrayDS(self, N = None):
+    # With spectrogram + looping over domains - assumes axis sizes are concomittant I think
+
+        if N is None:
+            N = self.Emod[N] -1   # Default to last set field set
+
+        ds = xr.Dataset()  # Init empty dataset, then loop over fields
+
+        for domain in self.Emod[N].keys():
+
+            domainName = f'E{domain}'  # Set data name - can't be same as coord names in this case
+
+            if domain in [self.Edef['Pulse']['domain'], self.Edef['Pulse']['dfft']]:  # Key dims, set as unlinked
+                ds[domainName] = ((domain), self.Emod[N][domain]['Ef'])
+                ds.coords[domain] = self.Emod[N][domain]['axis']
+
+            else:
+                ds[domainName] = ((domain), self.Emod[N][domain]['Ef'])
+                ds.coords[domain] = ((self.Edef['Pulse']['dfft']), self.Emod[N][domain]['axis'])  # For derived dims, set as linked to dfft dim - should set this more cleanly elsewhere...?
+
+
+            # Set units (will be used for plotting)
+            ds[domain].attrs['units'] = self.Edef['Units'][domain]['unit']
+            ds[domainName].attrs['units'] = 'arb'
+
+        # Assign spectrogram
+        if hasattr(self, 'Spectrogram'):
+            ds['spectrogram'] = ((self.Edef['Pulse']['dfft'], self.Edef['Pulse']['domain']), np.abs(self.Spectrogram['data']))
+
+
+        self.Emod[N]['ds'] = ds
 
 
 
@@ -497,40 +758,77 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
 
     # Basic plotting
     # TODO: check plotTypes vs. defns. in ePSproc
-    def plot(self, plotType = 'phaseUW'):
+    # TODO: modify to plot sets of fields, either stacked or single plot.
+    # 28/04/20: Changed to plot from Emod[N] dicts
+    # TODO: sort out axis limits - should pass to override or set in class. Also change to, e.g. Holoviews, for more interaction...
+    def plot(self, plotType = 'phaseUW', Nplot = None, domainList = None, thres = 1e-2):
         '''Basic plot with Matplotlib'''
 #         plt.plot(self.t, self.Et)
 
-        for domain in [self.Edef['Pulse']['domain'], self.Edef['Pulse']['dfft']]:
+        if Nplot is None:
+            Nplot = np.arange(0, self.Emod['N'])
 
-            # Plot according to type
-            if plotType == 'complex':
-                # Plot real + imag field components
-                plt.plot(self.Edef[domain]['axis'], self.Edef[domain]['Ef'].real, self.Edef[domain]['axis'], self.Edef[domain]['Ef'].imag, self.Edef[domain]['axis'], np.abs(self.Edef[domain]['Ef']))
-                plt.legend(['Re', 'Im', 'Abs'])
+        # Default plots for domain + dfft
+        if domainList is None:
+            domainList = [self.Edef['Pulse']['domain'], self.Edef['Pulse']['dfft']]
 
-            elif plotType == 'phase':
-                # Plot magnitude + phase
-                plt.plot(self.Edef[domain]['axis'], np.abs(self.Edef[domain]['Ef']), self.Edef[domain]['axis'], (np.angle(self.Edef[domain]['Ef'])))
-                plt.legend(['Abs', 'Phase'])
-
-            elif plotType == 'phaseUW':
-                # Plot magnitude + phase, unwrapped
-
-                # Single axis
-#                 plt.plot(self.Edef[domain]['axis'], np.abs(self.Edef[domain]['Ef']), self.Edef[domain]['axis'], np.unwrap(np.angle(self.Edef[domain]['Ef'])))
-
-                # Test secondary_y - not working
-#                 plt.plot(self.Edef[domain]['axis'], np.abs(self.Edef[domain]['Ef']))
-#                 plt.plot(self.Edef[domain]['axis'], np.unwrap(np.angle(self.Edef[domain]['Ef'])), secondary_y=True)
-
-                # Full ax addressing
-                fig, ax1 = plt.subplots()
+        for domain in domainList:
+            # Set up figure - do this *before* looping over N (fields)
+            fig, ax1 = plt.subplots()
+            if plotType == 'phaseUW':
                 ax2 = ax1.twinx()
-                ax1.plot(self.Edef[domain]['axis'], np.abs(self.Edef[domain]['Ef']), 'g-')
-                ax2.plot(self.Edef[domain]['axis'], np.unwrap(np.angle(self.Edef[domain]['Ef'])), 'b-')
 
-                plt.legend(['Abs', 'Phase (unwrapped)'])
+#             lText = []
+
+            # Plot selected fields
+            for N in Nplot:
+                lString = f'$E_{{{N}}}$ '
+
+                # Plot according to type
+                if plotType == 'complex':
+                    # Plot real + imag field components
+                    ax1.plot(self.Emod[N][domain]['axis'], self.Emod[N][domain]['Ef'].real, '-', label = lString + 'Re')
+                    ax1.plot(self.Emod[N][domain]['axis'], self.Emod[N][domain]['Ef'].imag, '-', label = lString + 'Im')
+                    ax1.plot(self.Emod[N][domain]['axis'], np.abs(self.Emod[N][domain]['Ef']), '--', label = f'|{lString}|')
+#                     plt.legend(['Re', 'Im', 'Abs'])
+#                     lText.extend([f'{N} Re', f'{N} Im', f'{N} Abs'])
+
+                elif plotType == 'field':
+                    # Plot real-valued field (E + E*)
+                    ax1.plot(self.Emod[N][domain]['axis'], 0.5*(self.Emod[N][domain]['Ef'] + self.Emod[N][domain]['Ef'].conj()), '-', label = f'{lString}+{lString}*')
+
+
+                elif plotType == 'abs':
+                    # Plot envelope only, |E|
+                    ax1.plot(self.Emod[N][domain]['axis'], np.abs(self.Emod[N][domain]['Ef']), '-', label = f'|{lString}|')
+
+
+                elif plotType == 'phase':
+                    # Plot magnitude + phase
+                    ax1.plot(self.Emod[N][domain]['axis'], np.abs(self.Emod[N][domain]['Ef']),'-', label = f'|{lString}|')
+                    ax1.plot(self.Emod[N][domain]['axis'], (np.angle(self.Emod[N][domain]['Ef'])), '--', label = lString + 'Phase')
+#                     lText.extend([f'{N} Abs', f'{N} Phase'])
+#                     lText.extend((f'{N} Abs', f'{N} Phase'))
+#                     ax1.legend(['Abs', 'Phase'])
+
+                elif plotType == 'phaseUW':
+                    # Plot magnitude + phase, unwrapped
+
+                    # Single axis
+    #                 plt.plot(self.Edef[domain]['axis'], np.abs(self.Edef[domain]['Ef']), self.Edef[domain]['axis'], np.unwrap(np.angle(self.Edef[domain]['Ef'])))
+
+                    # Test secondary_y - not working
+    #                 plt.plot(self.Edef[domain]['axis'], np.abs(self.Edef[domain]['Ef']))
+    #                 plt.plot(self.Edef[domain]['axis'], np.unwrap(np.angle(self.Edef[domain]['Ef'])), secondary_y=True)
+
+                    # Full ax addressing
+                    ax1.plot(self.Emod[N][domain]['axis'], np.abs(self.Emod[N][domain]['Ef']), '-', label = f'|{lString}|')
+                    ax2.plot(self.Emod[N][domain]['axis'], np.unwrap(np.angle(self.Emod[N][domain]['Ef'])), '--', label = lString + 'Phase')
+
+#                     plt.legend(['Abs', 'Phase (unwrapped)'])
+#                     lText.extend([f'{N} Abs', f'{N} Phase'])
+#                     lText.extend((f'{N} Abs', f'{N} Phase'))
+
 
             if plotType != 'phaseUW':
                 plt.ylabel('Amplitude')
@@ -542,12 +840,83 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
                 ax1.set_xlabel(self.Edef['Units'][domain]['unit'])
 
 
-    #         plt.xlim((-2.66, 2.66))  # Set for two cycles at 800nm
-#             plt.xlim(-0.5, 0.5)
+        #         plt.xlim((-2.66, 2.66))  # Set for two cycles at 800nm
+    #             plt.xlim(-0.5, 0.5)
 
+            # Set some sensible limits (FFT scales will be large)
             if domain == 'f':  # self.Edef['Pulse']['dfft']:  # Hmmm, should be able to do this generically over all domains?  With origin + width?
                                                                 # TODO: move origins + widths to domain-specific containers.
                 plt.xlim(0.8*self.Edef['Freq']['f'], 1.2*self.Edef['Freq']['f'])
 
-            plt.title(self.Estring)
+            elif domain == 't':
+                scale = [-2.5, 2.5]
+                plt.xlim(scale[0]*self.Edef['Pulse']['FWHM'], scale[1]*self.Edef['Pulse']['FWHM'])
+
+            else:
+                # Estimate from feature...
+                peak = np.abs(self.Emod[N][domain]['Ef']).max()
+                mask = np.abs(self.Emod[N][domain]['Ef']) > peak*thres
+                scale = [self.Emod[N][domain]['axis'][mask].min(), self.Emod[N][domain]['axis'][mask].max()]
+                plt.xlim(scale[0], scale[1])
+
+            # Set legend from array or list
+#             plt.legend(Nplot)
+#             plt.legend(lText)
+
+            # Set legends from labels, per axis object
+            if plotType == 'phaseUW':
+                ax1.legend(loc='upper left')
+                ax2.legend(loc='upper right')
+            else:
+                ax1.legend(loc='upper left')  # This sometimes defaults to middle, so set explicitly
+
+
+            plt.title(self.Estring + f'\nplotType = {plotType}')
             plt.show()
+
+
+    def plotSpectrogram(self):
+        """
+        VERY basic spectrogram plotter from old code - for quick testing only.
+
+        TODO: fix axes for with/withou fft shift.
+
+        BETTER: use plotSpectrogramHV() instead, this uses full axes as set.
+
+        """
+
+        # Testing - set vars as per old code for brevity
+        S = self.Spectrogram['data']
+        N = self.Emod['N'] - 1
+        t = self.Emod[N]['t']['axis']
+        f = self.Emod[N]['f']['axis']
+
+        plt.figure()
+        plt.imshow(np.abs(S)**2, extent = [t[0],t[-1],f[np.int(S.shape[0]/2)-1],f[np.int(S.shape[0]/2)]], aspect='auto')
+        plt.ylim((1.5*(f0/tUnit),2.5*(f0/tUnit)))
+        plt.ylabel('$\Omega$ /THz')
+        plt.xlabel('t /fs')
+        plt.title('Spectrogram')
+        plt.show()
+
+
+
+    def plotSpectrogramHV(self, N = None):
+        # Additional imports
+        import holoviews as hv
+        from holoviews import opts
+        hv.extension('bokeh')
+
+        # Set N
+        if N is None:
+            N = self.Emod['N'] -1
+
+        # Check ds exists
+        if not hasattr(self.Emod[N], 'ds'):
+            self.toXarrayDS(N = N)
+
+
+        hv_ds = hv.Dataset(self.Emod[N]['ds']['spectrogram'])
+#         hv_ds
+        spec = hv_ds.to(hv.Image, kdims=['t','f'])
+        spec.opts(width=700, height=700)

@@ -10,7 +10,7 @@ seaborn==0.9.0
 spherical_functions==2019.7.12.23.25.11
 
 # Optional, but included here for now
-# Set version for Sphinx build!
+# Set version for Sphinx build - throwing errors with spherical_functions April/May 2020, but may also be sf version? Seems to be loading 2020.5.9.16.33.28
 numba==0.45.0
 
 # Doc functionality

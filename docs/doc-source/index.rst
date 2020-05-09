@@ -17,12 +17,13 @@ Welcome to ePSproc
    demos/ePSproc_demo_CrossSections_Oct2019
    demos/ePSproc_demo_matE_plotting_Feb2020
 
+
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials:
 
-   ePS_ePSproc_tutorial\ePS_tutorial_080520.ipynb
-   ePS_ePSproc_tutorial\ePS_adv_tutorial_080520.ipynb
+   ePS_ePSproc_tutorial/ePS_tutorial_080520.ipynb
+   ePS_ePSproc_tutorial/ePS_adv_tutorial_080520.ipynb
 
 
 .. toctree::

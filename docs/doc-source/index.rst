@@ -19,6 +19,14 @@ Welcome to ePSproc
 
 .. toctree::
    :maxdepth: 2
+   :caption: Tutorials:
+
+   ePS_ePSproc_tutorial\ePS_tutorial_080520.ipynb
+   ePS_ePSproc_tutorial\ePS_adv_tutorial_080520.ipynb
+
+
+.. toctree::
+   :maxdepth: 2
    :caption: Test Notebooks:
 
    tests/Spherical_function_testing_Aug_2019

@@ -7,6 +7,16 @@ import numpy as np
 from scipy import constants as scipy_constants
 import pprint
 
+import xarray as xr
+
+# Additional imports for plotting
+import matplotlib.pyplot as plt
+
+import holoviews as hv
+from holoviews import opts
+
+
+
 # Use dictionary to create field defns intially?  Gets confusing otherwise.
 # Should be able to iterate/unpack values here for different cases.
 # Minimal defn. with (sigma, wavelength) or (bandwidth, wavelength), in working units.
@@ -80,7 +90,7 @@ class Efield():
 
     '''
 
-    def __init__(self, Edef = None, units = None):  # , E0 = None, sigma = None, A = 1, t = None, dt = None, l0 = None, f0 = None, w0 = None, units = None):
+    def __init__(self, Edef = None, units = None, verbose = True):  # , E0 = None, sigma = None, A = 1, t = None, dt = None, l0 = None, f0 = None, w0 = None, units = None):
 
         #*** Define master list of parameters & init as empty or with defaults
         # If no parameters are passed, this can be used to create a defn template
@@ -135,7 +145,7 @@ class Efield():
                      # May have issues here with shift and ishift - always need the latter...?
                      # Bug with FFT/iFFT code?  If shift=True and ishift=True then get extra freq components on iFFT - must be bug in axis assignment/conversion?  OK if shift = False.
                      'FFT' : {'shift':False, 'ishift':True,
-                              'pad':True, 'positiveHalf':True,
+                              'pad':True, 'positiveHalf':False,
                               'phaseMaskFlag':False, 'thres':1e-3}
                     }
 
@@ -185,7 +195,8 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
 (bandwidths for Gaussian transform limited pulses)"""
 
             # Print summary details
-            self.printDef()
+            if verbose:
+                self.printDef()
 
 
     def printDef(self):
@@ -251,7 +262,7 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
                     if self.Edef['Freq'][key] is not None:
                         refKey = key
                         refValue = self.Edef['Freq'][key]
-                        print(refValue)
+                        # print(refValue)
 
                 if refKey is 'w':
                     refValue *= self.Edef['Units']['f']['value']/2*np.pi
@@ -608,12 +619,13 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
 
     # Basic (Frog) spectrograms - code adapted from Froglib, https://github.com/xmhk/froglib
     # For code implementing various Frog methods, see "E_fields_redux_231118_class.py" - to be implemented here as frog() method
-    def calcSpectrogram(self, signal = None, gate = None, fType = 'blind'):
+    def calcSpectrogram(self, signal = None, gate = None, fType = 'blind', N = None, verbose = False):
 
         domain = 't'
 
         # Set signal and gate fields. If not passed, use most recently set fields.
-        N = self.Emod['N'] - 1
+        if N is None:
+            N = self.Emod['N'] - 1
 
         if signal is None:
             signal = self.Emod[N][domain]['Ef']
@@ -632,7 +644,7 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
             pass
 
         elif type(gate) is dict:  # Generate gate pulse as new Ef object
-            gateObj = Efield(gate)
+            gateObj = Efield(gate, verbose = verbose)
             gate = gateObj.Edef[domain]['Ef']
 
 #         elif type(signal) is np.ndarray:
@@ -720,8 +732,8 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
     #***************** Conversion...
 
     # Convert a single set of fields to an Xarray Dataset
-    def toXarrayDS(self, N = None):
     # With spectrogram + looping over domains - assumes axis sizes are concomittant I think
+    def toXarrayDS(self, N = None):
 
         if N is None:
             N = self.Emod[N] -1   # Default to last set field set
@@ -902,9 +914,7 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
 
 
     def plotSpectrogramHV(self, N = None):
-        # Additional imports
-        import holoviews as hv
-        from holoviews import opts
+        # May need to set this directly in notebook?
         hv.extension('bokeh')
 
         # Set N
@@ -912,11 +922,11 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
             N = self.Emod['N'] -1
 
         # Check ds exists
-        if not hasattr(self.Emod[N], 'ds'):
+        if not 'ds' in self.Emod[N].keys():
             self.toXarrayDS(N = N)
 
 
         hv_ds = hv.Dataset(self.Emod[N]['ds']['spectrogram'])
 #         hv_ds
-        spec = hv_ds.to(hv.Image, kdims=['t','f'])
-        spec.opts(width=700, height=700)
+        self.spec = hv_ds.to(hv.Image, kdims=['t','f'])
+        self.spec.opts(width=700, height=700)

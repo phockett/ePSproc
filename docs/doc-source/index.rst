@@ -41,6 +41,7 @@ Welcome to ePSproc
 
    methods/geometric_method_dev_260220_090420_tidy
    methods/geometric_method_dev_pt2_170320_v140420
+   methods/ePSproc_orbPlot_tests_130520
 
 
 .. toctree::

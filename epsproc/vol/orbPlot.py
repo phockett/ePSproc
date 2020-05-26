@@ -282,14 +282,18 @@ class molOrbPlotter():
 
         isoValsAbs : list or array, default = None
             Isovals to use (absolute values).
+            If both isoValsAbs and isoValsPC are passed, only PC values will be used.
 
         isoValsPC : list or array, default = None
             Isovals to use, percentage values.
+            If both isoValsAbs and isoValsPC are passed, only PC values will be used.
 
+        To do
+        -----
+        - Fix naming & colourmapping for multiple objects in ITK plotter.
+        - Consolidate atoms > molecular geometry pyVista object.
+        
         """
-        # For np.array types
-        isoValsAbs = np.array(isoValsAbs)
-        isoValsPC = np.array(isoValsPC)
 
         # Set ITK widgets or pv.Plotter
         if interactive:
@@ -301,23 +305,30 @@ class molOrbPlotter():
         for n, item in enumerate(self.data.atomcoords[self.geomInd]):
         #     pl.add_mesh(pv.Sphere(center=item, radius=data.atomnos[n]/100))  # Relative scaling, small atoms
         #     pl.add_mesh(pv.Sphere(center=item, radius=np.sqrt(data.atomnos[n]/10)))  # sqrt scaling, space filling atoms
-            pl.add_mesh(pv.Sphere(center=item, radius=np.sqrt(self.data.atomnos[n])/10))  # sqrt scaling, mid-sized atoms
+            pl.add_mesh(pv.Sphere(center=item, radius=np.sqrt(self.data.atomnos[n])/10), name = f'N{n}, Z={self.data.atomnos[n]}')  # sqrt scaling, mid-sized atoms
 
 
         # Add meshes per orbital
         for item in self.vol.array_names:
             limitVals = [self.vol[item].min(), self.vol[item].max(), np.abs(self.vol[item]).mean()]
 
+            # Set default case
+            isoValsOrb = np.linspace(-limitVals[2], limitVals[2], isoLevels)  # Again set from mean.
+
+            # Override if alternative limits set (logic may be dodgy here)
             if isoValsAbs is not None:
                 isoValsOrb = np.array(isoValsAbs)
-            elif isoValsPC:
+
+            if isoValsPC is not None:
+                isoValsPC = np.array(isoValsPC)
                 isoValsOrb = np.r_[isoValsPC, -isoValsPC] * limitVals[2]  # Set PC vals from mean?
-            else:
-                isoValsOrb = np.linspace(-limitVals[2], limitVals[2], isoLevels)  # Again set from mean.
+
+            # print(isoValsOrb)
 
             # Add contours for currently selected scalars (orbital)
-            pl.add_mesh(self.vol.contour(isoValsOrb, scalars = item), smooth_shading=True, opacity=opacity)  # Plot iso = 0.1
+            pl.add_mesh(self.vol.contour(isosurfaces = isoValsOrb, scalars = item), smooth_shading=True, opacity=opacity)  # Plot iso = 0.1
 
         # Render plot
+        # In notebook tests this doesn't reneder unless called again?
         self.pl = pl
         self.pl.show(True)

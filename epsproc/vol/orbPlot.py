@@ -82,6 +82,9 @@ class molOrbPlotter():
     -------
     molOrbPlotter class object, with molecular data + plotting methods.
 
+    Notes
+    ------
+
     To do
     -----
     - File serach logic? Set default case to call :py:func:`epsproc.headerFileParse`? Other locations?
@@ -277,25 +280,40 @@ class molOrbPlotter():
         """
         Plot orbital(s) with pyVista/ITK
 
+        orbN : str or list of strs, optional, default = None
+            Orbital(s) to plot, by name in self.vol PV object.
+            By default these are set to orbital numbers, and exist for all calculated orbitals.
+            If not supplied, plot all available surfaces, i.e. items in self.vol.array_names
+
         isoLevels : int, optional, default = 6
-            Number of isosurfs to render.
+            Number of isosurfs to compute & render.
 
         isoValsAbs : list or array, default = None
             Isovals to use (absolute values).
             If both isoValsAbs and isoValsPC are passed, only PC values will be used.
 
         isoValsPC : list or array, default = None
-            Isovals to use, percentage values.
+            Isovals to use, percentage values. Plot values are set by +/-isoValsPC * np.abs(self.vol[item]).mean().
             If both isoValsAbs and isoValsPC are passed, only PC values will be used.
+
+        interactive : bool, optional, default = True
+            Plot inteactively using itkwidgets if true.
+            Otherwise use pyVista.Plotter(), which produces static output.
+
+        opacity : float, optional, default = 0.5
+            Set isosurface opacity.
 
         To do
         -----
         - Fix naming & colourmapping for multiple objects in ITK plotter.
         - Consolidate atoms > molecular geometry pyVista object.
+        - orbN as list of ints or np.array? Integrate with calcOrb()?
+        - Opacity mapping for isosurfs? For pv.Plotter() can do this via transfer fns, e.g. 'linear', https://docs.pyvista.org/examples/02-plot/opacity.html#sphx-glr-examples-02-plot-opacity-py
 
         """
 
         # Set ITK widgets or pv.Plotter
+        # May also want to add other methods here, e.g. pv.BackgroundPlotter()  # Runs plotter in separate window process.
         if interactive:
             pl = pv.PlotterITK()
         else:
@@ -309,6 +327,11 @@ class molOrbPlotter():
 
 
         # Add meshes per orbital
+        if orbN is None:
+            orbN = self.vol.array_names
+        elif type(orbN) is str:
+            orbN = list(orbN)
+
         for item in self.vol.array_names:
             limitVals = [self.vol[item].min(), self.vol[item].max(), np.abs(self.vol[item]).mean()]
 

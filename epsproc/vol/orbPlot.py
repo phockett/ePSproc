@@ -292,7 +292,7 @@ class molOrbPlotter():
         -----
         - Fix naming & colourmapping for multiple objects in ITK plotter.
         - Consolidate atoms > molecular geometry pyVista object.
-        
+
         """
 
         # Set ITK widgets or pv.Plotter
@@ -331,4 +331,4 @@ class molOrbPlotter():
         # Render plot
         # In notebook tests this doesn't reneder unless called again?
         self.pl = pl
-        self.pl.show(True)
+        self.pl.show()

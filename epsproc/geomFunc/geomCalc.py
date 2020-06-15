@@ -20,7 +20,7 @@ from epsproc.geomFunc.w3jVecMethods import w3jguVecCPU, w3jprange
 from epsproc.sphCalc import setPolGeoms, wDcalc
 
 # Util funcs.
-from epsproc.geomFunc.geomUtils import genllL, selQNsRow, genllpMatE, genllLList
+from epsproc.geomFunc.geomUtils import genllL, selQNsRow, genllpMatE, genllLList, genKQStermsFromTensors
 
 # Optional imports
 try:
@@ -251,6 +251,20 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
         mfblmCons['BLMmPhase'] = False          # TESTING ONLY - switch signs (m, M) terms before 3j calcs.
 
     phaseCons['mfblmCons'] = mfblmCons
+
+
+    #*** For AFPAD product case, as calculated in afblmXprod()
+    phaseCons['afblmCons'] = {}
+
+    # if phaseConvention == 'E':
+    # (+/-)M phase selection, set as per existing code, betaCons['negM'] = genMatEcons['negm']       # Use -M term in 3j? Should be anti-correlated with genMatEcons['negm']...? 31/03/20 NOW correlated with mfblmCons['Mphase']
+    # Note this is correlated with QN generation in genllpMatE() - should set equivalent fn for alignment terms.
+    # In existing case this arises from M = (-m+mp) or M = -(m+mp) choice.
+    phaseCons['afblmCons']['negM'] = phaseCons['genMatEcons']['negm']
+    phaseCons['afblmCons']['negQ'] = True
+    phaseCons['afblmCons']['negS'] = True
+
+
 
     return phaseCons
 
@@ -1026,3 +1040,103 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
 
 
     return lTerm, lambdaTable, lambdaD, QNs
+
+
+
+# Calculate alignment term - this cell should form core function, cf. betaTerm() etc.
+def deltaLMKQS(EPRX, AKQS):
+    """
+    Calculate aligned-frame "alignment" term:
+
+.. math::
+    \begin{equation}
+    \sum_{K,Q,S}\Delta_{L,M}(K,Q,S)A_{Q,S}^{K}(t)
+    \end{equation}
+
+    \begin{equation}
+    \Delta_{L,M}(K,Q,S)=(2K+1)^{1/2}(-1)^{K+Q}\left(\begin{array}{ccc}
+    P & K & L\\
+    R & -Q & -M
+    \end{array}\right)\left(\begin{array}{ccc}
+    P & K & L\\
+    R' & -S & S-R'
+    \end{array}\right)
+    \end{equation}
+
+    15/06/20 IN PROGRESS
+
+    Parameters
+    ----------
+    EPRX : Xarray
+        Polarization terms in an Xarray, as set by :py:func:`epsproc.geomCalc.EPR`
+
+    AKQS : Xarray
+        Alignement terms in an Xarray, as set by :py:func:`epsproc.setADMs`
+
+    Returns
+    -------
+    AFterm : Xarray
+        Full term, including multiplication and sum over (K,Q,S) (note S-Rp term is retained).
+
+    DeltaKQS : Xarray
+        Alignment term :math:`\Delta_{L,M}(K,Q,S)`.
+
+    To do
+    -----
+    - Add optional inputs.
+    - Add error checks.
+    See other similar functions for schemes.
+
+    """
+
+    # Set QNs
+    QNs1, QNs2 = genKQStermsFromTensors(EPRX, AKQS, uniqueFlag = True, phaseConvention = phaseConvention)
+
+    # Then calc 3js.... as per betaTerm
+    form = 'xdaLM'  # xds
+    dlist1 = ['P', 'K', 'L', 'R', 'Q', 'M']
+    dlist2 = ['P', 'K', 'L', 'Rp', 'S', 'S-Rp']
+
+    # Copy QNs and apply any additional phase conventions
+    QNs1DeltaTable = QNs1.copy()
+    QNs2DeltaTable = QNs2.copy()
+
+    # Set additional phase cons here - these will be set in master function eventually!
+    # NOW - set in setPhaseConventions()
+    # # NOTE - only testing for Q=S=0 case initially.
+    # phaseCons['afblmCons']['negM'] = phaseCons['genMatEcons']['negm']  # IF SET TO TRUE THIS KNOCKS OUT M!=0 terms - not sure if this is correct here, depends also on phase cons in genKQStermsFromTensors().
+    #                                                                     # Yeah, looks like phase error in current case, get terms with R=M, instead of R=-M
+    #                                                                     # Confusion is due to explicit assignment of +/-M terms in QN generation (only allowed terms), which *already* enforces this phase convention.
+    # phaseCons['afblmCons']['negQ'] = True
+    # phaseCons['afblmCons']['negS'] = True
+
+    # Switch signs (m,M) before 3j calcs.
+    if phaseCons['afblmCons']['negQ']:
+        QNs1DeltaTable[:,4] *= -1
+
+    # Switch sign Q > -Q before 3j calcs.
+    if phaseCons['afblmCons']['negM']:
+        QNs1DeltaTable[:,5] *= -1
+
+    # Switch sign S > -S before 3j calcs.
+    if phaseCons['afblmCons']['negS']:
+        QNs2DeltaTable[:,4] *= -1
+
+
+    # Calculate two 3j terms, with respective QN sets
+    thrj1 = ep.geomFunc.w3jTable(QNs = QNs1DeltaTable, nonzeroFlag = True, form = form, dlist = dlist1)
+    thrj2 = ep.geomFunc.w3jTable(QNs = QNs2DeltaTable, nonzeroFlag = True, form = form, dlist = dlist2)
+
+    # Multiply
+    thrjMult = thrj1.unstack() * thrj2.unstack()
+
+    # Additional terms & multiplications
+    Kdegen = np.sqrt(2*thrjMult.K + 1)
+    KQphase = np.power(-1, np.abs(thrjMult.K + thrjMult.Q))
+
+    DeltaKQS =  Kdegen * KQphase * thrjMult
+
+    # AF term
+    AFterm = (DeltaKQS * AKQS.unstack()).sum({'K','Q','S'})
+
+    return AFterm, DeltaKQS

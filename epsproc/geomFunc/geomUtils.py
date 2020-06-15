@@ -298,3 +298,151 @@ def genllpMatE(matE, uniqueFlag = True, mFlag = True, phaseConvention = 'S'):
         return np.unique(QNs, axis = 0)
     else:
         return np.array(QNs)
+
+
+#*************
+# AF CASE Generate QNs - code adapted from MF cases above.
+# - genKQSterms(): set as list of all possible values
+# - genKQStermsFromTensors(): set from existing tensors
+
+# Generate QNs for deltaKQS term - 3j product term
+def genKQSterms(Kmin = 0, Kmax = 2, mFlag = True):
+    # Set QNs for calculation, (l,m,mp)
+    QNs = []
+    for P in np.arange(0, 2+1):    # HARD-CODED R for testing - should get from EPR tensor defn. in full calcs.
+        for K in np.arange(Kmin, Kmax+1):  # Eventually this will come from alignment term
+            for L in np.arange(np.abs(P-K), P+K+1):  # Allowed L given P and K defined
+
+                if mFlag:    # Include "m" (or equivalent) terms?
+                    mMax = L
+                    RMax = P
+                    QMax = K
+                else:
+                    mMax = 0
+                    RMax = 0
+                    QMax = 0
+
+                for R in np.arange(-RMax, RMax+1):
+                    for Q in np.arange(-QMax, QMax+1):
+                        #for M in np.arange(np.abs(l-lp), l+lp+1):
+#                         for M in np.arange(-mMax, mMax+1):
+                            # Set M - note this implies specific phase choice.
+                            # M = -(m+mp)
+                            # M = (-m+mp)
+                            # if np.abs(M) <= L:  # Skip terms with invalid M
+                            #     QNs.append([l, lp, L, m, mp, M])
+
+                        # Run for all possible M
+                        for M in np.arange(-L, L+1):
+                            QNs.append([P, K, L, R, Q, M])
+
+    return np.array(QNs)
+
+
+# Generate QNs from EPR + AKQS tensors
+def genKQStermsFromTensors(EPR, AKQS, uniqueFlag = True, phaseConvention = 'S'):
+    '''
+    Generate all QNs for :math:`\Delta_{L,M}(K,Q,S)` from existing tensors (Xarrays) :math:`E_{P,R}` and :math:`A^K_{Q,S}`.
+
+    Cf. :py:func:`epsproc.geomFunc.genllpMatE`, code adapted from there.
+
+    Parameters
+    ----------
+    matE : Xarray
+        Xarray containing matrix elements, with QNs (l,m), as created by :py:func:`readMatEle`
+
+    uniqueFlag : bool, default = True
+        Check for duplicates and remove (can occur with some forms of matrix elements).
+
+    mFlag : bool, optional, default = True
+        m, mp take all passed values if mFlag=True, or =0 only if mFlag=False
+
+    phaseConvention : optional, str, default = 'S'
+        Set phase conventions with :py:func:`epsproc.geomCalc.setPhaseConventions`.
+        To use preset phase conventions, pass existing dictionary.
+        If matE.attrs['phaseCons'] is already set, this will be used instead of passed args.
+
+
+    Returns
+    -------
+    QNs1, QNs2 : two 2D np.arrays
+        Values take all allowed combinations ['P','K','L','R','Q','M'] and ['P','K','L','Rp','S','S-Rp'] from supplied matE.
+        Note phase conventions not applied to QN lists as yet.
+
+    To do
+    -----
+    - Implement output options (see dev. function w3jTable).
+
+    '''
+
+    # Local import.
+    from epsproc.geomFunc.geomCalc import setPhaseConventions
+
+    # For transparency/consistency with subfunctions, str/dict now set in setPhaseConventions()
+    if 'phaseCons' in EPR.attrs.keys():
+        phaseCons = EPR.attrs['phaseCons']
+    else:
+        phaseCons = setPhaseConventions(phaseConvention = phaseConvention)
+
+    # Get QNs from inputs
+    KQScoords = AKQS.unstack().coords  # Use unstack here, or np.unique(matE.l), to avoid duplicates
+    PRcoords = EPR.unstack().coords
+
+    # Use passed (m,mp) values, or run for m=mp=0 only.
+#     if mFlag:
+#         mList = matE.unstack().m.values
+#     else:
+#         mList = 0
+
+    # Set QNs for calculation, one set for each 3j term
+    QNs1 = []
+    QNs2 = []
+    for P in PRcoords['P'].values:   # Note dictionary syntax for coords objects
+        for K in KQScoords['K'].values:
+            for L in np.arange(np.abs(P-K), P+K+1):  # Allowed L given P and K defined
+
+#                 if mFlag:    # Include "m" (or equivalent) terms?
+#                     mMax = L
+#                     RMax = P
+#                     QMax = K
+#                 else:
+#                     mMax = 0
+#                     RMax = 0
+#                     QMax = 0
+
+                for R in PRcoords['R'].values:
+                    for Q in KQScoords['Q'].values:
+
+                        # Set M, with +/- phase convention - TBC MAY BE INCORRECT IN THIS CASE/CONTEXT?
+                        # Note that setting phaseCons['afblmCons']['negM']  = phaseCons['genMatEcons']['negm'] is current default case, but doesn't have to be!
+                        if phaseCons['genMatEcons']['negm']:
+                            M = (-R+Q)  # Case for M -> -M switch
+                        else:
+                            M = -(R+Q)  # Usual phase convention.
+
+                        QNs1.append([P, K, L, R, Q, M])
+
+                # Set Rp and S - these are essentially independent of R,Q,M, but keep nested for full dim output.
+                for Rp in PRcoords['R'].values:
+                    for S in KQScoords['S'].values:
+                        SRp = S-Rp  # Set final 3j term, S-Rp
+
+                        QNs2.append([P, K, L, Rp, S, SRp])
+
+                            #for M in np.arange(np.abs(l-lp), l+lp+1):
+    #                         for M in np.arange(-mMax, mMax+1):
+                                # Set M - note this implies specific phase choice.
+                                # M = -(m+mp)
+                                # M = (-m+mp)
+                                # if np.abs(M) <= L:  # Skip terms with invalid M
+                                #     QNs.append([l, lp, L, m, mp, M])
+
+                            # Run for all possible M
+    #                         for M in np.arange(-L, L+1):
+    #                             QNs.append([P, K, L, R, Q, M])
+
+
+    if uniqueFlag:
+        return np.unique(QNs1, axis = 0), np.unique(QNs2, axis = 0)
+    else:
+        return np.array(QNs1), np.array(QNs2)

@@ -27,7 +27,7 @@ from epsproc.geomFunc import mfblmGeom
 from epsproc.geomFunc import w3jVecMethods
 
 from epsproc.geomFunc.geomCalc import (EPR, MFproj, betaTerm, remapllpL,
-                                       setPhaseConventions, w3jTable,)
+                                       setPhaseConventions, w3jTable, deltaLMKQS)
 from epsproc.geomFunc.geomUtils import (genllL, genllpMatE, selQNsRow,)
 from epsproc.geomFunc.mfblmGeom import (mfblmXprod,)
 # from epsproc.geomFunc.mfblmGeom_Dev import (mfblmXprod,)
@@ -37,5 +37,5 @@ from epsproc.geomFunc.w3jVecMethods import (Wigner3jQNs, w3jguVecCPU,
 __all__ = ['EPR', 'MFproj', 'Wigner3jQNs', 'betaTerm', 'genllL', 'genllpMatE',
            'geomCalc', 'geomUtils', 'mfblmGeom', 'mfblmXprod',
            'mfblmXprod', 'remapllpL', 'selQNsRow', 'setPhaseConventions',
-           'w3jTable', 'w3jVecMethods', 'w3jguVecCPU', 'w3jprange']
+           'w3jTable', 'w3jVecMethods', 'w3jguVecCPU', 'w3jprange', 'deltaLMKQS']
 # </AUTOGEN_INIT>

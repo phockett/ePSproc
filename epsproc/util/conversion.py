@@ -53,6 +53,11 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
 
     12/03/20 Function adapted from lmPlot() code.
 
+    Note
+    -----
+
+    This might casue :py:func:`epsproc.lmPlot()` to fail for singleton x-dimensions if squeeze = True. TO do: add work-around, see lines 114-122.
+
     """
 
     # Threshold full array - this is as per lmPlot() code, but won't work for xDim as dict.
@@ -106,6 +111,7 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
         daRestack = daRestack.stack(colDims)
 
 
+    # TODO: add work-around here for singleton x-dim to avoid dropping in that case. (Otherwise have to manually set squeeze = True)
     if squeeze:
         # daRestackpd = daRestack.unstack().stack(plotDim = rowDimsRed).squeeze().to_pandas().dropna(axis = 1).T
         # daRestackpd = daRestack.unstack().stack(plotDim = rowDimsRed).dropna(dim = 'plotDim', how = 'all').squeeze().to_pandas().T

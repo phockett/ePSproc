@@ -2,6 +2,7 @@
 import numpy as np
 
 # from epsproc.util import matEleSelector   # Circular/undefined import issue - call in function instead for now.
+from epsproc.sphCalc import setPolGeoms
 from epsproc.geomFunc import geomCalc
 # from epsproc.geomFunc.geomCalc import (EPR, MFproj, betaTerm, remapllpL, w3jTable,)
 from epsproc.geomFunc.geomUtils import genllpMatE

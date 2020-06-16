@@ -1044,7 +1044,7 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
 
 
 # Calculate alignment term - this cell should form core function, cf. betaTerm() etc.
-def deltaLMKQS(EPRX, AKQS):
+def deltaLMKQS(EPRX, AKQS, phaseConvention = 'S'):
     """
     Calculate aligned-frame "alignment" term:
 
@@ -1053,6 +1053,7 @@ def deltaLMKQS(EPRX, AKQS):
     \sum_{K,Q,S}\Delta_{L,M}(K,Q,S)A_{Q,S}^{K}(t)
     \end{equation}
 
+.. math::
     \begin{equation}
     \Delta_{L,M}(K,Q,S)=(2K+1)^{1/2}(-1)^{K+Q}\left(\begin{array}{ccc}
     P & K & L\\
@@ -1089,6 +1090,9 @@ def deltaLMKQS(EPRX, AKQS):
 
     """
 
+    # Get phase conventions
+    phaseCons = setPhaseConventions(phaseConvention = phaseConvention)
+
     # Set QNs
     QNs1, QNs2 = genKQStermsFromTensors(EPRX, AKQS, uniqueFlag = True, phaseConvention = phaseConvention)
 
@@ -1124,8 +1128,8 @@ def deltaLMKQS(EPRX, AKQS):
 
 
     # Calculate two 3j terms, with respective QN sets
-    thrj1 = ep.geomFunc.w3jTable(QNs = QNs1DeltaTable, nonzeroFlag = True, form = form, dlist = dlist1)
-    thrj2 = ep.geomFunc.w3jTable(QNs = QNs2DeltaTable, nonzeroFlag = True, form = form, dlist = dlist2)
+    thrj1 = w3jTable(QNs = QNs1DeltaTable, nonzeroFlag = True, form = form, dlist = dlist1)
+    thrj2 = w3jTable(QNs = QNs2DeltaTable, nonzeroFlag = True, form = form, dlist = dlist2)
 
     # Multiply
     thrjMult = thrj1.unstack() * thrj2.unstack()

@@ -2,13 +2,14 @@
 import numpy as np
 
 # from epsproc.util import matEleSelector   # Circular/undefined import issue - call in function instead for now.
+from epsproc import sphCalc
 from epsproc.geomFunc import geomCalc
 # from epsproc.geomFunc.geomCalc import (EPR, MFproj, betaTerm, remapllpL, w3jTable,)
 from epsproc.geomFunc.geomUtils import genllpMatE
 
 # Code as developed 16/17 March 2020.
 # Needs some tidying, and should implement BLM Xarray attrs and format for output.
-def afblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
+def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = None,
                 lambdaTerm = None, RX = None, eulerAngs = None,
                 thres = 1e-2, thresDims = 'Eke', selDims = {'it':1, 'Type':'L'},
                 sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
@@ -101,7 +102,7 @@ def afblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
         # eulerAngs = np.array([0,0,0], ndmin=2)
         # RX = ep.setPolGeoms(eulerAngs = eulerAngs)   # This throws error in geomCalc.MFproj???? Something to do with form of terms passed to wD, line 970 vs. 976 in geomCalc.py
         # Alternatively - just set default values then sub-select.
-        RX = setPolGeoms()
+        RX = sphCalc.setPolGeoms()
 
         # *** Lambda term
         lambdaTerm, lambdaTable, lambdaD, _ = geomCalc.MFproj(RX = RX, form = 'xarray', phaseConvention = phaseConvention)
@@ -142,7 +143,10 @@ def afblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
 
 
     #*** Alignment term
-    AFterm, DeltaKQS = geomCalc.deltaLMKQS(EPRX, AKQS)
+    if AKQS is None:
+        AKQS = sphCalc.setADMs()     # If not passed, set to defaults - A(0,0,0)=1 term only, i.e. isotropic distribution.
+
+    AFterm, DeltaKQS = geomCalc.deltaLMKQS(EPRX, AKQS, phaseConvention = phaseConvention)
 
 
     #*** Products

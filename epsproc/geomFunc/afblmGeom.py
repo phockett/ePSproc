@@ -13,7 +13,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
                 lambdaTerm = None, RX = None, eulerAngs = None,
                 thres = 1e-2, thresDims = 'Eke', selDims = {'it':1, 'Type':'L'},
                 sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
-                SFflag = True, squeeze = False, phaseConvention = 'S'):
+                SFflag = True, SFflagRenorm = True, BLMRenorm = True,
+                squeeze = False, phaseConvention = 'S'):
     """
     Implement :math:`\beta_{LM}^{AF}` calculation as product of tensors.
 
@@ -218,11 +219,14 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     # TODO: Set XS as per old mfpad()
 #     BLMXout['XS'] = (('Eke','Euler'), BLMXout[0].data)  # Set XS = B00
 #     BLMXout = BLMXout/BLMXout.XS  # Normalise
-    if SFflag:
+    if SFflagRenorm:
         mTermSumThres.values = mTermSumThres/mTermSumThres.SF
 
     mTermSumThres['XS'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()  # This basically works, and keeps all non-summed dims... but may give issues later...? Make sure to .copy(), otherwise it's just a pointer.
-    mTermSumThres /= mTermSumThres.sel({'L':0,'M':0}).drop('LM')
+
+    # Renorm betas by B00?
+    if BLMRenorm:
+        mTermSumThres /= mTermSumThres.sel({'L':0,'M':0}).drop('LM')
 
     # Propagate attrs
     mTermSum.attrs = mTerm.attrs

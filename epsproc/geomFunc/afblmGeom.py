@@ -163,6 +163,10 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     # matEmult = ep.util.matEleSelector(matEmult, thres = thres, dims = thresDims)
     matEmult = matEleSelector(matEmult, thres = thres, dims = thresDims)
 
+    # Apply additional phase conventions?
+    if phaseCons['afblmCons']['llpPhase']:
+        matEmult *= np.power(-1, np.abs(matEmult.l - matEmult.lp))
+
     # Product terms with similar dims
     BLMprod = matEmult * BLMtableResort  # Unstacked case with phase correction - THIS DROPS SYM TERMS? Takes intersection of das - http://xarray.pydata.org/en/stable/computation.html#automatic-alignment
     # polProd = (EPRXresort * lambdaTermResort).sum(sumDimsPol)  # Sum polarization terms here to keep total dims minimal in product. Here dims = (mu,mup,Euler/Labels)

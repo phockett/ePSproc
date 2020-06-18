@@ -264,6 +264,8 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
     phaseCons['afblmCons']['negQ'] = True
     phaseCons['afblmCons']['negS'] = True
 
+    phaseCons['afblmCons']['llpPhase'] = True  # Apply (-1)^(l-lp) phase term?
+
 
 
     return phaseCons

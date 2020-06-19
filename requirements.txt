@@ -11,12 +11,8 @@ spherical_functions  # ==2019.7.12.23.25.11
 
 # Optional, but included here for now
 # Set version for Sphinx build - throwing errors with spherical_functions April/May 2020, but may also be sf version? Seems to be loading 2020.5.9.16.33.28
-<<<<<<< HEAD
-numba==0.45.0
-=======
 # New issues for same issue mid-June 2020, looks like version mismatch again (RTD keeps installing updated sf version), so try without versions specified here.
 numba  # ==0.45.0
->>>>>>> 7dda4dede113a61da8a588c2fda5809a15c174d6
 pyvista
 cclib
 holoviews

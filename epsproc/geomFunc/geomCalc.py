@@ -81,6 +81,10 @@ except ImportError as e:
 #     return np.array(QNs)
 #
 
+#*************************************************************
+#************** Set and sort functions (see also geomUtils.py)
+#*************************************************************
+
 def setPhaseConventions(phaseConvention = 'S', typeList = False):
     """
     Set phase convention/choices for geometric functions.
@@ -267,6 +271,16 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
     phaseCons['afblmCons']['llpPhase'] = True  # Apply (-1)^(l-lp) phase term?
 
 
+    #*** For LF testing with CG terms.
+    phaseCons['lfblmCGCons'] = {}
+
+    phaseCons['lfblmCGCons']['negmp'] = False # mp > -mp  sign flip
+                    # Including this restricts things to mp=0 only? Phase con choice? Doesn't seem correct!
+                    # Full calculation including this term sends PU continuum to zero/NaN.
+
+    phaseCons['lfblmCGCons']['negM'] = True  # M > -M sign flip.
+    phaseCons['lfblmCGCons']['negmup'] = False # mup > -mup sign flip.
+
 
     return phaseCons
 
@@ -402,8 +416,9 @@ def remapllpL(dataIn, QNs, form = 'dict', method = 'sel', dlist = ['l','lp','L',
 
 
 
-
-
+#*************************************************************
+#************** Core functions (Wigner/CG calculators)
+#*************************************************************
 
 # Tabulate Wigner 3j terms for a given problem/set of QNs
 def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False, form = '2d', dlist = ['l','lp','L','m','mp','M'], backend = 'par', verbose = 0):
@@ -555,7 +570,71 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
 
 
 
+# Set CG function
+def CG(QNs, dlist = ['l', 'lp', 'L', 'm', 'mp', 'M'], form = 'xarray'):
+    """
+    Basic Clebsch-Gordan from 3j calculation, from table of input QNs (corresponding to CG term defn.).
 
+    This implements numerical defn. from Moble's Spherical Functions, https://github.com/moble/spherical_functions/blob/master/spherical_functions/recursions/wigner3j.py
+
+    `def clebsch_gordan(j_1, m_1, j_2, m_2, j_3, m_3)`
+
+    `(-1.)**(j_1-j_2+m_3) * math.sqrt(2*j_3+1) * Wigner3j(j_1, j_2, j_3, m_1, m_2, -m_3)`
+
+    22/06/20 - barebones version for quick testing, should upgrade as per w3jTable (which is the back-end here in any case).
+
+    Parameters
+    ----------
+    QNs : np.array
+        List of QNs [l, lp, L, m, mp, M] to compute 3j terms for.
+
+    form : string, optional, default = 'xarray'
+        Defines return format. Options are:
+            - 2d, return 2D np.array, rows [l, lp, L, m, mp, M, 3j]
+            - xarray, return xarray
+                This is nice for easy selection/indexing, but may be problematic for large Lmax if unstacked (essentailly similar to nd case).
+            - nd, return ND np.array, dims indexed as [l, lp, L, l+m, lp+mp, L+M], with values 3j.
+                This is suitable for direct indexing, but will have a lot of zero entries and may be large.
+            - ndsparse, return ND sparse array, dims indexed as [l, lp, L, l+m, lp+mp, L+M], with values 3j.
+
+        Additional options are set via :py:func:`remapllpL()`. This additionally sorts values by (l,lp,L) triples, which is useful in some cases.
+            - 'dict' : dictionary with keys (l,lp,L), coordinate tables
+            - '3d' : dictionary with keys (l,lp,L), 3D arrays indexed by [l+m, lp+mp, L+M]; this case also sets (0,0,0) term as 'w3j0'.
+            - 'xdaLM' : Xarray dataarray, with stacked dims ['lSet','mSet']
+            - 'xds' : Xarray dataset, with one array per (l,lp,L)
+            - 'xdalist' : List of Xarray dataarrays, one per (l,lp,L)
+
+    dlist : list of labels, optional, default ['l','lp','L','m','mp','M']
+        Used to label array for Xarray output case.
+
+    Returns
+    -------
+
+
+    """
+
+    # Set phase convention, CG(M3) > 3j(-M3)
+    QNs[:,5] *= -1
+
+    # Generate some 3j values (Xarray form) from supplied QNs
+    w3j = w3jTable(QNs = QNs, dlist = dlist, form = form, nonzeroFlag = True)
+
+    # Phase and degen terms
+    # For testing set explicit version for full (l,lp,L) term, and photon (1,1,L) term
+    if 'l' in dlist:
+        CGphase = np.power(-1, np.abs(w3j.l - w3j.lp + w3j.M))
+    else:
+        CGphase = np.power(-1, np.abs(w3j.M))
+
+    CGdegen = np.sqrt(2*w3j.L + 1)
+
+    return CGphase * CGdegen * w3j
+
+
+
+#*************************************************************
+#************** Geometric terms (EPR, betaTerm etc.)
+#*************************************************************
 
 def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'P', 'p', 'R-p', 'R'], phaseConvention = 'S'):
     """Define polarization tensor (LF) for 1-photon case.

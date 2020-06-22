@@ -210,3 +210,40 @@ def conv_ev_nm(data): #, to = 'nm'):
     #     dataOut = (data/waveConv)*evJ/(h * c)
 
     return dataOut
+
+# Convert expansion parameters from Legendre Polynomial to Spherical Harmonic form (and back)
+def conv_BL_BLM(data, to = 'sph'):
+    """
+    Convert BL (Legendre Polynomial) <> BLM (Spherical Harmonic) parameter renomalisation.
+
+.. math::
+    $\beta^{Sph}_{L,0} = \sqrt{(2L+1)/4\pi}\beta^{Lg}$
+
+    Parameters
+    ----------
+    data : Xarray
+        Values to convert.
+        Currently assumes an Xarray, with dims .L and .M
+
+    to : str, default = 'sph'
+        - 'sph' to convert BL > BLM
+        - 'lg' to convert BL0 > BL
+
+    Notes
+    -----
+    - Should add type to keep track of betas here.
+    - Should generalise to other input structure & add error checking.
+    - Implement SPHARM library....!
+
+    """
+
+    # Set conversion factor
+    Bconv = np.sqrt(2*data.L+1)/(4*np.pi)
+
+    # Set output values
+    if to is 'sph':
+        dataOut = data*Bconv
+    else:
+        dataOut = data/Bconv
+
+    return dataOut

@@ -274,12 +274,16 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
     #*** For LF testing with CG terms.
     phaseCons['lfblmCGCons'] = {}
 
+    # l,m terms
     phaseCons['lfblmCGCons']['negmp'] = False # mp > -mp  sign flip
                     # Including this restricts things to mp=0 only? Phase con choice? Doesn't seem correct!
                     # Full calculation including this term sends PU continuum to zero/NaN.
-
     phaseCons['lfblmCGCons']['negM'] = True  # M > -M sign flip.
-    phaseCons['lfblmCGCons']['negmup'] = False # mup > -mup sign flip.
+
+    # Photon terms
+    phaseCons['lfblmCGCons']['negmup'] = False # mup > -mup sign flip.  See note above - kills many terms if True (incorrectly it seems)
+    phaseCons['lfblmCGCons']['negMP'] = False  # M > -M sign flip, photon term.
+                                            # Originally thought this was a typo, but do need to set False as per manuscript!
 
 
     return phaseCons
@@ -621,12 +625,18 @@ def CG(QNs, dlist = ['l', 'lp', 'L', 'm', 'mp', 'M'], form = 'xarray'):
 
     # Phase and degen terms
     # For testing set explicit version for full (l,lp,L) term, and photon (1,1,L) term
-    if 'l' in dlist:
-        CGphase = np.power(-1, np.abs(w3j.l - w3j.lp + w3j.M))
-    else:
-        CGphase = np.power(-1, np.abs(w3j.M))
+    # if 'l' in dlist:
+    #     CGphase = np.power(-1, np.abs(w3j.l - w3j.lp + w3j.M))
+    #     # CGphase = np.power(-1, np.abs(w3j.lp - w3j.l + w3j.M))  # With alternative ordering (lp,l)
+    # else:
+    #     CGphase = np.power(-1, np.abs(w3j.M))
+    #
+    # CGdegen = np.sqrt(2*w3j.L + 1)
 
-    CGdegen = np.sqrt(2*w3j.L + 1)
+    # Replaces above - use dim labels as passed!
+    CGphase = np.power(-1, np.abs(w3j[dlist[0]] - w3j[dlist[1]] + w3j[dlist[5]]))
+    CGdegen = np.sqrt(2*w3j[dlist[2]] + 1)
+
 
     return CGphase * CGdegen * w3j
 

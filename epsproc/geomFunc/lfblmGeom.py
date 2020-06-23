@@ -95,6 +95,14 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
     # Multiply terms (as per betaTerm() code)
     CGmatEmult = CGmatE.unstack()*CGmatEM0.drop('mSet').squeeze().unstack()
 
+    # Reset any flipped coord values for consistency before phase & matE multiplication terms.
+    if phaseCons['lfblmCGCons']['negmp']:
+        CGmatEmult['mp'] *= -1  # mp > -mp  # Including this restricts things to mp=0 only? Phase con choice? Doesn't seem correct!
+                    # Full calculation including this term sends PU continuum to zero/NaN.
+
+    if phaseCons['lfblmCGCons']['negM']:
+        CGmatEmult['M'] *= -1  # M > -M
+
 
     #*** For photon terms
     # See EPR() and MFproj() for existing 3j prototypes.
@@ -104,6 +112,9 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
     if phaseCons['lfblmCGCons']['negmup']:
         QNsP[:,3] *= -1  # mup > -mup
 
+    if phaseCons['lfblmCGCons']['negMP']:
+        QNsP[:,5] *= -1  # M > -M
+
     CGP = geomCalc.CG(QNs=QNsP, dlist = dlistP, form='xdaLM')
     CGPM0 = geomCalc.CG(QNs = geomUtils.genllLList(QNsP, uniqueFlag = True, mFlag = False),
                   dlist = dlistP, form='xdaLM')
@@ -111,13 +122,21 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
     # Multiply terms (as per betaTerm() code)
     CGPmult = CGP.unstack()*CGPM0.drop('mSet').squeeze().unstack()
 
+    # Reset any flipped coord values for consistency before phase & matE multiplication terms.
+    if phaseCons['lfblmCGCons']['negmup']:
+        CGPmult['mup'] *= -1  # mup > -mup
+
+    if phaseCons['lfblmCGCons']['negMP']:
+        CGPmult['M'] *= -1  # M > -M
+
+    # *** Multiply all geometric terms
     # Multiply matE * photon terms
     CGPM = CGmatEmult * CGPmult.squeeze(['p1','p2']).drop(['p1','p2'])
 
     # Set phase = (-1)^(m'-mu)
     CGPM *= np.power(-1, np.abs(CGPM.mp - CGPM.mu))
 
-
+    #*** Full multiplication by matrix elments.
     # Define matrix element multiplication term (code from mfblmGeom())
     matEconj = matEthres.copy().conj()
     # matEconj = matEconj.unstack().rename({'l':'lp','m':'mp','mu':'mup'})  # Full unstack

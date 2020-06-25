@@ -377,11 +377,13 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     # Using util.dataTypesList() - THIS IS NOT yet used in the main plotting routine.
     # ACTUALLY - is used for Sym plotting case, may throw an error for None case.
+    # See lines ~630, 696
     dataTypes = dataTypesList()
     if daPlot.attrs['dataType'] in dataTypes:
         dimMap = dataTypes[daPlot.attrs['dataType']]['dims']
     else:
-        dimMap = None
+        # dimMap = None  # This is painful and gives errors for arb data types symmetry cases
+        dimMap = list(daPlot.dims)  # This is OK, but won't get nested dims.
 
 
 
@@ -626,7 +628,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             # If mapping symmetries, use flattened list set above for colour mapping
             # This will keep things consistent over all sym sub-labels
             # NOTE - symFlag setting allows for case when dimMap['Sym'] is missing (will throw an error otherwise)
+            # 24/06/20 - removed "and" here - throws error for unmapped types. Nope, reinstated - causes other issues!
             elif symFlag and (dim in dimMap['Sym']):
+            # elif symFlag and (dim in symList):
 #                 pal = sns.color_palette("hls", np.unique(symList).size)
 #                 lut = dict(zip(map(str, np.unique(symList)), pal))
                 pal = palSym
@@ -691,6 +695,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 #                 elif symFlag and (item[0].name is 'Cont'):
 #                     g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
                 elif symFlag and (item[0].name in dimMap['Sym']):  # Skip symmetries
+                # elif symFlag and (item[0].name in symList):  # Skip symmetries
                     pass
                 else:
                     g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)

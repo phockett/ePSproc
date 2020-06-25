@@ -12,7 +12,8 @@ from epsproc.geomFunc.geomUtils import genllpMatE
 def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = None,
                 lambdaTerm = None, RX = None, eulerAngs = None,
                 thres = 1e-2, thresDims = 'Eke', selDims = {'it':1, 'Type':'L'},
-                sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
+                # sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
+                sumDims = ['mu', 'mup', 'l','lp','m','mp','S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
                 SFflag = True, SFflagRenorm = True, BLMRenorm = True,
                 squeeze = False, phaseConvention = 'S'):
     """
@@ -121,6 +122,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
             QNsBLMtable[:,3] *= -1
             QNsBLMtable[:,5] *= -1
 
+        QNsBLMtable[:,3] *= -1
         BLMtable = geomCalc.betaTerm(QNs = QNsBLMtable, form = 'xdaLM', phaseConvention = phaseConvention)
 
 #         if BLMmPhase:
@@ -141,6 +143,10 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
         if phaseCons['mfblmCons']['mPhase']:
             BLMtableResort *= np.power(-1, np.abs(BLMtableResort.m))  # Associated phase term
+
+        # RENAME, M > (S-R') for AF case - this correctly allows for all MF projections!!!
+        # Some MF phase cons as applied above may also be incorrect?
+        BLMtableResort = BLMtableResort.rename({'M':'S-Rp'})
 
 
     #*** Alignment term

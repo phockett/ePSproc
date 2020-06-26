@@ -110,7 +110,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
         lambdaTerm, lambdaTable, lambdaD, _ = geomCalc.MFproj(RX = RX, form = 'xarray', phaseConvention = phaseConvention)
         # lambdaTermResort = lambdaTerm.squeeze().drop('l').drop('lp')   # This removes photon (l,lp) dims fully.
         # lambdaTermResort = lambdaTerm.squeeze(['l','lp']).drop(['l','lp'])  # Safe squeeze & drop of selected singleton dims only.
-        lambdaTermResort = lambdaTerm.squeeze(['l','lp']).drop(['l','lp']).sel({'Labels':'z'})  # Safe squeeze & drop of selected singleton dims only, select (0,0,0) term only for pol. geometry.
+        lambdaTermResort = lambdaTerm.squeeze(['l','lp']).drop(['l','lp']).sel({'Labels':'z'}).sum('R')  # Safe squeeze & drop of selected singleton dims only, select (0,0,0) term only for pol. geometry.
+        # NOTE dropping of redundant R coord here - otherwise get accidental R=Rp correlations later!
 
     # *** Blm term with specified QNs
     if BLMtable is None:

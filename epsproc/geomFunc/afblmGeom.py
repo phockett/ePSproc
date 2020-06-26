@@ -16,7 +16,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
                 sumDims = ['mu', 'mup', 'l','lp','m','mp','S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
                 SFflag = True, SFflagRenorm = True, BLMRenorm = True,
                 squeeze = False, phaseConvention = 'S'):
-    """
+    r"""
     Implement :math:`\beta_{LM}^{AF}` calculation as product of tensors.
 
 .. math::

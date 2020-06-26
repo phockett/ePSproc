@@ -6,6 +6,7 @@ ePSproc conversion functions
 """
 
 import scipy.constants
+import numpy as np
 
 def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = True, dropna = True, fillna = False, verbose = False):
     """

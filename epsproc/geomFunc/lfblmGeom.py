@@ -16,7 +16,7 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
                 SFflag = True, squeeze = False, phaseConvention = 'S',
                 dlistMatE = ['lp', 'l', 'L', 'mp', 'm', 'M'],
                 dlistP = ['p1', 'p2', 'L', 'mup', 'mu', 'M']):
-    """
+    r"""
     Implement :math:`\beta_{LM}` calculation as product of (Clebsch-Gordan coeff) tensors.
 
     Formalism as per *Cross section and asymmetry parameter calculation for sulfur 1s photoionization of SF6*, A. P. P. Natalense and R. R. Lucchese, J. Chem. Phys. 111, 5344 (1999), http://dx.doi.org/10.1063/1.479794

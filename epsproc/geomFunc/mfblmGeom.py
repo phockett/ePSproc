@@ -14,7 +14,7 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
                 thres = 1e-2, thresDims = 'Eke', selDims = {'it':1, 'Type':'L'},
                 sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,
                 SFflag = True, squeeze = False, phaseConvention = 'S'):
-    """
+    r"""
     Implement :math:`\beta_{LM}^{MF}` calculation as product of tensors.
 
 .. math::

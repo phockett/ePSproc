@@ -123,7 +123,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
             QNsBLMtable[:,3] *= -1
             QNsBLMtable[:,5] *= -1
 
-        QNsBLMtable[:,3] *= -1
+        # QNsBLMtable[:,3] *= -1
         BLMtable = geomCalc.betaTerm(QNs = QNsBLMtable, form = 'xdaLM', phaseConvention = phaseConvention)
 
 #         if BLMmPhase:
@@ -154,7 +154,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     if AKQS is None:
         AKQS = sphCalc.setADMs()     # If not passed, set to defaults - A(0,0,0)=1 term only, i.e. isotropic distribution.
 
-    AFterm, DeltaKQS = geomCalc.deltaLMKQS(EPRX, AKQS, phaseConvention = phaseConvention)
+    AFterm, DeltaKQS = geomCalc.deltaLMKQS(EPRXresort, AKQS, phaseConvention = phaseConvention)
 
 
     #*** Products

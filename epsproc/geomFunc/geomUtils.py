@@ -426,7 +426,9 @@ def genKQStermsFromTensors(EPR, AKQS, uniqueFlag = True, phaseConvention = 'S'):
                         # QNs1.append([P, K, L, R, Q, M])
 
                 # Set Rp and S - these are essentially independent of R,Q,M, but keep nested for full dim output.
-                for Rp in PRcoords['R'].values:
+                # for Rp in PRcoords['P'].values:
+                # for Rp in PRcoords['R'].values:  # OOOPS, this gives accidental correlations between R and Rp
+                for Rp in np.arange(-P, P+1):
                     for S in KQScoords['S'].values:
                         # SRp = S-Rp  # Set final 3j term, S-Rp
                         if phaseCons['genMatEcons']['negm']:
@@ -434,6 +436,7 @@ def genKQStermsFromTensors(EPR, AKQS, uniqueFlag = True, phaseConvention = 'S'):
                         else:
                             SRp = -(Rp+S)  # Usual phase convention.
 #                             SRp = S-Rp  # Set final 3j term, S-Rp
+                            # SRp = -(Rp-S)  # Usual phase convention.
 
                         if (abs(Rp)<=P) and (abs(S)<=K) and (abs(SRp)<=L): # Check term is valid.
                             QNs2.append([P, K, L, Rp, S, SRp])

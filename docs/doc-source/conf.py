@@ -47,7 +47,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
 # api doc settings
 apidoc_module_dir = '../../epsproc'
 apidoc_output_dir = 'modules'
-apidoc_excluded_paths = ['tests']
+apidoc_excluded_paths = ['tests', 'geomFunc']
 apidoc_separate_modules = True
 
 # Add any paths that contain templates here, relative to this directory.

@@ -23,10 +23,10 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
 
     .. math::
         \begin{eqnarray}
-        \beta_{\mathbf{k}}^{L,V} & = & \frac{3}{5}\frac{1}{\sum_{p\mu lhv}|I_{\mathbf{k},\hat{n}}^{(L,V)}|^{2}}\sum_{\stackrel{p\mu lhvmm_{v}}{p'\mu'l'h'v'm'm'_{v}}}(-1)^{m'-m_{v}}I_{\mathbf{k},\hat{n}}^{(L,V)}\nonumber \\
-        & \times & \left(I_{\mathbf{k},\hat{n}}^{(L,V)}\right)^{*}b_{lhm}^{p\mu}b_{l'h'm'}^{p'\mu'*}b_{1vm_{v}}^{p_{v}\mu_{v}}b_{1v'm'_{v}}^{p'_{v}\mu'_{v}*}\nonumber \\
-        & \times & [(2l+1)(2l'+1)]^{1/2}(1100|20)(l'l00|20)\nonumber \\
-        & \times & (11-m'_{v}m_{v}|2M')(l'l-m'm|2-M'),
+        \beta_{\mathbf{k}}^{L,V} & = & \frac{3}{5}\frac{1}{\sum_{p\mu lhv}|I_{\mathbf{k},\hat{n}}^{(L,V)}|^{2}}\sum_{\stackrel{p\mu lhvmm_{v}}{p'\mu'l'h'v'm'm'_{v}}}(-1)^{m'-m_{v}}I_{\mathbf{k},\hat{n}}^{(L,V)} \\
+        & \times & \left(I_{\mathbf{k},\hat{n}}^{(L,V)}\right)^{*}b_{lhm}^{p\mu}b_{l'h'm'}^{p'\mu'*}b_{1vm_{v}}^{p_{v}\mu_{v}}b_{1v'm'_{v}}^{p'_{v}\mu'_{v}*} \\
+        & \times & [(2l+1)(2l'+1)]^{1/2}(1100|20)(l'l00|20) \\
+        & \times & (11-m'_{v}m_{v}|2M')(l'l-m'm|2-M')
         \end{eqnarray}
 
 

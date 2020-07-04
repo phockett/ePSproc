@@ -426,16 +426,16 @@ def remapllpL(dataIn, QNs, form = 'dict', method = 'sel', dlist = ['l','lp','L',
 
 # Tabulate Wigner 3j terms for a given problem/set of QNs
 def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False, form = '2d', dlist = ['l','lp','L','m','mp','M'], backend = 'par', verbose = 0):
-    """
+    r"""
     Calculate/tabulate all wigner 3j terms for a given problem/set of QNs.
 
-.. math::
-    \begin{equation}
-    \begin{array}{ccc}
-    l & l' & L\\
-    m & m' & M
-    \end{array}
-    \end{equation}
+    .. math::
+        \begin{equation}
+        \begin{array}{ccc}
+        l & l' & L\\
+        m & m' & M
+        \end{array}
+        \end{equation}
 
     Where l, l' take values Lmin...Lmax (default 0...10).
     :math:`\l-lp\<=L<=l+lp`
@@ -647,7 +647,7 @@ def CG(QNs, dlist = ['l', 'lp', 'L', 'm', 'mp', 'M'], form = 'xarray'):
 #*************************************************************
 
 def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'P', 'p', 'R-p', 'R'], phaseConvention = 'S'):
-    """Define polarization tensor (LF) for 1-photon case.
+    r"""Define polarization tensor (LF) for 1-photon case.
 
     Define field terms (from QM book, corrected vs. original S\&U version
     - see ``beta-general-forms\_rewrite\_290917.lyx``):
@@ -796,7 +796,7 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
 
 # BetaTerm for BLM tensor coupling.
 def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'L', 'm', 'mp', 'M'], phaseConvention = 'S'):
-    """Define BLM coupling tensor
+    r"""Define BLM coupling tensor
 
     Define field terms (from QM book, corrected vs. original S\&U version
     - see ``beta-general-forms\_rewrite\_290917.lyx``):
@@ -924,7 +924,7 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
 
 # Define lambdaTerm, MF projection.
 def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'P', 'mu', 'mup', 'Rp', 'R'], phaseConvention = 'S'):
-    """
+    r"""
     Define MF projection term, :math:`\Lambda_{R',R}(R_{\hat{n}})`:
 
 .. math::
@@ -1136,7 +1136,7 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
 
 # Calculate alignment term - this cell should form core function, cf. betaTerm() etc.
 def deltaLMKQS(EPRX, AKQS, phaseConvention = 'S'):
-    """
+    r"""
     Calculate aligned-frame "alignment" term:
 
 .. math::

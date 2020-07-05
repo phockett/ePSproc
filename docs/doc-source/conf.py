@@ -47,7 +47,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
 # api doc settings
 apidoc_module_dir = '../../epsproc'
 apidoc_output_dir = 'modules'
-apidoc_excluded_paths = ['tests', 'geomFunc']
+apidoc_excluded_paths = ['tests']
 apidoc_separate_modules = True
 
 # Add any paths that contain templates here, relative to this directory.
@@ -56,7 +56,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['**.ipynb_checkpoints']
+exclude_patterns = ['**.ipynb_checkpoints','**-verified*','**Dev*']
 
 # For Read the Docs, see https://stackoverflow.com/questions/56336234/build-fail-sphinx-error-contents-rst-not-found
 master_doc = 'index'

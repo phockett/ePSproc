@@ -44,7 +44,7 @@ def setPlotters():
 
 
     # Set global HV options
-    opts.defaults(opts.Curve(frame_width=500, tools=['hover'], show_grid=True, padding=0.01))
+    # opts.defaults(opts.Curve(frame_width=500, tools=['hover'], show_grid=True, padding=0.01))
 
 
 

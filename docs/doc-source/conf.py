@@ -26,8 +26,9 @@ copyright = '2019, Paul Hockett'
 author = 'Paul Hockett'
 
 # Version from package https://stackoverflow.com/questions/26141851/let-sphinx-use-version-from-setup-py
-from epsproc import __version__
-version = __version__
+# from epsproc import __version__
+# version = __version__
+version = "RTDtest"
 # The full version, including alpha/beta/rc tags
 release = version
 

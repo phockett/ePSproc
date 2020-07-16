@@ -32,7 +32,7 @@ from epsproc.util import misc
 from epsproc.util import selectors
 from epsproc.util import summary
 
-from epsproc.util.conversion import (conv_ev_atm, conv_ev_nm, multiDimXrToPD,)
+from epsproc.util.conversion import (conv_ev_atm, conv_ev_nm, multiDimXrToPD,orb3DCoordConv)
 from epsproc.util.listFuncs import (ADMdimList, BLMdimList, dataTypesList,
                                     eulerDimList, genLM, matEdimList,)
 from epsproc.util.misc import (arraySort2D, stringRepMap,)
@@ -43,5 +43,6 @@ __all__ = ['ADMdimList', 'BLMdimList', 'arraySort2D', 'conv_ev_atm',
            'conv_ev_nm', 'conversion', 'dataGroupSel', 'dataTypesList',
            'eulerDimList', 'genLM', 'jobSummary', 'listFuncs', 'lmSymSummary',
            'matEdimList', 'matEleSelector', 'misc', 'multiDimXrToPD',
+           'orb3DCoordConv',
            'selectors', 'stringRepMap', 'summary']
 # </AUTOGEN_INIT>

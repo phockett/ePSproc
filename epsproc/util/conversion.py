@@ -1,6 +1,7 @@
 """
 ePSproc conversion functions
 
+17/07/20    Added orb3DCoordConv(), for orbital file coord conversions.
 12/03/20    Added multiDimXrToPD(), function adapted from lmPlot() code.
 
 """
@@ -248,3 +249,40 @@ def conv_BL_BLM(data, to = 'sph'):
         dataOut = data/Bconv
 
     return dataOut
+
+#
+def orb3DCoordConv(fileIn, coordMaxLen=50):
+    """
+    Basic coord parse & conversion for volumetric wavefunction files from ePS.
+
+    Parameters
+    ----------
+    fileIn : data from a single file
+        List of values from a wavefunction file, as returned by :py:func:`epsproc.readOrb3D()`.
+        (Note this currently assumes a single file/set of values.)
+
+    coordMaxLen : int, optional, default=50
+        Max coord grid size, assumed to demark native Cart (<coordMaxLen) from Spherical (>coordMaxLen) coords.
+
+    Returns
+    -------
+    x,y,z : np.arrays of Cartesian coords (x,y,z)
+
+    """
+
+
+    # Set grid, convert to Cart if necessary, assuming that grid won't be larger than 10 Angs
+    if (len(fileIn[2][0]) > coordMaxLen):
+        # Convert to Cart grid for plotting
+        # TODO: Investigate use of sph grid here - should be cleaner.
+        # TODO: Investigate recreating mesh in Paraview, rather than saving to file.
+        [T,R,P] = np.meshgrid(fileIn[2][1], fileIn[2][0], fileIn[2][2])
+        T = (T*np.pi/180) #-np.pi/2
+        P = P*np.pi/180
+        x = R*np.sin(P)*np.cos(T)
+        z = R*np.cos(P)
+        y = R*np.sin(P)*np.sin(T)
+    else:
+        x,y,z = np.meshgrid(file[2][1], file[2][0], file[2][2])
+
+    return x,y,z

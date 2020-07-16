@@ -316,7 +316,7 @@ def remapllpL(dataIn, QNs, form = 'dict', method = 'sel', dlist = ['l','lp','L',
 
     method : str, optional, default = 'sel'
         Method for selection from input array.
-        - 'sel' : use full selection routine, :py:func:`ep.selQNsRow()`, should be most robust.
+        - 'sel' : use full selection routine, :py:func:`epsproc.selQNsRow()`, should be most robust.
         - 'n' : sort based on np.unique reindexing. Should be faster, but possibly not robust...?
 
     dlist : list, optional, default = ['l','lp','L','m','mp','M']
@@ -594,6 +594,7 @@ def CG(QNs, dlist = ['l', 'lp', 'L', 'm', 'mp', 'M'], form = 'xarray'):
 
     form : string, optional, default = 'xarray'
         Defines return format. Options are:
+
             - 2d, return 2D np.array, rows [l, lp, L, m, mp, M, 3j]
             - xarray, return xarray
                 This is nice for easy selection/indexing, but may be problematic for large Lmax if unstacked (essentailly similar to nd case).
@@ -602,6 +603,7 @@ def CG(QNs, dlist = ['l', 'lp', 'L', 'm', 'mp', 'M'], form = 'xarray'):
             - ndsparse, return ND sparse array, dims indexed as [l, lp, L, l+m, lp+mp, L+M], with values 3j.
 
         Additional options are set via :py:func:`remapllpL()`. This additionally sorts values by (l,lp,L) triples, which is useful in some cases.
+
             - 'dict' : dictionary with keys (l,lp,L), coordinate tables
             - '3d' : dictionary with keys (l,lp,L), 3D arrays indexed by [l+m, lp+mp, L+M]; this case also sets (0,0,0) term as 'w3j0'.
             - 'xdaLM' : Xarray dataarray, with stacked dims ['lSet','mSet']
@@ -652,13 +654,13 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
     Define field terms (from QM book, corrected vs. original S\&U version
     - see ``beta-general-forms\_rewrite\_290917.lyx``):
 
-.. math::
-    \begin{equation}
-    E_{PR}(\hat{e})=[e\otimes e^{*}]_{R}^{P}=[P]^{\frac{1}{2}}\sum_{p}(-1)^{R}\left(\begin{array}{ccc}
-    1 & 1 & P\\
-    p & R-p & -R
-    \end{array}\right)e_{p}e_{R-p}^{*}\label{eq:EPR-defn-1}
-    \end{equation}
+    .. math::
+        \begin{equation}
+        E_{PR}(\hat{e})=[e\otimes e^{*}]_{R}^{P}=[P]^{\frac{1}{2}}\sum_{p}(-1)^{R}\left(\begin{array}{ccc}
+        1 & 1 & P\\
+        p & R-p & -R
+        \end{array}\right)e_{p}e_{R-p}^{*}
+        \end{equation}
 
 
     Parameters
@@ -683,9 +685,11 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
 
     phaseConvention : optional, str, default = 'S'
         Set phase conventions:
+
         - 'S' : Standard derivation.
         - 'R' : Reduced form geometric tensor derivation.
         - 'E' : ePolyScat, may have additional changes in numerics, e.g. conjugate Wigner D.
+
         See :py:func:`setPhaseConventions` for more details.
 
     Examples
@@ -801,16 +805,16 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
     Define field terms (from QM book, corrected vs. original S\&U version
     - see ``beta-general-forms\_rewrite\_290917.lyx``):
 
-.. math::
-    \begin{equation}
-    B_{L,M}=(-1)^{m}\left(\frac{(2l+1)(2l'+1)(2L+1)}{4\pi}\right)^{1/2}\left(\begin{array}{ccc}
-    l & l' & L\\
-    0 & 0 & 0
-    \end{array}\right)\left(\begin{array}{ccc}
-    l & l' & L\\
-    -m & m' & M
-    \end{array}\right)
-    \end{equation}
+    .. math::
+        \begin{equation}
+        B_{L,M}=(-1)^{m}\left(\frac{(2l+1)(2l'+1)(2L+1)}{4\pi}\right)^{1/2}\left(\begin{array}{ccc}
+        l & l' & L\\
+        0 & 0 & 0
+        \end{array}\right)\left(\begin{array}{ccc}
+        l & l' & L\\
+        -m & m' & M
+        \end{array}\right)
+        \end{equation}
 
     Parameters
     ----------
@@ -927,21 +931,22 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
     r"""
     Define MF projection term, :math:`\Lambda_{R',R}(R_{\hat{n}})`:
 
-.. math::
-    \begin{equation}
-    \Lambda_{R',R}(R_{\hat{n}})=(-1)^{(R')}\left(\begin{array}{ccc}
-    1 & 1 & P\\
-    \mu & -\mu' & R'
-    \end{array}\right)D_{-R',-R}^{P}(R_{\hat{n}})
-    \end{equation}
+    .. math::
+        \begin{equation}
+        \Lambda_{R',R}(R_{\hat{n}})=(-1)^{(R')}\left(\begin{array}{ccc}
+        1 & 1 & P\\
+        \mu & -\mu' & R'
+        \end{array}\right)D_{-R',-R}^{P}(R_{\hat{n}})
+        \end{equation}
 
 
     Then...
 
-.. math::
-    \begin{eqnarray}
-    \beta_{L,-M}^{\mu_{i},\mu_{f}} & = & \sum_{P,R',R}{\color{red}E_{P-R}(\hat{e};\mu_{0})}\sum_{l,m,\mu}\sum_{l',m',\mu'}(-1)^{(\mu'-\mu_{0})}{\color{red}\Lambda_{R',R}(R_{\hat{n}};\mu,P,R,R')B_{L,-M}(l,l',m,m')}I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)I_{l',m',\mu'}^{p_{i}\mu_{i},p_{f}\mu_{f}*}(E)
-    \end{eqnarray}
+    .. math::
+        \begin{eqnarray}
+        \beta_{L,-M}^{\mu_{i},\mu_{f}} & = & \sum_{P,R',R}{\color{red}E_{P-R}(\hat{e};\mu_{0})}\sum_{l,m,\mu}\sum_{l',m',\mu'}(-1)^{(\mu'-\mu_{0})}{\color{red}\Lambda_{R',R}(R_{\hat{n}};\mu,P,R,R')B_{L,-M}(l,l',m,m')}I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)I_{l',m',\mu'}^{p_{i}\mu_{i},p_{f}\mu_{f}*}(E)
+        \end{eqnarray}
+
 
     Parameters
     ----------
@@ -1139,21 +1144,21 @@ def deltaLMKQS(EPRX, AKQS, phaseConvention = 'S'):
     r"""
     Calculate aligned-frame "alignment" term:
 
-.. math::
-    \begin{equation}
-    \sum_{K,Q,S}\Delta_{L,M}(K,Q,S)A_{Q,S}^{K}(t)
-    \end{equation}
+    .. math::
+        \begin{equation}
+        \sum_{K,Q,S}\Delta_{L,M}(K,Q,S)A_{Q,S}^{K}(t)
+        \end{equation}
 
-.. math::
-    \begin{equation}
-    \Delta_{L,M}(K,Q,S)=(2K+1)^{1/2}(-1)^{K+Q}\left(\begin{array}{ccc}
-    P & K & L\\
-    R & -Q & -M
-    \end{array}\right)\left(\begin{array}{ccc}
-    P & K & L\\
-    R' & -S & S-R'
-    \end{array}\right)
-    \end{equation}
+    .. math::
+        \begin{equation}
+        \Delta_{L,M}(K,Q,S)=(2K+1)^{1/2}(-1)^{K+Q}\left(\begin{array}{ccc}
+        P & K & L\\
+        R & -Q & -M
+        \end{array}\right)\left(\begin{array}{ccc}
+        P & K & L\\
+        R' & -S & S-R'
+        \end{array}\right)
+        \end{equation}
 
     15/06/20 IN PROGRESS
 

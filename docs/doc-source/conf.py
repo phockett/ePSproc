@@ -20,11 +20,12 @@ sys.path.insert(0, os.path.abspath('../../'))       # Add module path (relative 
 # print(sys.path)
 
 # Set RTD flag, use this to skip imports for RTD build.
+# See https://docs.readthedocs.io/en/stable/faq.html#how-do-i-change-behavior-when-building-with-read-the-docs
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
-if on_rtd:
-    html_theme = 'default'
-else:
-    html_theme = 'nature'
+# if on_rtd:
+#     html_theme = 'default'
+# else:
+#     html_theme = 'nature'
 
 
 # -- Project information -----------------------------------------------------
@@ -64,6 +65,7 @@ apidoc_excluded_paths = ['tests']
 apidoc_separate_modules = True
 
 # Sphinx-autodoc mock imports for minimal build-chain.
+# https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#confval-autodoc_mock_imports
 if on_rtd:
     autodoc_mock_imports = ["numpy_quaternion", "quaternion", "spherical_functions","cclib",
                             "numpy","scipy","xarray","pandas","numba",

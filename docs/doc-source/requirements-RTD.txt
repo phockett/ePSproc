@@ -1,6 +1,8 @@
 # Reduced requirements file for Read the Docs build chain.
 # 16/07/20
 # Should fix build resources issue.
+# See https://docs.readthedocs.io/en/stable/guides/build-using-too-many-resources.html
+# (NOTE - can also try sphinx-autoapi instead of autodoc.)
 # Point here from project root .readthedocs.yml
 
 # Use with Sphinx autodoc mock imports for minial doc build requirements (if required?)

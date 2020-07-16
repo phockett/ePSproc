@@ -19,6 +19,14 @@ sys.path.insert(0, os.path.abspath('../../'))       # Add module path (relative 
 #sys.path.insert(0, os.path.abspath('..\\..\\..\\'))    # Add module path (relative to docs path)
 # print(sys.path)
 
+# Set RTD flag, use this to skip imports for RTD build.
+on_rtd = os.environ.get('READTHEDOCS') == 'True'
+if on_rtd:
+    html_theme = 'default'
+else:
+    html_theme = 'nature'
+
+
 # -- Project information -----------------------------------------------------
 
 project = 'ePSproc'
@@ -26,9 +34,13 @@ copyright = '2019, Paul Hockett'
 author = 'Paul Hockett'
 
 # Version from package https://stackoverflow.com/questions/26141851/let-sphinx-use-version-from-setup-py
-# from epsproc import __version__
-# version = __version__
-version = "RTDtest"
+if on_rtd:
+    version = "RTD"  # Dummy variable, RTD will use version from Github branch/tag.
+                    # See https://readthedocs.org/projects/epsproc/versions/
+else:
+    from epsproc import __version__
+    version = __version__
+
 # The full version, including alpha/beta/rc tags
 release = version
 
@@ -52,10 +64,11 @@ apidoc_excluded_paths = ['tests']
 apidoc_separate_modules = True
 
 # Sphinx-autodoc mock imports for minimal build-chain.
-autodoc_mock_imports = ["numpy_quaternion", "spherical_functions","cclib",
-                        "numpy","scipy","xarray","pandas","numba",
-                        "matplotlib","seaborn","plotly",
-                        "pyvista","holoviews"]
+if on_rtd:
+    autodoc_mock_imports = ["numpy_quaternion", "quaternion", "spherical_functions","cclib",
+                            "numpy","scipy","xarray","pandas","numba",
+                            "matplotlib","seaborn","plotly",
+                            "pyvista","holoviews"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

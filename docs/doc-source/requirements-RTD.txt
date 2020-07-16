@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#confval-autodoc_mock_imports
 # See also minimal example from nbsphinx docs: https://nbsphinx.readthedocs.io/en/0.3.5/usage.html#Using-requirements.txt
 
-setuptools==41.0.1
+# setuptools==41.0.1
 # numpy_quaternion  # ==2019.7.23.15.26.49
 # plotly==4.0.0
 # spherical_functions==1.16.4

@@ -50,6 +50,12 @@ apidoc_output_dir = 'modules'
 apidoc_excluded_paths = ['tests']
 apidoc_separate_modules = True
 
+# Sphinx-autodoc mock imports for minimal build-chain.
+autodoc_mock_imports = ["numpy_quaternion", "spherical_functions","cclib",
+                        "numpy","scipy","xarray","pandas","numba",
+                        "matplotlib","seaborn","plotly",
+                        "pyvista","holoviews"]
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 

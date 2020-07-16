@@ -67,7 +67,7 @@ apidoc_separate_modules = True
 if on_rtd:
     autodoc_mock_imports = ["numpy_quaternion", "quaternion", "spherical_functions","cclib",
                             "numpy","scipy","xarray","pandas","numba",
-                            "matplotlib","seaborn","plotly",
+                            "matplotlib","mpl_toolkits","seaborn","plotly",
                             "pyvista","holoviews"]
 
 # Add any paths that contain templates here, relative to this directory.

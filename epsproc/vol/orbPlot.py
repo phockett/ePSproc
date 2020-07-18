@@ -332,6 +332,7 @@ class molOrbPlotter():
         elif type(orbN) is str:
             orbN = list(orbN)
 
+        # NOTE 18/07/20 - should be orbN list here? Didn't test yet.
         for item in self.vol.array_names:
             limitVals = [self.vol[item].min(), self.vol[item].max(), np.abs(self.vol[item]).mean()]
 

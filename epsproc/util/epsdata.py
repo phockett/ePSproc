@@ -3,28 +3,76 @@ ePSproc ePSdata downloader
 
 Basic IO function for downloading data from ePSdata, via Zenodo.
 
-20/07/20    v1
+20/07/20    v1, basics in place.
+
+TODO:
+
+* More integration with ePSman. Use of json info files?
+* Download multiple jobs/files. Could be in class, or as object per Zenodo record. Will be useful for, e.g., cases comparing multiple orbitals.
+* Tidy up.
 
 """
 
-# Imports
+#**** Imports
+# Core
 import requests
 import wget
 import zipfile
 import os
 from pathlib import Path
-from urllib.parse import urlparse
 
+# Web stuff
+from urllib.parse import urlparse
+from IPython.core.display import HTML  # For HTML rendering support
+from html.parser import HTMLParser
+
+#**** Local functions
 # Basic bytes to KB/Mb... conversion, from https://stackoverflow.com/questions/2104080/how-to-check-file-size-in-python
 def convert_bytes(num):
     """
-    This function will convert bytes to MB.... GB... etc
+    This function will convert bytes to MiB, GiB... etc
+
+    From https://stackoverflow.com/a/39988702
+
+    Thanks to @rajiv-sharma: https://stackoverflow.com/users/2679465/rajiv-sharma
+
+    Converted to binary prefix units (https://superuser.com/questions/1076888/looking-for-clarification-on-binary-prefix-logic-history-vs-si-prefix/1077275#1077275)
+
     """
-    for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
+
+    for x in ['bytes', 'KiB', 'MiB', 'GiB', 'TiB']:
         if num < 1024.0:
             return "%3.1f %s" % (num, x)
 #             return [num, x]
         num /= 1024.0
+
+
+# Basic URL from HTML parser, from https://stackoverflow.com/a/6883228
+class hrefParser(HTMLParser):
+    """
+    Basic URL from HTML parser class, from https://stackoverflow.com/a/6883228
+
+    Thanks to @senderle: https://stackoverflow.com/users/577088/senderle
+
+    Example
+    -------
+
+    >>> p = hrefParser()
+    >>> p.feed(myString)
+    >>> p.output_list
+
+    """
+    def __init__(self, output_list=None):
+        HTMLParser.__init__(self)
+        if output_list is None:
+            self.output_list = []
+        else:
+            self.output_list = output_list
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.output_list.append(dict(attrs).get('href'))
+
+
 
 
 class ePSdata():
@@ -71,6 +119,7 @@ class ePSdata():
         self.base = {}  # TODO - set above to dict item.
 
         # Set record IDs, starting from DOI
+        # TODO - tidy & check logic/repetition here. Bit fugly.
         recordID = {}
 
         if doi is not None:
@@ -125,15 +174,30 @@ class ePSdata():
         except FileExistsError:
             print(f"*** Directory {self.recordID['downloadDir']} already exists, contents will be overwritten.")
 
+
     def getInfo(self):
         r = requests.get(self.recordID['url']['get'])
 
         if r.ok:
-            print(f"Found Zenodo record {self.recordID['zenID']}: {r.json()['metadata']['title']}")
+            print(f"/n*** Found Zenodo record {self.recordID['zenID']}: {r.json()['metadata']['title']}")
+            print(f"Zenodo URL: {self.recordID['url']['doi']}")
             self.r = r
 
             self.downloadSize = sum(item['size'] for item in r.json()['files'])
             print(f"Record {self.recordID['zenID']}: {len(r.json()['files'])} files, {convert_bytes(self.downloadSize)}")
+
+            # Display HTML job info from Zenodo page
+            # This will render correctly in a notebook
+            jobInfoStr = r.json()['metadata']['description']
+            jobInfoHTML = HTML(jobInfoStr)
+            display(jobInfoHTML)
+
+            # Citation info link using hrefParser()
+            p = hrefParser()
+            p.feed(jobInfoStr)
+            print(f"Citation details: {p.output_list[0] + '#Cite-this-dataset'}")
+            self.recordID['url']['epsdata'] = p.output_list[0]
+
 
         else:
             print(f"Can't find Zenodo record {recordID['zenID']}, error code: {r}")
@@ -141,11 +205,24 @@ class ePSdata():
 
 
 
-    def downloadFiles(self):
+    def downloadFiles(self, downloadList=[]):
+        """
+        Download files from Zenodo record.
 
-        fList = []
+        Parameters
+        ----------
+        downloadList : list, optional, default=[]
+            Set files to download from self.r.json()['files'] list.
+            Defaults to all files.
 
-        for n, item in enumerate(self.r.json()['files']):
+        """
+
+        if not downloadList:
+            downloadList = self.r.json()['files']
+
+        fList=[]
+
+        for n, item in enumerate(downloadList):
             print(f"Getting item {item['links']['self']}")
             fout = wget.download(item['links']['self'], out=self.recordID['downloadDir'].as_posix())
 
@@ -166,5 +243,5 @@ class ePSdata():
 
                     print(f"Unzipped file {item}")
                     self.zip[item.name]={'path':self.recordID['downloadDir'],
-                                         'zipfile':item, 
+                                         'zipfile':item,
                                          'files':zipFiles}

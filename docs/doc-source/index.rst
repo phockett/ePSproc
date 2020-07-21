@@ -16,6 +16,7 @@ Welcome to ePSproc
    demos/ePSproc_BLM_calc_demo_Sept2019
    demos/ePSproc_demo_CrossSections_Oct2019
    demos/ePSproc_demo_matE_plotting_Feb2020
+   demos/ePSproc_wfPlot_tests_150720_tidy
 
 
 .. toctree::

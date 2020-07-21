@@ -52,6 +52,8 @@ class wfPlotter():
 
     May want to change method ordering and structure here - this currently imports data, then assigns (duplicates) to pyVista object. Not very efficient.
 
+    TODO: add molecular structure... should be able to plot with orbPlot object...?
+
     """
 
     def __init__(self, fileIn = None, fileBase = None, fType = '_Orb.dat'):
@@ -220,6 +222,6 @@ class wfPlotter():
                 pl.add_mesh(self.vol.contour(isosurfaces = isoValsOrb, scalars = item), smooth_shading=True, opacity=opacity)  # Plot iso = 0.1
 
         # Render plot
-        # In notebook tests this doesn't reneder unless called again?
+        # In notebook tests this doesn't reneder unless called again? (For ITK widgets case, but not for native pv.Plotter())
         self.pl = pl
         self.pl.show()

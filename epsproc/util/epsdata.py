@@ -615,11 +615,11 @@ class ePSdata():
                 # print(f"Root dir: {self.nbDetails[key]['pkgRootDir']}")
 
                 print(f"Base dir: {self.record['ID']['downloadDir']}")
-                print(f"Found {len(self.record['dirList'])} subDirs:")
+                print(f"Found {len(self.record['dirList'])-1} directories:")
                 # print(*self.record['dirList'], sep='\n')
-                [print(Path(item).relative_to(self.record['ID']['downloadDir'])) for item in self.record['dirList']]
+                [print('\t' + Path(item).relative_to(self.record['ID']['downloadDir']).as_posix()) for item in self.record['dirList'][1:]]
 
-                print(f"Found {len(fileListTest)} items, with file types:")
+                print(f"\nFound {len(fileListTest)} items, with file types:")
                 # Throw out full dictionary here, may want to switch to formatted list.
                 # Set small width to force vertical format
                 pprint.pprint(c, width=50)

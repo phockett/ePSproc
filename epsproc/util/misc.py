@@ -9,11 +9,22 @@ Collection of small functions for sorting etc.
 
 # import numpy as np
 import re
+import itertools
+import os
 # import scipy.constants
 #
 # # Package fns.
 # from epsproc.basicPlotters import molPlot
 
+try:
+    from natsort import natsorted  # For natural sorting
+    natsortFlag = True
+
+except ImportError as e:
+    if e.msg != "No module named 'natsort'":
+        raise
+    print('* natsort not found, some sorting functions not available. ')
+    natsortFlag = False
 
 #***************** Convenience functions...
 
@@ -72,3 +83,31 @@ def arraySort2D(a, col):
     From https://thispointer.com/sorting-2d-numpy-array-by-column-or-row-in-python/
     """
     return a[a[:,col].argsort()]
+
+
+# Sort & group filenames
+def fileListSort(fList, groupByPrefix=True, verbose=True):
+    """
+    Sort a list of file names, and group by prefix.
+
+    Note: this currently assumes a file name schema whereby split('_')[0] picks the grouping string.
+    """
+
+    if natsortFlag:
+        fListSorted = natsorted(fList)
+    else:
+        fListSorted = sorted(fList)
+
+    prefixStr = ''
+    if groupByPrefix:
+        prefixStr = os.path.commonprefix(fListSorted)  # Find common prefix
+
+        # Solution with itertools groupby
+        # Adapted from https://stackoverflow.com/a/13368753
+        groupedList = [list(v) for k,v in itertools.groupby(fListSorted,key=lambda x:x.replace(prefixStr,'').split('_')[0])]
+
+
+    if verbose:
+        print(prefixStr)
+
+    return fListSorted, groupedList, prefixStr

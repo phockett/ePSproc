@@ -14,7 +14,10 @@ import pyvista as pv
 import numpy as np
 
 from epsproc.util import orb3DCoordConv
-from epsproc.IO import readOrb3D
+from epsproc.util.misc import fileListSort  # 31/07/20 just added and not propagated module changes as yet.
+from epsproc.IO import readOrb3D, getFiles
+
+
 
 
 class wfPlotter():
@@ -64,7 +67,76 @@ class wfPlotter():
         self.fileBase = fileBase
         self.fType = fType
 
-        self.dataSet = readOrb3D(fileIn=fileIn, fileBase=fileBase, fType=fType)
+        self.getOrbFiles()
+
+
+    def getOrbFiles(self, verbose=True):
+        """
+        Call functionality from IO.getFiles to allow for more control (vs. readOrb3D, which will always get all files).
+        """
+
+        self.fList = getFiles(fileIn = self.fileIn, fileBase = self.fileBase, fType = self.fType)
+
+        # Sort files & group
+        self.fList, groupedList, prefixStr = fileListSort(self.fList, groupByPrefix=True, verbose=False)
+
+        # Parse list
+
+        # Get molecule from file name - OK, but possibly issues with rolling into symmetry label here?
+        # Assumes file name schema [mol][sym]_[XXeV]
+        mol = prefixStr.split('/')[-1][0:-1]
+
+        # Loop over groups & extract details.
+        fDict = {}
+        for n, item in enumerate(groupedList):
+            itemSorted, *_ = fileListSort(item, groupByPrefix=True, verbose=False)
+            sym = item[0].replace(prefixStr,'S').split('_')[0]  # Take symmetry as first item here, assume 'S' is chopped!
+            E = [float(fileItem.replace(prefixStr,'').split('_')[1].strip('eV')) for fileItem in itemSorted]
+
+            fDict[n] = {'mol':mol,
+                        'sym':sym,
+                        'fList':itemSorted,
+                        'E':E}
+
+        self.fDict = fDict
+
+        # Basic error check for number of E points per symmetry
+        Elist = [len(fDict[item]['E']) for item in fDict]
+
+        if len(np.unique(Elist)) > 1:
+            print(f"*** Warning: inconsitent E points per symmetry, {Elist}")
+
+        # Print results
+        if verbose:
+            print(f"Found molecule: {mol}")
+            print(f"Found {len(fDict)} symmetries, {[fDict[item]['sym'] for item in fDict]}")
+            print(f"Found {len(fDict[0]['E'])} energies, {fDict[0]['E']}")
+
+
+    def readOrbFiles(self, fList = None):
+        """
+        Read wavefunction files.
+
+        Pass fList as list of files or ints to self.fList index.
+
+        If not set, read all files from self.fList.
+
+        """
+
+        if fList is not None:
+            if type(fList[0]) is str:
+                fileIn = fList
+            elif type(fList[0]) is int:
+                # fileIn = self.fList[fList]  # Select items from existing list
+                fileIn = [self.fList[n] for n in fList]
+            else:
+                print(f"File list item type {type(fList[0])} not supported.")
+        else:
+            fileIn = self.fList
+
+        # Read files as set
+        print(f"Reading {len(fileIn)} wavefunction data files.")
+        self.dataSet = readOrb3D(fileIn = fileIn, fileBase = self.fileBase, fType = self.fType)
 
         print(f"Read {len(self.dataSet)} wavefunction data files OK.")
 
@@ -77,6 +149,7 @@ class wfPlotter():
         print('*** Data set OK')
 
         print(self.vol)
+
 
 
     def setGrid(self, methodType = 2):

@@ -70,7 +70,8 @@ if on_rtd:
     autodoc_mock_imports = ["numpy_quaternion", "quaternion", "spherical_functions","cclib",
                             "numpy","scipy","xarray","pandas","numba",
                             "matplotlib","mpl_toolkits","seaborn","plotly",
-                            "pyvista","holoviews"]
+                            "pyvista","holoviews",
+                            "natsort"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

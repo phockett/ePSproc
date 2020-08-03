@@ -86,11 +86,12 @@ def arraySort2D(a, col):
 
 
 # Sort & group filenames
-def fileListSort(fList, groupByPrefix=True, verbose=True):
+def fileListSort(fList, groupByPrefix=True, prefixStr = None, verbose=True):
     """
     Sort a list of file names, and group by prefix.
 
     Note: this currently assumes a file name schema whereby split('_')[0] picks the grouping string.
+
     """
 
     if natsortFlag:
@@ -98,9 +99,10 @@ def fileListSort(fList, groupByPrefix=True, verbose=True):
     else:
         fListSorted = sorted(fList)
 
-    prefixStr = ''
+    # prefixStr = ''
     if groupByPrefix:
-        prefixStr = os.path.commonprefix(fListSorted)  # Find common prefix
+        if prefixStr is None:
+            prefixStr = os.path.commonprefix(fListSorted)  # Find common prefix if not passed.
 
         # Solution with itertools groupby
         # Adapted from https://stackoverflow.com/a/13368753

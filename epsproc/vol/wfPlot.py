@@ -66,6 +66,7 @@ class wfPlotter():
         self.fileIn = fileIn
         self.fileBase = fileBase
         self.fType = fType
+        self.prefix = None   # Set for file sorting, can set manually to override default if required.
 
         self.getOrbFiles()
 
@@ -73,56 +74,187 @@ class wfPlotter():
     def getOrbFiles(self, verbose=True):
         """
         Call functionality from IO.getFiles to allow for more control (vs. readOrb3D, which will always get all files).
+
+        Also sort outputs by (Sym, E) groups.
+
         """
 
+        # Get full file list
         self.fList = getFiles(fileIn = self.fileIn, fileBase = self.fileBase, fType = self.fType)
 
-        # Sort files & group
-        self.fList, groupedList, prefixStr = fileListSort(self.fList, groupByPrefix=True, verbose=False)
-
-        # Parse list
-
-        # Get molecule from file name - OK, but possibly issues with rolling into symmetry label here?
-        # Assumes file name schema [mol][sym]_[XXeV]
-        mol = prefixStr.split('/')[-1][0:-1]
-
-        # Loop over groups & extract details.
-        fDict = {}
-        for n, item in enumerate(groupedList):
-            itemSorted, *_ = fileListSort(item, groupByPrefix=True, verbose=False)
-            sym = item[0].replace(prefixStr,'S').split('_')[0]  # Take symmetry as first item here, assume 'S' is chopped!
-            E = [float(fileItem.replace(prefixStr,'').split('_')[1].strip('eV')) for fileItem in itemSorted]
-
-            fDict[n] = {'mol':mol,
-                        'sym':sym,
-                        'fList':itemSorted,
-                        'E':E}
-
-        self.fDict = fDict
+        # Sort list by (Sym, E), and set values to output dictionaries
+        self.sortOrbFiles(masterFlag = True)
 
         # Basic error check for number of E points per symmetry
-        Elist = [len(fDict[item]['E']) for item in fDict]
+        Elist = [len(self.fDictSym[item]['E']) for item in self.fDictSym]
 
         if len(np.unique(Elist)) > 1:
             print(f"*** Warning: inconsitent E points per symmetry, {Elist}")
 
         # Print results
         if verbose:
-            print(f"Found molecule: {mol}")
-            print(f"Found {len(fDict)} symmetries, {[fDict[item]['sym'] for item in fDict]}")
-            print(f"Found {len(fDict[0]['E'])} energies, {fDict[0]['E']}")
+            print(f"Found molecule: {self.mol}")
+            print(f"Found {len(self.fDictSym)} symmetries, {[self.fDictSym[item]['sym'] for item in self.fDictSym]}")
+            print(f"Found {len(self.fDictSym[0]['E'])} energies, {self.fDictSym[0]['E']}")
 
 
-    def readOrbFiles(self, fList = None):
+    def sortOrbFiles(self, fList = None, masterFlag = False, groupByPrefix = True):
+        """
+        Sort input list of wavefunction files to dictionary by symmetry & energy.
+
+        Parameters
+        ----------
+
+        fList : list, optional, default = None
+            List of files to sort.
+            If fList = None, use self.fList.
+
+        masterFlag : bool, optional, default = True
+            If masterFlag = True, set to class variables, otherwise return values to calling function.
+
+        groupByPrefix : bool, optional, default = True
+            Group sorted files by prefix?
+            Will use self.prefix if set, otherwise determined from file names by :py:func:`epsproc.util.misc.fileListSort`.
+            In latter case, self.prefix will be set if masterFlag = True
+
+        """
+
+        if fList is None:
+            fList = self.fList
+
+        # Sort files & group
+        # NOTE - this will return in E order if natsort lib is present, and usual filename convention.
+        # May want to supplement with further sorting by E later?
+        fList, groupedList, prefixStr = fileListSort(fList, groupByPrefix=groupByPrefix, prefixStr = self.prefix, verbose=True)
+
+        # Parse list
+
+        # Get molecule from file name - OK, but possibly issues with rolling into symmetry label here?
+        # Check for local setting first, can then also use this to override
+        # Assumes file name schema [mol][sym]_[XXeV]
+        if hasattr(self, 'mol'):
+            mol = self.mol
+        else:
+            mol = prefixStr.split('/')[-1][0:-1]
+
+        # Loop over groups & extract details.
+        fDictSym = {}
+        fDictE = {}
+        for n, item in enumerate(groupedList):
+            itemSorted, *_ = fileListSort(item, groupByPrefix=True, verbose=False)
+            sym = item[0].replace(prefixStr,'S').split('_')[0]  # Take symmetry as first item here, assume 'S' is chopped!
+            E = [float(fileItem.replace(prefixStr,'').split('_')[1].strip('eV')) for fileItem in itemSorted]
+
+            # Store as dictionary by symmetry group
+            fDictSym[n] = {'mol':mol,
+                            'sym':sym,
+                            'fList':itemSorted,
+                            'E':E}
+
+            # # List by E - now set below
+            # for Ekey in E:
+            #     if Ekey in fDictE.keys():
+            #         fDictE[Ekey]['fList'].append(itemSorted)
+            #     else:
+            #         fDictE[Ekey]['fList'] = (itemSorted)
+
+        # Dicionary sorted by E
+        syms = [fDictSym[sym]['sym'] for sym in fDictSym]
+
+        for n, Ekey in enumerate(E):
+            fDictE[n] = {}
+            fDictE[n]['E'] = Ekey
+            fDictE[n]['fList'] = [fDictSym[sym]['fList'][n] for sym in fDictSym]
+            fDictE[n]['mol'] = fDictSym[0]['mol']
+            fDictE[n]['syms'] = syms
+
+        # Set outputs to master (class) variables.
+        if masterFlag:
+            self.mol = mol
+            self.E = E
+            self.syms = syms
+            self.prefix = prefixStr
+            self.fList = fList
+            self.fDictSym = fDictSym
+            self.fDictE = fDictE
+
+        else:
+            return fList, fDictSym, fDictE
+
+
+    def selectOrbFiles(self, fDictE = None, EList = None, SymList = None, verbose = True):
+        # Subselect by Sym and E from dict.
+        # Version with sym-sorted list - now use version with E sorting!
+        # if SymList is not None:
+        #     if type(SymList[0]) is str:
+        #         fileDictSel = [fileDict[item] for item in fileDict if fileDict[item]['sym'] in SymList]
+        #     else:
+        #         # fileDictSel = [{item:fileDict[item]} for item in SymList]  # This will keep dict format, with extra [list] wrapper
+        #         fileDictSel = [fileDict[item] for item in SymList]  # This will set to list, but for int indexing it's equivalent
+
+        # Start with E-indexed dict
+        # fileDictSel = self.fileDictE.copy()
+
+        # Default to master list if not passed
+        if fDictE is None:
+            fDictE = self.fDictE.copy()
+
+
+        if EList is not None:
+            if type(EList[0]) is int:
+                fileDictSel = {k: v for k, v in fDictE.items() if k in EList}  # For index list
+            else:
+                fileDictSel = {k: v for k, v in fDictE.items() if fDictE[k]['E'] in EList}
+        else:
+            # Default to full E-indexed dict
+            fileDictSel = fDictE.copy()
+
+        # For symmetries, subselect file and sym lists per key.
+        # There's probably a neater way to do this, maybe with sets?
+        if SymList is not None:
+            if type(SymList[0]) is str:
+                for key in fileDictSel.keys():
+                    inds = [n for n,m in enumerate(fileDictSel[key]['syms']) if m in SymList]  # Get indexes
+                    fileDictSel[key]['syms'] = [fileDictSel[key]['syms'][n] for n in inds]
+                    fileDictSel[key]['fList'] = [fileDictSel[key]['fList'][n] for n in inds]
+            else:
+                inds = SymList
+                for key in fileDictSel.keys():
+                    fileDictSel[key]['syms'] = [fileDictSel[key]['syms'][n] for n in inds]
+                    fileDictSel[key]['fList'] = [fileDictSel[key]['fList'][n] for n in inds]
+
+        self.fDictSel = fileDictSel
+
+        if verbose:
+            print(f"Selected {len(fileDictSel)} energies, {[fileDictSel[item]['E'] for item in fileDictSel]}")
+            print(f"Selected symmetries, {self.fDictE[list(self.fDictE.keys())[0]]['syms']}")
+
+
+    def readOrbFiles(self, fList = None, EList = None, SymList = None):
         """
         Read wavefunction files.
 
-        Pass fList as list of files or ints to self.fList index.
+        Parameters
+        ----------
+        flist : list of strs, Paths or ints, optional, default = None
+            Pass fList as list of files or ints as indexes into self.fList index.
+            Note this is the ungrouped file list.
 
-        If not set, read all files from self.fList.
+        EList : list of ints, floats, optional, default = None
+            Pass list of energies to select files to read in.
+            If floats, these are assumed to be EKE values.
+            If ints, these are used as indexes into the master EKE list.
+
+        SymList : list of strs or ints, optional, default = None
+            Pass list of symmetries to select for file IO.
+            Either strings of symmetry names, or by index.
+
+        Lists are parsed in order above, i.e. fList is set, then filtered by E and/or Sym.
+        If nothing is set, read all files from self.fList.
 
         """
 
+        # Set master file list.
         if fList is not None:
             if type(fList[0]) is str:
                 fileIn = fList
@@ -133,6 +265,17 @@ class wfPlotter():
                 print(f"File list item type {type(fList[0])} not supported.")
         else:
             fileIn = self.fList
+
+        # Sort input list
+        # print(fileIn)
+        fileIn, fileDictSym, fileDictE = self.sortOrbFiles(fList=fileIn, masterFlag=False)
+
+        # Subselect files
+        self.selectOrbFiles(fDictE = fileDictE, EList = EList, SymList = SymList)
+
+        # Stack to list for file IO function.
+        # fileIn = [self.fDictSel[key]['fList'] for self.fDictSel.keys()]  # OK, but not flat list
+        fileIn = [item for key in self.fDictSel.keys() for item in self.fDictSel[key]['fList']]  # Flat list over keys.
 
         # Read files as set
         print(f"Reading {len(fileIn)} wavefunction data files.")
@@ -186,6 +329,7 @@ class wfPlotter():
         Sort self.dataSet items to pyVista object.
 
         TODO: useful naming for data + structure by E and Sym.
+        EDIT: this is now in self.fDictSym, self.fDictE, self.fDictSel, and should be propagated here.
 
         """
 

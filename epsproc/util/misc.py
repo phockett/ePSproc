@@ -92,6 +92,9 @@ def fileListSort(fList, groupByPrefix=True, prefixStr = None, verbose=True):
 
     Note: this currently assumes a file name schema whereby split('_')[0] picks the grouping string.
 
+    Note: os.path.commonprefix() is used for determining prefix, this may fail in some cases (e.g. for cases where a single file is passed, or files from different dirs).
+    Pass prefix manaully in these cases.
+
     """
 
     if natsortFlag:
@@ -112,4 +115,7 @@ def fileListSort(fList, groupByPrefix=True, prefixStr = None, verbose=True):
     if verbose:
         print(prefixStr)
 
-    return fListSorted, groupedList, prefixStr
+    if len(fList) > 1:
+        return fListSorted, groupedList, prefixStr
+    else:
+        return fList, fList, None

@@ -12,6 +12,7 @@ Makes use of pyvista/itkwidgets on the backend (see notes below).
 
 import pyvista as pv
 import numpy as np
+from pathlib import Path
 
 from epsproc.util import orb3DCoordConv
 from epsproc.util.misc import fileListSort  # 31/07/20 just added and not propagated module changes as yet.
@@ -59,14 +60,15 @@ class wfPlotter():
 
     """
 
-    def __init__(self, fileIn = None, fileBase = None, fType = '_Orb.dat'):
+    def __init__(self, fileIn = None, fileBase = None, prefix = None, mol = None, fType = '_Orb.dat'):
         """Init wfPlotter. Read file(s) & set-up grids."""
 
         # Set and read source file or directory
         self.fileIn = fileIn
         self.fileBase = fileBase
         self.fType = fType
-        self.prefix = None   # Set for file sorting, can set manually to override default if required.
+        self.prefix = prefix   # Set for file sorting, can set manually to override default if required.
+        self.mol = mol
 
         self.getOrbFiles()
 
@@ -123,16 +125,29 @@ class wfPlotter():
             fList = self.fList
 
         # Sort files & group
-        # NOTE - this will return in E order if natsort lib is present, and usual filename convention.
-        # May want to supplement with further sorting by E later?
-        fList, groupedList, prefixStr = fileListSort(fList, groupByPrefix=groupByPrefix, prefixStr = self.prefix, verbose=True)
+        if len(fList) > 1:
+            # NOTE - this will return in E order if natsort lib is present, and usual filename convention.
+            # May want to supplement with further sorting by E later?
+            fList, groupedList, prefixStr = fileListSort(fList, groupByPrefix=groupByPrefix, prefixStr = self.prefix, verbose=True)
+
+        # Ugly fix for single file passing.
+        # EDIT: Now fixed in fileListSort()
+        else:
+            groupedList = fList
+
+            if self.prefix is None:
+                prefixStr = Path(self.fileBase, Path(fList[0]).name.rsplit('_')[0]).as_posix()
+            else:
+                prefixStr = self.prefix
+            # print(prefixStr)
+
 
         # Parse list
 
         # Get molecule from file name - OK, but possibly issues with rolling into symmetry label here?
         # Check for local setting first, can then also use this to override
         # Assumes file name schema [mol][sym]_[XXeV]
-        if hasattr(self, 'mol'):
+        if hasattr(self, 'mol') and (self.mol is not None):
             mol = self.mol
         else:
             mol = prefixStr.split('/')[-1][0:-1]
@@ -141,6 +156,10 @@ class wfPlotter():
         fDictSym = {}
         fDictE = {}
         for n, item in enumerate(groupedList):
+
+            if type(item) != list:  # Fix for case of single file item.
+                item = [item]
+
             itemSorted, *_ = fileListSort(item, groupByPrefix=True, verbose=False)
             sym = item[0].replace(prefixStr,'S').split('_')[0]  # Take symmetry as first item here, assume 'S' is chopped!
             E = [float(fileItem.replace(prefixStr,'').split('_')[1].strip('eV')) for fileItem in itemSorted]
@@ -238,7 +257,7 @@ class wfPlotter():
         ----------
         flist : list of strs, Paths or ints, optional, default = None
             Pass fList as list of files or ints as indexes into self.fList index.
-            Note this is the ungrouped file list.
+            Note this is the ungrouped file list (the original fList), and items are resorted, so may not match self.fDictE or self.fDictSym
 
         EList : list of ints, floats, optional, default = None
             Pass list of energies to select files to read in.
@@ -273,15 +292,24 @@ class wfPlotter():
         # Subselect files
         self.selectOrbFiles(fDictE = fileDictE, EList = EList, SymList = SymList)
 
-        # Stack to list for file IO function.
-        # fileIn = [self.fDictSel[key]['fList'] for self.fDictSel.keys()]  # OK, but not flat list
-        fileIn = [item for key in self.fDictSel.keys() for item in self.fDictSel[key]['fList']]  # Flat list over keys.
+        # # Stack to list for file IO function.
+        # # fileIn = [self.fDictSel[key]['fList'] for self.fDictSel.keys()]  # OK, but not flat list
+        # fileIn = [item for key in self.fDictSel.keys() for item in self.fDictSel[key]['fList']]  # Flat list over keys.
+        self.fListSel = [item for key in self.fDictSel.keys() for item in self.fDictSel[key]['fList']]  # Flat list over keys.
 
-        # Read files as set
-        print(f"Reading {len(fileIn)} wavefunction data files.")
-        self.dataSet = readOrb3D(fileIn = fileIn, fileBase = self.fileBase, fType = self.fType)
+        # # Read files as set
+        # print(f"Reading {len(fileIn)} wavefunction data files.")
+        # # self.dataSet = readOrb3D(fileIn = fileIn, fileBase = self.fileBase, fType = self.fType)
+        # dataSet = readOrb3D(fileIn = fileIn, fileBase = self.fileBase, fType = self.fType)
+        # print(f"Read {len(self.dataSet)} wavefunction data files OK.")
 
-        print(f"Read {len(self.dataSet)} wavefunction data files OK.")
+        # Alternative method - set data in fDictSel to maintain traceability & labels.
+        fTot = 0
+        for key in self.fDictSel.keys():
+            self.fDictSel[key]['dataSet'] = readOrb3D(fileIn = self.fDictSel[key]['fList'], fileBase = self.fileBase, fType = self.fType)
+            fTot += len(self.fDictSel[key]['fList'])
+
+        print(f"\nRead {fTot} wavefunction data files OK.")
 
         self.setGrid()
 
@@ -291,7 +319,7 @@ class wfPlotter():
 
         print('*** Data set OK')
 
-        print(self.vol)
+        # print(self.vol)
 
 
 
@@ -307,21 +335,28 @@ class wfPlotter():
         # Split by files and/or symmetry and/or energy?
         # Separate pyVista objects for each, or can use for multiple?
         # Basically comes down to datastructures - list, dict, xarray...?
+        # 03/08/20 - now loops over items in fDictSel, and applies method to each key.
 
-        #*** Option (1): Loop over data files & append PV objects
-        if methodType == 1:
-            for n, fileIn in enumerate(self.dataSet):
-                X,Y,Z = orb3DCoordConv(fileIn)
-                vol = pv.StructuredGrid(X, Z, Y)
-                self.dataSet[n].extend(vol)
+        for key in self.fDictSel:
+            #*** Option (1): Loop over data files & append PV objects
+            if methodType == 1:
+                for n, fileIn in enumerate(self.fDictSel[key]['dataSet']):
+                    X,Y,Z = orb3DCoordConv(fileIn)
+                    vol = pv.StructuredGrid(X, Z, Y)
+                    self.fDictSel[key]['dataSet'][n].extend(vol)
 
-        elif methodType == 2:
-            #*** Option (2): use just first file & set shared PV object
-            X,Y,Z = orb3DCoordConv(self.dataSet[0])
+            elif methodType == 2:
+                #*** Option (2): use just first file & set shared PV object
+                X,Y,Z = orb3DCoordConv(self.fDictSel[key]['dataSet'][0])
 
-        # Set pyVista object to hold orbital calculations.
-        # Note ordering!
-        self.vol = pv.StructuredGrid(X, Z, Y)
+                # Set pyVista object to hold orbital calculations.
+                # Note ordering!
+                self.fDictSel[key]['vol'] = pv.StructuredGrid(X, Z, Y)
+
+        if methodType == 3:
+            # Set one master array for *all* datasets
+            X,Y,Z = orb3DCoordConv(self.fDictSel[self.fDictSel.keys()[0]]['dataSet'][0])
+            self.vol = pv.StructuredGrid(X, Z, Y)
 
 
     def setData(self):
@@ -348,21 +383,29 @@ class wfPlotter():
 
         # In this case set all data.
         # May be better to set only plot data in plotting fn?
-        for n, fileIn in enumerate(self.dataSet):
-            self.vol.point_arrays[f'{str(n)}-Re']=fileIn[3][0].flatten(order="F")
-            self.vol.point_arrays[f'{str(n)}-Im']=fileIn[3][1].flatten(order="F")
-            self.vol.point_arrays[f'{str(n)}-Abs']=fileIn[3][2].flatten(order="F")
+        # for n, fileIn in enumerate(self.dataSet):
+        #     self.vol.point_arrays[f'{str(n)}-Re']=fileIn[3][0].flatten(order="F")
+        #     self.vol.point_arrays[f'{str(n)}-Im']=fileIn[3][1].flatten(order="F")
+        #     self.vol.point_arrays[f'{str(n)}-Abs']=fileIn[3][2].flatten(order="F")
 
+        # Version for dict structure
+        for key in self.fDictSel:
+            for n, fileIn in enumerate(self.fDictSel[key]['dataSet']):
+                self.fDictSel[key]['vol'].point_arrays[f"{key}_E{self.fDictSel[key]['E']}_{self.fDictSel[key]['syms'][n]}-Re"]=fileIn[3][0].flatten(order="F")
+                self.fDictSel[key]['vol'].point_arrays[f"{key}_E{self.fDictSel[key]['E']}_{self.fDictSel[key]['syms'][n]}-Im"]=fileIn[3][1].flatten(order="F")
+                self.fDictSel[key]['vol'].point_arrays[f"{key}_E{self.fDictSel[key]['E']}_{self.fDictSel[key]['syms'][n]}-Abs"]=fileIn[3][2].flatten(order="F")
 
 
     def plotWf(self, wfN = None, pType = 'Abs', isoLevels = 6, isoValsAbs = None, isoValsPC = None, interactive = True, opacity = 0.5):
         """
         Plot wavefunction(s) with pyVista/ITK
 
-        wfN : str or list of strs, optional, default = None
-            Wavefn(s) to plot, by name in self.vol PV object.
-            By default these are set to wavefunction numbers, corresponding to files read in.
-            If not supplied, plot all available surfaces, i.e. items in self.vol.array_names
+        # CURRENTLY NOT FUNCTIONAL with dictionary version.
+        # SUBSELECT files first instead.
+        # wfN : str or list of strs, optional, default = None
+        #     Wavefn(s) to plot, by key (item number) from self.fDiictSel[key].vol PV object.
+        #     By default these are set to wavefunction numbers, corresponding to files read in.
+        #     If not supplied, plot all available surfaces, i.e. items in self.vol.array_names
 
         isoLevels : int, optional, default = 6
             Number of isosurfs to compute & render.
@@ -405,38 +448,43 @@ class wfPlotter():
 
 
         # Set meshes to plot, either passed or all items in self.vol
-        if wfN is not None:
-            if type(wfN) is str:
-                wfN = list(wfN)
+        # if wfN is not None:
+        #     if type(wfN) is str:
+        #         wfN = list(wfN)
+        #
+        #     # Append plot type
+        #     wfN = [f'{item}-{pType}' for item in wfN]
+        #
+        # else:
+        #     wfN = self.vol.array_names
+        # 03/08/20 - dict version, now set below. Need to add selection logic back in here.
 
-            # Append plot type
-            wfN = [f'{item}-{pType}' for item in wfN]
+        for key in self.fDictSel:
 
-        else:
-            wfN = self.vol.array_names
+            wfN = self.fDictSel[key]['vol'].array_names
+            vol = self.fDictSel[key]['vol']   # Set pointed here for brevity
 
+            for item in wfN:
+                # Set plotting by type
+                if item.endswith(pType):
+                    # Set limits.
+                    limitVals = [vol[item].min(), vol[item].max(), np.abs(vol[item]).mean()]
 
-        for item in wfN:
-            # Set plotting by type
-            if item.endswith(pType):
-                # Set limits.
-                limitVals = [self.vol[item].min(), self.vol[item].max(), np.abs(self.vol[item]).mean()]
+                    # Set default case
+                    isoValsOrb = np.linspace(-limitVals[2], limitVals[2], isoLevels)  # Again set from mean.
 
-                # Set default case
-                isoValsOrb = np.linspace(-limitVals[2], limitVals[2], isoLevels)  # Again set from mean.
+                    # Override if alternative limits set (logic may be dodgy here)
+                    if isoValsAbs is not None:
+                        isoValsOrb = np.array(isoValsAbs)
 
-                # Override if alternative limits set (logic may be dodgy here)
-                if isoValsAbs is not None:
-                    isoValsOrb = np.array(isoValsAbs)
+                    if isoValsPC is not None:
+                        isoValsPC = np.array(isoValsPC)
+                        isoValsOrb = np.r_[isoValsPC, -isoValsPC] * limitVals[2]  # Set PC vals from mean?
 
-                if isoValsPC is not None:
-                    isoValsPC = np.array(isoValsPC)
-                    isoValsOrb = np.r_[isoValsPC, -isoValsPC] * limitVals[2]  # Set PC vals from mean?
+                    # print(isoValsOrb)
 
-                # print(isoValsOrb)
-
-                # Add contours for currently selected scalars (orbital)
-                pl.add_mesh(self.vol.contour(isosurfaces = isoValsOrb, scalars = item), smooth_shading=True, opacity=opacity)  # Plot iso = 0.1
+                    # Add contours for currently selected scalars (orbital)
+                    pl.add_mesh(vol.contour(isosurfaces = isoValsOrb, scalars = item), smooth_shading=True, opacity=opacity)  # Plot iso = 0.1
 
         # Render plot
         # In notebook tests this doesn't reneder unless called again? (For ITK widgets case, but not for native pv.Plotter())

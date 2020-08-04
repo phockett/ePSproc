@@ -11,6 +11,7 @@ Collection of small functions for sorting etc.
 import re
 import itertools
 import os
+from datetime import datetime
 # import scipy.constants
 #
 # # Package fns.
@@ -119,3 +120,13 @@ def fileListSort(fList, groupByPrefix=True, prefixStr = None, verbose=True):
         return fListSorted, groupedList, prefixStr
     else:
         return fList, fList, None
+
+
+# Return a time-string for setting unique file names
+# May already have this elsewhere...?
+def timeStamp():
+    """Get local time and return formatted string "%d-%m-%y_%H-%M-%S" for time-stamping filesnames."""
+
+    dt = datetime.now()
+
+    return dt.strftime("%d-%m-%y_%H-%M-%S")

@@ -15,7 +15,7 @@ import numpy as np
 from pathlib import Path
 
 from epsproc.util import orb3DCoordConv
-from epsproc.util.misc import fileListSort  # 31/07/20 just added and not propagated module changes as yet.
+from epsproc.util.misc import fileListSort, timeStamp  # 31/07/20 just added and not propagated module changes as yet.
 from epsproc.IO import readOrb3D, getFiles
 
 
@@ -125,21 +125,33 @@ class wfPlotter():
             fList = self.fList
 
         # Sort files & group
-        if len(fList) > 1:
-            # NOTE - this will return in E order if natsort lib is present, and usual filename convention.
-            # May want to supplement with further sorting by E later?
-            fList, groupedList, prefixStr = fileListSort(fList, groupByPrefix=groupByPrefix, prefixStr = self.prefix, verbose=True)
+        # if len(fList) > 1:
+        #     # NOTE - this will return in E order if natsort lib is present, and usual filename convention.
+        #     # May want to supplement with further sorting by E later?
+        #     fList, groupedList, prefixStr = fileListSort(fList, groupByPrefix=groupByPrefix, prefixStr = self.prefix, verbose=True)
+        #
+        # # Ugly fix for single file passing.
+        # # EDIT: Now fixed in fileListSort()
+        # else:
+        #     groupedList = fList
+        #
+        #     if self.prefix is None:
+        #         prefixStr = Path(self.fileBase, Path(fList[0]).name.rsplit('_')[0]).as_posix()
+        #     else:
+        #         prefixStr = self.prefix
+        #     # print(prefixStr)
 
-        # Ugly fix for single file passing.
-        # EDIT: Now fixed in fileListSort()
-        else:
-            groupedList = fList
+        # NOTE - this will return in E order if natsort lib is present, and usual filename convention.
+        # May want to supplement with further sorting by E later?
 
-            if self.prefix is None:
-                prefixStr = Path(self.fileBase, Path(fList[0]).name.rsplit('_')[0]).as_posix()
-            else:
-                prefixStr = self.prefix
-            # print(prefixStr)
+        fList, groupedList, prefixStr = fileListSort(fList, groupByPrefix=groupByPrefix, prefixStr = self.prefix, verbose=True)
+
+        # Case for single file without preset self.prefix.
+        if (self.prefix is None) and (prefixStr is None):
+            prefixStr = Path(self.fileBase, Path(fList[0]).name.rsplit('_')[0]).as_posix()
+        elif prefixStr is None:
+            prefixStr = self.prefix
+
 
 
         # Parse list
@@ -395,8 +407,14 @@ class wfPlotter():
                 self.fDictSel[key]['vol'].point_arrays[f"{key}_E{self.fDictSel[key]['E']}_{self.fDictSel[key]['syms'][n]}-Im"]=fileIn[3][1].flatten(order="F")
                 self.fDictSel[key]['vol'].point_arrays[f"{key}_E{self.fDictSel[key]['E']}_{self.fDictSel[key]['syms'][n]}-Abs"]=fileIn[3][2].flatten(order="F")
 
+    def head(self):
+        """Return first item in self.fDictSel[key]"""
 
-    def plotWf(self, wfN = None, pType = 'Abs', isoLevels = 6, isoValsAbs = None, isoValsPC = None, interactive = True, opacity = 0.5):
+        return self.fDictSel[list(self.fDictSel.keys())[0]]
+
+
+    def plotWf(self, wfN = None, pType = 'Abs', isoLevels = 6, isoValsAbs = None, isoValsPC = None,
+                interactive = True, opacity = 0.5, animate = False):
         """
         Plot wavefunction(s) with pyVista/ITK
 
@@ -425,6 +443,10 @@ class wfPlotter():
         opacity : float, optional, default = 0.5
             Set isosurface opacity.
 
+        animate : bool, optional, default = False
+            Generate animation from dataset, as per https://docs.pyvista.org/examples/02-plot/gif.html
+            Note this overrides the "interactive" setting above, and will only return the final frame to the self.pl object.
+
         Notes
         -----
         18/07/20    v1, adapted from molOrbPlotter.plotOrb function.
@@ -439,12 +461,21 @@ class wfPlotter():
 
         """
 
+        # If  animation set, override interactive setting
+        fN = 0  # Frame counter
+        if animate:
+            interactive = False
+            fileOut = f"wfAnimation_{self.mol}_{timeStamp()}.gif"
+            print(f"Animating frames, output file: {fileOut}")
+
+
         # Set ITK widgets or pv.Plotter
         # May also want to add other methods here, e.g. pv.BackgroundPlotter()  # Runs plotter in separate window process.
         if interactive:
             pl = pv.PlotterITK()
         else:
             pl = pv.Plotter()
+
 
 
         # Set meshes to plot, either passed or all items in self.vol
@@ -483,10 +514,42 @@ class wfPlotter():
 
                     # print(isoValsOrb)
 
-                    # Add contours for currently selected scalars (orbital)
-                    pl.add_mesh(vol.contour(isosurfaces = isoValsOrb, scalars = item), smooth_shading=True, opacity=opacity)  # Plot iso = 0.1
+
+                    # Additional settings for animation
+                    if animate:
+                        # Add label
+                        pl.add_text(f"{self.fDictSel[key]['E']} eV", position='lower_left')
+
+                        if fN == 0:
+                            # Plot first item
+                            pl.add_mesh(vol.contour(isosurfaces = isoValsOrb, scalars = item), smooth_shading=True, opacity=opacity)  # Plot iso = 0.1
+
+                            # setup camera and close
+                            pl.show(auto_close=False)
+
+                            # Init file write
+                            pl.open_gif(fileOut)
+
+                        else:
+                            # pl.update_coordinates(pts)
+                            # pl.update_scalars(vol.contour(isosurfaces = isoValsOrb, scalars = item), smooth_shading=True, opacity=opacity)
+                            # pl.update_scalars(vol.contour(isosurfaces = isoValsOrb, scalars = item))  # Keywords not accepted for update fn?
+                            pl.update(vol.contour(isosurfaces = isoValsOrb, scalars = item))
+
+                        pl.write_frame()
+                        fN += 1
+
+                    else:
+                        # Add contours for currently selected scalars (orbital)
+                        pl.add_mesh(vol.contour(isosurfaces = isoValsOrb, scalars = item), smooth_shading=True, opacity=opacity)  # Plot iso = 0.1
+
+
 
         # Render plot
         # In notebook tests this doesn't reneder unless called again? (For ITK widgets case, but not for native pv.Plotter())
-        self.pl = pl
-        self.pl.show()
+        if animate:
+            pl.close()
+
+        else:
+            self.pl = pl
+            self.pl.show()

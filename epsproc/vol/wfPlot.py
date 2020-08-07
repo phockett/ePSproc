@@ -412,6 +412,11 @@ class wfPlotter():
 
         return self.fDictSel[list(self.fDictSel.keys())[0]]
 
+    def tail(self):
+        """Return last item in self.fDictSel[key]"""
+
+        return self.fDictSel[list(self.fDictSel.keys())[-1]]
+
 
     def plotWf(self, wfN = None, pType = 'Abs', isoLevels = 6, isoValsAbs = None, isoValsPC = None,
                 interactive = True, opacity = 0.5, animate = False):
@@ -446,9 +451,13 @@ class wfPlotter():
         animate : bool, optional, default = False
             Generate animation from dataset, as per https://docs.pyvista.org/examples/02-plot/gif.html
             Note this overrides the "interactive" setting above, and will only return the final frame to the self.pl object.
+            UPDATE 06/08/20: plotter.update() for pv.Plotter() object doesn't seem to work for isosurfs, employing alternative method from https://docs.pyvista.org/plotting/plotting.html#plot-time-series-data
+            This means that animation runs will use BackgroundPlotter() plotter, and open in a separate window.
 
         Notes
         -----
+        
+        03/08/20    v2, testing animation plus additional plotting options.
         18/07/20    v1, adapted from molOrbPlotter.plotOrb function.
 
         To do
@@ -464,17 +473,25 @@ class wfPlotter():
         # If  animation set, override interactive setting
         fN = 0  # Frame counter
         if animate:
+            # Imports for testing - to be moved.
+            from threading import Thread
+            import time
+
             interactive = False
             fileOut = f"wfAnimation_{self.mol}_{timeStamp()}.gif"
             print(f"Animating frames, output file: {fileOut}")
 
+            # Follow example at https://docs.pyvista.org/plotting/plotting.html#plot-time-series-data
+            # Use BG plotter, and threaded output.
+            pl = pv.BackgroundPlotter()
 
-        # Set ITK widgets or pv.Plotter
-        # May also want to add other methods here, e.g. pv.BackgroundPlotter()  # Runs plotter in separate window process.
-        if interactive:
-            pl = pv.PlotterITK()
         else:
-            pl = pv.Plotter()
+            # Set ITK widgets or pv.Plotter
+            # May also want to add other methods here, e.g. pv.BackgroundPlotter()  # Runs plotter in separate window process.
+            if interactive:
+                pl = pv.PlotterITK()
+            else:
+                pl = pv.Plotter()
 
 
 

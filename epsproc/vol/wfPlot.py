@@ -10,13 +10,22 @@ Makes use of pyvista/itkwidgets on the backend (see notes below).
 
 """
 
+# Plotting & numerics
 import pyvista as pv
 import numpy as np
-from pathlib import Path
 
+# File & path handling
+from pathlib import Path
+import os
+import inspect
+import json
+
+# Local functions
 from epsproc.util import orb3DCoordConv
 from epsproc.util.misc import fileListSort, timeStamp  # 31/07/20 just added and not propagated module changes as yet.
 from epsproc.IO import readOrb3D, getFiles
+
+from epsproc.vol.setOptions import setLocalOptions, readOptionsFile, writeOptionsFile  # Plot options IO
 
 
 
@@ -60,17 +69,24 @@ class wfPlotter():
 
     """
 
-    def __init__(self, fileIn = None, fileBase = None, prefix = None, mol = None, fType = '_Orb.dat'):
+    def __init__(self, fileIn = None, fileBase = None, prefix = None, mol = None,
+                 fType = '_Orb.dat', dataTypes = ['Re', 'Im', 'Abs'],
+                 optionsFile = None):
         """Init wfPlotter. Read file(s) & set-up grids."""
 
         # Set and read source file or directory
         self.fileIn = fileIn
         self.fileBase = fileBase
         self.fType = fType
+        self.dataTypes = dataTypes
         self.prefix = prefix   # Set for file sorting, can set manually to override default if required.
         self.mol = mol
 
+        self.optionsFile = optionsFile  # Set to None, defaults will be set later.
+
         self.getOrbFiles()
+
+        self.setPlotOptions()  # Get plotter options from file.
 
 
     def getOrbFiles(self, verbose=True):
@@ -401,11 +417,42 @@ class wfPlotter():
         #     self.vol.point_arrays[f'{str(n)}-Abs']=fileIn[3][2].flatten(order="F")
 
         # Version for dict structure
+
+        # Set Re, Im and Abs arrays
+        arrayInputs = self.dataTypes
+
+        # Set global outputs
+        globalLimits = {}
+        for item in arrayInputs:
+            globalLimits[item] = []
+
+        # Loop over files, and set to vol
         for key in self.fDictSel:
             for n, fileIn in enumerate(self.fDictSel[key]['dataSet']):
-                self.fDictSel[key]['vol'].point_arrays[f"{key}_E{self.fDictSel[key]['E']}_{self.fDictSel[key]['syms'][n]}-Re"]=fileIn[3][0].flatten(order="F")
-                self.fDictSel[key]['vol'].point_arrays[f"{key}_E{self.fDictSel[key]['E']}_{self.fDictSel[key]['syms'][n]}-Im"]=fileIn[3][1].flatten(order="F")
-                self.fDictSel[key]['vol'].point_arrays[f"{key}_E{self.fDictSel[key]['E']}_{self.fDictSel[key]['syms'][n]}-Abs"]=fileIn[3][2].flatten(order="F")
+
+                # Loop over input data and assign to Pyvista object.
+                for m, item in enumerate(arrayInputs):
+                    arrayName = f"{key}_E{self.fDictSel[key]['E']}_{self.fDictSel[key]['syms'][n]}-{item}"
+                    self.fDictSel[key]['vol'].point_arrays[arrayName]=fileIn[3][m].flatten(order="F")
+
+                    # Set also a dict of item properties per key, for later reference
+                    self.fDictSel[key][item] = {'limits':[self.fDictSel[key]['vol'].point_arrays[arrayName].min(),
+                                                            self.fDictSel[key]['vol'].point_arrays[arrayName].max(),
+                                                            np.abs(self.fDictSel[key]['vol'].point_arrays[arrayName]).mean()]}
+
+
+                    globalLimits[item].append(self.fDictSel[key][item]['limits'])
+
+                # Basic version without inner loop
+                # self.fDictSel[key]['vol'].point_arrays[f"{key}_E{self.fDictSel[key]['E']}_{self.fDictSel[key]['syms'][n]}-Re"]=fileIn[3][0].flatten(order="F")
+                # self.fDictSel[key]['vol'].point_arrays[f"{key}_E{self.fDictSel[key]['E']}_{self.fDictSel[key]['syms'][n]}-Im"]=fileIn[3][1].flatten(order="F")
+                # self.fDictSel[key]['vol'].point_arrays[f"{key}_E{self.fDictSel[key]['E']}_{self.fDictSel[key]['syms'][n]}-Abs"]=fileIn[3][2].flatten(order="F")
+
+        # Set global limits
+        self.globalLimits = {}
+        for item in arrayInputs:
+            self.globalLimits[item] = np.asarray(globalLimits[item])
+
 
     def head(self):
         """Return first item in self.fDictSel[key]"""
@@ -417,8 +464,161 @@ class wfPlotter():
 
         return self.fDictSel[list(self.fDictSel.keys())[-1]]
 
+    def writeOptions(self):
+        """Wrapper for file writer"""
 
-    def plotWf(self, wfN = None, pType = 'Abs', isoLevels = 6, isoValsAbs = None, isoValsPC = None,
+        if self.optionsFile is not None:
+            writeOptionsFile(self.optionsFile, self.plotOptions)
+
+        else:
+            print("No file set for plot option file writer.")
+
+
+    def setPlotOptions(self, optionsFile = None, verbose = False):   #, recursive = True):
+        """
+        List of default plot options. Set here, change later if required.
+
+        Default file should be `[modulePath]epsproc/vol/plotOptions.json`, this will be set if nothing is passed.
+
+        TODO: testing to see if this is robust. Otherwise may want to include defaults directly in source here.
+
+        """
+
+        # Default values
+        if optionsFile is None:
+            if self.optionsFile is not None:
+                optionsFile = self.optionsFile
+
+            else:
+                # Set path based on file location - may not be robust?
+                # From https://stackoverflow.com/a/12154601
+                optionsFile = Path((os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))),'plotOptions.json')
+                self.optionsFile = optionsFile
+
+        # Set path wrapper in case str was passed.
+        # optionsFile = Path(optionsFile)
+
+        # Call file read function
+        self.plotOptions = readOptionsFile(optionsFile = optionsFile, verbose = verbose)
+
+        #
+        # if optionsFile.is_file():
+        #     with open(optionsFile) as json_file:
+        #         optionsFileJSON = json.load(json_file)
+        #
+        #     print(f"\n*** Read existing plot options from file {optionsFile} OK.")
+        #     if verbose:
+        #         print(json.dumps(optionsFileJSON, sort_keys=False, indent=4))
+        #
+        #     self.plotOptions = optionsFileJSON
+        #
+        # else:
+        #     print(f"\n*** Plot options file {optionsFile} not found, using defaults.")
+        #
+        #     self.plotOptions = setLocalOptions()
+
+            # if recursive = True:
+            #     self.plotOptions = None  # TODO - set defaults here.
+            # else:
+            #     pass  # Rewrite options file here
+
+
+        # # Default values
+        # if (optionsFile is None) or (self.plotOptions is None):
+        #     # Set path based on file location - may not be robust?
+        #     # From https://stackoverflow.com/a/12154601
+        #     optionsFile = Path((os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))),'plotOptions.json')
+        #     # Call method recursively with new optionsFile.
+        #     # Set recursive = False to rewrite the file if it doesn't exist this time!
+        #     self.setPlotOptions(optionsFile = optionsFile, recursive = False)
+
+
+    def plotWf(self, verbose = True):
+        """
+        Plot wavefunction(s) with pyVista/ITK.
+
+        07/08/20    v3, use this as main wrapper & to set logic, then call sub-methods for various plotting cases.
+                        Options to a dict, this should fix issues with some methods only available for some plot types.
+
+        """
+
+        # Set plotter based on options
+        if self.plotOptions['global']['inline']:
+            if self.plotOptions['global']['interactive']:
+                pl = pv.PlotterITK()
+            else:
+                pl = pv.Plotter()
+
+        else:
+            pl = pv.BackgroundPlotter()
+
+
+        self.pl = pl
+
+        if verbose:
+            print(f"Set plotter to {pl.__class__.__name__}")
+
+        # Set iso vals for plot, per dataset or globally
+        self.setIsoVals()
+
+        # Loop over data d add meshes
+        # May want to move to a sub-function to help with animation cases.
+        pType = self.plotOptions['global']['pType']
+        for key in self.fDictSel:
+            wfN = self.fDictSel[key]['vol'].array_names
+            vol = self.fDictSel[key]['vol']   # Set pointer here for brevity
+
+            for item in wfN:
+                if item.endswith(pType):
+                    # Add contours for currently selected scalars (orbital)
+                    self.pl.add_mesh(vol.contour(isosurfaces = self.fDictSel[key][pType]['isoValsOrb'],
+                                        scalars = item),
+                                        smooth_shading=True, opacity=self.plotOptions['global']['opacity'])  # Plot iso = 0.1
+
+        # Additional options (for some plotters)
+        if hasattr(self.pl, 'add_axes'):
+            self.pl.add_axes()
+
+        # TODO:
+        # Clipping plane?
+        # plotter.add_mesh_clip_plane
+        # Subplots option
+        # ANIMATION
+
+
+    def setIsoVals(self):
+        """
+        Set isosurf properties per item, or use global values.
+        """
+
+        # Loop over data and set isosurf properties
+        for dataType in self.dataTypes:
+            # Set global limits
+            limitValsGlobal = self.globalLimits[dataType].max(axis=0)
+
+            for key in self.fDictSel:
+
+                # Select global or per-array limits
+                if self.plotOptions['global']['isoValsGlobal']:
+                    limitVals = limitValsGlobal
+                else:
+                    limitVals = self.fDictSel[key][dataType]['limits']
+
+                # Set default case
+                isoValsOrb = np.linspace(-limitVals[2], limitVals[2], self.plotOptions['global']['isoLevels'])  # Again set from mean.
+
+                # Override if alternative limits set (logic may be dodgy here)
+                if self.plotOptions['global']['isoValsAbs'] is not None:
+                    isoValsOrb = np.array(self.plotOptions['global']['isoValsAbs'])
+
+                if self.plotOptions['global']['isoValsPC'] is not None:
+                    isoValsPC = np.array(self.plotOptions['global']['isoValsPC'])
+                    isoValsOrb = np.r_[isoValsPC, -isoValsPC] * limitVals[2]  # Set PC vals from mean?
+
+                self.fDictSel[key][dataType]['isoValsOrb'] = isoValsOrb
+
+
+    def plotWfV2(self, wfN = None, pType = 'Abs', isoLevels = 6, isoValsAbs = None, isoValsPC = None,
                 interactive = True, opacity = 0.5, animate = False):
         """
         Plot wavefunction(s) with pyVista/ITK
@@ -456,7 +656,7 @@ class wfPlotter():
 
         Notes
         -----
-        
+        07/08/20    v3, unthreading looped plotting in favour of two-method soloution - currently set as new method.
         03/08/20    v2, testing animation plus additional plotting options.
         18/07/20    v1, adapted from molOrbPlotter.plotOrb function.
 
@@ -474,8 +674,10 @@ class wfPlotter():
         fN = 0  # Frame counter
         if animate:
             # Imports for testing - to be moved.
-            from threading import Thread
-            import time
+            # NOTE - these are used in https://docs.pyvista.org/plotting/plotting.html#plot-time-series-data
+            # But not required for non-interactive plot-to-file case.
+            # from threading import Thread
+            # import time
 
             interactive = False
             fileOut = f"wfAnimation_{self.mol}_{timeStamp()}.gif"
@@ -510,13 +712,13 @@ class wfPlotter():
         for key in self.fDictSel:
 
             wfN = self.fDictSel[key]['vol'].array_names
-            vol = self.fDictSel[key]['vol']   # Set pointed here for brevity
+            vol = self.fDictSel[key]['vol']   # Set pointer here for brevity
 
             for item in wfN:
                 # Set plotting by type
                 if item.endswith(pType):
                     # Set limits.
-                    limitVals = [vol[item].min(), vol[item].max(), np.abs(vol[item]).mean()]
+                    # limitVals = [vol[item].min(), vol[item].max(), np.abs(vol[item]).mean()]
 
                     # Set default case
                     isoValsOrb = np.linspace(-limitVals[2], limitVals[2], isoLevels)  # Again set from mean.

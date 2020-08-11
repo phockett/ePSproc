@@ -32,6 +32,7 @@ def setLocalOptions():
                       "pType":"Abs", "interactive":True, "inline":True, "animate":False,
                       "isoLevels":6, "isoValsAbs":None, "isoValsPC":None, "isoValsGlobal":True,
                       "opacity":0.5,
+                      "subplot":False
     #                   "plotter":""  # Set plotter dynamically based on options above...?
                       }
 

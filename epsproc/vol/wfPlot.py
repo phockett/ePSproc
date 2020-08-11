@@ -17,6 +17,7 @@ import numpy as np
 # File & path handling
 from pathlib import Path
 import os
+import tempfile
 import inspect
 import json
 
@@ -533,21 +534,34 @@ class wfPlotter():
         #     self.setPlotOptions(optionsFile = optionsFile, recursive = False)
 
 
-    def plotWf(self, verbose = True):
+    def plotWf(self, pType = 'Abs', opacity = None, verbose = True):
         """
         Plot wavefunction(s) with pyVista/ITK.
+
+        ALREADY BECOMING SPAGHETTI... must do better here.
 
         07/08/20    v3, use this as main wrapper & to set logic, then call sub-methods for various plotting cases.
                         Options to a dict, this should fix issues with some methods only available for some plot types.
 
         """
 
+
         # Set plotter based on options
         if self.plotOptions['global']['inline']:
-            if self.plotOptions['global']['interactive']:
+            if self.plotOptions['global']['interactive'] and (not self.plotOptions['global']['animate']):
                 pl = pv.PlotterITK()
+
             else:
-                pl = pv.Plotter()
+                if self.plotOptions['global']['subplot']:
+                    pN = len(self.fDictSel)
+                    rP = np.rint(np.sqrt(pN)).astype(np.int32)
+                    cP = np.ceil(pN/rP).astype(np.int32)
+                    sPlots=(rP,cP)
+                    currPlot = [0, 0]
+                    pl = pv.Plotter(shape = sPlots)
+
+                else:
+                    pl = pv.Plotter()
 
         else:
             pl = pv.BackgroundPlotter()
@@ -555,8 +569,30 @@ class wfPlotter():
 
         self.pl = pl
 
+        # Set up animation stuff
+        if self.plotOptions['global']['animate']:
+            fN = 0  # Frame counter
+            fString = f'wfAnimation_{self.mol}_{timeStamp()}' # File name schema
+
+            # Set temp dir - set manually to allow for persistence
+            tempdir = Path(tempfile.gettempdir(), fString)
+            tempdir.mkdir()
+
+            print('Images output to: ', tempdir)
+            print('TODO: animate these.')
+            frames = []
+
+            self.pl.open_gif('test.gif')
+
+
         if verbose:
             print(f"Set plotter to {pl.__class__.__name__}")
+
+        # Parse additional passed args
+        if opacity is None:
+            opacity = self.plotOptions['global']['opacity']
+        else:
+            self.plotOptions['global']['opacity'] = opacity
 
         # Set iso vals for plot, per dataset or globally
         self.setIsoVals()
@@ -564,16 +600,54 @@ class wfPlotter():
         # Loop over data d add meshes
         # May want to move to a sub-function to help with animation cases.
         pType = self.plotOptions['global']['pType']
+
         for key in self.fDictSel:
             wfN = self.fDictSel[key]['vol'].array_names
             vol = self.fDictSel[key]['vol']   # Set pointer here for brevity
 
             for item in wfN:
                 if item.endswith(pType):
-                    # Add contours for currently selected scalars (orbital)
-                    self.pl.add_mesh(vol.contour(isosurfaces = self.fDictSel[key][pType]['isoValsOrb'],
-                                        scalars = item),
-                                        smooth_shading=True, opacity=self.plotOptions['global']['opacity'])  # Plot iso = 0.1
+
+                    # Calculate contours with selected scalars
+                    contourItem = vol.contour(isosurfaces = self.fDictSel[key][pType]['isoValsOrb'],scalars = item)
+
+                    # TODO - add subplot options
+                    if self.plotOptions['global']['subplot']:
+                        pass
+
+                    # For animation save frame then clear
+                    if self.plotOptions['global']['animate']:
+                        self.pl.add_mesh(contourItem, smooth_shading=True, opacity=opacity)  # Plot iso = 0.1
+                        # cpos = self.pl.render(cpos = cpos)  # TODO - camera position setting & matching, orbits & pans.
+                        # self.pl.add_axes()
+                        self.pl.view_isometric()  # Add this explicitly, otherwise get a flat (x,y) view.
+                        self.pl.render()
+                        frames.append(self.pl.screenshot(filename = tempdir.joinpath("f{:04}_{}.png".format(fN,fString)).as_posix(), return_img = True))
+                        self.pl.write_frame()
+
+                        self.pl.clear()
+                        fN += 1
+
+                    # Otherwise plot with/without subplotting
+                    else:
+                        if self.plotOptions['global']['subplot']:
+                            # Set
+                            self.pl.subplot(currPlot)
+                            # Increment
+                            currPlot[1] += 1
+                            if currPlot[1] > sPlot[1]:  # Wrap rows - probably a neater way to do this...!
+                                currPlot[1] = 0
+                                currPlot[0] += 1
+
+                            # if np.base_repr(currPlot[1], base=sPlot[1]) == 10:  # Alternative with base set.
+
+
+                        # Add contours for currently selected scalars (orbital)
+                        if self.plotOptions['global']['interactive'] and hasattr(self.pl,'add_mesh_clip_plane'):
+                            self.pl.add_mesh_clip_plane(contourItem, smooth_shading=True, opacity=opacity)
+                        else:
+                            self.pl.add_mesh(contourItem, smooth_shading=True, opacity=opacity)  # Plot iso = 0.1
+
 
         # Additional options (for some plotters)
         if hasattr(self.pl, 'add_axes'):
@@ -584,6 +658,16 @@ class wfPlotter():
         # plotter.add_mesh_clip_plane
         # Subplots option
         # ANIMATION
+
+        # Write gif
+        if self.plotOptions['global']['animate']:
+            self.animationPath = [tempdir, fString]
+            self.frames = frames
+
+            self.pl.close()
+
+        #     from PIL import Image, ImageDraw
+        #     Image.save('out.gif', save_all=True, append_images=frames)
 
 
     def setIsoVals(self):

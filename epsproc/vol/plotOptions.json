@@ -9,7 +9,8 @@
         "isoValsAbs": null,
         "isoValsPC": null,
         "isoValsGlobal": true,
-        "opacity": 0.5
+        "opacity": 0.5,
+        "subplot": false
     },
     "BGplotter": {
         "addAxis": true,

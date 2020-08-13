@@ -534,7 +534,7 @@ class wfPlotter():
         #     self.setPlotOptions(optionsFile = optionsFile, recursive = False)
 
 
-    def plotWf(self, pType = 'Abs', opacity = None, verbose = True):
+    def plotWf(self, pType = None, opacity = None, verbose = True):
         """
         Plot wavefunction(s) with pyVista/ITK.
 
@@ -542,6 +542,10 @@ class wfPlotter():
 
         07/08/20    v3, use this as main wrapper & to set logic, then call sub-methods for various plotting cases.
                         Options to a dict, this should fix issues with some methods only available for some plot types.
+
+        TODO
+        - kwargs pass to setLocalOptions and/or pyvista?
+        -
 
         """
 
@@ -578,11 +582,13 @@ class wfPlotter():
             tempdir = Path(tempfile.gettempdir(), fString)
             tempdir.mkdir()
 
-            print('Images output to: ', tempdir)
-            print('TODO: animate these.')
+            print('Frame images output to: ', tempdir)
+            # print('TODO: animate these.')
             frames = []
 
-            self.pl.open_gif('test.gif')
+            self.gifFile = tempdir.joinpath(f'{format(fString)}.gif')
+            self.pl.open_gif(self.gifFile.as_posix())
+            print('GIF animation file: ', self.gifFile)
 
 
         if verbose:
@@ -599,7 +605,11 @@ class wfPlotter():
 
         # Loop over data d add meshes
         # May want to move to a sub-function to help with animation cases.
-        pType = self.plotOptions['global']['pType']
+        if pType is None:
+            pType = self.plotOptions['global']['pType']
+        else:
+            self.plotOptions['global']['pType'] = pType  # Update options if set.
+
 
         for key in self.fDictSel:
             wfN = self.fDictSel[key]['vol'].array_names
@@ -617,11 +627,21 @@ class wfPlotter():
 
                     # For animation save frame then clear
                     if self.plotOptions['global']['animate']:
-                        self.pl.add_mesh(contourItem, smooth_shading=True, opacity=opacity)  # Plot iso = 0.1
+                        self.pl.add_mesh(contourItem, smooth_shading=True, opacity=opacity, clim=self.fDictSel[key][pType]['cmapLimitVals'])  # Plot iso = 0.1
                         # cpos = self.pl.render(cpos = cpos)  # TODO - camera position setting & matching, orbits & pans.
-                        # self.pl.add_axes()
+                        self.pl.add_axes()
                         self.pl.view_isometric()  # Add this explicitly, otherwise get a flat (x,y) view.
+                        self.pl.add_text(f"{self.fDictSel[key]['E']} eV", position='lower_left')
+
+                        # Following example code... but not quite correct here.
+                        # For now just use render() option.
+                        # if fN == 0:
+                        #     self.pl.show(auto_close=False)
+                        # else:
+                        #     self.pl.render()
+
                         self.pl.render()
+
                         frames.append(self.pl.screenshot(filename = tempdir.joinpath("f{:04}_{}.png".format(fN,fString)).as_posix(), return_img = True))
                         self.pl.write_frame()
 
@@ -666,6 +686,7 @@ class wfPlotter():
 
             self.pl.close()
 
+            print('Animation output complete.')
         #     from PIL import Image, ImageDraw
         #     Image.save('out.gif', save_all=True, append_images=frames)
 
@@ -700,6 +721,7 @@ class wfPlotter():
                     isoValsOrb = np.r_[isoValsPC, -isoValsPC] * limitVals[2]  # Set PC vals from mean?
 
                 self.fDictSel[key][dataType]['isoValsOrb'] = isoValsOrb
+                self.fDictSel[key][dataType]['cmapLimitVals'] = [isoValsOrb[0], isoValsOrb[-1]] # Set to use for global cmapping
 
 
     def plotWfV2(self, wfN = None, pType = 'Abs', isoLevels = 6, isoValsAbs = None, isoValsPC = None,

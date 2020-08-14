@@ -21,6 +21,9 @@ import tempfile
 import inspect
 import json
 
+# For inline gif display in notebook - should add env check here first.
+from IPython.display import Image
+
 # Local functions
 from epsproc.util import orb3DCoordConv
 from epsproc.util.misc import fileListSort, timeStamp  # 31/07/20 just added and not propagated module changes as yet.
@@ -84,6 +87,8 @@ class wfPlotter():
         self.mol = mol
 
         self.optionsFile = optionsFile  # Set to None, defaults will be set later.
+        self.plotOptions = {}
+        self.fDictSel = {}
 
         self.getOrbFiles()
 
@@ -231,6 +236,48 @@ class wfPlotter():
 
 
     def selectOrbFiles(self, fDictE = None, EList = None, SymList = None, verbose = True):
+        """
+        Subselect data files by Sym and E from sorted dict.
+
+        Parameters
+        ----------
+
+        fDictE : dict, optional, default = None
+            Pass dictionary for subselection.
+            If not set, use self.fDictE.
+
+        EList : list of ints, floats, optional, default = None
+            Pass list of energies to select files to read in.
+            If floats, these are assumed to be EKE values to match.
+            If ints, these are used as indexes into the master EKE list.
+
+        SymList : list of strs or ints, optional, default = None
+            Pass list of symmetries to select for file IO.
+            Either strings of symmetry names, or by index.
+
+        verbose : bool, optional, default = True
+            Print info on subselections if True.
+
+        Returns
+        -------
+        self.fDictSel dictionary will be set to subselected items.
+
+
+        Note
+        -----
+
+        Lists are parsed in order above, i.e. fDictE is set, then filtered by E and/or Sym.
+        Unmatched inputs are ignored.
+
+
+        TODO
+
+        - Add a range option.
+        - Nearest value matching.
+
+        """
+
+
         # Subselect by Sym and E from dict.
         # Version with sym-sorted list - now use version with E sorting!
         # if SymList is not None:
@@ -303,23 +350,37 @@ class wfPlotter():
         """
 
         # Set master file list.
-        if fList is not None:
-            if type(fList[0]) is str:
-                fileIn = fList
-            elif type(fList[0]) is int:
-                # fileIn = self.fList[fList]  # Select items from existing list
-                fileIn = [self.fList[n] for n in fList]
+        selFlag = False
+
+        # Set cases for using self.fDictSel or passed args.
+        # TODO: better logic here - switch to **kwargs?
+        if not self.fDictSel:
+            selFlag = True
+        elif (fList is not None):
+            selFlag = True
+        elif (EList is not None):
+            selFlag = True
+        elif (SymList is not None):
+            selFlag = True
+
+        if selFlag:
+            if fList is not None:
+                if type(fList[0]) is str:
+                    fileIn = fList
+                elif type(fList[0]) is int:
+                    # fileIn = self.fList[fList]  # Select items from existing list
+                    fileIn = [self.fList[n] for n in fList]
+                else:
+                    print(f"File list item type {type(fList[0])} not supported.")
             else:
-                print(f"File list item type {type(fList[0])} not supported.")
-        else:
-            fileIn = self.fList
+                fileIn = self.fList
 
-        # Sort input list
-        # print(fileIn)
-        fileIn, fileDictSym, fileDictE = self.sortOrbFiles(fList=fileIn, masterFlag=False)
+            # Sort input list
+            # print(fileIn)
+            fileIn, fileDictSym, fileDictE = self.sortOrbFiles(fList=fileIn, masterFlag=False)
 
-        # Subselect files
-        self.selectOrbFiles(fDictE = fileDictE, EList = EList, SymList = SymList)
+            # Subselect files
+            self.selectOrbFiles(fDictE = fileDictE, EList = EList, SymList = SymList)
 
         # # Stack to list for file IO function.
         # # fileIn = [self.fDictSel[key]['fList'] for self.fDictSel.keys()]  # OK, but not flat list
@@ -395,6 +456,7 @@ class wfPlotter():
         TODO: useful naming for data + structure by E and Sym.
         EDIT: this is now in self.fDictSym, self.fDictE, self.fDictSel, and should be propagated here.
 
+        NOTE - PyVista items are indexed sequentially, so may not match input dict keys. This may change in future.
         """
 
         # Currently set in init(), but may want to move here?
@@ -458,10 +520,15 @@ class wfPlotter():
     def head(self):
         """Return first item in self.fDictSel[key]"""
 
+        itemKey = list(self.fDictSel.keys())[0]
+        print(f"Item key: {itemKey}")
+
         return self.fDictSel[list(self.fDictSel.keys())[0]]
 
     def tail(self):
         """Return last item in self.fDictSel[key]"""
+        itemKey = list(self.fDictSel.keys())[-1]
+        print(f"Item key: {itemKey}")
 
         return self.fDictSel[list(self.fDictSel.keys())[-1]]
 
@@ -475,13 +542,15 @@ class wfPlotter():
             print("No file set for plot option file writer.")
 
 
-    def setPlotOptions(self, optionsFile = None, verbose = False):   #, recursive = True):
+    def setPlotOptions(self, optionsFile = None, verbose = False, **kwargs):   #, recursive = True):
         """
         List of default plot options. Set here, change later if required.
 
         Default file should be `[modulePath]epsproc/vol/plotOptions.json`, this will be set if nothing is passed.
 
         TODO: testing to see if this is robust. Otherwise may want to include defaults directly in source here.
+        Setting options in nested dicts from **kwargs needs some work.
+        See: http://127.0.0.1:8888/notebooks/python/python_basics/Dictionary_methods_Benedict_120820.ipynb
 
         """
 
@@ -500,7 +569,25 @@ class wfPlotter():
         # optionsFile = Path(optionsFile)
 
         # Call file read function
-        self.plotOptions = readOptionsFile(optionsFile = optionsFile, verbose = verbose)
+        owFlag = True
+        if self.plotOptions and not kwargs:
+            owFlag = (True if input("Overwrite local plot options with settings from file (y/n)? ") == 'y' else False)
+
+        if self.plotOptions and kwargs:
+            if verbose:
+                print('Adding passed args to plotOptions')
+
+            print('Arb option setting not yet supported, but can be manually assigned to self.plotOptions dictionary.')
+            # for key in kwargs.keys():
+
+            owFlag = False
+
+
+        if owFlag:
+            if verbose:
+                print(f'Reading options from file {optionsFile}')
+
+            self.plotOptions = readOptionsFile(optionsFile = optionsFile, verbose = verbose)
 
         #
         # if optionsFile.is_file():
@@ -545,27 +632,32 @@ class wfPlotter():
 
         TODO
         - kwargs pass to setLocalOptions and/or pyvista?
-        -
+        - Logic/hierarchy for plot type and options. Setting plotter-based options may help?
+        - Orbit animations, combined with subplots?
 
         """
 
 
         # Set plotter based on options
         if self.plotOptions['global']['inline']:
-            if self.plotOptions['global']['interactive'] and (not self.plotOptions['global']['animate']):
+            if self.plotOptions['global']['subplot']:
+                pN = len(self.fDictSel)
+                rP = np.rint(np.sqrt(pN)).astype(np.int32)
+                cP = np.ceil(pN/rP).astype(np.int32)
+                sPlots=(rP,cP)
+                currPlot = [0, 0]
+                pl = pv.Plotter(shape = sPlots)
+
+                # Temporary hack - reset interactive here to avoid plotter related issues.
+                self.plotOptions['global']['interactive'] = False
+
+            elif self.plotOptions['global']['interactive'] and (not self.plotOptions['global']['subplot']):
                 pl = pv.PlotterITK()
 
             else:
-                if self.plotOptions['global']['subplot']:
-                    pN = len(self.fDictSel)
-                    rP = np.rint(np.sqrt(pN)).astype(np.int32)
-                    cP = np.ceil(pN/rP).astype(np.int32)
-                    sPlots=(rP,cP)
-                    currPlot = [0, 0]
-                    pl = pv.Plotter(shape = sPlots)
-
-                else:
-                    pl = pv.Plotter()
+                pl = pv.Plotter()
+                # For animation case may want to add screen size and off_screen?
+                # https://github.com/pyvista/pyvista-support/issues/81#issuecomment-563493574
 
         else:
             pl = pv.BackgroundPlotter()
@@ -631,7 +723,8 @@ class wfPlotter():
                         # cpos = self.pl.render(cpos = cpos)  # TODO - camera position setting & matching, orbits & pans.
                         self.pl.add_axes()
                         self.pl.view_isometric()  # Add this explicitly, otherwise get a flat (x,y) view.
-                        self.pl.add_text(f"{self.fDictSel[key]['E']} eV", position='lower_left')
+                        # self.pl.add_text(f"{self.fDictSel[key]['E']} eV", position='lower_left')
+                        self.pl.add_text("{: >8.2f} eV".format(self.fDictSel[key]['E']), position='upper_right')
 
                         # Following example code... but not quite correct here.
                         # For now just use render() option.
@@ -652,10 +745,10 @@ class wfPlotter():
                     else:
                         if self.plotOptions['global']['subplot']:
                             # Set
-                            self.pl.subplot(currPlot)
+                            self.pl.subplot(currPlot[0], currPlot[1])
                             # Increment
                             currPlot[1] += 1
-                            if currPlot[1] > sPlot[1]:  # Wrap rows - probably a neater way to do this...!
+                            if currPlot[1] > (sPlots[1]-1):  # Wrap rows - probably a neater way to do this...!
                                 currPlot[1] = 0
                                 currPlot[0] += 1
 
@@ -689,6 +782,39 @@ class wfPlotter():
             print('Animation output complete.')
         #     from PIL import Image, ImageDraw
         #     Image.save('out.gif', save_all=True, append_images=frames)
+
+            if self.plotOptions['global']['inline']:
+                # Display gif (in notebook)
+                # From https://stackoverflow.com/a/59988258
+                # Image(self.gifFile)
+
+                # More sophisticated version
+                return self.showGif()
+
+        elif self.plotOptions['global']['inline']:
+            # Setting the return value here shows the plot in a notebook.
+            # Otherwise, need to call self.pl.show() in notebook after running method.
+            return self.pl.show()
+
+    # More sophisticated version from
+    # https://github.com/ipython/ipython/issues/10045#issuecomment-642640541
+    # This ensures HTML export from Jupyter notebooks displays OK
+    def showGif(self):
+        """
+        Show GIF in Jupyter notebook usng IPython.display
+
+        HTML export safe version, from https://github.com/ipython/ipython/issues/10045#issuecomment-642640541
+        Thanks to @maedoc Marmaduke Woodman, https://github.com/maedoc
+
+        """
+
+        import base64
+        from IPython import display
+
+        with open(self.gifFile, 'rb') as fd:
+            b64 = base64.b64encode(fd.read()).decode('ascii')
+
+        return display.HTML(f'<img src="data:image/gif;base64,{b64}" />')
 
 
     def setIsoVals(self):

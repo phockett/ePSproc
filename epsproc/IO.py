@@ -85,7 +85,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
         File to read (file in working dir, or full path)
     startPhrase : str, optional
         Phrase denoting start of section to read. Default = None
-    endPhase : str, optional
+    endPhase : str or list, optional
         Phrase denoting end of section to read. Default = None
     comment : str, optional
         Phrase denoting comment lines, which are skipped. Default = None
@@ -106,6 +106,10 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
     segments = [[]]   # Possible to create empty multi-dim array here without knowing # of segments? Otherwise might be easier to use np textscan functions
     readFlag = False
     n = 0
+
+    # Force list to ensure endPhase is used correctly for single phase case (otherwise will test chars)
+    if type(endPhase) is str:
+        endPhrase = [endPhase]
 
     # Open file & scan each line.
     with open(fileName,'r') as f:
@@ -144,7 +148,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
                 segments[n].append([n, i, line])    # Store line if part  of defined segment
 
     if verbose:
-        print('Found {0} segments.'.format(n))
+        print('Found {0} segments.'.format(n+1))
 
     return ([lineStart, lineStop], segments) # [:-1])
 

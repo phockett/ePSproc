@@ -51,8 +51,29 @@ class wfPlotter():
         Currently only accepts a single dir.
         Defaults to current working dir if no other parameters are passed.
 
-    fType : str, optional
-        File ending for ePS output files, default '_Orb.dat'
+    prefix : str, optional, default = None
+        In case of dir/file parsing issue, a manually set file prefix can be passed.
+        This may be neceassy if filename components are not split by '_', or only a single file is present.
+        (See example notebook somewhere...?)
+
+    mol : str, optional, default = None
+        Will be (hopefully) found from filenames, but can be set here.
+
+    fType : str, optional, default = '_Orb.dat'
+        File ending for ePS output files containing wavefunction data.
+
+    dataTypes : list, optional, default = ['Re', 'Im', 'Abs']
+        Datatypes present in data file (will be looped over on read in).
+
+    optionsFile : str or path object, optional, default = None
+        Specify path to plot options file (.json) used by setPlotOptions() method.
+        Default file should be `[modulePath]epsproc/vol/plotOptions.json`, this will be set if nothing is passed.
+
+    tempdir : str or path object, optional, default = None
+        Temporary directory for image file outputs.
+        Default is system tempdir, as provided by the `tempfile` module (`tempfile.gettempdir()`).
+
+
 
 
     Returns
@@ -75,7 +96,7 @@ class wfPlotter():
 
     def __init__(self, fileIn = None, fileBase = None, prefix = None, mol = None,
                  fType = '_Orb.dat', dataTypes = ['Re', 'Im', 'Abs'],
-                 optionsFile = None):
+                 optionsFile = None, tempdir = None):
         """Init wfPlotter. Read file(s) & set-up grids."""
 
         # Set and read source file or directory
@@ -89,6 +110,8 @@ class wfPlotter():
         self.optionsFile = optionsFile  # Set to None, defaults will be set later.
         self.plotOptions = {}
         self.fDictSel = {}
+
+        self.tempdir = tempdir
 
         self.getOrbFiles()
 
@@ -184,7 +207,8 @@ class wfPlotter():
         if hasattr(self, 'mol') and (self.mol is not None):
             mol = self.mol
         else:
-            mol = prefixStr.split('/')[-1][0:-1]
+            # mol = prefixStr.split('/')[-1][0:-1]
+            mol = Path(prefixStr).parts[-1][0:-1]  # File system agnostic version
 
         # Loop over groups & extract details.
         fDictSym = {}
@@ -325,7 +349,7 @@ class wfPlotter():
             print(f"Selected symmetries, {self.fDictE[list(self.fDictE.keys())[0]]['syms']}")
 
 
-    def readOrbFiles(self, fList = None, EList = None, SymList = None):
+    def readOrbFiles(self, fList = None, EList = None, SymList = None, verbose = False):
         """
         Read wavefunction files.
 
@@ -396,7 +420,7 @@ class wfPlotter():
         # Alternative method - set data in fDictSel to maintain traceability & labels.
         fTot = 0
         for key in self.fDictSel.keys():
-            self.fDictSel[key]['dataSet'] = readOrb3D(fileIn = self.fDictSel[key]['fList'], fileBase = self.fileBase, fType = self.fType)
+            self.fDictSel[key]['dataSet'] = readOrb3D(fileIn = self.fDictSel[key]['fList'], fileBase = self.fileBase, fType = self.fType, verbose = verbose)
             fTot += len(self.fDictSel[key]['fList'])
 
         print(f"\nRead {fTot} wavefunction data files OK.")
@@ -671,7 +695,10 @@ class wfPlotter():
             fString = f'wfAnimation_{self.mol}_{timeStamp()}' # File name schema
 
             # Set temp dir - set manually to allow for persistence
-            tempdir = Path(tempfile.gettempdir(), fString)
+            if self.tempdir is None:
+                self.tempdir = tempfile.gettempdir()  # Set to system default if not supplied
+
+            tempdir = Path(self.tempdir, fString)
             tempdir.mkdir()
 
             print('Frame images output to: ', tempdir)
@@ -721,7 +748,7 @@ class wfPlotter():
                     if self.plotOptions['global']['animate']:
                         self.pl.add_mesh(contourItem, smooth_shading=True, opacity=opacity, clim=self.fDictSel[key][pType]['cmapLimitVals'])  # Plot iso = 0.1
                         # cpos = self.pl.render(cpos = cpos)  # TODO - camera position setting & matching, orbits & pans.
-                        self.pl.add_axes()
+                        # self.pl.add_axes()  # Throws error ERROR:root:The interactor must be set prior to enabling/disabling widget
                         self.pl.view_isometric()  # Add this explicitly, otherwise get a flat (x,y) view.
                         # self.pl.add_text(f"{self.fDictSel[key]['E']} eV", position='lower_left')
                         self.pl.add_text("{: >8.2f} eV".format(self.fDictSel[key]['E']), position='upper_right')

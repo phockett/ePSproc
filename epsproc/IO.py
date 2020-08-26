@@ -108,8 +108,8 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
     n = 0
 
     # Force list to ensure endPhase is used correctly for single phase case (otherwise will test chars)
-    if type(endPhase) is str:
-        endPhrase = [endPhase]
+    if type(endPhrase) is str:
+        endPhrase = [endPhrase]
 
     # Open file & scan each line.
     with open(fileName,'r') as f:

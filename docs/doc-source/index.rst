@@ -18,7 +18,7 @@ Welcome to ePSproc
    demos/ePSproc_demo_matE_plotting_Feb2020
    demos/ePSproc_wfPlot_tests_150720_tidy
    demos/ePSdata_download_demo_300720
-   demos/ePSproc_wfPlot_tests_150720-110820-CH3I-tidy
+   demos/ePSproc_wfPlot_tests_150720-110820-CH3I-tidy_Stimpy
 
 
 .. toctree::

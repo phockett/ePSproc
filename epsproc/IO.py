@@ -1318,7 +1318,7 @@ def matEleGroupDim(data, dimGroups = [3, 4, 2]):
 
 # Function for grabbing files or scanning dir for files.
 # Note raw string for docstring as one method of keeping raw string in example.
-def getFiles(fileIn = None, fileBase = None, fType = '.out'):
+def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
     r"""
     Read ePS file(s) and return results as Xarray data structures.
     File endings specified by fType, default .out.
@@ -1338,6 +1338,9 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out'):
 
     fType : str, optional
         File ending for ePS output files, default '.out'
+
+    verbose : bool, optional
+        Print output details, default True.
 
 
     Returns
@@ -1369,8 +1372,9 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out'):
                 fList.append(file)
 
         # Display message
-        print('\n*** Scanning file(s)')
-        print(fList)
+        if verbose:
+            print('\n*** Scanning file(s)')
+            print(fList)
 
     else:
         # Filenames only
@@ -1379,9 +1383,10 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out'):
         fList = [os.path.join(fileBase, f) for f in os.listdir(fileBase) if f.endswith(fType)]
 
         # Display message
-        print('\n*** Scanning dir')
-        print(fileBase)
-        print('Found {0} {1} file(s)\n'.format(len(fList), fType))
+        if verbose:
+            print('\n*** Scanning dir')
+            print(fileBase)
+            print('Found {0} {1} file(s)\n'.format(len(fList), fType))
 
     return fList
 
@@ -1571,7 +1576,7 @@ def readOrbData(f, headerLines):
     return data
 
 # *************** Master function for reading a set of 3D data files from ePS
-def readOrb3D(fileIn = None, fileBase = None, fType = '_Orb.dat'):
+def readOrb3D(fileIn = None, fileBase = None, fType = '_Orb.dat', verbose = True):
     """
     Read ePS 3D data file(s) and return results.
     File endings specified by fType, default *_Orb.dat.
@@ -1591,6 +1596,9 @@ def readOrb3D(fileIn = None, fileBase = None, fType = '_Orb.dat'):
 
     fType : str, optional
         File ending for ePS output files, default '_Orb.dat'
+
+    verbose : bool, optional
+        Print output details, default True.
 
 
     Returns
@@ -1614,7 +1622,7 @@ def readOrb3D(fileIn = None, fileBase = None, fType = '_Orb.dat'):
     """
 
     # Populate file list
-    fList = getFiles(fileIn = fileIn, fileBase = fileBase, fType = fType)
+    fList = getFiles(fileIn = fileIn, fileBase = fileBase, fType = fType, verbose = verbose)
 
     dataSet = []
     for fileName in fList:

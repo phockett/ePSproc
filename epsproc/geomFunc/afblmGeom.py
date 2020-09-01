@@ -27,6 +27,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
     Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
 
+    01/09/20 Verified (but messy) version, including correct renormalisation routines.
+
     15/06/20 In progress!  Using mfblmXprod() as template, with just modified lambda term, and new alignment term, to change.
 
     Dev code:
@@ -72,9 +74,13 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     matEthres = matEleSelector(matE, thres = thres, inds = selDims, dims = thresDims, sq = True, drop = True)
 
     # Sum **AFTER** threshold and selection, to allow for subselection on symmetries via matEleSelector
-    if symSum:
-        if 'Sym' in matEthres.dims:
+    symDegen = 1
+    if 'Sym' in matEthres.dims:
+        symDegen = matEthres.Sym.size  # Set degeneracy - use thresholded or raw matrix elements here?
+
+        if symSum:
             matEthres = matEthres.sum('Sym')  # Sum over ['Cont','Targ','Total'] stacked dims.
+
 
     # Set terms if not passed to function
     if QNs is None:
@@ -226,18 +232,41 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     mTermSumThres = matEleSelector(mTermSum.stack(xDim), thres=thres, dims = thresDims)
 #     mTermSumThres = mTermSum
 
-    # Normalise
-    # TODO: Set XS as per old mfpad()
-#     BLMXout['XS'] = (('Eke','Euler'), BLMXout[0].data)  # Set XS = B00
-#     BLMXout = BLMXout/BLMXout.XS  # Normalise
+    #*** Normalise
+
+    # Additional factors & renorm - calc. XS as per lfblmGeom.py testing, verified vs. ePS outputs for B2 case, June 2020
+    #  XSmatE = (matE * matE.conj()).sel(selDims).sum(['LM','mu'])  # (['LM','mu','it'])  # Cross section as sum over mat E elements squared (diagonal terms only)
+    XSmatE = (matEthres * matEthres.conj()).sum(['LM','mu']) # .expand_dims({'t':[0]})  # Use selected & thresholded matE.
+                                # NOTE - this may fail in current form if dims are missing.
+                                # Quick hack for testing, add expand_dims({'t':[0]}) need to ensure matching dims for division!
+    normBeta = 3/5 * (1/XSmatE)  # Normalise by sum over matrix elements squared.
+
+
+
     if SFflagRenorm:
         mTermSumThres.values = mTermSumThres/mTermSumThres.SF
 
     mTermSumThres['XS'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()  # This basically works, and keeps all non-summed dims... but may give issues later...? Make sure to .copy(), otherwise it's just a pointer.
 
+    mTermSumThres['XS2'] = XSmatE/3  # Quick hack for testing, need to ensure matching dims for division!
+    # mTermSumThres['XS2'] = symDegen * XSmatE/3  # Quick hack for testing, with symDegen
+
     # Renorm betas by B00?
     if BLMRenorm:
-        mTermSumThres /= mTermSumThres.sel({'L':0,'M':0}).drop('LM')
+        # mTermSumThres /= mTermSumThres.sel({'L':0,'M':0}).drop('LM')
+        if BLMRenorm == 1:
+            mTermSumThres /= mTermSumThres['XS']
+        elif BLMRenorm == 2:
+            mTermSumThres /= mTermSumThres['XS2']
+        elif BLMRenorm == 3:
+            mTermSumThres /= mTermSumThres['XS2']
+            mTermSumThres['XSB00'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy() # Enforce dims here, otherwise get stray L,M coords.
+            mTermSumThres /= mTermSumThres['XSB00']
+            mTermSumThres *= symDegen/(2*mTermSumThres.L + 1)  # Renorm to match ePS GetCro defns. Not totally sure if symDegen is correct - TBC.
+            # mTermSumThres /= (2*mTermSumThres.L + 1)
+
+        else:
+            mTermSumThres *= normBeta
 
     # Propagate attrs
     mTermSum.attrs = mTerm.attrs
@@ -245,5 +274,10 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
     mTermSumThres.attrs = mTerm.attrs
     mTermSumThres.attrs['dataType'] = 'multTest'
+
+# TODO: Set XS as per old mfpad()
+#     BLMXout['XS'] = (('Eke','Euler'), BLMXout[0].data)  # Set XS = B00
+#     BLMXout = BLMXout/BLMXout.XS  # Normalise
+
 
     return mTermSumThres, mTermSum, mTerm

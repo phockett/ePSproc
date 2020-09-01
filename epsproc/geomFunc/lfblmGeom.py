@@ -15,7 +15,8 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
                 sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,
                 SFflag = True, squeeze = False, phaseConvention = 'S',
                 dlistMatE = ['lp', 'l', 'L', 'mp', 'm', 'M'],
-                dlistP = ['p1', 'p2', 'L', 'mup', 'mu', 'M']):
+                dlistP = ['p1', 'p2', 'L', 'mup', 'mu', 'M'],
+                normFactors = [1/3, 1/5]):
     r"""
     Implement :math:`\beta_{LM}` calculation as product of (Clebsch-Gordan coeff) tensors.
 
@@ -48,7 +49,14 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
         Set phase conventions with :py:func:`epsproc.geomCalc.setPhaseConventions`.
         To use preset phase conventions, pass existing dictionary.
 
+
+    normFactors : optional, list of int or float, default = [1/3, 1/5]
+        Additional normalization factor to match ePS defns.
+        Should be mu and m degeneracy factor? Always 1/3 for B0 term, 1/5 for B2 term?
+        Or 1/(2L+1) term?
+
     """
+
     from epsproc.util import matEleSelector
 
     # For transparency/consistency with subfunctions, str/dict now set in setPhaseConventions()
@@ -155,15 +163,17 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
 
     # Additional factors & renorm
     #  XSmatE = (matE * matE.conj()).sel(selDims).sum(['LM','mu'])  # (['LM','mu','it'])  # Cross section as sum over mat E elements squared (diagonal terms only)
-    XSmatE = (matEthres * matEthres.conj()).sum(['LM','mu'])  # Use selected & thresholded matE.
+    XSmatE = normFactors[0] * (matEthres * matEthres.conj()).sum(['LM','mu'])  # Use selected & thresholded matE.
                                 # NOTE - this may fail in current form if dims are missing.
-    normBeta = 3/5 * (1/XSmatE)  # Normalise by sum over matrix elements squared.
+    normBeta = normFactors[1] * (1/XSmatE)  # Normalise by sum over matrix elements squared.
 
     BetasNorm = Betas.copy()    # Check different renorm methods
     BetasNormXS = normBeta * Betas.copy()
 
     BetasNorm['XS'] = BetasNorm.sel({'L':0,'M':0}).drop('LM').copy()  # Set XS as B00 term
+    # BetasNorm['XS'] = XSmatE  BetasNorm.sel({'L':0,'M':0}).drop('LM').copy()  # Set XS as B00 term
     BetasNorm /= BetasNorm.sel({'L':0,'M':0}).drop('LM')  # Renorm BLM/B00
+    BetasNorm *= 1/5  # Renorm by 1/5 == 1/(2L+1)?  Could be included correctly above, or just normalisation choice in ePS?
 
     BetasNorm['XS2'] = XSmatE
 

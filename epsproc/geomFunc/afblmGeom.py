@@ -14,7 +14,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
                 thres = 1e-2, thresDims = 'Eke', selDims = {'it':1, 'Type':'L'},
                 # sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
                 sumDims = ['mu', 'mup', 'l','lp','m','mp','S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
-                SFflag = True, SFflagRenorm = True, BLMRenorm = True,
+                SFflag = True, SFflagRenorm = True, BLMRenorm = 3,
                 squeeze = False, phaseConvention = 'S'):
     r"""
     Implement :math:`\beta_{LM}^{AF}` calculation as product of tensors.
@@ -248,22 +248,43 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
     mTermSumThres['XS'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()  # This basically works, and keeps all non-summed dims... but may give issues later...? Make sure to .copy(), otherwise it's just a pointer.
 
-    mTermSumThres['XS2'] = XSmatE/3  # Quick hack for testing, need to ensure matching dims for division!
+    mTermSumThres['XSiso'] = XSmatE/3  # ePolyScat defn. for LF cross-section. (i.e. isotropic distribution)
     # mTermSumThres['XS2'] = symDegen * XSmatE/3  # Quick hack for testing, with symDegen
 
     # Renorm betas by B00?
     if BLMRenorm:
         # mTermSumThres /= mTermSumThres.sel({'L':0,'M':0}).drop('LM')
         if BLMRenorm == 1:
+            # Renorm by isotropic XS only
             mTermSumThres /= mTermSumThres['XS']
+
         elif BLMRenorm == 2:
-            mTermSumThres /= mTermSumThres['XS2']
+            # Renorm by full t-dependent XS only
+            mTermSumThres /= mTermSumThres['XSiso']
+
         elif BLMRenorm == 3:
-            mTermSumThres /= mTermSumThres['XS2']
-            mTermSumThres['XSB00'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy() # Enforce dims here, otherwise get stray L,M coords.
-            mTermSumThres /= mTermSumThres['XSB00']
-            mTermSumThres *= symDegen/(2*mTermSumThres.L + 1)  # Renorm to match ePS GetCro defns. Not totally sure if symDegen is correct - TBC.
+            # Renorm by isotropic XS, then t-dependent (calculated) XS, then additional factors.
+            # mTermSumThres /= mTermSumThres['XSiso']  # Includes 1/3 norm factor
+            mTermSumThres /= XSmatE
+            mTermSumThres['XSrenorm'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy() # Enforce dims here, otherwise get stray L,M coords.
+            mTermSumThres /= mTermSumThres['XSrenorm']
+            # mTermSumThres *= symDegen/(2*mTermSumThres.L + 1)  # Renorm to match ePS GetCro defns. Not totally sure if symDegen is correct - TBC.
+            # mTermSumThres *= symDegen/5  # Check if 2L+1 factor is correct...? This seems better for N2 AF test case, otherwise L>2 terms very small - maybe M-state degen only by matrix elements?
             # mTermSumThres /= (2*mTermSumThres.L + 1)
+            # mTermSumThres = symDegen/5 * mTermSumThres.where(mTermSumThres.L > 0)
+            # mTermSumThres = mTermSumThres.where(mTermSumThres.L == 0, symDegen/5 * mTermSumThres)
+            # mTermSumThres = mTermSumThres.where(mTermSumThres.L == 0, symDegen/(2*mTermSumThres.L + 1) * mTermSumThres)
+            mTermSumThres *= symDegen/(2*mTermSumThres.L + 1)
+
+        elif BLMRenorm == 4:
+            # Alt scheme... similar to #3, but testing different renorm factors
+            # mTermSumThres /= mTermSumThres['XSiso'] # Includes 1/3 norm factor
+            mTermSumThres /= XSmatE
+            mTermSumThres['XSrenorm'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy() # Enforce dims here, otherwise get stray L,M coords.
+            mTermSumThres /= mTermSumThres['XSrenorm']
+
+            mTermSumThres *= symDegen
+            mTermSumThres /= (2*mTermSumThres.L + 1)
 
         else:
             mTermSumThres *= normBeta
@@ -271,9 +292,11 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     # Propagate attrs
     mTermSum.attrs = mTerm.attrs
     mTermSum.attrs['dataType'] = 'multTest'
+    mTermSum.attrs['BLMRenorm'] = BLMRenorm
 
     mTermSumThres.attrs = mTerm.attrs
     mTermSumThres.attrs['dataType'] = 'multTest'
+    mTermSum.attrs['BLMRenorm'] = BLMRenorm
 
 # TODO: Set XS as per old mfpad()
 #     BLMXout['XS'] = (('Eke','Euler'), BLMXout[0].data)  # Set XS = B00

@@ -173,7 +173,13 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
     BetasNorm['XS'] = BetasNorm.sel({'L':0,'M':0}).drop('LM').copy()  # Set XS as B00 term
     # BetasNorm['XS'] = XSmatE  BetasNorm.sel({'L':0,'M':0}).drop('LM').copy()  # Set XS as B00 term
     BetasNorm /= BetasNorm.sel({'L':0,'M':0}).drop('LM')  # Renorm BLM/B00
-    BetasNorm *= 1/5  # Renorm by 1/5 == 1/(2L+1)?  Could be included correctly above, or just normalisation choice in ePS?
+
+    # Renorm by 1/5 == 1/(2L+1)?  Could be included correctly above, or just normalisation choice in ePS?
+    # BetasNorm = 1/5 * BetasNorm.where(BetasNorm.L > 0)  # For L>0 only... but sets B0 to NaN
+    # BetasNorm.where(BetasNorm.L > 0, 1/5 * BetasNorm, BetasNorm)  # As above, but with Xarray conditional. This should work (see http://xarray.pydata.org/en/latest/generated/xarray.where.html#xarray.where)... but throws an error.
+    # AH - difference between xr.where() and BetaNorm.where() - latter only takes replacement arg.
+    # BetasNorm = BetasNorm.where(BetasNorm.L == 0, 1/5 * BetasNorm)  # OK # where(mask, not mask)
+    BetasNorm = BetasNorm.where(BetasNorm.L == 0, 1/(2*BetasNorm.L + 1) * BetasNorm)
 
     BetasNorm['XS2'] = XSmatE
 

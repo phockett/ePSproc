@@ -221,6 +221,8 @@ def conv_BL_BLM(data, to = 'sph'):
 .. math::
     $\beta^{Sph}_{L,0} = \sqrt{(2L+1)/4\pi}\beta^{Lg}$
 
+    Note: other conventions may be used here, see https://shtools.github.io/SHTOOLS/complex-spherical-harmonics.html#supported-normalizations
+
     Parameters
     ----------
     data : Xarray
@@ -235,12 +237,13 @@ def conv_BL_BLM(data, to = 'sph'):
     -----
     - Should add type to keep track of betas here.
     - Should generalise to other input structure & add error checking.
-    - Implement SPHARM library....!
+    - Implement SHTOOLS library....!
 
     """
 
     # Set conversion factor
-    Bconv = np.sqrt(2*data.L+1)/(4*np.pi)
+    # Bconv = np.sqrt(2*data.L+1)/(4*np.pi)
+    Bconv = np.sqrt((2*data.L+1)/(4*np.pi))
 
     # Set output values
     if to is 'sph':

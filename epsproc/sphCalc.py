@@ -23,7 +23,7 @@ See tests/Spherical function testing Aug 2019.ipynb
 import numpy as np
 import pandas as pd
 import xarray as xr
-from scipy.special import sph_harm
+from scipy.special import sph_harm, lpmv
 import spherical_functions as sf
 import quaternion
 import string
@@ -264,7 +264,7 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False):
 
 
 # Calculate a set of sph function
-def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
+def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph'):
     '''
     Calculate set of spherical harmonics Ylm(theta,phi) on a grid.
 
@@ -280,6 +280,10 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
         If passed, use these grids for calculation
     XFlag : bool, optional, default True
         Flag for output. If true, output is Xarray. If false, np.arrays
+    fnType : str, optional, default = 'sph'
+        Currently can set to 'sph' for SciPy spherical harmonics, or 'lg' for SciPy Legendre polynomials.
+        More backends to follow.
+
 
     Note that either res OR angs needs to be passed.
 
@@ -294,7 +298,8 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
 
     Methods
     -------
-    Currently set for scipy.special.sph_harm as calculation routine.
+    Currently set for scipy.special.sph_harm as calculation routine. Note (theta, phi) definition, and normalisation.
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.sph_harm.html
 
     Example
     -------
@@ -319,7 +324,10 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
     for l in np.arange(Lmin,Lmax+1):
         for m in np.arange(-l,l+1):
             lm.append([l, m])
-            Ylm.append(sph_harm(m,l,theta,phi))
+            if fnType is 'sph':
+                Ylm.append(sph_harm(m,l,theta,phi))
+            elif fnType is 'lg':
+                Ylm.append(lpmv(m,l,theta,phi))
 
     # Return as Xarray or np arrays.
     if XFlag:

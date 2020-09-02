@@ -159,7 +159,7 @@ def sphPlotHV(dataIn):
 
 
 # Plot MFPADs from a set of BLM
-def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = None, backend = 'mpl'):
+def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = None, backend = 'mpl', fnType = 'sph'):
     r'''
     Calculate spherical harmonic expansions from BLM parameters and plot.
 
@@ -191,6 +191,10 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
 
     backend : str, optional, default 'mpl' (matplotlib)
         Set backend used for plotting. See :py:func:`sphSumPlotX` for details.
+
+    fnType : str, optional, default = 'sph'
+        Set function for expansion parameters, default is YLM from scipy.special.sph_harm.
+        See :py:func:`ep.sphCalc` for details.
 
     Returns
     -------

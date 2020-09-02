@@ -302,5 +302,17 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 #     BLMXout['XS'] = (('Eke','Euler'), BLMXout[0].data)  # Set XS = B00
 #     BLMXout = BLMXout/BLMXout.XS  # Normalise
 
+    #**** Tidy up and reformat to standard BLM array (see ep.util.BLMdimList() )
+    # TODO: finish this, and set this as standard output
+    BetasNormX = mTermSumThres.unstack.rename({'L':'l','M':'m'}).stack({'BLM':['l','m']})
 
-    return mTermSumThres, mTermSum, mTerm
+    # Set/propagate global properties
+    BetasNormX.attrs = matE.attrs
+    BetasNormX.attrs['thres'] = thres
+
+    # TODO: update this for **vargs
+    # BLMXout.attrs['sumDims'] = sumDims # May want to explicitly propagate symmetries here...?
+    # BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
+    BetasNormX.attrs['dataType'] = 'BLM'
+
+    return mTermSumThres, mTermSum, mTerm, BetasNormX

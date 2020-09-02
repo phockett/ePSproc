@@ -183,4 +183,19 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
 
     BetasNorm['XS2'] = XSmatE
 
-    return BetasNormXS, BetasNorm, Betas, XSmatE
+    #**** Tidy up and reformat to standard BLM array (see ep.util.BLMdimList() )
+    # TODO: finish this, and set this as standard output
+    # Might also want .where(M<L) to remove spurious terms...?
+    BetasNormX = BetasNorm.unstack.rename({'L':'l','M':'m'}).stack({'BLM':['l','m']})
+
+    # Set/propagate global properties
+    BetasNormX.attrs = matE.attrs
+    BetasNormX.attrs['thres'] = thres
+
+    # TODO: update this for **vargs
+    # BLMXout.attrs['sumDims'] = sumDims # May want to explicitly propagate symmetries here...?
+    # BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
+    BetasNormX.attrs['dataType'] = 'BLM'
+
+
+    return BetasNormXS, BetasNorm, Betas, XSmatE, BetasNormX

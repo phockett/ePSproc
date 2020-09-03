@@ -159,7 +159,7 @@ def sphPlotHV(dataIn):
 
 
 # Plot MFPADs from a set of BLM
-def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = None, backend = 'mpl', fnType = 'sph'):
+def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = None, backend = 'mpl', fnType = None):
     r'''
     Calculate spherical harmonic expansions from BLM parameters and plot.
 
@@ -226,7 +226,17 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
     fig = None
     if BLMX is not None:
         # Calculate YLMs
-        YLMX = sphCalc(BLMX.l.max(), res=res)
+        if hasattr(BLMX,'normType') and (fnType is None):
+            fnType = BLMX.attrs['normType']
+            print(f'Using {fnType} betas (from BLMX array).')
+        elif fnType is not None:
+            print(f'Using {fnType} betas (as passed).')
+        else:
+            fnType = 'sph'
+            print(f'Using default {fnType} betas.')
+
+
+        YLMX = sphCalc(BLMX.l.max(), res=res, fnType=fnType)
         YLMX = YLMX.rename({'LM':'BLM'})    # Switch naming for multiplication & plotting
 
         # Calculate MFPADs (theta,phi)

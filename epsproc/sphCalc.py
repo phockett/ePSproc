@@ -327,7 +327,9 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
             if fnType is 'sph':
                 Ylm.append(sph_harm(m,l,theta,phi))
             elif fnType is 'lg':
-                Ylm.append(lpmv(m,l,theta,phi))
+                Ylm.append(lpmv(m,l,np.cos(phi)))
+            else:
+                print(f"fnType {fnType} not supported.")
 
     # Return as Xarray or np arrays.
     if XFlag:

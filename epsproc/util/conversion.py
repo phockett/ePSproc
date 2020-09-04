@@ -243,13 +243,25 @@ def conv_BL_BLM(data, to = 'sph'):
 
     # Set conversion factor
     # Bconv = np.sqrt(2*data.L+1)/(4*np.pi)
-    Bconv = np.sqrt((2*data.L+1)/(4*np.pi))
+    if hasattr(data,'L'):
+        Bconv = np.sqrt((2*data.L+1)/(4*np.pi))
+    elif hasattr(data,'l'):
+        Bconv = np.sqrt((2*data.l+1)/(4*np.pi))
+    else:
+        print("*** Beta conversion error: Data type not supported.")
+        return None
 
     # Set output values
     if to is 'sph':
         dataOut = data*Bconv
-    else:
+    elif to is 'lg':
         dataOut = data/Bconv
+    else:
+        print(f"*** Beta conversion error: conversion type {to} not supported.")
+
+    # Propagate attrs
+    dataOut.attrs = data.attrs
+    dataOut.attrs['normType'] = to
 
     return dataOut
 

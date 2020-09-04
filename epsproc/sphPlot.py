@@ -242,6 +242,7 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
         # Calculate MFPADs (theta,phi)
         dataPlot = BLMX*YLMX
         dataPlot = dataPlot.rename({'BLM':'LM'})    # Switch naming back for plotting function
+        dataPlot.attrs['normType'] = fnType
 
         # Pass data to plotting function
         if plotFlag:
@@ -255,7 +256,7 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
 # TODO: This currently assumes matplotlib cm is already loaded.
 # TODO: More plot types.
 # TODO: More careful testing - not totally sure if summation & axes consistent here.
-def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl'):
+def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convention = 'phys'):
     '''
     Plot sum of spherical harmonics from an Xarray.
 
@@ -338,11 +339,11 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl'):
 
             # Loop over facetDim with full dataArray as selector, allows for MultiIndex cases.
             for nPlot in dataPlot[facetDim]:
-                fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi))  # Will fail if dims>2 passed.
+                fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention))  # Will fail if dims>2 passed.
 
         else:
             # Call matplotlib plotting fn., single surface
-            fig.append(sphPlotMPL(dataPlot, theta, phi))
+            fig.append(sphPlotMPL(dataPlot, theta, phi,  convention = convention))
 
     # Plotly
     if backend is 'pl':
@@ -354,7 +355,7 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl'):
 #******** Low-level plotting functions
 
 # Set cart coords from spherical polar coords
-def sphToCart(R, theta, phi):
+def sphToCart(R, theta, phi, convention = 'phys'):
     r"""
     Convert spherical polar coords :math:`(R,\theta,\phi)` to Cartesian :math:`(X,Y,Z)`.
 
@@ -362,6 +363,9 @@ def sphToCart(R, theta, phi):
     ----------
     R, theta, phi : np.arrays
         Spherical polar coords :math:`(R,\theta,\phi)`.
+
+    convention : str, optional, default = 'phys'
+        Specify choice of Spherical Polar coordinate system, 'phys' or 'maths' (see note below).
 
     Returns
     -------
@@ -381,13 +385,28 @@ def sphToCart(R, theta, phi):
     * :math:`Y = R * np.sin(phi) * np.sin(theta)`
     * :math:`Z = R * np.cos(phi)`
 
+    Specify convention = 'maths' to use alternative definition with theta and phi swapped.
+
     """
 
-    X = R * np.sin(phi) * np.cos(theta)
-    Y = R * np.sin(phi) * np.sin(theta)
-    Z = R * np.cos(phi)
+    if convention == 'maths':
+        # Mathematics convention
+        X = R * np.sin(phi) * np.cos(theta)
+        Y = R * np.sin(phi) * np.sin(theta)
+        Z = R * np.cos(phi)
+
+    elif convention == 'phys':
+        # Physics convention
+        X = R * np.sin(theta) * np.cos(phi)
+        Y = R * np.sin(theta) * np.sin(phi)
+        Z = R * np.cos(theta)
+
+    else:
+        print(f"*** Coordinate convention {convention} not supported.")
+        return None
 
     return X, Y, Z
+
 
 # Plot using matplotlib - legacy
 # TODO - remove this.
@@ -395,7 +414,7 @@ def sphToCart(R, theta, phi):
 #     sphPlotMatplotLib(dataPlot, theta, phi)
 
 # Plot using matplotlib
-def sphPlotMPL(dataPlot, theta, phi):
+def sphPlotMPL(dataPlot, theta, phi, convention = 'phys'):
     '''
     Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Matplotlib.
 
@@ -415,7 +434,7 @@ def sphPlotMPL(dataPlot, theta, phi):
 
     '''
 
-    X, Y, Z = sphToCart(dataPlot, theta, phi)
+    X, Y, Z = sphToCart(dataPlot, theta, phi, convention = convention)
 
     # Plot in a new figure using Matplotlib
     fig = plt.figure()

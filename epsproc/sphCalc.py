@@ -264,7 +264,7 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False):
 
 
 # Calculate a set of sph function
-def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph'):
+def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph', convention = 'phys'):
     '''
     Calculate set of spherical harmonics Ylm(theta,phi) on a grid.
 
@@ -309,11 +309,19 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
 
     # Set coords based on inputs
     # TODO: better code here (try/fail?)
+    # TODO: 03/09/20 checking/testing coords defns, needs a tidy up (or just remove)
     if angs is None and res:
-        theta, phi = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
+        if convention == 'maths':
+            # theta, phi = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
+            TP = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
+        elif convention == 'phys':
+            # phi, theta = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
+            TP = np.meshgrid(np.linspace(0,np.pi,res),np.linspace(0,2*np.pi,res))
+
     elif res is None and angs:
         theta = angs[0]
         phi = angs[1]
+
     else:
         print('Need to pass either res or angs.')
         return False
@@ -325,9 +333,22 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
         for m in np.arange(-l,l+1):
             lm.append([l, m])
             if fnType is 'sph':
-                Ylm.append(sph_harm(m,l,theta,phi))
+                if convention == 'maths':
+                    # Ylm.append(sph_harm(m,l,theta,phi))
+                    Ylm.append(sph_harm(m,l,TP[0],TP[1]))  # For SciPy.special.sph_harm() 'maths' convention is enforced.
+                elif convention == 'phys':
+                    # Ylm.append(sph_harm(m,l,phi,theta))
+                    Ylm.append(sph_harm(m,l,TP[1],TP[0]))
+
+                # Ylm.append(sph_harm(m,l,TP[0],TP[1]))  # Pass arrays by ind to allow for different conventions above.
+
             elif fnType is 'lg':
-                Ylm.append(lpmv(m,l,np.cos(phi)))
+                # Ylm.append(lpmv(m,l,np.cos(phi)))
+                if convention == 'maths':
+                    Ylm.append(lpmv(m,l,np.cos(TP[1])))  # For SciPy.special.lpmv() 'maths' convention is enforced.
+                elif convention == 'phys':
+                    Ylm.append(lpmv(m,l,np.cos(TP[0])))
+
             else:
                 print(f"fnType {fnType} not supported.")
 
@@ -335,7 +356,8 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
     if XFlag:
         # Set indexes
         QNs = pd.MultiIndex.from_arrays(np.asarray(lm).T, names = ['l','m'])
-        YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta',theta[0,:]), ('Phi',phi[:,0])])
+        # YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta',theta[0,:]), ('Phi',phi[:,0])])
+        YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta', TP[0][0,:]), ('Phi', TP[1][:,0])])
         return YlmX
     else:
         return np.asarray(Ylm), np.asarray(lm)

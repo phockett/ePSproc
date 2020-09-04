@@ -167,6 +167,8 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
                                 # NOTE - this may fail in current form if dims are missing.
     normBeta = normFactors[1] * (1/XSmatE)  # Normalise by sum over matrix elements squared.
 
+    Betas = Betas.where(Betas.M.pipe(np.abs) <= Betas.L, drop=True)  # Clean up m coords.
+
     BetasNorm = Betas.copy()    # Check different renorm methods
     BetasNormXS = normBeta * Betas.copy()
 
@@ -181,12 +183,18 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
     # BetasNorm = BetasNorm.where(BetasNorm.L == 0, 1/5 * BetasNorm)  # OK # where(mask, not mask)
     BetasNorm = BetasNorm.where(BetasNorm.L == 0, 1/(2*BetasNorm.L + 1) * BetasNorm)
 
+    # BetasNorm = BetasNorm.where(BetasNorm.M.pipe(np.abs) <= BetasNorm.L, drop=True)  # Clean up m coords.
+
     BetasNorm['XS2'] = XSmatE
 
     #**** Tidy up and reformat to standard BLM array (see ep.util.BLMdimList() )
     # TODO: finish this, and set this as standard output
     # Might also want .where(M<L) to remove spurious terms...?
-    BetasNormX = BetasNorm.unstack.rename({'L':'l','M':'m'}).stack({'BLM':['l','m']})
+    BetasNormX = BetasNorm.unstack().rename({'L':'l','M':'m'}).stack({'BLM':['l','m']})  
+    BetasNormX = BetasNormX.where(BetasNormX.m.pipe(np.abs) <= BetasNormX.l, drop=True)  # Clean up m - required again after unstack/restack (not possible to rename directly in multi-level index...?).
+
+    # For LF CG case need to sum over (dummy) 'm' and reformat... to usual BLM array with M=0
+    BetasNormX = BetasNormX.unstack('BLM').sum('m').expand_dims({'m':[0]}).stack({'BLM':['l','m']})
 
     # Set/propagate global properties
     BetasNormX.attrs = matE.attrs
@@ -196,6 +204,6 @@ def lfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
     # BLMXout.attrs['sumDims'] = sumDims # May want to explicitly propagate symmetries here...?
     # BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
     BetasNormX.attrs['dataType'] = 'BLM'
-
+    BetasNormX.attrs['normType'] = 'lg'   # Set normType (sph, lg).
 
     return BetasNormXS, BetasNorm, Betas, XSmatE, BetasNormX

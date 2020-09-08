@@ -213,8 +213,31 @@ def conv_ev_nm(data): #, to = 'nm'):
 
     return dataOut
 
+# Renorm by L=0 term
+def renormL0(data):
+    """
+    Renormalise passed data (Xarray) by (L,M) = (0,0) term.
+
+    Requires input Xarray to have dims (L,M) or (l,m), should be robust over all other dims.
+
+    """
+    dataOut = data.copy()
+
+    # Note - this currently assumes m dim is present, and forces it to be dropped after selection.
+    if hasattr(dataOut,'L'):
+        # dataOut /= dataOut.sel({'L':0}).drop('BLM')
+        dataOut /= dataOut.sel({'L':0}).drop('M').squeeze()
+    elif hasattr(dataOut,'l'):
+        # dataOut /= dataOut.sel({'l':0}).drop('BLM')
+        dataOut /= dataOut.sel({'l':0}).drop('m').squeeze()
+    else:
+        print("***Warning, L/l not present in dataset.")
+        return None
+
+    return dataOut
+
 # Convert expansion parameters from Legendre Polynomial to Spherical Harmonic form (and back)
-def conv_BL_BLM(data, to = 'sph'):
+def conv_BL_BLM(data, to = 'sph', renorm = True):
     """
     Convert BL (Legendre Polynomial) <> BLM (Spherical Harmonic) parameter renomalisation.
 
@@ -232,6 +255,9 @@ def conv_BL_BLM(data, to = 'sph'):
     to : str, default = 'sph'
         - 'sph' to convert BL > BLM
         - 'lg' to convert BL0 > BL
+
+    renorm : bool, optional, default = True
+        If true, additionally renormalise paramters such that B0 = 1.
 
     Notes
     -----
@@ -253,11 +279,21 @@ def conv_BL_BLM(data, to = 'sph'):
 
     # Set output values
     if to is 'sph':
-        dataOut = data*Bconv
-    elif to is 'lg':
         dataOut = data/Bconv
+    elif to is 'lg':
+        dataOut = data*Bconv
     else:
         print(f"*** Beta conversion error: conversion type {to} not supported.")
+
+    if renorm:
+        # Note - this currently assumes m dim is present, and forces it to be dropped after selection.
+        if hasattr(dataOut,'L'):
+            # dataOut /= dataOut.sel({'L':0}).drop('BLM')
+            dataOut /= dataOut.sel({'L':0}).drop('M').squeeze()
+        elif hasattr(dataOut,'l'):
+            # dataOut /= dataOut.sel({'l':0}).drop('BLM')
+            dataOut /= dataOut.sel({'l':0}).drop('m').squeeze()
+
 
     # Propagate attrs
     dataOut.attrs = data.attrs

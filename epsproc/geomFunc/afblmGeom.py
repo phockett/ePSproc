@@ -263,8 +263,16 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
     mTermSumThres['XSraw'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()  # This basically works, and keeps all non-summed dims... but may give issues later...? Make sure to .copy(), otherwise it's just a pointer.
 
-    # Rescale by sqrt(4pi)*SF, this matches GetCro XS outputs in testing.
-    mTermSumThres['XSrescaled'] = mTermSumThres['XSraw']*mTermSumThres['SF']*np.sqrt(4*np.pi)
+    if symSum:
+        # Rescale by sqrt(4pi)*SF, this matches GetCro XS outputs in testing.
+        mTermSumThres['XSrescaled'] = mTermSumThres['XSraw']*mTermSumThres['SF']*np.sqrt(4*np.pi)
+
+    else:
+        # mTermSumThres['XSrescaled'] /= symDegen  # Correct sym unsummed case (multiple summation issue?)
+        # Actually, looks like issue is scaling for SF - for single sym case DON'T NEED IT to match GetCro outputs.
+        # Is this then correct?
+        mTermSumThres['XSrescaled'] = mTermSumThres['XSraw']*np.sqrt(4*np.pi)
+
 
     mTermSumThres['XSiso'] = XSmatE/3  # ePolyScat defn. for LF cross-section. (i.e. isotropic distribution)
     # mTermSumThres['XS2'] = symDegen * XSmatE/3  # Quick hack for testing, with symDegen

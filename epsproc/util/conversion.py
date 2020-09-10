@@ -234,15 +234,18 @@ def renormL0(data):
         print("***Warning, L/l not present in dataset.")
         return None
 
+    # Propagate attrs
+    dataOut.attrs = data.attrs
+
     return dataOut
 
 # Convert expansion parameters from Legendre Polynomial to Spherical Harmonic form (and back)
 def conv_BL_BLM(data, to = 'sph', renorm = True):
     """
-    Convert BL (Legendre Polynomial) <> BLM (Spherical Harmonic) parameter renomalisation.
+    Convert BL (Legendre Polynomial) <> BLM (Spherical Harmonic), plus parameter renomalisation.
 
 .. math::
-    $\beta^{Sph}_{L,0} = \sqrt{(2L+1)/4\pi}\beta^{Lg}$
+    \beta^{Sph}_{L,0} = \sqrt{(2L+1)/4\pi}\beta^{Lg}
 
     Note: other conventions may be used here, see https://shtools.github.io/SHTOOLS/complex-spherical-harmonics.html#supported-normalizations
 
@@ -257,7 +260,7 @@ def conv_BL_BLM(data, to = 'sph', renorm = True):
         - 'lg' to convert BL0 > BL
 
     renorm : bool, optional, default = True
-        If true, additionally renormalise paramters such that B0 = 1.
+        If true, additionally renormalise paramters by L=0 term, such that B0 = 1.
 
     Notes
     -----
@@ -287,13 +290,15 @@ def conv_BL_BLM(data, to = 'sph', renorm = True):
 
     if renorm:
         # Note - this currently assumes m dim is present, and forces it to be dropped after selection.
-        if hasattr(dataOut,'L'):
-            # dataOut /= dataOut.sel({'L':0}).drop('BLM')
-            dataOut /= dataOut.sel({'L':0}).drop('M').squeeze()
-        elif hasattr(dataOut,'l'):
-            # dataOut /= dataOut.sel({'l':0}).drop('BLM')
-            dataOut /= dataOut.sel({'l':0}).drop('m').squeeze()
+        # if hasattr(dataOut,'L'):
+        #     # dataOut /= dataOut.sel({'L':0}).drop('BLM')
+        #     dataOut /= dataOut.sel({'L':0}).drop('M').squeeze()
+        # elif hasattr(dataOut,'l'):
+        #     # dataOut /= dataOut.sel({'l':0}).drop('BLM')
+        #     dataOut /= dataOut.sel({'l':0}).drop('m').squeeze()
 
+        # Now moved to separate function
+        dataOut = renormL0(dataOut)
 
     # Propagate attrs
     dataOut.attrs = data.attrs

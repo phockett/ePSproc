@@ -14,7 +14,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
                 thres = 1e-2, thresDims = 'Eke', selDims = {'it':1, 'Type':'L'},
                 # sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
                 sumDims = ['mu', 'mup', 'l','lp','m','mp','S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
-                SFflag = True, SFflagRenorm = True, BLMRenorm = 3,
+                SFflag = False, SFflagRenorm = False, BLMRenorm = 1,
                 squeeze = False, phaseConvention = 'S'):
     r"""
     Implement :math:`\beta_{LM}^{AF}` calculation as product of tensors.
@@ -26,6 +26,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
 
     Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
+
+    10/09/20 Verified (but messy) version, with updated defaults.
 
     01/09/20 Verified (but messy) version, including correct renormalisation routines.
 
@@ -45,6 +47,19 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     phaseConvention : optional, str, default = 'S'
         Set phase conventions with :py:func:`epsproc.geomCalc.setPhaseConventions`.
         To use preset phase conventions, pass existing dictionary.
+
+
+
+    Notes
+    -----
+
+    Cross-section outputs now set as:
+
+    - XSraw = direct AF calculation output.
+    - XSrescaled = XSraw * SF * sqrt(4pi)
+    - XSiso = direct sum over matrix elements
+
+    Where XSrescaled == XSiso == ePS GetCro output for isotropic distribution.
 
     """
     from epsproc.util import matEleSelector
@@ -246,7 +261,10 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     if SFflagRenorm:
         mTermSumThres.values = mTermSumThres/mTermSumThres.SF
 
-    mTermSumThres['XS'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()  # This basically works, and keeps all non-summed dims... but may give issues later...? Make sure to .copy(), otherwise it's just a pointer.
+    mTermSumThres['XSraw'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()  # This basically works, and keeps all non-summed dims... but may give issues later...? Make sure to .copy(), otherwise it's just a pointer.
+
+    # Rescale by sqrt(4pi)*SF, this matches GetCro XS outputs in testing.
+    mTermSumThres['XSrescaled'] = mTermSumThres['XSraw']*mTermSumThres['SF']*np.sqrt(4*np.pi)
 
     mTermSumThres['XSiso'] = XSmatE/3  # ePolyScat defn. for LF cross-section. (i.e. isotropic distribution)
     # mTermSumThres['XS2'] = symDegen * XSmatE/3  # Quick hack for testing, with symDegen
@@ -256,7 +274,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
         # mTermSumThres /= mTermSumThres.sel({'L':0,'M':0}).drop('LM')
         if BLMRenorm == 1:
             # Renorm by isotropic XS only
-            mTermSumThres /= mTermSumThres['XS']
+            mTermSumThres /= mTermSumThres['XSraw']
 
         elif BLMRenorm == 2:
             # Renorm by full t-dependent XS only
@@ -304,7 +322,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
     #**** Tidy up and reformat to standard BLM array (see ep.util.BLMdimList() )
     # TODO: finish this, and set this as standard output
-    BetasNormX = mTermSumThres.unstack.rename({'L':'l','M':'m'}).stack({'BLM':['l','m']})
+    BetasNormX = mTermSumThres.unstack().rename({'L':'l','M':'m'}).stack({'BLM':['l','m']})
 
     # Set/propagate global properties
     BetasNormX.attrs = matE.attrs

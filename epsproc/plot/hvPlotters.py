@@ -21,6 +21,7 @@ Todo
 """
 
 import xarray as xr
+# from matplotlib import pyplot as plt  # For addtional plotting functionality - also need to import here for Seaborn styles to function.
 # import holoviews as hv
 
 # Optionals
@@ -54,7 +55,8 @@ def setPlotters(hvBackend = 'bokeh', width = 500):
     Set some plot options - Seaborn style + HV defaults.
 
     May have some issues with scope here - TBC. Should just run on function import?
-    UPDATE: now moved to module import.
+
+    Update: now moved to module import.
 
     Parameters
     -----------
@@ -69,28 +71,38 @@ def setPlotters(hvBackend = 'bokeh', width = 500):
 
     # Plotting libs
     # Optional - set seaborn for plot styling
-    import seaborn as sns
-    sns.set_context("paper")  # "paper", "talk", "poster", sets relative scale of elements
-                            # https://seaborn.pydata.org/tutorial/aesthetics.html
-    # sns.set(rc={'figure.figsize':(11.7,8.27)})  # Set figure size explicitly (inch)
-                            # https://stackoverflow.com/questions/31594549/how-do-i-change-the-figure-size-for-a-seaborn-plot
-                            # Wraps Matplotlib rcParams, https://matplotlib.org/tutorials/introductory/customizing.html
-    sns.set(rc={'figure.dpi':(120)})
+    if snsFlag:
+        import seaborn as sns
+        sns.set_context("paper")  # "paper", "talk", "poster", sets relative scale of elements
+                                # https://seaborn.pydata.org/tutorial/aesthetics.html
+        # sns.set(rc={'figure.figsize':(11.7,8.27)})  # Set figure size explicitly (inch)
+                                # https://stackoverflow.com/questions/31594549/how-do-i-change-the-figure-size-for-a-seaborn-plot
+                                # Wraps Matplotlib rcParams, https://matplotlib.org/tutorials/introductory/customizing.html
+        sns.set(rc={'figure.dpi':(120)})
 
     from matplotlib import pyplot as plt  # For addtional plotting functionality
     # import bokeh
 
     # import holoviews as hv
     # from holoviews import opts
+    if hvFlag:
+        # Set HV extension
+        try:
+            hv.extension(hvBackend)
 
-    # Set HV extension
-    hv.extension(hvBackend)
+        except ImportError as e:
+            if e.msg != "None of the backends could be imported":
+                raise
+
+            if hvBackend == 'bokeh':
+                print("Possible bokeh version issue, see https://github.com/holoviz/holoviews/issues/2012. (For Holoviews 1.12.5, Bokeh 1.4.0 works, Bokeh 2.0.0 doesn't.)")
 
 
-    # Set global HV options
-    # Setting frame_width here results in offset plots in layout - try setting later?
-    # opts.defaults(opts.Curve(frame_width=500, tools=['hover'], show_grid=True, padding=0.01))
-    opts.defaults(opts.Curve(width=width, tools=['hover'], show_grid=True, padding=0.01))
+
+        # Set global HV options
+        # Setting frame_width here results in offset plots in layout - try setting later?
+        # opts.defaults(opts.Curve(frame_width=500, tools=['hover'], show_grid=True, padding=0.01))
+        opts.defaults(opts.Curve(width=width, tools=['hover'], show_grid=True, padding=0.01))
 
     # return hv.output.info()
 

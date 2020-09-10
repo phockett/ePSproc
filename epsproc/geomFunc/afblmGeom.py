@@ -263,15 +263,21 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
     mTermSumThres['XSraw'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()  # This basically works, and keeps all non-summed dims... but may give issues later...? Make sure to .copy(), otherwise it's just a pointer.
 
-    if symSum:
-        # Rescale by sqrt(4pi)*SF, this matches GetCro XS outputs in testing.
-        mTermSumThres['XSrescaled'] = mTermSumThres['XSraw']*mTermSumThres['SF']*np.sqrt(4*np.pi)
+    # Rescale by sqrt(4pi)*SF, this matches GetCro XS outputs in testing.
+    # mTermSumThres['XSrescaled'] = mTermSumThres['XSraw']*mTermSumThres['SF']*np.sqrt(4*np.pi)
+    mTermSumThres['XSrescaled'] = mTermSumThres['XSraw']*np.sqrt(4*np.pi)
 
-    else:
-        # mTermSumThres['XSrescaled'] /= symDegen  # Correct sym unsummed case (multiple summation issue?)
-        # Actually, looks like issue is scaling for SF - for single sym case DON'T NEED IT to match GetCro outputs.
-        # Is this then correct?
-        mTermSumThres['XSrescaled'] = mTermSumThres['XSraw']*np.sqrt(4*np.pi)
+    # In some cases may also need to account for degen...? Seemed to in N2 AF testing 10/09/20, but may have been spurious result.
+    # Could also be Sph <> Lg conversion issue?
+    # if symSum:
+    #     # Rescale by sqrt(4pi)*SF, this matches GetCro XS outputs in testing.
+    #     mTermSumThres['XSrescaled'] = mTermSumThres['XSraw']*mTermSumThres['SF']*np.sqrt(4*np.pi)
+    #
+    # else:
+    #     # mTermSumThres['XSrescaled'] /= symDegen  # Correct sym unsummed case (multiple summation issue?)
+    #     # Actually, looks like issue is scaling for SF - for single sym case DON'T NEED IT to match GetCro outputs.
+    #     # Is this then correct?
+    #     mTermSumThres['XSrescaled'] = mTermSumThres['XSraw']*np.sqrt(4*np.pi)
 
 
     mTermSumThres['XSiso'] = XSmatE/3  # ePolyScat defn. for LF cross-section. (i.e. isotropic distribution)

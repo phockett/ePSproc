@@ -1,0 +1,34 @@
+Github: https://github.com/phockett/ePSproc/releases/tag/v1.2.5-dev
+
+Released 09/09/20
+
+
+---
+
+# v1.2.5-dev: Geometric code for AF, epsData interface, wavefunction plotting
+
+Updated v1.2.5 source, with new functionality and bug fixes from March - Sept. 2020, but still back-compatible. The next release (v1.3.0) will include significant restructuring which will likely break old code. New additions in this version are now working & tested, but still need some work & tidying up.
+
+([This version from PyPi](https://pypi.org/project/ePSproc/1.2.5.dev0/).)
+
+# Main additions since v1.2.5 release:
+
+The main change is the addition of [tensor-based BLM computations](https://epsproc.readthedocs.io/en/v1.2.5-dev/methods/geometric_method_dev_260220_090420_tidy.html), which are now verified, and much faster than previous codes. There are some new classes too, although these are still in the development stages.
+
+- 27/04/20: added E-field class https://github.com/phockett/ePSproc/commit/04c2cc3fcaf46faa6ef7d99664d979d1f513c06d
+- 19/05/20: added volumetric and orbital plotting functionality https://github.com/phockett/ePSproc/commit/2d93bb14dcb8620c288d8373cd234da0922e601c
+- 15/06/20: added AFBLM code, geometric version https://github.com/phockett/ePSproc/commit/cb555e579534d8007dbaa66447f44a5cb24349e7
+- 04/07/20: added Holoviews-based plotting codes https://github.com/phockett/ePSproc/commit/625ebc03fadb2aaf0b9c314b2fab562210a8ea8b
+- 18/07/20: added `wfPlotter` class for wavefunction plotting https://github.com/phockett/ePSproc/commit/1766d25f04cd480d23b54b20cf4e3898495df888
+- 20/07/20: added [ePSdata](https://phockett.github.io/ePSdata/) interface class https://github.com/phockett/ePSproc/commit/0a51a59b136982143616fe293ec5aae30a9724f1
+
+
+
+
+# Bug fixes & notebooks:
+
+- 09/05/20: added ePS tutorial notebooks https://github.com/phockett/ePSproc/commit/26531e5df8af2cf2ee4b54561bc4839d4d0d2f41
+- 22/06/20: LF formalism (geometric version) notes and testing added https://github.com/phockett/ePSproc/commit/5524129d7e6472fa6344640a09f71e00fb3e179f
+- 30/07/20: added ePSdata demo notebooks https://github.com/phockett/ePSproc/commit/9feed8ce140ecd30f3abfe7f7c3f590a53d90fb0
+- Aug/Sept 2020: various bug fixes and code validation.
+- 09/09/20: Finally fixed geometric codes and verified, https://github.com/phockett/ePSproc/commit/97a064eb9f07653e7d8d13578f038f3683960a69

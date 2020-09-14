@@ -1,0 +1,8 @@
+
+For releases use Hatch:
+
+hatch grow patch [or change in init.py]
+hatch build --build-dir dist
+hatch release --path dist --username phockett
+
+On Stimpy, use conda env pkgTest, may need old anaconda prompt for this.

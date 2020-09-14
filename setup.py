@@ -23,9 +23,9 @@ setup(
     long_description=readme,
     long_description_content_type = 'text/x-rst',
     author='Paul Hockett',
-    author_email='paul [[at]] femtolab.ca',
+    author_email='epsproc@gmail.com',
     maintainer='Paul Hockett',
-    maintainer_email='paul [[at]] femtolab.ca',
+    maintainer_email='epsproc@gmail.com',
     url='https://github.com/phockett/ePSproc',
     license='GNU3',
 

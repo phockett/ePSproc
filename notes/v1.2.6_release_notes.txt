@@ -1,0 +1,12 @@
+Github: https://github.com/phockett/ePSproc/releases/tag/v1.2.6
+
+Released 14/09/20
+
+
+---
+
+# v1.2.6 merge v1.2.5-dev updates to master.
+
+Merges [v1.2.5-dev updates to master](https://github.com/phockett/ePSproc/releases/tag/v1.2.5-dev), with version bump for PyPi package.
+
+New code is still pretty messy, issues to be cleared up for v1.3.0.

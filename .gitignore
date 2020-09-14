@@ -12,3 +12,4 @@ venv/
 wheelhouse/
 docs/docs-build/
 .ipynb_checkpoints
+mkinitOut.txt

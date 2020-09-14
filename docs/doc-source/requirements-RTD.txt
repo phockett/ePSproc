@@ -1,0 +1,39 @@
+# Reduced requirements file for Read the Docs build chain.
+# 16/07/20
+# Should fix build resources issue.
+# See https://docs.readthedocs.io/en/stable/guides/build-using-too-many-resources.html
+# (NOTE - can also try sphinx-autoapi instead of autodoc.)
+# Point here from project root .readthedocs.yml
+
+# Use with Sphinx autodoc mock imports for minial doc build requirements (if required?)
+# https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#confval-autodoc_mock_imports
+# See also minimal example from nbsphinx docs: https://nbsphinx.readthedocs.io/en/0.3.5/usage.html#Using-requirements.txt
+
+# setuptools==41.0.1
+# numpy_quaternion  # ==2019.7.23.15.26.49
+# plotly==4.0.0
+# spherical_functions==1.16.4
+# scipy==1.3.1
+# xarray>=0.12.3
+# pandas==0.25.1
+# matplotlib==3.1.0
+# seaborn==0.9.0
+# spherical_functions  # ==2019.7.12.23.25.11
+
+# Optional, but included here for now
+# Set version for Sphinx build - throwing errors with spherical_functions April/May 2020, but may also be sf version? Seems to be loading 2020.5.9.16.33.28
+# New issues for same issue mid-June 2020, looks like version mismatch again (RTD keeps installing updated sf version), so try without versions specified here.
+# numba  # ==0.45.0
+# pyvista
+# cclib
+# holoviews
+
+# Doc functionality
+sphinxcontrib.apidoc==0.3.0
+nbsphinx>=0.4
+
+# For nbsphinx formatting in Read the Docs, include ipython here, see https://github.com/spatialaudio/nbsphinx/issues/24
+ipython
+
+# Added 10/09/20, new jupyter_pygments code in RTD build which throws version error with pygments 2.3.1, which seems to be default. See https://readthedocs.org/api/v2/build/11853448.txt
+pygments >= 2.4.1

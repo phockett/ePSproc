@@ -1,0 +1,19 @@
+{
+    "global": {
+        "note": "Global plot settings, used as defaults. To change for session, overwrite in local dict. To change permanently, overwrite in file plotOptions.json. To reset, use `epsproc/vol/set_plot_options_json.ipynb` or .py.",
+        "pType": "Abs",
+        "interactive": true,
+        "inline": true,
+        "animate": false,
+        "isoLevels": 6,
+        "isoValsAbs": null,
+        "isoValsPC": null,
+        "isoValsGlobal": true,
+        "opacity": 0.5,
+        "subplot": false
+    },
+    "BGplotter": {
+        "addAxis": true,
+        "kwargs": {}
+    }
+}

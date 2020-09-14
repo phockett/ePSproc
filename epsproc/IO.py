@@ -68,7 +68,7 @@ except ImportError as e:
     print('* pyevtk not found, VTK export not available. ')
 
 # Package fns.
-from epsproc.util import matEleSelector, dataGroupSel, matEdimList, BLMdimList, stringRepMap, conv_ev_atm
+from epsproc.util import matEleSelector, dataGroupSel, matEdimList, BLMdimList, stringRepMap, conv_ev_atm, orb3DCoordConv
 
 # ***** Ancillary functions
 
@@ -85,7 +85,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
         File to read (file in working dir, or full path)
     startPhrase : str, optional
         Phrase denoting start of section to read. Default = None
-    endPhase : str, optional
+    endPhase : str or list, optional
         Phrase denoting end of section to read. Default = None
     comment : str, optional
         Phrase denoting comment lines, which are skipped. Default = None
@@ -106,6 +106,10 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
     segments = [[]]   # Possible to create empty multi-dim array here without knowing # of segments? Otherwise might be easier to use np textscan functions
     readFlag = False
     n = 0
+
+    # Force list to ensure endPhase is used correctly for single phase case (otherwise will test chars)
+    if type(endPhrase) is str:
+        endPhrase = [endPhrase]
 
     # Open file & scan each line.
     with open(fileName,'r') as f:
@@ -144,7 +148,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
                 segments[n].append([n, i, line])    # Store line if part  of defined segment
 
     if verbose:
-        print('Found {0} segments.'.format(n))
+        print('Found {0} segments.'.format(n+1))
 
     return ([lineStart, lineStop], segments) # [:-1])
 
@@ -1039,6 +1043,13 @@ def getCroSegsParseX(dumpSegs, symSegs, ekeList):
     A rather cut-down version of :py:func:`epsproc.IO.dumpIdySegsParseX()`, no error checking currently implemented.
 
     """
+    # Old skool debug code.
+    # print(ekeList)
+    # print(type(ekeList))
+    #
+    # if (type(ekeList) is not np.ndarray) and (type(ekeList) is not list):
+    #     ekeList = [ekeList]   # Wrap as list for single eKE case.
+    #     print('Converted to list')
 
     dataList = []
     dataArray = []
@@ -1099,11 +1110,18 @@ def getCroSegsParseX(dumpSegs, symSegs, ekeList):
     daOut.attrs['units'] = 'Mb'
 
     # Reset energies to Eke, and shift key dim - might be a simpler/shorter way to do this...?
-    daOut['EhvOrig'] = daOut['Ehv']
-    daOut['Ehv'] = ekeList
-    daOut = daOut.rename({'Ehv':'Eke', 'EhvOrig':'Ehv'})
-    # daOut.rename({'Ehv':'Eke'})
-    # daOut.rename({'EhvOrig':'Ehv'})
+    # This fails for singleton Ehv/Eke?
+    # daOut['EhvOrig'] = daOut['Ehv']
+    # daOut['Ehv'] = ekeList
+    # daOut = daOut.rename({'Ehv':'Eke', 'EhvOrig':'Ehv'})
+
+    # Try a different approach... assign as new dim then swap.
+    if daOut.Ehv.size == 1:
+        daOut['Eke'] = ('Ehv', [ekeList])  # Fix for singleton dim - this fails otherwise for scalar or np.ndarray case.
+    else:
+        daOut['Eke'] = ('Ehv', ekeList)
+
+    daOut = daOut.swap_dims({'Ehv':'Eke'})
 
     return daOut, blankSegs
 
@@ -1300,7 +1318,7 @@ def matEleGroupDim(data, dimGroups = [3, 4, 2]):
 
 # Function for grabbing files or scanning dir for files.
 # Note raw string for docstring as one method of keeping raw string in example.
-def getFiles(fileIn = None, fileBase = None, fType = '.out'):
+def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
     r"""
     Read ePS file(s) and return results as Xarray data structures.
     File endings specified by fType, default .out.
@@ -1320,6 +1338,9 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out'):
 
     fType : str, optional
         File ending for ePS output files, default '.out'
+
+    verbose : bool, optional
+        Print output details, default True.
 
 
     Returns
@@ -1351,8 +1372,9 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out'):
                 fList.append(file)
 
         # Display message
-        print('\n*** Scanning file(s)')
-        print(fList)
+        if verbose:
+            print('\n*** Scanning file(s)')
+            print(fList)
 
     else:
         # Filenames only
@@ -1361,9 +1383,10 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out'):
         fList = [os.path.join(fileBase, f) for f in os.listdir(fileBase) if f.endswith(fType)]
 
         # Display message
-        print('\n*** Scanning dir')
-        print(fileBase)
-        print('Found {0} {1} file(s)\n'.format(len(fList), fType))
+        if verbose:
+            print('\n*** Scanning dir')
+            print(fileBase)
+            print('Found {0} {1} file(s)\n'.format(len(fList), fType))
 
     return fList
 
@@ -1553,7 +1576,7 @@ def readOrbData(f, headerLines):
     return data
 
 # *************** Master function for reading a set of 3D data files from ePS
-def readOrb3D(fileIn = None, fileBase = None, fType = '_Orb.dat'):
+def readOrb3D(fileIn = None, fileBase = None, fType = '_Orb.dat', verbose = True):
     """
     Read ePS 3D data file(s) and return results.
     File endings specified by fType, default *_Orb.dat.
@@ -1573,6 +1596,9 @@ def readOrb3D(fileIn = None, fileBase = None, fType = '_Orb.dat'):
 
     fType : str, optional
         File ending for ePS output files, default '_Orb.dat'
+
+    verbose : bool, optional
+        Print output details, default True.
 
 
     Returns
@@ -1596,7 +1622,7 @@ def readOrb3D(fileIn = None, fileBase = None, fType = '_Orb.dat'):
     """
 
     # Populate file list
-    fList = getFiles(fileIn = fileIn, fileBase = fileBase, fType = fType)
+    fList = getFiles(fileIn = fileIn, fileBase = fileBase, fType = fType, verbose = verbose)
 
     dataSet = []
     for fileName in fList:
@@ -1650,18 +1676,21 @@ def writeOrb3Dvtk(dataSet):
     fOut = []
     for file in dataSet:
         # Set grid, convert to Cart if necessary, assuming that grid won't be larger than 10 Angs
-        if (len(file[2][0]) > 50):
-            # Convert to Cart grid for plotting
-            # TODO: Investigate use of sph grid here - should be cleaner.
-            # TODO: Investigate recreating mesh in Paraview, rather than saving to file.
-            [T,R,P] = np.meshgrid(file[2][1], file[2][0], file[2][2])
-            T = (T*np.pi/180) #-np.pi/2
-            P = P*np.pi/180
-            x = R*np.sin(P)*np.cos(T)
-            z = R*np.cos(P)
-            y = R*np.sin(P)*np.sin(T)
-        else:
-            [x,y,z] = np.meshgrid(file[2][1], file[2][0], file[2][2])
+        # if (len(file[2][0]) > 50):
+        #     # Convert to Cart grid for plotting
+        #     # TODO: Investigate use of sph grid here - should be cleaner.
+        #     # TODO: Investigate recreating mesh in Paraview, rather than saving to file.
+        #     [T,R,P] = np.meshgrid(file[2][1], file[2][0], file[2][2])
+        #     T = (T*np.pi/180) #-np.pi/2
+        #     P = P*np.pi/180
+        #     x = R*np.sin(P)*np.cos(T)
+        #     z = R*np.cos(P)
+        #     y = R*np.sin(P)*np.sin(T)
+        # else:
+        #     [x,y,z] = np.meshgrid(file[2][1], file[2][0], file[2][2])
+
+        # Now set as separate function
+        [x,y,z] = orb3DCoordConv(file)
 
         # Save single dataset
         # Function info: https://bitbucket.org/pauloh/pyevtk/src/default/src/hl.py

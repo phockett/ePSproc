@@ -23,12 +23,18 @@ See tests/Spherical function testing Aug 2019.ipynb
 import numpy as np
 import pandas as pd
 import xarray as xr
-from scipy.special import sph_harm
+from scipy.special import sph_harm, lpmv
 import spherical_functions as sf
 import quaternion
 import string
 
-from sympy.physics.quantum.spin import Rotation  # For basic frame rotation code, should update to use sf
+try:
+    from sympy.physics.quantum.spin import Rotation  # For basic frame rotation code, should update to use sf
+except ImportError as e:
+    if e.msg != "No module named 'sympy'":
+        raise
+    print('* Sympy not found, some (legacy) sph functions may not be available. ')
+
 
 
 # Master function for setting geometries/frame rotations
@@ -258,7 +264,7 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False):
 
 
 # Calculate a set of sph function
-def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
+def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph', convention = 'phys'):
     '''
     Calculate set of spherical harmonics Ylm(theta,phi) on a grid.
 
@@ -274,6 +280,10 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
         If passed, use these grids for calculation
     XFlag : bool, optional, default True
         Flag for output. If true, output is Xarray. If false, np.arrays
+    fnType : str, optional, default = 'sph'
+        Currently can set to 'sph' for SciPy spherical harmonics, or 'lg' for SciPy Legendre polynomials.
+        More backends to follow.
+
 
     Note that either res OR angs needs to be passed.
 
@@ -288,7 +298,8 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
 
     Methods
     -------
-    Currently set for scipy.special.sph_harm as calculation routine.
+    Currently set for scipy.special.sph_harm as calculation routine. Note (theta, phi) definition, and normalisation.
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.sph_harm.html
 
     Example
     -------
@@ -298,11 +309,19 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
 
     # Set coords based on inputs
     # TODO: better code here (try/fail?)
+    # TODO: 03/09/20 checking/testing coords defns, needs a tidy up (or just remove)
     if angs is None and res:
-        theta, phi = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
+        if convention == 'maths':
+            # theta, phi = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
+            TP = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
+        elif convention == 'phys':
+            # phi, theta = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
+            TP = np.meshgrid(np.linspace(0,np.pi,res),np.linspace(0,2*np.pi,res))
+
     elif res is None and angs:
         theta = angs[0]
         phi = angs[1]
+
     else:
         print('Need to pass either res or angs.')
         return False
@@ -313,13 +332,32 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
     for l in np.arange(Lmin,Lmax+1):
         for m in np.arange(-l,l+1):
             lm.append([l, m])
-            Ylm.append(sph_harm(m,l,theta,phi))
+            if fnType is 'sph':
+                if convention == 'maths':
+                    # Ylm.append(sph_harm(m,l,theta,phi))
+                    Ylm.append(sph_harm(m,l,TP[0],TP[1]))  # For SciPy.special.sph_harm() 'maths' convention is enforced.
+                elif convention == 'phys':
+                    # Ylm.append(sph_harm(m,l,phi,theta))
+                    Ylm.append(sph_harm(m,l,TP[1],TP[0]))
+
+                # Ylm.append(sph_harm(m,l,TP[0],TP[1]))  # Pass arrays by ind to allow for different conventions above.
+
+            elif fnType is 'lg':
+                # Ylm.append(lpmv(m,l,np.cos(phi)))
+                if convention == 'maths':
+                    Ylm.append(lpmv(m,l,np.cos(TP[1])))  # For SciPy.special.lpmv() 'maths' convention is enforced.
+                elif convention == 'phys':
+                    Ylm.append(lpmv(m,l,np.cos(TP[0])))
+
+            else:
+                print(f"fnType {fnType} not supported.")
 
     # Return as Xarray or np arrays.
     if XFlag:
         # Set indexes
         QNs = pd.MultiIndex.from_arrays(np.asarray(lm).T, names = ['l','m'])
-        YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta',theta[0,:]), ('Phi',phi[:,0])])
+        # YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta',theta[0,:]), ('Phi',phi[:,0])])
+        YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta', TP[0][0,:]), ('Phi', TP[1][:,0])])
         return YlmX
     else:
         return np.asarray(Ylm), np.asarray(lm)
@@ -328,9 +366,9 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True):
 # Calculate wignerD functions
 #   Adapted directly from Matlab code,
 #   via Jupyter test Notebook "Spherical function testing Aug 2019.ipynb"
-def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
+def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, QNs = None, dlist = ['lp','mu','mu0'], eNames = ['P','T','C'], conjFlag = False):
     '''
-    Calculate set of Wigner D functions D(l,m,mp,R) on a grid.
+    Calculate set of Wigner D functions D(l,m,mp; R) on a grid.
 
     Parameters
     ----------
@@ -338,6 +376,10 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
         Range of L to calculate parameters for.
         If len(Lrange) == 2 assumed to be of form [Lmin, Lmax], otherwise list is used directly.
         For a given l, all (m, mp) combinations are calculated.
+
+    QNs : np.array, optional, default = None
+        List of QNs [l,m,mp] to compute Wigner D terms for.
+        If supplied, use this instead of Lrange setting.
 
     Options for setting angles (use one only):
     Nangs : int, optional, default None
@@ -354,6 +396,13 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
     XFlag : bool, optional, default True
         Flag for output. If true, output is Xarray. If false, np.arrays
 
+    dlist : list, optional, default ['lp','mu','mu0']
+        Labels for Xarray QN dims.
+    eNames : list, optional, default ['P','T','C']
+        Labels for Xarray Euler dims.
+
+    conjFlag : bool, optional, default = False
+        If true, return complex conjuage values.
 
     Outputs
     -------
@@ -372,6 +421,8 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
     Moble's quaternion package for angles and conversions.
     https://github.com/moble/quaternion
 
+    For testing, see https://epsproc.readthedocs.io/en/latest/tests/Spherical_function_testing_Aug_2019.html
+
     Examples
     --------
     >>> wDX1 = wDcalc(eAngs = np.array([0,0,0]))
@@ -385,14 +436,16 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
     else:
         Ls = Lrange
 
-    QNs = []
+    # Set QNs based on Lrange if not passed to function.
+    if QNs is None:
+        QNs = []
 
-    for l in Ls:
-        for m in np.arange(-l, l+1):
-            for mp in np.arange(-l, l+1):
-                QNs.append([l, m, mp])
+        for l in Ls:
+            for m in np.arange(-l, l+1):
+                for mp in np.arange(-l, l+1):
+                    QNs.append([l, m, mp])
 
-    QNs = np.array(QNs)
+        QNs = np.array(QNs)
 
     # Set angles - either input as a range, a set or as quaternions
     if Nangs is not None:
@@ -421,19 +474,23 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True):
     lmmp = []
     for n in np.arange(0, QNs.shape[0]):
         lmmp.append(QNs[n,:])
-        wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]))
+
+        if conjFlag:
+            wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]).conj())
+        else:
+            wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]))
 
     # Return values as Xarray or np.arrays
     if XFlag:
         # Put into Xarray
         #TODO: this will currently fail for a single set of QNs.
-        QNs = pd.MultiIndex.from_arrays(np.asarray(lmmp).T, names = ['lp','mu','mu0'])
+        QNs = pd.MultiIndex.from_arrays(np.asarray(lmmp).T, names = dlist)
         if (eAngs is not None) and (eAngs.size == 3):  # Ugh, special case for only one set of angles.
-            Euler = pd.MultiIndex.from_arrays([[eAngs[0]],[eAngs[1]],[eAngs[2]]], names = ['P','T','C'])
+            Euler = pd.MultiIndex.from_arrays([[eAngs[0]],[eAngs[1]],[eAngs[2]]], names = eNames)
             wDX = xr.DataArray(np.asarray(wD), coords=[('QN',QNs)])
             wDX = wDX.expand_dims({'Euler':Euler})
         else:
-            Euler = pd.MultiIndex.from_arrays(eAngs.T, names = ['P','T','C'])
+            Euler = pd.MultiIndex.from_arrays(eAngs.T, names = eNames)
             wDX = xr.DataArray(np.asarray(wD), coords=[('QN',QNs), ('Euler',Euler)])
 
         return wDX

@@ -26,11 +26,13 @@ from mpl_toolkits.mplot3d import proj3d
 # Package functions
 from epsproc.sphPlot import plotTypeSelector
 # from epsproc.util import matEleSelector  # Throws error, due to circular import refs?
+# from epsproc.util.conversion import multiDimXrToPD
+# from epsproc.util import matEdimList, BLMdimList, dataTypesList, multiDimXrToPD
 
 # Additional plotters
 try:
     import seaborn as sns
-    import epsproc._sns_matrixMod as snsMatMod  # SNS code with modified clustermap
+    import epsproc._sns_matrixMod as snsMatMod  # SNS code with modified clustermap - NOTE this may need Seaborn 0.9.0 - TBC
 except ImportError as e:
     if e.msg != "No module named 'seaborn'":
         raise
@@ -193,8 +195,8 @@ def symListGen(data):
     return np.ravel(symList)
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
-        selDims = None, sumDims = None, plotDims = ('l','m','mu','Cont','Targ','Total','it','Type'), squeeze = True,
-        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False):
+        selDims = None, sumDims = None, plotDims = None, squeeze = True, fillna = False,
+        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10):
     """
     Plotting routine for ePS matrix elements & BLMs.
 
@@ -234,15 +236,26 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     sumDims : tuple, optional, default = None
         Dimensions to sum over from the input Xarray.
 
-    plotDims : tuple, optional, default = ('l','m','mu','Cont','Targ','Total','it','Type')
+    plotDims : tuple, optional, default = None
         Dimensions to stack for plotting, also controls order of stacking (hence sorting and plotting).
+        Default case plots all dims not included in (xDim, sumDims, selDims).
+        E.g. for matrix elements this  will be ('l','m','mu','Cont','Targ','Total','it','Type')
         TO DO: auto generation for different dataType, also based on selDims and sumDims selections.
+        11/03/20: partially fixed, now add any missing dims to plot automatically.
+        NOTE: this currently fails for 'Labels' case, not sure why.
 
     squeeze : bool, optional, default = True
         Drop singleton dimensions from plot.
 
+    fillna : bool, optional, default = False
+        Fill NaN values with 0 if True.
+
     xDim : str, optional, default = 'Eke'
         Dimension to use for x-axis, also used for thresholding. Default plots (Eke, LM) surfaces.
+        NOTE: if xDim is a MultiIndex, pass as a dictionary mapping, otherwise it may be unstacked during data prep.
+        E.g. for plotting stacked (L,M), set xDim = {'LM':['L','M']}
+        NOTE: this is currently also passed to matEleSelector(), so stacked dims *must* exist in inital Xarray.
+        THIS SHOULD BE FIXED, since it's a pain.
 
     backend : str, optional, default = 'sns'
         Plotter to use. Default is 'sns' for Seaborn clustermap plot.
@@ -258,6 +271,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     verbose : bool, optional, default False
         Print debug info.
+
+    mMax : int, optional, default = 10
+        Used as default for m colour mapping, in cases where coords are not parsed.
+        TODO: fix this, it's ugly.
 
     Returns
     -------
@@ -276,6 +293,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     * For clustermap use local version - code from Seaborn, version from PR1393 with Cluster plot fixes.
         * https://github.com/mwaskom/seaborn/pull/1393
         * https://github.com/mwaskom/seaborn/blob/fb1f87e800e69ba2e9309f922f9dac470e3a6c78/seaborn/matrix.py
+        * This may break for versions of Seaborn other than 0.9.0 (tested version)
     * Currently only set for single colourmap choice, should set as dict.
     * Clustermap methods from:
         * https://stackoverflow.com/questions/27988846/how-to-express-classes-on-the-axis-of-a-heatmap-in-seaborn
@@ -288,7 +306,20 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     To do
     -----
     - Improved dim handling, maybe use :py:func:`epsproc.util.matEdimList()` (and related functions) to avoid hard-coding multiple cases here.
+        - Partially implemented in dimMap.
+        - Currently throws an error for None in symmetry plotting cases for unrecognised dataType. TO FIX!
     - Improved handling of sets of polarization geometries (angles).
+    - CONSOLIDATE stacked/unstacked dim handling.  At the moment some functions use stacked, some unstacked, which is leading to annoying bugs.
+
+    History
+    -------
+
+    * 27/02/20 - handling for MultiIndex cases for Wigner 3j type data (function of (l,lp,L,m,mp,M))
+        * Fixed issue with conversion to Pandas table - should now handle dims better.
+        * Improved multidim dropna() using Xarray version (previously used Pandas version).
+        * Added xDim as dict mapping capability.
+    * 05/12/19 - debug
+    * 29/11/19 - initial version.
 
     Examples
     --------
@@ -297,7 +328,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     """
     # Local/deferred import to avoid circular import issues at module level.
     # TO DO: Should fix with better __init__!
-    from epsproc.util import matEleSelector, matEdimList, BLMdimList
+    from epsproc.util import matEleSelector, matEdimList, BLMdimList, dataTypesList, multiDimXrToPD
 
     # Set Seaborn style
     # TO DO: should pass args here or set globally.
@@ -319,9 +350,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     daPlot.attrs = data.attrs
 #     daPlot = data
 
-    # Set filename if missing
-    if 'file' not in daPlot.attrs:
-        daPlot.attrs['file'] = '(No filename)'
+    # Set dataType if missing - NOTE additionally set at end to avoid accidentally dropping this.
+    if 'dataType' not in daPlot.attrs:
+        daPlot.attrs['dataType'] = '(No dataType)'
+        print(f"Set dataType {daPlot.attrs['dataType']}")
 
     # Use SF (scale factor)
     # Write to data.values to make sure attribs are maintained.
@@ -337,10 +369,23 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                                               # However, does work without this for xr.where() - supports complex comparison.
 
     # Get full dim list
-    if daPlot.attrs['dataType'] is 'matE':
-        dimMap = matEdimList(sType = 'sDict')
+    # Manual
+    # if daPlot.attrs['dataType'] is 'matE':
+    #     dimMap = matEdimList(sType = 'sDict')
+    # else:
+    #     dimMap = BLMdimList(sType = 'sDict')
+
+    # Using util.dataTypesList() - THIS IS NOT yet used in the main plotting routine.
+    # ACTUALLY - is used for Sym plotting case, may throw an error for None case.
+    # See lines ~630, 696
+    dataTypes = dataTypesList()
+    if daPlot.attrs['dataType'] in dataTypes:
+        dimMap = dataTypes[daPlot.attrs['dataType']]['dims']
     else:
-        dimMap = BLMdimList(sType = 'sDict')
+        # dimMap = None  # This is painful and gives errors for arb data types symmetry cases
+        dimMap = list(daPlot.dims)  # This is OK, but won't get nested dims.
+
+
 
     # Eulers >>> Labels
     if eulerGroup and ('Euler' in daPlot.dims):
@@ -377,6 +422,14 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         daPlot = daPlot.sum(sumDims).squeeze()
         daPlot.attrs = data.attrs  # Reset attribs
 
+    # If xDim is stacked, check it exists and create it if not.
+    # TOTAL FUDGE HERE - this may be problematic due to unstack() UGH.
+    # HOWEVER, without this xDim must exist in passed daPlot array, otherwise later code may fail.
+    if type(xDim) == dict:
+        dimCheck = any([item in xDim for item in daPlot.dims])
+        if not dimCheck:
+            daPlot = daPlot.unstack().stack(xDim)
+
     # Threshold on abs() value before setting type, otherwise all terms will appear for some cases (e.g. phase plot)
     # daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = xDim) # , sq = True)  # Squeeze may cause issues here if a singleton dim is used for xDim.
     daPlot = matEleSelector(daPlot, thres=thres, dims = xDim) # Version without selection, now incorporated above.
@@ -386,6 +439,17 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     if logFlag:
         daPlot.values = daPlot.pipe(np.log10)
+
+#*** Fix any missing attrs - set this LAST otherwise may be accidentally overwritten above.
+    # Set filename if missing
+    if 'file' not in daPlot.attrs:
+        daPlot.attrs['file'] = '(No filename)'
+
+    # Set dataType if missing
+    if 'dataType' not in daPlot.attrs:
+        daPlot.attrs['dataType'] = '(No dataType)'
+        print(f"Set dataType {daPlot.attrs['dataType']}")
+
 
 #*** Plotting routines
     # Rough code for xr plotter.
@@ -415,12 +479,34 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # Set unified cmap for (m,mu)
         # Switch for matE or BLM data type.
 #         if ('m' in daPlot.dims) and ('mu' in daPlot.dims):
+
+        # Set a default case to allow for arb. dim names
+        # TODO: fix this to select based on max in passed QNs.
+        mList = np.arange(-mMax, mMax+1)
+
+        # Set unstaked (full) dim list
+        dimUS = daPlot.unstack().dims
+
         if 'LM' in daPlot.dims:
-            mList = np.unique(daPlot.LM.m)
+            try:
+                mList = np.unique(daPlot.LM.m)   # For Wigner 3j functions, allow for m or M
+            except AttributeError as e:
+                pass
+                # if e != "'DataArray' object has no attribute 'm'":
+                #     raise
+            try:
+                mList = np.unique(daPlot.LM.M)
+            except AttributeError as e:
+                # if e != "'DataArray' object has no attribute 'M'":
+                #     raise
+                pass
+
         if 'BLM' in daPlot.dims:
             mList = np.unique(daPlot.BLM.m)
+
         if 'ADM' in daPlot.dims:
             mList = np.unique([daPlot.ADM.Q, daPlot.ADM.S])
+
         mColours = mList.size
 
         if mColours < 3:  # Minimal value to ensure mu mapped - may be better to generate without ref here?
@@ -430,24 +516,88 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         palM = sns.color_palette("coolwarm", mColours)
         lutM = dict(zip(map(str, mList), palM))
 
+# 12/03/20 - moving this to separate conversion function, since tabulation is handy.
+        # Note thres=None set here to avoid putting holes in the pd data. This is a temp workaround!
+        daPlotpd, daPlot = multiDimXrToPD(daPlot, colDims = xDim, rowDims = plotDims, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze)
 
-        # Convert to Pandas 2D array, stacked along plotDims - these will be used for colour bar.
-        # TO DO: fix hard-coded axis number for dropna()
-
-        # Check plotDims exist, otherwise may throw errors with defaults
-        plotDimsRed = []
-        # for dim in daPlot.unstack().dims:
-        #     if dim in plotDims:
+        # # Convert to Pandas 2D array, stacked along plotDims - these will be used for colour bar.
+        # # TO DO: fix hard-coded axis number for dropna()
+        # # 27/02/20: switched to use xr.dropna(dim = 'plotDim', how = 'all') instead of pd.dropna.  This should be more robust... hopefully won't break old code.
+        # #           Also added stack(xDim = xDim) to allow for multilevel X plotting.
+        # # 11/03/20: added auto setting for plotDims, based on sets, plus checks for missing dims.
+        #
+        # # Work-around for dict case - get list of unstacked dims for comparison
+        # if type(xDim) == dict:
+        #     xDimList = list(xDim.items())[0][1]
+        # else:
+        #     xDimList = xDim
+        #
+        # if plotDims is None:
+        #     plotDims = list(set(dimUS) - set(xDimList))   # Use set arithmetic to get items
+        #     plotDims.sort()                      # Set sort to return alphebetical list.
+        #
+        #
+        # # Check plotDims exist, otherwise may throw errors with defaults
+        # plotDimsRed = []
+        # # for dim in daPlot.unstack().dims:
+        # #     if dim in plotDims:
+        # #         plotDimsRed.append(dim)
+        # for dim in plotDims:
+        #     if dim in dimUS:
         #         plotDimsRed.append(dim)
-        for dim in plotDims:
-            if dim in daPlot.unstack().dims:
-                plotDimsRed.append(dim)
+        #
+        # # Additional check for any missing dims
+        # # Check # of dims and correct for any additional/skipped dims
+        # # Bit ugly - should be integrated with above code
+        # if (len(xDimList) + len(plotDimsRed)) != len(dimUS):
+        #     for dim in dimUS:
+        #         if not (dim in xDimList) and not (dim in plotDimsRed):
+        #             plotDimsRed.append(dim)
+        #
+        #             if verbose:
+        #                 print(f'Adding {dim} to plotting dim list.')
+        #
+        #
+        # # Restack for plotting, and drop singleton dimensions if desired.
+        # daPlot = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all')
+        #
+        # # Restack xDim in cases where it is a MultiIndex
+        # if type(xDim) == dict:
+        #     daPlot = daPlot.stack(xDim)
+        #
+        #
+        # if squeeze:
+        #     # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).squeeze().to_pandas().dropna(axis = 1).T
+        #     # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all').squeeze().to_pandas().T
+        #     daPlotpd = daPlot.squeeze().to_pandas()
+        #
+        # else:
+        #     # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).to_pandas().dropna(axis = 1).T
+        #     # daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).dropna(dim = 'plotDim', how = 'all').to_pandas().T
+        #     daPlotpd = daPlot.to_pandas()
+        #
+        # # Transpose Pandas table if necessary - xDim must be columns
+        # if type(xDim) != dict:
+        #     if xDim not in daPlotpd.columns.names:
+        #         daPlotpd = daPlotpd.T
 
-        # Restack for plotting, and drop singleton dimensions if desired.
-        if squeeze:
-            daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).squeeze().to_pandas().dropna(axis = 1).T
-        else:
-            daPlotpd = daPlot.unstack().stack(plotDim = plotDimsRed).to_pandas().dropna(axis = 1).T
+
+        # For dictionary case, check items for each key are in column names.
+        # THIS CODE IS HORRIBLE - should be a neater way to do this.
+        # TODO: fix case for some levels missing, at the moment assumes any present is OK.
+        # TODO: test for single vs. MultiIndex case - columns.names vs. columns.name?
+        # else:
+        #     for key in xDim:
+        #         dimList = xDim[key]
+        #         check = [item in daPlotpd.columns.names for item in dimList]
+        #         if not any(check):
+        #             daPlotpd = daPlotpd.T
+# --- END pandas conversion.
+
+        # For Wigner3j datatypes, still get some illegal values creeping through - now try removing again...
+        # if daPlot.dataType == 'Wigner3j':
+        #     daPlotpd = daPlotpd.dropna(axis = 1, how = 'all')
+        # NOW set in multiDimXrToPD, with dropna = True (default)
 
         # Set multi-index indicies & colour mapping
         cList = []
@@ -461,13 +611,13 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
             # For (l,m,mu) set colour scales as linear (l), and diverging (m,mu)
             # May want to modify (m,mu) mappings to be shared?
-            if dim in ['l','K']:
+            if dim in ['l', 'K', 'lp']:
                 pal = sns.light_palette("green", n_colors=Labels.unique().size)
                 lut = dict(zip(map(str, Labels.unique()), pal))
                 cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
                 legendList.append((Labels.unique(), lut))
 
-            elif dim in ['m', 'mu', 'Q', 'S']:
+            elif dim in ['m', 'mp', 'mu', 'Q', 'S']:
 #                 pal = sns.diverging_palette(220, 20, n=Labels.unique().size)
 #                 lut = dict(zip(map(str, Labels.unique().sort_values()), pal))  # Note .sort_values() required here.
                 pal = palM
@@ -478,7 +628,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             # If mapping symmetries, use flattened list set above for colour mapping
             # This will keep things consistent over all sym sub-labels
             # NOTE - symFlag setting allows for case when dimMap['Sym'] is missing (will throw an error otherwise)
+            # 24/06/20 - removed "and" here - throws error for unmapped types. Nope, reinstated - causes other issues!
             elif symFlag and (dim in dimMap['Sym']):
+            # elif symFlag and (dim in symList):
 #                 pal = sns.color_palette("hls", np.unique(symList).size)
 #                 lut = dict(zip(map(str, np.unique(symList)), pal))
                 pal = palSym
@@ -543,6 +695,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 #                 elif symFlag and (item[0].name is 'Cont'):
 #                     g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
                 elif symFlag and (item[0].name in dimMap['Sym']):  # Skip symmetries
+                # elif symFlag and (item[0].name in symList):  # Skip symmetries
                     pass
                 else:
                     g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
@@ -567,7 +720,12 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # Additional anootations etc.
         # Plot titles: https://stackoverflow.com/questions/49254337/how-do-i-add-a-title-to-a-seaborn-clustermap
         # g.fig.suptitle(f"{daPlot.attrs['file']}, pType={pType}, thres={thres}")  # Full figure title
-        g.ax_heatmap.set_title(f"{daPlot.attrs['file']}, plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {np.round(thres, 2)}, inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
+        if thres is not None:
+            thresStr = np.round(thres, 2)
+        else:
+            thresStr = 'None'
+
+        g.ax_heatmap.set_title(f"{daPlot.attrs['file']}, plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {thresStr}, inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
 
         # sns.reset_orig()  # Reset gloabl plot params - leaves rc settings, also triggers Matplotlib errors
         sns.reset_defaults()

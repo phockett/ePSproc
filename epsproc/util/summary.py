@@ -25,9 +25,20 @@ def jobSummary(jobInfo = None, molInfo = None, tolConv = 1e-2):
 
     Returns
     -------
-    Job info : list
+    JobInfo : list
+
+    orbInfo : dict
+        Properties of ionizing orbital, as determined from (jobInfo, molInfo).
+
+
+    History
+    -------
+    20/09/20    v2  Added orbInfo dict, and use this to hold all orbital related outputs for return. May break old codes (pre v1.2.6-dev).
+                    Moved orbInfo to a separate function.
 
     """
+
+    # orbInfo = {}
 
     # Pull job summary info
     if jobInfo is not None:
@@ -38,27 +49,35 @@ def jobSummary(jobInfo = None, molInfo = None, tolConv = 1e-2):
         print(f"Final state occ:\t\t {jobInfo['OrbOcc']}")
         print(f"IPot (input vertical IP, eV):\t\t {jobInfo['IPot']}")
 
+        # Log orbOcc
+        # orbInfo['OrbOccInit'] = jobInfo['OrbOccInit']
+        # orbInfo['OrbOccFinal'] = jobInfo['OrbOcc']
+
         # Additional orb info
         print("\n*** Additional orbital info (SymProd)")
+        # orbInfo['iList'] = jobInfo['OrbOccInit'] - jobInfo['OrbOcc']
         iList = jobInfo['OrbOccInit'] - jobInfo['OrbOcc']
         print(f"Ionizing orb:\t\t\t {iList}")
 
         if molInfo is not None:
             # Get orbGrp for event
-            iOrbGrp = np.flatnonzero(iList) + 1
+            # orbInfo['iOrbGrp'] = np.flatnonzero(orbInfo['iList']) + 1
+            orbX, orbInfo = getOrbInfo(jobInfo, molInfo)
 
             # Find entries in orbTableX
-            orbSym = molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == iOrbGrp, drop = True).coords['Sym']
-            print(f"Ionizing orb sym:\t\t {np.unique(orbSym)}")
+            # orbInfo['orbSym'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).coords['Sym'])
+            print(f"Ionizing orb sym:\t\t {orbInfo['orbSym']}")
 
-            orbIP = molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == iOrbGrp, drop = True).sel(props = 'E')
-            orbIPH = molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == iOrbGrp, drop = True).sel(props = 'EH')
-            print(f"Orb energy (eV):\t\t {np.unique(orbIP)}")
-            print(f"Orb energy (H):\t\t\t {np.unique(orbIPH)}")
+            # orbInfo['orbIP'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).sel(props = 'E'))
+            # orbInfo['orbIPH'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).sel(props = 'EH'))
+            print(f"Orb energy (eV):\t\t {orbInfo['orbIP']}")
+            print(f"Orb energy (H):\t\t\t {orbInfo['orbIPH']}")
 
-            orbIPnm = conv_ev_nm(np.unique(orbIP))
-            print(f"Orb energy (cm^-1):\t\t {1/orbIPnm*1e7}")
-            print(f"Threshold wavelength (nm):\t {np.abs(orbIPnm)[0]}")
+            # orbInfo['orbIPnm'] = conv_ev_nm(orbInfo['orbIP'])
+            # orbInfo['orbIPcm'] = 1/orbInfo['orbIPnm']*1e7
+            # orbInfo['threshold'] = np.abs(orbInfo['orbIPnm'])[0]
+            print(f"Orb energy (cm^-1):\t\t {orbInfo['orbIPcm']}")
+            print(f"Threshold wavelength (nm):\t {orbInfo['threshold']}")
 
             # Check ExpOrb outputs...
             ind = (molInfo['orbTable'][:,8].values < 1-tolConv) + (molInfo['orbTable'][:,8].values > 1+tolConv)
@@ -73,7 +92,45 @@ def jobSummary(jobInfo = None, molInfo = None, tolConv = 1e-2):
         print('\n*** Molecular structure\n')
         molPlot(molInfo)
 
-    return jobInfo
+    # return jobInfo  # Why bother? - but left for back-compatibility for now... had plans to do more with this?
+    # 20/09/20 Added orbInfo return, to allow further use of values determined above
+    return jobInfo, orbInfo
+
+
+# Pull orbital-specific properties for job.
+def getOrbInfo(jobInfo, molInfo):
+    """
+    Pull orbital information for job from (jobInfo, molInfo) structures and return as Xarray.
+
+    20/09/20 v1 Adapted from routines in jobSummary().
+
+    """
+    # Init dict.
+    orbInfo = {}
+    
+    # Find which orb is ionized using ePS orb numbering.
+    orbInfo['OrbOccInit'] = jobInfo['OrbOccInit']
+    orbInfo['OrbOccFinal'] = jobInfo['OrbOcc']
+
+    orbInfo['iList'] = jobInfo['OrbOccInit'] - jobInfo['OrbOcc']
+
+    # Get orbGrp for event
+    orbInfo['iOrbGrp'] = np.flatnonzero(orbInfo['iList']) + 1
+
+    # Find entries in orbTableX
+    orbX = molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True)
+
+    orbInfo['orbSym'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).coords['Sym'])
+
+    orbInfo['orbIP'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).sel(props = 'E'))
+    orbInfo['orbIPH'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).sel(props = 'EH'))
+
+    orbInfo['orbIPnm'] = conv_ev_nm(orbInfo['orbIP'])
+    orbInfo['orbIPcm'] = 1/orbInfo['orbIPnm']*1e7
+    orbInfo['threshold'] = np.abs(orbInfo['orbIPnm'])[0]
+
+    return orbX, orbInfo
+
 
 # Print (LM) and symmetry sets with Pandas tables
 def lmSymSummary(data):

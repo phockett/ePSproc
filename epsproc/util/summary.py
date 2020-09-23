@@ -107,7 +107,7 @@ def getOrbInfo(jobInfo, molInfo):
     """
     # Init dict.
     orbInfo = {}
-    
+
     # Find which orb is ionized using ePS orb numbering.
     orbInfo['OrbOccInit'] = jobInfo['OrbOccInit']
     orbInfo['OrbOccFinal'] = jobInfo['OrbOcc']
@@ -120,6 +120,8 @@ def getOrbInfo(jobInfo, molInfo):
     # Find entries in orbTableX
     orbX = molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True)
 
+    # Set orb properties to structure - mainly just taking relevant entries from orbTable, but will make for easier reference later.
+    orbInfo['orbN'] = orbX.orb.data[0]
     orbInfo['orbSym'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).coords['Sym'])
 
     orbInfo['orbIP'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).sel(props = 'E'))

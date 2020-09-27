@@ -9,7 +9,8 @@ ePSproc conversion functions
 import scipy.constants
 import numpy as np
 
-def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = True, dropna = True, fillna = False, verbose = False):
+def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = True, dropna = True, fillna = False,
+                    colRound = 2, verbose = False):
     """
     Convert multidim Xarray to stacked Pandas 2D array, (rowDims, colDims)
 
@@ -40,6 +41,9 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
 
     fillna : bool, optional, default = False
         Fill any NaN values with 0.0. Useful for plotting/making data contiguous.
+
+    colRound : int, optional, default = True
+        Round column values to colRound dp. Only applied for Eke or Ehv dimensions.
 
     Returns
     -------
@@ -108,10 +112,15 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
     # NOTE - plotDim name retained here for compatibility with lmPlot(), may change in future.
     daRestack = da.unstack().stack(plotDim = rowDimsRed).dropna(dim = 'plotDim', how = 'all')
 
+    # Rounding for column values to prevent large float labels in some cases
+    for dim in colDims:
+        if (dim in ['Eke', 'Ehv']) and (colRound is not None):
+            daRestack[dim] = daRestack[dim].round(colRound)
+
+
     # Restack colDims in cases where it is a MultiIndex
     if type(colDims) == dict:
         daRestack = daRestack.stack(colDims)
-
 
     # TODO: add work-around here for singleton x-dim to avoid dropping in that case. (Otherwise have to manually set squeeze = True)
     if squeeze:

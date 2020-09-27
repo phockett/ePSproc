@@ -661,6 +661,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         for c in cList[1:]:
             colors = colors.join(pd.DataFrame(c))
 
+        # Rounding for long labels on xDim
+        # if daPlotpd.columns.name in ['Eke','Ehv']:
+        # NOW SET IN multiDimXrToPD()
+
         # *** Plot with modified clustermap code.
         g = snsMatMod.clustermap(daPlotpd,
                   # cmap="vlag", center = 0,
@@ -682,8 +686,11 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         for n, item in enumerate(legendList):
             # To avoid issues with long floats, round to 3dp
             # TODO: fix this, currently fails for Euler angles case?
-            # if item[0].dtype == np.float:
-            #     item[0] = np.round(item[0],3)
+            # 26/09/20: added name check here, hopefully this will fix Euler case...TBC...
+            # Also added above for xDim labels.
+            if (item[0].dtype == np.float) and (item[0].name in ['Eke','Ehv']):
+                item[0] = np.round(item[0],3)
+
 
             for label in item[0].astype('str'):
 #                 label = string(label)

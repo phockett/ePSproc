@@ -196,7 +196,7 @@ def symListGen(data):
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
         selDims = None, sumDims = None, plotDims = None, squeeze = True, fillna = False,
-        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10):
+        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10, titleString = None):
     """
     Plotting routine for ePS matrix elements & BLMs.
 
@@ -275,6 +275,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     mMax : int, optional, default = 10
         Used as default for m colour mapping, in cases where coords are not parsed.
         TODO: fix this, it's ugly.
+
+    titleString : str, optional, default = None
+        Set main title for plot. If not set, filename or data.attr['jobLabel'] will be used if present.
+        Some plot settings labels will also be appended to this.
 
     Returns
     -------
@@ -476,6 +480,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         else:
             symFlag = False
 
+
         # Set unified cmap for (m,mu)
         # Switch for matE or BLM data type.
 #         if ('m' in daPlot.dims) and ('mu' in daPlot.dims):
@@ -486,6 +491,17 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
         # Set unstaked (full) dim list
         dimUS = daPlot.unstack().dims
+
+        # Set l (or equivalent) cmap here, ensures ordering over over dims (ordered list returned from daPlot Xarray).
+        # NOTE - assumes only one of these dims is present (or will overwrite)
+        # Added 28/09/20
+        for dim in dimUS:
+            if dim in ['l', 'K', 'lp']:
+                lList = daPlot[dim].pipe(np.unique)
+
+        palL = sns.light_palette("green", n_colors=lList.size)
+        lutL = dict(zip(map(str, lList), palL))
+
 
         if 'LM' in daPlot.dims:
             try:
@@ -603,7 +619,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         cList = []
         legendList = []
         for dim in daPlotpd.index.names:
-            Labels = daPlotpd.index.get_level_values(dim) #.astype('str')
+            # 28/09/20: added .unique().sort_values(), should clean up legend a little bit?
+            # EDIT: actually added only for legendList.append() stuff below.
+            # Q: this should be OK, but may mess up multidim labels...?
+            Labels = daPlotpd.index.get_level_values(dim)  # .unique().sort_values() #.astype('str')
 
             if verbose:
                 print(dim)
@@ -611,11 +630,16 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
             # For (l,m,mu) set colour scales as linear (l), and diverging (m,mu)
             # May want to modify (m,mu) mappings to be shared?
+            # 28/09/20: revisiting to fix ordering over multiple states.
+            #   Should be fixed by setting master list above, as per M state settings, since that takes ordered list over full dataset.
+            #   (Otherwise l cmap may be split by sym or other dim ordering)
             if dim in ['l', 'K', 'lp']:
-                pal = sns.light_palette("green", n_colors=Labels.unique().size)
-                lut = dict(zip(map(str, Labels.unique()), pal))
+                # pal = sns.light_palette("green", n_colors=Labels.unique().size)
+                # lut = dict(zip(map(str, Labels.unique()), pal))
+                pal = palL
+                lut = lutL
                 cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
-                legendList.append((Labels.unique(), lut))
+                legendList.append((Labels.unique().sort_values(), lut))
 
             elif dim in ['m', 'mp', 'mu', 'Q', 'S']:
 #                 pal = sns.diverging_palette(220, 20, n=Labels.unique().size)
@@ -636,7 +660,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                 pal = palSym
                 lut = lutSym
                 cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
-                legendList.append((Labels.unique(), lut))
+                legendList.append((Labels.unique().sort_values(), lut))
 
             # For other dims, set to categorical mapping.
             # Should check for shared dims here, e.g. Syms, for mapping...?
@@ -649,7 +673,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 #                 pal = sns.light_palette("blue", n_colors=Labels.unique().size)
                 lut = dict(zip(map(str, Labels.unique()), pal))
                 cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
-                legendList.append((Labels.unique(), lut))
+                legendList.append((Labels.unique().sort_values(), lut))
 
             # For legend, keep also Labels.unique, lut, pairs
 #             legendList.append((Labels.unique(), lut, dim))  # Include dim... redundant if Labels is pd.index with name
@@ -732,7 +756,14 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         else:
             thresStr = 'None'
 
-        g.ax_heatmap.set_title(f"{daPlot.attrs['file']}, plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {thresStr}, inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
+        # Set main plot title if not passed.
+        if titleString is None:
+            if hasattr(daPlot,'jobLabel'):
+                titleString = daPlot.attrs['jobLabel']
+            else:
+                titleString = daPlot.attrs['file']
+
+        g.ax_heatmap.set_title(f"{titleString}\n Plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {thresStr}\n Inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
 
         # sns.reset_orig()  # Reset gloabl plot params - leaves rc settings, also triggers Matplotlib errors
         sns.reset_defaults()

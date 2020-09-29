@@ -13,8 +13,9 @@ import xarray as xr
 import pprint
 
 # Local functions
-from epsproc import readMatEle, headerFileParse, molInfoParse
-from epsproc.util.summary import getOrbInfo
+from epsproc import readMatEle, headerFileParse, molInfoParse, lmPlot
+from epsproc.util.summary import getOrbInfo, molPlot
+from epsproc.util.env import isnotebook
 
 # Class for multiple ePS datasets
 class ePSmultiJob():
@@ -68,11 +69,12 @@ class ePSmultiJob():
 
     # TODO: set to varg in for jobs dict
     def __init__(self, fileBase = None, jobDirs = None, jobStructure = None,
-                 prefix = None, ext = '.out', Edp = 2, verbose = 1):
+                 prefix = None, ext = '.out', Edp = 1, verbose = 1):
 
         self.verbose = verbose
 
-        self.Edp = Edp  # Set default dp for Ehv conversion. May want to set this elsewhere...?
+        self.Edp = Edp  # Set default dp for Ehv conversion. May want to set this elsewhere, and match to data resolution?
+        self.lmPlotOpts = {}  # Set empty dict for plot options.
 
         # Set file properties
         self.jobs = {'fileBase':Path(fileBase),
@@ -125,7 +127,7 @@ class ePSmultiJob():
                 print(f"Found ePS output files in root dir {self.jobs['fileBase']}.")
 
 
-    def scanFiles(self):
+    def scanFiles(self, keys = None):
         """
         Scan ePS output files from dir list.
 
@@ -151,8 +153,14 @@ class ePSmultiJob():
         dsXS = xr.Dataset()  # Set blank dataset
         dsMatE = xr.Dataset()
 
+        # 29/09/20 Quick hack to allow subselection by index.
+        # Should rethink this and add some better selection options (see wf IO code...?)
+        if keys is None:
+            keys = enumerate(self.jobs['jobDirs'])
+        else:
+            keys = [(n, self.jobs['jobDirs'][n]) for n in keys]
 
-        for n, dirScan in enumerate(self.jobs['jobDirs']):
+        for n, dirScan in keys:
 #             dataPath = Path(workingDir[0], dirScan)
             dataPath = dirScan  # Assume abs paths (?)
 
@@ -181,9 +189,13 @@ class ePSmultiJob():
                 # Set orb info
                 dataXS[0].attrs['orbX'], dataXS[0].attrs['orbInfo'] = getOrbInfo(dataXS[0].attrs['jobInfo'], dataXS[0].attrs['molInfo'])
 
+                # Additional labels, use these in plotting routines later
+                dataXS[0].attrs['jobLabel'] = dataXS[0].jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+                dataMatE[0].attrs['jobLabel'] = dataXS[0].jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+
                 # Set absolute photon energy
                 dataXS[0]['Ehv'] = (dataXS[0]['Ehv'] - (float(dataXS[0].jobInfo['IPot']) + dataXS[0].orbX['E'].data[0])).round(self.Edp)
-                dataMatE[0]['Ehv'] = (dataXS[0]['Ehv'] - (float(dataXS[0].jobInfo['IPot']) + dataXS[0].orbX['E'].data[0])).round(self.Edp)
+                dataMatE[0]['Ehv'] = (dataMatE[0]['Ehv'] - (float(dataXS[0].jobInfo['IPot']) + dataXS[0].orbX['E'].data[0])).round(self.Edp)
 
                 # Set as xr.ds(), label by orbital
                 # TODO: fix this, in some cases gives errors with multiple values - probably an Ehv issue?
@@ -223,9 +235,13 @@ class ePSmultiJob():
                     # Set orb info
                     dataXS[m].attrs['orbX'], dataXS[m].attrs['orbInfo'] = getOrbInfo(dataXS[m].attrs['jobInfo'], dataXS[m].attrs['molInfo'])
 
+                    # Additional labels, use these in plotting routines later
+                    dataXS[m].attrs['jobLabel'] = dataXS[m].jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+                    dataMatE[m].attrs['jobLabel'] = dataXS[m].jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+
                     # Set absolute photon energy
                     dataXS[m]['Ehv'] = (dataXS[m]['Ehv'] - (float(dataXS[m].jobInfo['IPot']) + dataXS[m].orbX['E'].data[0])).round(self.Edp)
-                    dataMatE[m]['Ehv'] = (dataXS[m]['Ehv'] - (float(dataXS[m].jobInfo['IPot']) + dataXS[m].orbX['E'].data[0])).round(self.Edp)
+                    dataMatE[m]['Ehv'] = (dataMatE[m]['Ehv'] - (float(dataXS[m].jobInfo['IPot']) + dataXS[m].orbX['E'].data[0])).round(self.Edp)
 
                     # Set as xr.ds(), label by orbital
                     dsXS[f"orb{dataXS[m].orbX['orb'].data[0]}"] = dataXS[m]
@@ -314,7 +330,7 @@ class ePSmultiJob():
 #             jobInfo['IPot']
 
 
-    def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke'):
+    def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', keys = None):
         """
         Basic GetCro (cross-section) data plotting for multijob class. Run self.plot.line(x=Etype, col='Type') for each dataset.
         (See :py:func:`epsproc.classes.ePSmultiJob.plotGetCroComp()` for comparitive plots over datasets.)
@@ -332,10 +348,17 @@ class ePSmultiJob():
         Etype : str, optional, default = 'Eke'
             Set plot dimension, either 'Eke' (electron kinetic energy) or 'Ehv' (photon energy).
 
+        keys : list, optional, default = None
+            Keys for datasets to plot.
+            If None, all datasets will be plotted.
+
         """
+        # Default to all datasets
+        if keys is None:
+            keys = self.dataSets.keys()
 
 #         if self.jobs['jobStructure'] == 'subDirs':
-        for key in self.dataSets:
+        for key in keys:
 #                 testClass.dataSets[key]['XS'][0].sel(XC='SIGMA', Eke=slice(Erange[0], Erange[1])).plot.line(x='Eke', col='Type')   # This works
             for m, item in enumerate(self.dataSets[key]['XS']):
 
@@ -366,7 +389,7 @@ class ePSmultiJob():
 
     # Basically as per plotGetCro, but subselect and put on single plot.
     # Should do all of this with Holoviews...!
-    def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange = None, Etype = 'Eke'):
+    def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange = None, Etype = 'Eke',  keys = None):
         """
         Basic GetCro (cross-section) data plotting for multijob class, comparitive plots.
         Run self.plot.line(x=Etype) for each dataset after subselection on Gauge and Symmetry, and use single axis.
@@ -392,6 +415,10 @@ class ePSmultiJob():
         Etype : str, optional, default = 'Eke'
             Set plot dimension, either 'Eke' (electron kinetic energy) or 'Ehv' (photon energy).
 
+        keys : list, optional, default = None
+            Keys for datasets to plot.
+            If None, all datasets will be plotted.
+
         """
 
 
@@ -401,8 +428,11 @@ class ePSmultiJob():
         # from matplotlib import pyplot as plt  # For legend
         lText = []
 
+        # Default to all datasets
+        if keys is None:
+            keys = self.dataSets.keys()
 
-        for key in self.dataSets:
+        for key in keys:
 #                 testClass.dataSets[key]['XS'][0].sel(XC='SIGMA', Eke=slice(Erange[0], Erange[1])).plot.line(x='Eke', col='Type')   # This works
             for m, item in enumerate(self.dataSets[key]['XS']):
 
@@ -440,7 +470,7 @@ class ePSmultiJob():
             plt.ylabel(r"$\beta_{LM}$")
 
 
-    def lmPlot(self, Erange = None, Etype = 'Eke', refData = None, **kwargs):
+    def lmPlot(self, Erange = None, Etype = 'Eke', keys = None, refData = None, **kwargs):
         """
         Wrapper for :py:func:`epsproc.lmPlot` for multijob class. Run lmPlot() for each dataset.
 
@@ -451,6 +481,10 @@ class ePSmultiJob():
 
         Etype : str, optional, default = 'Eke'
             Set plot dimension, either 'Eke' (electron kinetic energy) or 'Ehv' (photon energy).
+
+        keys : list, optional, default = None
+            Keys for datasets to plot.
+            If None, all datasets will be plotted.
 
         refData : tuple (key,m), optional, default = None
             If set, calculate difference plots against reference dataset.
@@ -469,6 +503,10 @@ class ePSmultiJob():
 
         """
 
+        # Default to all datasets
+        if keys is None:
+            keys = self.dataSets.keys()
+
         # Set lmPlotOpts
         # Check passed args vs. self.lmPlotOpts and overwrite
         if kwargs:
@@ -477,7 +515,7 @@ class ePSmultiJob():
 
 
         # Loop over datasets
-        for key in self.dataSets:
+        for key in keys:
     #                 testClass.dataSets[key]['XS'][0].sel(XC='SIGMA', Eke=slice(Erange[0], Erange[1])).plot.line(x='Eke', col='Type')   # This works
 
             # Init empty list for daPlotpd data
@@ -500,8 +538,47 @@ class ePSmultiJob():
 
                 # Run lmPlot
                 if subset.any():
-                    daPlot, daPlotpd, legendList, gFig = ep.lmPlot(subset, xDim = Etype, **self.lmPlotOpts)
+                    daPlot, daPlotpd, legendList, gFig = lmPlot(subset, xDim = Etype, **self.lmPlotOpts)
                 else:
                     daPlotpd = None
 
                 self.dataSets[key]['daPlotpd'].append(daPlotpd)  # Set to include None cases to keep indexing. Should set as dict instead?
+
+
+    # Mol info
+    # Add this, assuming that first job is representative (should add logic to check this)
+    # Based on existing code in ep.util.jobSummary()
+    def molSummary(self, dataKey = [0, 0], tolConv = 1e-2):
+
+        molInfo = self.dataSets[dataKey[0]]['XS'][dataKey[1]].attrs['molInfo']
+
+        # Plot molecular structure (crudely)
+        print("*** Molecular structure")
+        molPlot(molInfo)
+
+        # Print orbTable
+        print("\n*** Molecular orbital list (from ePS output file)")
+        print("EH = Energy (Hartrees), E = Energy (eV), NOrbGrp, OrbGrp, GrpDegen = degeneracies and corresponding orbital numbering by group in ePS, NormInt = single centre expansion convergence (should be ~1.0).")
+    #     print(molInfo['orbTable'].to_pandas()) # print() here doesn't give nice interactive result in notebook, although returning table does.
+        orbPD = molInfo['orbTable'].to_pandas()
+
+        # Add symmery labels
+        orbPD.insert(1, "Sym", molInfo['orbTable'].Sym)
+
+        # Tidy a bit...
+        orbPD.drop(columns=["N","Type"], inplace=True)
+
+        # Check if notebook and output
+        if isnotebook():
+            display(orbPD) # Use IPython display(), works nicely for notebook output
+            # Q: is display() always loaded automatically? I think so.
+        else:
+            print(orbPD)
+
+        # Check ExpOrb outputs...
+        ind = (molInfo['orbTable'][:,8].values < 1-tolConv) + (molInfo['orbTable'][:,8].values > 1+tolConv)
+        if ind.any():
+            print(f"\n*** Warning: some orbital convergences outside single-center expansion convergence tolerance ({tolConv}):")
+            print(molInfo['orbTable'][ind, [0, 8]].values)
+
+    #     return orbPD  # Could also set return value here for simple orbPD printing.

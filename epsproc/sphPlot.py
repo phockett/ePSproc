@@ -53,7 +53,7 @@ from epsproc.sphCalc import sphCalc
 #***** Plotting top-level functions & logic
 
 # Define plot types
-def plotTypeSelector(dataPlot, pType = 'a', axisUW = 'Eke', returnDict = False):
+def plotTypeSelector(dataPlot = None, pType = 'a', axisUW = 'Eke', returnDict = False):
     """
     Set plotting data type.
 
@@ -61,6 +61,7 @@ def plotTypeSelector(dataPlot, pType = 'a', axisUW = 'Eke', returnDict = False):
     ----------
     dataPlot : np.array, Xarray
         Data for plotting, output converted to type defined by pType.
+        Note: this parameter is required, unless returnDict = True.
 
     pType : char, optional, default 'a'
         Set type of plot.

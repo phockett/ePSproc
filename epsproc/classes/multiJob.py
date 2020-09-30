@@ -18,6 +18,7 @@ import pprint
 from epsproc import readMatEle, headerFileParse, molInfoParse, lmPlot, matEleSelector, plotTypeSelector, multiDimXrToPD
 from epsproc.util.summary import getOrbInfo, molPlot
 from epsproc.util.env import isnotebook
+from epsproc.plot import hvPlotters
 
 # Class for multiple ePS datasets
 class ePSmultiJob():
@@ -348,7 +349,7 @@ class ePSmultiJob():
 #             jobInfo['IPot']
 
 
-    def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', keys = None):
+    def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', keys = None, backend = 'mpl'):
         """
         Basic GetCro (cross-section) data plotting for multijob class. Run self.plot.line(x=Etype, col='Type') for each dataset.
         (See :py:func:`epsproc.classes.ePSmultiJob.plotGetCroComp()` for comparitive plots over datasets.)
@@ -359,6 +360,7 @@ class ePSmultiJob():
         ----------
         pType : str, optional, default = 'SIGMA'
             Set data for plotting, either 'SIGMA' (cross-section) or 'BETA' (B2 parameter).
+            If backend = 'hv' this parameter is not used.
 
         Erange : list of int or float, optional, default = None
             Set plot range [Emin, Emax]. Defaults to full data range if not set
@@ -369,6 +371,12 @@ class ePSmultiJob():
         keys : list, optional, default = None
             Keys for datasets to plot.
             If None, all datasets will be plotted.
+
+        backend : str, optional, default = 'mpl'
+            Set plotter to use.
+
+            - 'mpl' : Use Matplotlib/native Xarray plotter
+            - 'hv' : use Holoviews via :py:func:`epsproc.plotters.hvPlotters.XCplot()`
 
         """
         # Default to all datasets
@@ -384,25 +392,46 @@ class ePSmultiJob():
                 if Erange is None:
                     Erange = [self.dataSets[key]['XS'][m][Etype].min().data, self.dataSets[key]['XS'][m][Etype].max().data]
 
+                subset = self.dataSets[key]['XS'][m]
+                jobLabel = self.dataSets[key]['XS'][m].jobLabel
 
                 # More elegant way to swap on dims?
                 if Etype == 'Ehv':
                 # Subset before plot to avoid errors on empty array selection!
-                    subset = self.dataSets[key]['XS'][m].swap_dims({'Eke':'Ehv'}).sel(XC=pType, **{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
+                    subset = subset.swap_dims({'Eke':'Ehv'}) #.sel(**{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
 
                     # if subset.any():
                     #     subset.plot.line(x=Etype, col='Type')
 
-                else:
-                    subset = self.dataSets[key]['XS'][m].sel(XC=pType, **{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
+                subset = subset.sel(**{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
 
                 if subset.any():
-                    subset.plot.line(x=Etype, col='Type')
+                    # Propagate attrs for plot labelling
+                    subset.attrs = self.dataSets[key]['XS'][m].attrs
 
-                if pType == 'SIGMA':
-                    plt.ylabel('XS/Mb')
-                else:
-                    plt.ylabel(r"$\beta_{LM}$")
+                    if backend == 'mpl':
+                        subset.sel(XC=pType).plot.line(x=Etype, col='Type')
+
+                        if pType == 'SIGMA':
+                            plt.ylabel('XS/Mb')
+                        else:
+                            plt.ylabel(r"$\beta_{LM}$")
+
+                    if backend == 'hv':
+                        layout, *_ = hvPlotters.XCplot(subset, kdims = Etype)
+
+                        print(f"\n*** {jobLabel}")
+                        # Check if notebook and output
+                        if isnotebook():
+                            display(layout) # Use IPython display(), works nicely for notebook output
+                            # Q: is display() always loaded automatically? I think so.
+                        else:
+                            layout  # Not yet tested - not sure what the options are here for hv/Bokeh.
+                                    # May just want to return this object (hv layout)?
+
+                        # Setting title here doesn't work, now set in XCplot()
+                        # display(layout.opts(title=jobLabel))
+
 #         else:
 
     # Basically as per plotGetCro, but subselect and put on single plot.

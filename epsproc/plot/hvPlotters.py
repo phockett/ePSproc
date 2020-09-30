@@ -123,7 +123,7 @@ def hvdsConv(dataXS):
 
 
 # HV plotting routine for XS data
-def XCplot(dataXS, lineDashList = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}):
+def XCplot(dataXS, lineDashList = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}, kdims = "Eke", tString = None):
     """
     Plot XC data using Holoviews.
 
@@ -137,6 +137,12 @@ def XCplot(dataXS, lineDashList = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}):
 
     lineDashList : dict, optional, default = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}
         Set line types for calculation gauge.
+
+    kdims : str, optional, default = 'Eke'
+        Set x-axis dimension.
+
+    tString : str, optional, default = None
+        Set
 
     Returns
     --------
@@ -174,9 +180,25 @@ def XCplot(dataXS, lineDashList = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}):
                 # With cmap also on type
         #         plotList.append(hv_ds.to(hv.Curve, kdims=["Eke"], vdims=[vdim, 'Type'], dynamic=False).select(Type=gauge.item()).opts(line_dash=lineDashList[gauge.item()], color=lineColorList[gauge.item()]).overlay(['Cont']))
                 # Cmap on Cont
-            plotList.append(hv_ds.to(hv.Curve, kdims=["Eke"], vdims=[vdim, 'Type'], dynamic=False).select(Type=gauge.item()).opts(line_dash=lineDashList[gauge.item()]).overlay(['Cont']))
+            plotList.append(hv_ds.to(hv.Curve, kdims=[kdims], vdims=[vdim, 'Type'], dynamic=False).select(Type=gauge.item()).opts(line_dash=lineDashList[gauge.item()]).overlay(['Cont']))
 
         dsPlotSet += hv.Overlay(plotList)  #.groupby('Cont') #.collate()
+
+    # Set title if required
+    # Default to passed string if set, or use existing labels.
+    # TODO: this currently doesn't seem to display when rendering layout (only tested in Jupyter lab)
+    title = tString
+    if title is None:
+        if hasattr(dataXS, 'jobLabel'):
+            title = dataXS.jobLabel
+        elif hasattr(dataXS, 'file'):
+            title = dataXS.file
+        else:
+            title = 'XS data plot'
+
+    # print(title)
+    
+    dsPlotSet = dsPlotSet.opts(title = title)
 
 #     (dsPlotSet + hv.Table(hv_ds)).cols(1)
     # return (dsPlotSet + hv.Table(hv_ds)).cols(1), hv_ds, ds

@@ -436,7 +436,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     # Threshold on abs() value before setting type, otherwise all terms will appear for some cases (e.g. phase plot)
     # daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = xDim) # , sq = True)  # Squeeze may cause issues here if a singleton dim is used for xDim.
-    daPlot = matEleSelector(daPlot, thres=thres, dims = xDim) # Version without selection, now incorporated above.
+    daPlot = matEleSelector(daPlot, thres=thres, dims = xDim, drop = False) # Version without selection, now incorporated above.
     daPlot = plotTypeSelector(daPlot, pType = pType, axisUW = xDim)
 
     # daPlot = ep.util.matEleSelector(daPlot, thres=thres, inds = selDims, dims = 'Eke', sq = True)

@@ -9,11 +9,13 @@ Core classes for ePSproc data to handle multiple job filesets (energy and/or orb
 
 from pathlib import Path
 from matplotlib import pyplot as plt  # For plot legends with Xarray plotter
+
+import numpy as np # Needed only for np.nan at the moment
 import xarray as xr
 import pprint
 
 # Local functions
-from epsproc import readMatEle, headerFileParse, molInfoParse, lmPlot
+from epsproc import readMatEle, headerFileParse, molInfoParse, lmPlot, matEleSelector, plotTypeSelector, multiDimXrToPD
 from epsproc.util.summary import getOrbInfo, molPlot
 from epsproc.util.env import isnotebook
 
@@ -284,6 +286,22 @@ class ePSmultiJob():
         if self.verbose:
             self.jobsSummary()
 
+    def jobLabel(self, key = None, lString = None, append=True):
+        """
+        Reset or append text to jobLabel.
+        Very basic.
+
+        TODO: consistency over [m], jobLabel vs. orbLabel rationalisation.
+
+        """
+
+        if append:
+            lString = self.dataSets[key]['XS'][0].attrs['jobLabel'] + " " + lString
+
+        self.dataSets[key]['XS'][0].attrs['jobLabel'] = lString
+        self.dataSets[key]['matE'][0].attrs['jobLabel'] = lString
+        self.dataSets[key]['jobNotes'][0]['orbLabel'] = lString
+
 
     def jobsSummary(self):
         """
@@ -470,7 +488,7 @@ class ePSmultiJob():
             plt.ylabel(r"$\beta_{LM}$")
 
 
-    def lmPlot(self, Erange = None, Etype = 'Eke', keys = None, refData = None, **kwargs):
+    def lmPlot(self, Erange = None, Etype = 'Eke', keys = None, refDataKey = None, reindexTol = 0.5, reindexFill = np.nan, setPD = True, **kwargs):
         """
         Wrapper for :py:func:`epsproc.lmPlot` for multijob class. Run lmPlot() for each dataset.
 
@@ -486,10 +504,22 @@ class ePSmultiJob():
             Keys for datasets to plot.
             If None, all datasets will be plotted.
 
-        refData : tuple (key,m), optional, default = None
+        refDataKey : tuple (key,m), optional, default = None
             If set, calculate difference plots against reference dataset.
             TODO: implement difference plots.
             TODO: implement testing logic, may fail without E-axis forcing, and sym summation?
+
+        reindexTol : float, optional, default = 0.1
+            If computing difference data, the reference data is reindexed to ensure E grid matching.
+            This specifies tolerance (in E units, usually eV) for reindexing.
+            If this fails, difference plot may be null.
+
+        reindexFill : int or float, optional, default = NaN
+            Value to use for missing values upon reindexing.
+            Default matches [Xarray.reindex default](http://xarray.pydata.org/en/stable/generated/xarray.DataArray.reindex.html), i.e. NaN, but this may give issues in some cases.
+
+        setPD : bool, optional, default = True
+            Set Pandas array in main dataset?
 
         kwargs : dict, optional, default = {}
             Plotting options to pass to :py:func:`epsproc.lmPlot`.
@@ -513,20 +543,34 @@ class ePSmultiJob():
             for key, value in kwargs.items():
                 self.lmPlotOpts[key] = value
 
+        # Set default to full range of 1st dataset, keep same for all cases
+        # TODO: set per dataset?
+        if Erange is None:
+            Erange = [self.dataSets[keys[0]]['matE'][0][Etype].min().data, self.dataSets[keys[0]]['matE'][0][Etype].max().data]
+
+        # Set ref dataset if required
+        if refDataKey is not None:
+            refData = self.dataSets[refDataKey[0]]['matE'][refDataKey[1]]
+
+            if Etype == 'Ehv':
+                refData = refData.swap_dims({'Eke':'Ehv'})
+
+            refData = refData.sel(**{Etype:slice(Erange[0], Erange[1])})
+            refData.attrs = self.dataSets[refDataKey[0]]['matE'][refDataKey[1]].attrs # Propagate atrrs.
+
+        else:
+            refData = None
+
 
         # Loop over datasets
         for key in keys:
     #                 testClass.dataSets[key]['XS'][0].sel(XC='SIGMA', Eke=slice(Erange[0], Erange[1])).plot.line(x='Eke', col='Type')   # This works
 
             # Init empty list for daPlotpd data
-            self.dataSets[key]['daPlotpd'] = []
+            if setPD:
+                self.dataSets[key]['daPlotpd'] = []
 
             for m, item in enumerate(self.dataSets[key]['matE']):
-
-                # Set default to full range, same for all cases
-                if Erange is None:
-                    Erange = [self.dataSets[key]['matE'][m][Etype].min().data, self.dataSets[key]['matE'][m][Etype].max().data]
-
 
                 # More elegant way to swap on dims?
                 if Etype == 'Ehv':
@@ -536,13 +580,29 @@ class ePSmultiJob():
                 else:
                     subset = self.dataSets[key]['matE'][m].sel(**{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
 
+                # Difference data
+                # NOTE: ref. data is reindexed here to ensure E-point subtraction (otherwise mismatch will give null results)
+                # TODO: may want some selection logic here, this may produce empty results in many cases.
+                if refData is not None:
+                    subset = subset - refData.reindex(**{Etype:subset[Etype]}, method='nearest', tolerance=reindexTol, fill_value=reindexFill)
+                    subset.attrs = self.dataSets[key]['matE'][m].attrs  # Propagate attribs
+                    subset.attrs['jobLabel'] = f"{subset.attrs['jobLabel']} diff with {refData.attrs['jobLabel']}"
+
+                    # Slightly crude check for empty result.
+                    # Note this is different from subset.any() below, which only checks for 0
+                    # See https://numpy.org/doc/stable/reference/generated/numpy.any.html
+                    if subset.max().isnull():
+                        print("*** Warning, difference array is Null. Try a larger reindexTol value.")
+
                 # Run lmPlot
                 if subset.any():
                     daPlot, daPlotpd, legendList, gFig = lmPlot(subset, xDim = Etype, **self.lmPlotOpts)
                 else:
                     daPlotpd = None
 
-                self.dataSets[key]['daPlotpd'].append(daPlotpd)  # Set to include None cases to keep indexing. Should set as dict instead?
+                # Set Pandas table to dataset if specified.
+                if setPD:
+                    self.dataSets[key]['daPlotpd'].append(daPlotpd)  # Set to include None cases to keep indexing. Should set as dict instead?
 
 
     # Mol info
@@ -582,3 +642,74 @@ class ePSmultiJob():
             print(molInfo['orbTable'][ind, [0, 8]].values)
 
     #     return orbPD  # Could also set return value here for simple orbPD printing.
+
+
+    def matEtoPD(self, keys = None, xDim = 'Eke', Erange = None, printTable = True, selDims = None, dType = None,
+                thres = None, drop = True, fillna = False, squeeze = True, setPD = True):
+        """
+        Convert Xarray to PD for nice tabular display.
+
+        Basically code as per basicPlotters.lmPlot(), but looped over datasets.
+
+        """
+
+        # Default to all datasets
+        if keys is None:
+            keys = self.dataSets.keys()
+
+        pdConv = [] # List for outputs
+
+        for key in keys:
+            # Init empty list for daPlotpd data
+            if setPD:
+                self.dataSets[key]['daPlotpd'] = []
+
+            for m, item in enumerate(self.dataSets[key]['matE']):
+
+                #*** Set, select & threshold
+                da = self.dataSets[key]['matE'][m]
+
+                # Check xDim Eke/Ehv and clip if specified
+                # More elegant way to swap on dims?
+                if xDim == 'Ehv':
+                    # Subset before plot to avoid errors on empty array selection!
+                    da = da.swap_dims({'Eke':'Ehv'})
+
+                daSub = matEleSelector(da, thres=thres, inds = selDims, dims = xDim, drop = drop)
+
+                # NOTE: assumes xDim = Eke or Ehv, otherwise will fail.
+                if Erange is not None:
+                    # Check Etype, assuming only Eke or Ehv options.
+                    Etype = 'Eke'
+                    if 'Ehv' in daSub.dims:
+                        Etype = 'Ehv'
+
+                    daSub = daSub.sel(**{Etype:slice(Erange[0], Erange[1])})  # With dict unpacking for var as keyword
+
+                #*** Data conversion if specified
+                if dType is not None:
+                    daSub = plotTypeSelector(daSub, pType = pType, axisUW = xDim)
+
+                #*** Convert to PD
+                daPD, daSub = multiDimXrToPD(daSub, colDims = xDim, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze)
+
+                pdConv.append(daPD)
+
+                if printTable:
+                    print(f"\n*** {da.jobLabel}")
+                    print(f"Matrix element table, threshold={thres}, data type={daSub.dtype}.")
+                    # Check if notebook and output
+                    if isnotebook():
+                        display(daPD) # Use IPython display(), works nicely for notebook output
+                        # Q: is display() always loaded automatically? I think so.
+                    else:
+                        print(daPD)
+
+                # Set Pandas table to dataset if specified.
+                if setPD:
+                    self.dataSets[key]['daPlotpd'].append(daPD)
+
+
+        # Return value if not set to dataSets.
+        if not setPD:
+            return pdConv

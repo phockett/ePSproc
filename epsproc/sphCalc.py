@@ -274,15 +274,19 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
         Maximum L for the set. Ylm calculated for Lmin:Lmax, all m.
     Lmin : int, optional, default 0
         Min L for the set. Ylm calculated for Lmin:Lmax, all m.
-    res : int, optional, default None
-        (Theta, Phi) grid resolution, outputs will be of dim [res,res].
+    res : int or list, optional, default None
+        (Theta, Phi) grid resolution, outputs will be of dim [res,res] (if int) or [res[0], res[1]] (if list).
     angs : list of 2D np.arrays, [thetea, phi], optional, default None
-        If passed, use these grids for calculation
+        If passed, use these grids for calculation.
+        NOTE: if 'maths' convention set, this array will be assumed to be [phi, theta]
     XFlag : bool, optional, default True
         Flag for output. If true, output is Xarray. If false, np.arrays
     fnType : str, optional, default = 'sph'
         Currently can set to 'sph' for SciPy spherical harmonics, or 'lg' for SciPy Legendre polynomials.
         More backends to follow.
+    convention : str, optional, default = 'phys'
+        Set to 'phys' (theta from z-axis) or 'maths' (phi from z-axis) spherical polar conventions.
+        (Might need some work!)
 
 
     Note that either res OR angs needs to be passed.
@@ -307,20 +311,29 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
 
     '''
 
+    # Check if res is 1D or 2D if passed
+    if res is not None:
+        if isinstance(res, int):
+            res = [res, res]
+
     # Set coords based on inputs
     # TODO: better code here (try/fail?)
     # TODO: 03/09/20 checking/testing coords defns, needs a tidy up (or just remove)
     if angs is None and res:
         if convention == 'maths':
             # theta, phi = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
-            TP = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
+            TP = np.meshgrid(np.linspace(0,2*np.pi,res[0]),np.linspace(0,np.pi,res[1]))
         elif convention == 'phys':
             # phi, theta = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
-            TP = np.meshgrid(np.linspace(0,np.pi,res),np.linspace(0,2*np.pi,res))
+            TP = np.meshgrid(np.linspace(0,np.pi,res[0]),np.linspace(0,2*np.pi,res[1]))
 
     elif res is None and angs:
-        theta = angs[0]
-        phi = angs[1]
+        # theta = angs[0]
+        # phi = angs[1]
+        if convention == 'maths':
+            TP = angs.T
+        else:
+            TP = angs  # Used passed angs directly.
 
     else:
         print('Need to pass either res or angs.')
@@ -357,7 +370,8 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
         # Set indexes
         QNs = pd.MultiIndex.from_arrays(np.asarray(lm).T, names = ['l','m'])
         # YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta',theta[0,:]), ('Phi',phi[:,0])])
-        YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta', TP[0][0,:]), ('Phi', TP[1][:,0])])
+        # YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta', TP[0][0,:]), ('Phi', TP[1][:,0])])
+        YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Phi', TP[1][:,0]), ('Theta', TP[0][0,:])])  # Fixed dim ordering for SciPy maths convention.
         return YlmX
     else:
         return np.asarray(Ylm), np.asarray(lm)

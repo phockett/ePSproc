@@ -482,6 +482,9 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None):
         nCols = 3
         rc = [nData/nCols, nCols]
 
+    # rc = np.round(rc).astype(np.int)  # Fix dtype - Plotly throws type error for np types however.
+    rc = [int(np.round(rc[0])), int(np.round(rc[1]))]
+
     pType = {'type':'surface'}
     specs = [[pType] * rc[1] for i in range(rc[0])]  # Set specs as 2D list of dicts.
 

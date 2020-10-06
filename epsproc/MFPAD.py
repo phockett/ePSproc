@@ -70,7 +70,7 @@ import quaternion
 # Package fns.
 # TODO: tidy this up!
 from epsproc.util import matEleSelector
-from epsproc.sphCalc import sphCalc
+from epsproc.sphCalc import sphCalc, setPolGeoms
 
 def mfpad(dataIn, thres = 1e-2, inds = {'Type':'L','it':1}, res = 50, R = None, p = 0):
     """
@@ -90,9 +90,9 @@ def mfpad(dataIn, thres = 1e-2, inds = {'Type':'L','it':1}, res = 50, R = None, 
     res : int, optional, default 50
         Resolution for output (theta,phi) grids.
 
-    R : list of Euler angles or quaternions, optional.
+    R : list or Xarray of Euler angles or quaternions, optional.
         Define LF > MF polarization geometry/rotations.
-        For default case (R = None), 3 geometries are calculated, corresponding to z-pol, x-pol and y-pol cases.
+        For default case (R = None), calls :py:func:`epsproc.setPolGeoms()`, where 3 geometries are calculated, corresponding to z-pol, x-pol and y-pol cases.
         Defined by Euler angles (p,t,c) = [0 0 0] for z-pol, [0 pi/2 0] for x-pol, [pi/2 pi/2 0] for y-pol.
 
     p : int, optional.
@@ -110,7 +110,7 @@ def mfpad(dataIn, thres = 1e-2, inds = {'Type':'L','it':1}, res = 50, R = None, 
     """
 
     # Define reduced data from selection over all data
-    daRed = matEleSelector(dataIn, thres = 1e-2, inds = inds)
+    daRed = matEleSelector(dataIn, thres = thres, inds = inds)
 
     # Generate spherical harmonics
     Lmax = daRed.l.max()
@@ -130,15 +130,19 @@ def mfpad(dataIn, thres = 1e-2, inds = {'Type':'L','it':1}, res = 50, R = None, 
         # Convert to quaternions
         # R =  quaternion.from_euler_angles(pRot*np.pi/180, tRot*np.pi/180, cRot*np.pi/180)
 
-        # Eugler angles for rotation of LF->MF, set as [0 0 0] for z-pol, [0 pi/2 0] for x-pol, [pi/2 pi/2 0] for y-pol
-        pRot = [0, 0, np.pi/2]
-        tRot = [0, np.pi/2, np.pi/2]
-        cRot = [0, 0, 0]
-        eAngs = np.array([pRot, tRot, cRot])   # List form to use later
-        Euler = pd.MultiIndex.from_arrays(eAngs, names = ['P','T','C'])
+        # # Eugler angles for rotation of LF->MF, set as [0 0 0] for z-pol, [0 pi/2 0] for x-pol, [pi/2 pi/2 0] for y-pol
+        # pRot = [0, 0, np.pi/2]
+        # tRot = [0, np.pi/2, np.pi/2]
+        # cRot = [0, 0, 0]
+        # eAngs = np.array([pRot, tRot, cRot])   # List form to use later
+        # Euler = pd.MultiIndex.from_arrays(eAngs, names = ['P','T','C'])
+        #
+        # # Convert to quaternions
+        # R =  quaternion.from_euler_angles(pRot, tRot, cRot)
 
-        # Convert to quaternions
-        R =  quaternion.from_euler_angles(pRot, tRot, cRot)
+        # 02/10/20 - updated to use sphCalc.setPolGeoms()
+        R = setPolGeoms()
+
 
 
     #**************** Calculate MFPADs
@@ -162,7 +166,7 @@ def mfpad(dataIn, thres = 1e-2, inds = {'Type':'L','it':1}, res = 50, R = None, 
             # T.append(YlmXre.conj() * daTemp)  # Output full (l,m,mu) expansion
 
             # Set by looping and selection
-            daTemp = daRed.sel({'mu':mu}) * sf.Wigner_D_element(Rcalc, 1, mu, 0).conj()
+            daTemp = daRed.sel({'mu':mu}) * sf.Wigner_D_element(Rcalc.item(), 1, mu, 0).conj()
             YlmXre = YlmX.reindex_like(daTemp)
             T.append(YlmXre.conj() * daTemp)  # Output full (l,m,mu) expansion
 
@@ -181,7 +185,9 @@ def mfpad(dataIn, thres = 1e-2, inds = {'Type':'L','it':1}, res = 50, R = None, 
     TaX = xr.combine_nested(Ta, concat_dim=['Euler'])
 
     # Assign Euler angles to dummy dim
-    TlmX = TlmX.assign_coords(Euler = Euler)
-    TaX = TaX.assign_coords(Euler = Euler)
+    # TlmX = TlmX.assign_coords(Euler = Euler)
+    # TaX = TaX.assign_coords(Euler = Euler)
+    TlmX = TlmX.assign_coords(Euler = R['Euler'])  # Coords from Euler Xarray.
+    TaX = TaX.assign_coords(Euler = R['Euler'])
 
     return TaX, TlmX  # , Ta, Tlm  # For debug also return lists

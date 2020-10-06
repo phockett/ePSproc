@@ -15,7 +15,7 @@ import xarray as xr
 import pprint
 
 # Local functions
-from epsproc import readMatEle, headerFileParse, molInfoParse, lmPlot, matEleSelector, plotTypeSelector, multiDimXrToPD
+from epsproc import readMatEle, headerFileParse, molInfoParse, lmPlot, matEleSelector, plotTypeSelector, multiDimXrToPD, mfpad, sphSumPlotX
 from epsproc.util.summary import getOrbInfo, molPlot
 from epsproc.util.env import isnotebook
 from epsproc.plot import hvPlotters
@@ -161,6 +161,9 @@ class ePSmultiJob():
         if keys is None:
             keys = enumerate(self.jobs['jobDirs'])
         else:
+            if isinstance(keys, int):
+                keys = [keys]
+
             keys = [(n, self.jobs['jobDirs'][n]) for n in keys]
 
         for n, dirScan in keys:
@@ -742,3 +745,122 @@ class ePSmultiJob():
         # Return value if not set to dataSets.
         if not setPD:
             return pdConv
+
+
+
+    # **** Basic MFPAD plotting, see dev code in http://localhost:8888/lab/tree/dev/ePSproc/classDev/ePSproc_multijob_class_tests_N2O_011020_Stimpy.ipynb
+    def mfpadNumeric(self, selDims = {'Type':'L','it':1}, keys = None, res = 50):
+        """
+        MFPADs "direct" (numerical), without beta parameter computation.
+
+        Wrapper for :py:func:`epsproc.mfpad`, loops over all loaded datasets.
+
+        NOTE: for large datasets and/or large res, this can be memory-hungry.
+
+        """
+
+        # Default to all datasets
+        if keys is None:
+            keys = self.dataSets.keys()
+
+
+        # Loop over datasets & store output
+        for key in keys:
+            TX = []
+            for m, item in enumerate(self.dataSets[key]['matE']):
+
+                TXtemp, _ = mfpad(self.dataSets[key]['matE'][m], inds=selDims, res=res)  # Expand MFPADs
+                TX.append(TXtemp)
+
+                # Propagate attrs
+                TX[m].attrs = self.dataSets[key]['matE'][m].attrs
+                TX[m]['dataType'] = 'mfpad'
+
+            self.dataSets[key]['TX'] = TX
+
+
+
+    def mfpadPlot(self, selDims = {}, Erange = None, Etype = 'Eke', keys = None, pType = 'a', pStyle = 'polar', backend = 'mpl'):
+
+        # Default to all datasets
+            if keys is None:
+                keys = self.dataSets.keys()
+            else:
+                if isinstance(keys, int):   # Force list if int passed.
+                    keys = [keys]
+
+            # Loop over datasets
+            for key in keys:
+                for m, item in enumerate(self.dataSets[key]['TX']):
+                    plotFlag = True
+
+                    # More elegant way to swap on dims?
+                    subset = self.dataSets[key]['TX'][m]
+                    if Etype == 'Ehv':
+                    # Subset before plot to avoid errors on empty array selection!
+                        subset = subset.swap_dims({'Eke':'Ehv'})
+
+                    # Slice on Erange with/without step size - bit ugly.
+                    if Erange is not None:
+                        if len(Erange) == 3:
+                            subset = subset.sel(**{Etype:slice(Erange[0], Erange[1], Erange[2])})   # With dict unpacking for var as keyword
+                        else:
+                            subset = subset.sel(**{Etype:slice(Erange[0], Erange[1])})
+
+                    # Handling for Euler or Labels dim
+                    eDim = 'Euler'
+                    if hasattr(subset, 'Labels'):
+    #                 if 'Labels' in selDims:
+                        subset = subset.swap_dims({'Euler':'Labels'})
+                        eDim = 'Labels'
+
+                    # if selDims is not None:  # Now set as empty dict to avoid issues later.
+                    if selDims:
+                        subset = subset.sel(selDims)
+
+                    # Check dimensionality - sum over Sym if necessary
+                    if subset.ndim > 3:
+                        if 'Sym' in subset.dims:
+                            subset = subset.sum('Sym').squeeze()
+                        else:
+                            print(f"*** ERROR: dataset {subset.jobLabel}  ndims = {subset.ndims}, dims = {subset.dims}. Skipping MFPAD plotting.")
+                            plotFlag = False
+
+                    # Propagate attrs
+                    subset.attrs = self.dataSets[key]['TX'][m].attrs
+
+                    # Plot
+                    if plotFlag:
+                        if eDim in subset.dims:
+                            # TODO: make this more robust. Currently assumes Euler dim is 1st dim.
+                            if subset[eDim].size > 1:
+                                if pStyle is 'polar':
+                                    for EulerInd in range(0,subset[eDim].size):
+        #                                 print(f"*** Pol Geom: {subset[eDim][EulerInd].item()}")  # Need to pass all this through to plotters otherwise appears before plots!
+
+                                        _ = sphSumPlotX(subset[EulerInd], pType = pType, backend = backend, facetDim = Etype)
+
+                                elif pStyle is 'grid':
+                                    print(f"Grid plot: {subset.attrs['jobLabel']}")
+
+                                    # Set data
+                                    subset = plotTypeSelector(subset, pType = pType, axisUW = Etype)
+
+                                    if self.verbose>2:
+                                        print(subset)
+
+                                    # If Phi is sliced, assumed 2D (Theta,E) plots
+                                    # NOTE - force real datatype here, otherwise get errors from complex residuals.
+                                    # TODO: why is this (after abs pType selection?) Should error check & clean up - this could cause issues sometimes...
+                                    if 'Phi' in selDims.keys():
+                                        # print(subset)
+                                        # subset.pipe(np.abs).plot(x='Theta', y=Etype, col=eDim, robust=True)
+                                        subset.plot(x='Theta', y=Etype, col=eDim, robust=True)
+                                    else:
+                                        # subset.pipe(np.abs).plot(y='Theta',x='Phi', row=eDim, col=Etype, robust=True)
+                                        subset.plot(y='Theta',x='Phi', row=eDim, col=Etype, robust=True)
+
+                                    # plt.title(subset.attrs['jobLabel'])
+
+                        else:
+                            _ = sphSumPlotX(subset, pType = pType, backend = backend, facetDim = Etype)

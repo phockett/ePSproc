@@ -86,6 +86,28 @@ def arraySort2D(a, col):
     return a[a[:,col].argsort()]
 
 
+# Set up lambdas for itertools groupby use in fileListSort (below)
+# Quick hack to get this working for different file-naming conventions.
+# TODO: make nicer & generalise.
+# TODO: consider cases with/without prefix str for single and multiple dirs - that's the main difference with prefixStr...?
+def sortGroupFn(fListSorted, prefixStr):
+
+    # (1) Original case, works for wavefunction files with naming convention
+    #  <jobSym>_<Eke>_Orb.dat, e.g. CH3ISA1CA1_1.0eV_Orb.dat
+    #  In this case, split and group on first part of file name
+    if len(fListSorted[0].replace(prefixStr,'').split('_')) < 2:
+        return lambda x:x.replace(prefixStr,'').split('_')[0]
+
+    # (2) Case for multi-E ePS job output files.
+    #  <job>.<orb>_<Sym>_<Eke>.out, e.g. N2O_wf.orb1_S_E1.0_6.0_97.0eV.inp.out
+    # In this case, just group be prefix, which should be OK if only a single dir is set.
+    # Should likely also check for file extension or other here?
+    else:
+        # return lambda x:prefixStr  # Use prefix str only
+        return lambda x:x.split('_E')[0]  # Check from full name, no additional prefixStr required.
+
+
+
 # Sort & group filenames
 def fileListSort(fList, groupByPrefix=True, prefixStr = None, verbose=True):
     """
@@ -95,6 +117,11 @@ def fileListSort(fList, groupByPrefix=True, prefixStr = None, verbose=True):
 
     Note: os.path.commonprefix() is used for determining prefix, this may fail in some cases (e.g. for cases where a single file is passed, or files from different dirs).
     Pass prefix manaully in these cases.
+
+    Returns
+    -------
+    fListSorted, groupedList, prefixStr
+
 
     """
 
@@ -110,7 +137,8 @@ def fileListSort(fList, groupByPrefix=True, prefixStr = None, verbose=True):
 
         # Solution with itertools groupby
         # Adapted from https://stackoverflow.com/a/13368753
-        groupedList = [list(v) for k,v in itertools.groupby(fListSorted,key=lambda x:x.replace(prefixStr,'').split('_')[0])]
+        # groupedList = [list(v) for k,v in itertools.groupby(fListSorted,key=lambda x:x.replace(prefixStr,'').split('_')[0])]
+        groupedList = [list(v) for k,v in itertools.groupby(fListSorted,key=sortGroupFn(fListSorted, prefixStr))]
 
 
     if verbose:

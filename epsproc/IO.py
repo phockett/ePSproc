@@ -15,6 +15,8 @@ Main function: :py:func:`epsproc.IO.readMatEle`:
 
 History
 -------
+13/10/20        Adapted main function readMatEle() to use grouped lists for multi-file jobs, should be back-compatible if stackE = False set.
+
 06/11/19        Added jobInfo and molInfo data structures, from ePS file via :py:func:`epsproc.IO.headerFileParse()` and :py:func:`epsproc.IO.molInfoParse()`.
                 Still needs a bit of work, and may want to implement other (comp chem) libraries here.
 
@@ -69,6 +71,7 @@ except ImportError as e:
 
 # Package fns.
 from epsproc.util import matEleSelector, dataGroupSel, matEdimList, BLMdimList, stringRepMap, conv_ev_atm, orb3DCoordConv
+from epsproc.util.misc import fileListSort
 
 # ***** Ancillary functions
 
@@ -1427,7 +1430,7 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
 #TODO: Check/fix paths if incorrectly passed, e.g. https://stackoverflow.com/a/21605790
 # ADDED: type switch for matEle or EDCS, probably more to come. Should rename function!
 
-def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'DumpIdy', verbose = 1):
+def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'DumpIdy', verbose = 1, stackE = True):
     r"""
     Read ePS file(s) and return results as Xarray data structures.
     File endings specified by fType, default *.out.
@@ -1459,6 +1462,9 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
         - 1 print summary info only
         - 2 print detailed info
 
+    stackE : bool, optional, default = True
+        Identify and stack multi-part jobs to single array (by E) if True.
+
     Returns
     -------
     list
@@ -1467,6 +1473,9 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
     To do
     -----
     - Change to pathlib paths.
+    - Implement outputType options...?
+
+    13/10/20    Adapted to use grouped lists for multi-file jobs, should be back-compatible if stackE = False set.
 
     Examples
     --------
@@ -1496,58 +1505,99 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
     # Call function to check files or scan dir.
     fList = getFiles(fileIn = fileIn, fileBase = fileBase, fType = fType, verbose = verbose)
 
+    # Check if job is multipart, and stack files if so, based on filename prefix
+    if stackE:
+        fListSorted, fListGrouped, prefixStr = fileListSort(fList)
+
+    else:
+        fListGrouped = [fList]  # Default case, just use fList here.
+        prefixStr = ''
+
+    if verbose > 2:
+        print(fListGrouped)
+
+
     # Loop over fList and scan ePS files
+    # 13/10/20 Adapted to use grouped subsets.
     dataSet = []
-    for file in fList:
-        if verbose:
-            print('\n*** Reading ePS output file: ', file)
+    dataStack = []
+    for fList in fListGrouped:
 
-        # Scan the file and parse segments
-        #lines, dumpSegs = dumpIdyFileParse(os.path.join(fileBase, file))
+        # Check if files should be Eke stacked
+        if stackE and len(fList) > 1:
+            stackFlag = True
+        else:
+            stackFlag = False
 
-        if recordType is 'DumpIdy':
-            ekeList = scatEngFileParse(file, verbose = verbose)
-            symSegs = symFileParse(file, verbose = verbose)
+        for file in fList:
+            if verbose:
+                print('\n*** Reading ePS output file: ', file)
 
-            if verbose > 1:
-                print('Scanning CrossSection segments.')
-                print('Expecting {0} DumpIdy segments.'.format(ekeList.size * len(symSegs)))
+            # Scan the file and parse segments
+            #lines, dumpSegs = dumpIdyFileParse(os.path.join(fileBase, file))
 
-            lines, dumpSegs = dumpIdyFileParse(file, verbose = verbose)
-            data, blankSegs = dumpIdySegsParseX(dumpSegs, ekeList, symSegs, verbose = verbose)
+            if recordType is 'DumpIdy':
+                ekeList = scatEngFileParse(file, verbose = verbose)
+                symSegs = symFileParse(file, verbose = verbose)
 
-        if recordType is 'EDCS':
-            # print('Expecting {0} EDCS segments.'.format(ekeList.size))
-            if verbose > 1:
-                print('Scanning EDCS segments.')
+                if verbose > 1:
+                    print('Scanning CrossSection segments.')
+                    print('Expecting {0} DumpIdy segments.'.format(ekeList.size * len(symSegs)))
 
-            lines, dumpSegs = EDCSFileParse(file, verbose = verbose)
-            data, blankSegs = EDCSSegsParseX(dumpSegs) # , ekeList, symSegs)
+                lines, dumpSegs = dumpIdyFileParse(file, verbose = verbose)
+                data, blankSegs = dumpIdySegsParseX(dumpSegs, ekeList, symSegs, verbose = verbose)
 
-        if recordType is 'CrossSection':
-            ekeList = scatEngFileParse(file, verbose = verbose)
-            symSegs = symFileParse(file, verbose = verbose)
+            if recordType is 'EDCS':
+                # print('Expecting {0} EDCS segments.'.format(ekeList.size))
+                if verbose > 1:
+                    print('Scanning EDCS segments.')
 
-            if verbose > 1:
-                print('Scanning CrossSection segments.')
-                print('Expecting {0} CrossSection segments.'.format(len(symSegs)+1))  # Assuming 1 segment per symmetry, plus symm-summed case.
+                lines, dumpSegs = EDCSFileParse(file, verbose = verbose)
+                data, blankSegs = EDCSSegsParseX(dumpSegs) # , ekeList, symSegs)
 
-            lines, dumpSegs = getCroFileParse(file, verbose = verbose)
-            data, blankSegs = getCroSegsParseX(dumpSegs, symSegs, ekeList)
+            if recordType is 'CrossSection':
+                ekeList = scatEngFileParse(file, verbose = verbose)
+                symSegs = symFileParse(file, verbose = verbose)
+
+                if verbose > 1:
+                    print('Scanning CrossSection segments.')
+                    print('Expecting {0} CrossSection segments.'.format(len(symSegs)+1))  # Assuming 1 segment per symmetry, plus symm-summed case.
+
+                lines, dumpSegs = getCroFileParse(file, verbose = verbose)
+                data, blankSegs = getCroSegsParseX(dumpSegs, symSegs, ekeList)
 
 
 
-        # Add some additional properties to the output
-        fName = os.path.split(file)
-        data.name = fName[1]
-        data.attrs['file'] = fName[1]
-        data.attrs['fileBase'] = fName[0]
+            # Add some additional properties to the output
+            fName = os.path.split(file)
+            data.name = fName[1]
+            data.attrs['file'] = fName[1]
+            data.attrs['fileBase'] = fName[0]
 
-        if verbose:
-            print('Processed {0} sets of {1} file segments, ({2} blank)'.format(len(dumpSegs),recordType,blankSegs))
+            if verbose:
+                print('Processed {0} sets of {1} file segments, ({2} blank)'.format(len(dumpSegs),recordType,blankSegs))
 
+            # For unstaked case, append each file to dataSet
+            if stackFlag:
+                dataStack.append(data)
+            else:
+                dataSet.append(data)
+
+        # Stack by Eke
+        if stackFlag:
+            dataSet.append(xr.combine_nested(dataStack, concat_dim = ['Eke']).sortby('Eke'))
+
+            if verbose:
+                print(f"\n*** Stacked {len(fList)} files, prefix {prefixStr}, by Eke ({dataSet[-1].Eke.size} points).")
+
+
+
+        # if outputType == 'list':
         # Put in a list for now, might want to use Xarray dataset here, and/or combine results from multiple files.
-        dataSet.append(data)
+
+        # if outputType == 'ds':
+            # Output to Xarray Dataset, including stacking by E for multi-file jobs.
+
 
 
     return dataSet

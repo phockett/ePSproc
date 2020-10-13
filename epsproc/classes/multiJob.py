@@ -79,6 +79,11 @@ class ePSmultiJob():
         self.Edp = Edp  # Set default dp for Ehv conversion. May want to set this elsewhere, and match to data resolution?
         self.lmPlotOpts = {}  # Set empty dict for plot options.
 
+        # Quick hack to allow for use of Path() setting below.
+        # In this case will use jobDirs instead.
+        if fileBase is None:
+            fileBase = ''
+
         # Set file properties
         self.jobs = {'fileBase':Path(fileBase),
                      'ext':ext,
@@ -143,8 +148,14 @@ class ePSmultiJob():
 
         TODO:
 
+        - Flatten data structure to remove unnecessary nesting.
+        - Fix keys to apply to single dir case (above should also fix this).
         - convert outputs to Xarray dataset. Did this before, but currently missing file (on AntonJr)! CHECK BACKUPS - NOPE.
         - Confirm HV scaling - may be better to redo this, rather than correct existing values?
+
+        - Fix xr.dataset: currently aligns data, so will set much to Nan if, e.g., different symmetries etc.
+        Change to structure as ds('XS','matE') per orb, rather than ds('XS') and ds('matE') for all orbs?
+        This should also be in line with hypothetical base dataclass, which will be per orb by defn.
 
         """
 
@@ -207,6 +218,10 @@ class ePSmultiJob():
                 # TODO: fix this, in some cases gives errors with multiple values - probably an Ehv issue?
                 # dsXS[dataXS[0].orbX['orb'].data[0]] = dataXS[0]
                 # dsMatE[dataXS[0].orbX['orb'].data[0]] = dataMatE[0]
+                # With str labelling, as per non-subdir case - was this the issue?
+                # dsXS[f"orb{dataXS[0].orbX['orb'].data[0]}"] = dataXS[0]
+                # dsMatE[f"orb{dataXS[0].orbX['orb'].data[0]}"] = dataMatE[0]
+                # Main issue was aligning to coords, e.g. need xr.concat([data1, data2], "Sym").to_dataset() in general to properly stack.
 
                 # Job notes for plot labels etc.
                 # This is basically as per summary.jobInfo() routine
@@ -256,11 +271,19 @@ class ePSmultiJob():
 
                     # Job notes for plot labels etc.
                     # This is basically as per summary.jobInfo() routine
-                    jobNotes.append({ 'batch': dataXS[m].jobInfo['comments'][0].strip('#').strip(),
-                                    'event': dataXS[m].jobInfo['comments'][1].split(',', maxsplit=1)[1].strip(),
-                                    'orbLabel': dataXS[m].jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0],
-                                    'orbE': dataXS[m].orbX['E'].data[0]
-                                    })
+                    try:
+                        jobNotes.append({ 'batch': dataXS[m].jobInfo['comments'][0].strip('#').strip(),
+                                        'event': dataXS[m].jobInfo['comments'][1].split(',', maxsplit=1)[1].strip(),
+                                        'orbLabel': dataXS[m].jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0],
+                                        'orbE': dataXS[m].orbX['E'].data[0]
+                                        })
+                    # Could do with some proper pattern-matching here, for now just fall-back to [-1] element and hope for the best!
+                    except IndexError:
+                        jobNotes.append({ 'batch': dataXS[m].jobInfo['comments'][0].strip('#').strip(),
+                                        'event': dataXS[m].jobInfo['comments'][1].split(',', maxsplit=1)[-1].strip('#'),
+                                        'orbLabel': dataXS[m].jobInfo['comments'][1].split('(', maxsplit=1)[-1].split(')')[0],
+                                        'orbE': dataXS[m].orbX['E'].data[0]
+                                        })
 
 #                     print(m)
 #                     print(dataXS[m].orbX['orb'].data[0])
@@ -504,13 +527,14 @@ class ePSmultiJob():
 
                 if subset.any():
                     pltObj = subset.plot.line(x=Etype)
+                    lText.append(self.dataSets[key]['jobNotes'][m]['orbLabel'])
 
                 # Label with orb_sym
 #                 lText.append(self.dataSets[key]['XS'][m].attrs['fileBase'].rsplit('/',maxsplit=1)[0])
 
                 # lText.append(f"Orb {self.dataSets[key]['XS'][m].attrs['orbInfo']['orbN']} ({self.dataSets[key]['XS'][m].attrs['orbInfo']['orbSym'][0]})")
 
-                lText.append(self.dataSets[key]['jobNotes'][m]['orbLabel'])
+                # lText.append(self.dataSets[key]['jobNotes'][m]['orbLabel'])
 
         plt.legend(lText)
 
@@ -640,7 +664,14 @@ class ePSmultiJob():
     # Mol info
     # Add this, assuming that first job is representative (should add logic to check this)
     # Based on existing code in ep.util.jobSummary()
-    def molSummary(self, dataKey = [0, 0], tolConv = 1e-2):
+    def molSummary(self, dataKey = None, tolConv = 1e-2):
+
+        # Check/get key from index - bit ugly, should decide to pass key or index here?
+        # In either case, want default to be 1st entry
+        if dataKey is None:
+            key = list(data.dataSets.keys())[0]
+            dataKey = [key, 0]
+
 
         molInfo = self.dataSets[dataKey[0]]['XS'][dataKey[1]].attrs['molInfo']
 
@@ -780,7 +811,7 @@ class ePSmultiJob():
 
 
 
-    def mfpadPlot(self, selDims = {}, Erange = None, Etype = 'Eke', keys = None, pType = 'a', pStyle = 'polar', backend = 'mpl'):
+    def mfpadPlot(self, selDims = {}, sumDims = {}, Erange = None, Etype = 'Eke', keys = None, pType = 'a', pStyle = 'polar', backend = 'mpl'):
 
         # Default to all datasets
             if keys is None:
@@ -815,16 +846,25 @@ class ePSmultiJob():
                         eDim = 'Labels'
 
                     # if selDims is not None:  # Now set as empty dict to avoid issues later.
+                    # TODO: smarter dim handling here - selDims may not be consistent over all dataSets!
                     if selDims:
                         subset = subset.sel(selDims)
 
-                    # Check dimensionality - sum over Sym if necessary
+                    # Check dimensionality - sum over Sym & it if necessary
                     if subset.ndim > 3:
+                        print(f"Found dims {subset.dims}, summing to reduce for plot. Pass selDims to avoid.")
                         if 'Sym' in subset.dims:
                             subset = subset.sum('Sym').squeeze()
-                        else:
-                            print(f"*** ERROR: dataset {subset.jobLabel}  ndims = {subset.ndims}, dims = {subset.dims}. Skipping MFPAD plotting.")
+                        if 'it' in subset.dims:
+                            subset = subset.sum('it').squeeze()
+
+                        # Check result is OK
+                        if (subset.ndim > 3) and not (eDim in subset.dims):
+                            print(f"*** ERROR: dataset {self.dataSets[key]['TX'][m].jobLabel}  ndims = {subset.ndim}, dims = {subset.dims}. Skipping MFPAD plotting.")
                             plotFlag = False
+
+                        # else:
+                        #     pass
 
                     # Propagate attrs
                     subset.attrs = self.dataSets[key]['TX'][m].attrs

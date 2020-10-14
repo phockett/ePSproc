@@ -109,7 +109,7 @@ def sortGroupFn(fListSorted, prefixStr):
 
 
 # Sort & group filenames
-def fileListSort(fList, groupByPrefix=True, prefixStr = None, verbose=True):
+def fileListSort(fList, groupByPrefix=True, prefixStr = None, verbose=1):
     """
     Sort a list of file names, and group by prefix.
 
@@ -142,7 +142,11 @@ def fileListSort(fList, groupByPrefix=True, prefixStr = None, verbose=True):
 
 
     if verbose:
-        print(prefixStr)
+        print(f"\n*** FileListSort \n  Prefix: {prefixStr} \n  {len(groupedList)} groups.")
+
+        if verbose > 1:
+            print("\n  Grouped list:")
+            print(*groupedList, sep = '\n')
 
     if len(fList) > 1:
         return fListSorted, groupedList, prefixStr

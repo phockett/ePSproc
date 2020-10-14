@@ -1507,7 +1507,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
 
     # Check if job is multipart, and stack files if so, based on filename prefix
     if stackE:
-        fListSorted, fListGrouped, prefixStr = fileListSort(fList)
+        fListSorted, fListGrouped, prefixStr = fileListSort(fList, verbose = verbose)
 
     else:
         fListGrouped = [fList]  # Default case, just use fList here.
@@ -1586,6 +1586,10 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
         # Stack by Eke
         if stackFlag:
             dataSet.append(xr.combine_nested(dataStack, concat_dim = ['Eke']).sortby('Eke'))
+
+            # Propagate attribs for stacked case
+            dataSet[-1].attrs = dataStack[0].attrs
+            dataSet[-1].attrs['fileList'] = fList
 
             if verbose:
                 print(f"\n*** Stacked {len(fList)} files, prefix {prefixStr}, by Eke ({dataSet[-1].Eke.size} points).")

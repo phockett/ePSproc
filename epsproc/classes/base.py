@@ -15,11 +15,47 @@ class ePSbase():
     """
     Base class for ePSproc.
 
-    Define data for a single ePS job, defined as a specific ionization event (but may involve multiple ePS output files over a range of Ekes and symmetries).
+    Define data model for a single ePS job, defined as a specific ionization event (but may involve multiple ePS output files over a range of Ekes and symmetries).
 
     Define methods as wrappers for existing ePSproc functions on self.data.
 
     13/10/20    v1, pulling code from ePSmultiJob().
+
+    - Read datasets from a single dir (uses :py:func:`epsproc.readMatEle`).
+    - Sort to dictionaries and Xarray datasets (needs some work).
+    - Basic selection, plotting and calculation wrappers in development.
+
+
+    Parameters
+    ----------
+    fileBase : str or Path object, default = None
+        Base directory to scan for ePS files, subdirs will NOT be searched.
+        Use ePSmultiJob class for multi-dir scanning case.
+
+    prefix : str, optional, default = None
+        Set prefix string for file checks (cf. wfPlot class).
+        Only necessary if automated file sorting fails.
+
+    ext : str, optional, default = '.out'
+        Set default file extension for dir scanning.
+        This should match the file extension for ePolyScat output files.
+
+    Edp : int, optional, default = 2
+        Set default dp for Ehv conversion. May want to set this elsewhere instead... maybe just for plotting?
+        TODO: also consider axis reindex, lookups and interp functions here - useful for differences between datasets.
+
+    verbose : int, optional, default = 1
+        Set verbosity level for printing/error checking.
+        Not yet fully implemented, but, generally:
+        - 0, no printed output.
+        - 1, basic printed info.
+        - 2, print all info, including subfunction outputs.
+
+
+    TODO:
+
+    - verbosity levels, subtract for subfunctions? Or use a dict to handle multiple levels?
+
 
     """
 
@@ -44,6 +80,27 @@ class ePSbase():
                      }
 
     def scanFiles(self, dataPath = None):
+        """
+        Scan ePS output files from a dir for multiple data types. Sort data, and set to list/dict/Xarray structures.
+
+        Adapted from https://phockett.github.io/ePSdata/XeF2-preliminary/XeF2_multi-orb_comparisons_270320-dist.html
+
+        Current implementation:
+        - Read XS and matrix elements from source files, sort to Xarrays (one per file and data type), uses uses :py:func:`epsproc.readMatEle`.
+        - Stack by Eke for multi-file E-chunked jobs.
+        - Read additional data for jobs (uses :py:func:`epsproc.headerFileParse` and :py:func:`epsproc.molInfoParse`).
+        - Sort data to lists by data type, and dict with keys per file/job (self.data).
+        - Dict should be final data to use (note - can't get heterogenous data types & dims to work well for Xarray Dataset, but this may change.)
+
+        TODO:
+        - convert outputs to Xarray dataset. Did this before, but currently missing file (on AntonJr)! CHECK BACKUPS - NOPE.
+        - Confirm HV scaling - may be better to redo this, rather than correct existing values?
+
+        - Fix xr.dataset: currently aligns data, so will set much to Nan if, e.g., different symmetries etc.
+        Change to structure as ds('XS','matE') per orb, rather than ds('XS') and ds('matE') for all orbs?
+        This should also be in line with hypothetical base dataclass, which will be per orb by defn.
+
+        """
 
         # Allow override here for subclasses/independent use
         if dataPath is None:

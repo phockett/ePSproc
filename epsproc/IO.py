@@ -1594,7 +1594,8 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
             if verbose:
                 print(f"\n*** Stacked {len(fList)} files, prefix {prefixStr}, by Eke ({dataSet[-1].Eke.size} points).")
 
-
+        else:
+            dataSet[-1].attrs['fileList'] = dataSet[-1].attrs['file']  # Set also for single file case 
 
         # if outputType == 'list':
         # Put in a list for now, might want to use Xarray dataset here, and/or combine results from multiple files.

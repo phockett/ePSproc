@@ -188,7 +188,7 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
 
 
 # Create Xarray from set of ADMs - adapted from existing blmXarray()
-def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False):
+def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False, name = None, tUnits = 'ps'):
     """
     Create Xarray from ADMs, or create default case ADM(K,Q,S) = [0,0,0,1].
 
@@ -208,6 +208,13 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False):
     addS : bool, default = False
         If set, append S = 0 to ADMs.
         This allows for passing of [K,Q,ADM] type values (e.g. for symmetric top case)
+
+    name : str, optional, default = None
+        Set a name for the array.
+        If None, will be set to 'ADM' (same as dataType attrib)
+
+    tUnits : str, optional, default = 'ps'
+        Units for temporal axis, if set.
 
     Returns
     -------
@@ -252,13 +259,25 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False):
     # Set indexing, default to numerical
     if t is None:
         t = np.arange(0,ADMs.shape[1])
-
+        tUnits = 'Index'
 
     # Set up Xarray
     QNs = pd.MultiIndex.from_arrays(KQSLabels.real.T.astype('int8'), names = ['K','Q','S'])  # Set lables, enforce type
     ADMX = xr.DataArray(ADMs, coords={'ADM':QNs,'t':t}, dims = ['ADM','t'])
 
+    # Metadata
+    if name is None:
+        ADMX.name = 'ADM'
+    else:
+        ADMX.name = name
+
     ADMX.attrs['dataType'] = 'ADM'
+    ADMX.attrs['long_name'] = 'Axis distribution moments'
+
+    # Set units
+    ADMX.attrs['units'] = 'arb'
+    ADMX.t.attrs['units'] = tUnits
+
 
     return ADMX
 

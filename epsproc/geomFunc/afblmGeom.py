@@ -15,7 +15,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
                 # sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
                 sumDims = ['mu', 'mup', 'l','lp','m','mp','S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
                 SFflag = False, SFflagRenorm = False, BLMRenorm = 1,
-                squeeze = False, phaseConvention = 'S'):
+                squeeze = False, phaseConvention = 'E', basisReturn = False):
     r"""
     Implement :math:`\beta_{LM}^{AF}` calculation as product of tensors.
 
@@ -347,4 +347,23 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     # BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
     BetasNormX.attrs['dataType'] = 'BLM'
 
-    return mTermSumThres, mTermSum, mTerm, BetasNormX
+    # Set return args based on basisReturn parameter
+    # Full results set, including all versions
+    if basisReturn == "Results" or "Legacy":
+        return mTermSumThres, mTermSum, mTerm, BetasNormX
+
+    # Return basis arrays/tensors
+    elif basisReturn == "Full":
+        basis = {'QNs':QNs, 'EPRX':EPRXresort, 'lambdaTerm':lambdaTermResort,
+                'BLMtable':BLMtable, 'BLMtableResort':BLMtableResort,
+                'AKQS':AKQS, 'phaseConvention':phaseConvention, 'phaseCons':phaseCons}
+
+        return  BetasNormX, basis
+
+    # Minimal return
+    elif basisReturn == "BLM":
+        return BetasNormX
+
+    else:
+        print(f"Return type {basisReturn} not recognised, defaulting to BLM only.")
+        return BetasNormX

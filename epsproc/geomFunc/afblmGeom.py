@@ -10,7 +10,7 @@ from epsproc.geomFunc.geomUtils import genllpMatE
 # Code as developed 16/17 March 2020.
 # Needs some tidying, and should implement BLM Xarray attrs and format for output.
 def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = None,
-                lambdaTerm = None, RX = None, eulerAngs = None,
+                lambdaTerm = None, RX = None, eulerAngs = None, polLabel = None,
                 thres = 1e-2, thresDims = 'Eke', selDims = {'it':1, 'Type':'L'},
                 # sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
                 sumDims = ['mu', 'mup', 'l','lp','m','mp','S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
@@ -124,14 +124,26 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
         # Set explictly here - only want (0,0,0) term in any case!
         # eulerAngs = np.array([0,0,0], ndmin=2)
         # RX = ep.setPolGeoms(eulerAngs = eulerAngs)   # This throws error in geomCalc.MFproj???? Something to do with form of terms passed to wD, line 970 vs. 976 in geomCalc.py
-        # Alternatively - just set default values then sub-select.
-        RX = sphCalc.setPolGeoms()
+        # Set polGeoms if Euler angles are passed.
+        if eulerAngs is not None:
+            RX = setPolGeoms(eulerAngs = eulerAngs)
+
+        if RX is None:
+            # Alternatively - just set default values then sub-select.
+            RX = sphCalc.setPolGeoms()
+
+        # Subselect on pol geoms if label is passed.
+        # May want to add try/fail here as this might be a bit fragile.
+        if polLabel is not None:
+            RX = RX.sel({'Label':polLabel})
+
 
         # *** Lambda term
         lambdaTerm, lambdaTable, lambdaD, _ = geomCalc.MFproj(RX = RX, form = 'xarray', phaseConvention = phaseConvention)
         # lambdaTermResort = lambdaTerm.squeeze().drop('l').drop('lp')   # This removes photon (l,lp) dims fully.
         # lambdaTermResort = lambdaTerm.squeeze(['l','lp']).drop(['l','lp'])  # Safe squeeze & drop of selected singleton dims only.
-        lambdaTermResort = lambdaTerm.squeeze(['l','lp']).drop(['l','lp']).sel({'Labels':'z'}).sum('R')  # Safe squeeze & drop of selected singleton dims only, select (0,0,0) term only for pol. geometry.
+        # lambdaTermResort = lambdaTerm.squeeze(['l','lp']).drop(['l','lp']).sel({'Labels':'z'}).sum('R')  # Safe squeeze & drop of selected singleton dims only, select (0,0,0) term only for pol. geometry.
+        lambdaTermResort = lambdaTerm.squeeze(['l','lp']).drop(['l','lp']).sum('R') # Without explicit geom selection.
         # NOTE dropping of redundant R coord here - otherwise get accidental R=Rp correlations later!
 
     # *** Blm term with specified QNs

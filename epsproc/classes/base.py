@@ -367,6 +367,33 @@ class ePSbase():
 
     #     return orbPD  # Could also set return value here for simple orbPD printing.
 
+    # **** BLM calculation wrappers
+
+    def AFBLM(self, keys, **kwargs):
+        """
+        Basic wrapper for :py:func:`epsproc.geomFunc.afblmXprod`.
+
+        Currently set to calculate for all data, with afblmXprod defaults, unless additional kwargs passed.
+
+        TODO:
+        - Add subselection here?
+
+        """
+
+        # Default to all datasets
+        if keys is None:
+            keys = list(self.data.keys())
+
+        for key in keys:
+            if self.verbose['main']:
+                print(f"\nCalculating AF-BLMs for job key: {key}")
+
+            _, _, _, BetaNormX = ep.geomFunc.afblmXprod(self.data[key]['matE'], **kwargs)
+
+            self.data[key]['AFBLM'] = BetaNormX
+
+
+    # ************** Plotters
 
     def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', keys = None, backend = 'mpl'):
         """
@@ -538,7 +565,7 @@ class ePSbase():
             plt.ylabel(r"$\beta_{LM}$")
 
 
-    def lmPlot(self, Erange = None, Etype = 'Eke', keys = None, refDataKey = None, reindexTol = 0.5, reindexFill = np.nan, setPD = True, **kwargs):
+    def lmPlot(self, Erange = None, Etype = 'Eke', dataType = 'matE', xDim = None, keys = None, refDataKey = None, reindexTol = 0.5, reindexFill = np.nan, setPD = True, **kwargs):
         """
         Wrapper for :py:func:`epsproc.lmPlot` for multijob class. Run lmPlot() for each dataset.
 
@@ -549,6 +576,15 @@ class ePSbase():
 
         Etype : str, optional, default = 'Eke'
             Set plot dimension, either 'Eke' (electron kinetic energy) or 'Ehv' (photon energy).
+
+        dataType : str, optional, default = 'matE'
+            Set data type to plot, corresponding to label in self.data
+            - 'matE' raw matrix elements.
+            - 'AFBLM' computed AF BLMs.
+
+        xDim : str, optional, default = None
+            Settings for x-axis, if None plot vs. Etype.
+            See :py:func:`epsproc.lmPlot` for more details.
 
         keys : list, optional, default = None
             Keys for datasets to plot.
@@ -597,17 +633,17 @@ class ePSbase():
         # Set default to full range of 1st dataset, keep same for all cases
         # TODO: set per dataset?
         if Erange is None:
-            Erange = [self.data[keys[0]]['matE'][Etype].min().data, self.data[keys[0]]['matE'][Etype].max().data]
+            Erange = [self.data[keys[0]][dataType][Etype].min().data, self.data[keys[0]][dataType][Etype].max().data]
 
         # Set ref dataset if required
         if refDataKey is not None:
-            refData = self.data[refDataKey]['matE']
+            refData = self.data[refDataKey][dataType]
 
             if Etype == 'Ehv':
                 refData = refData.swap_dims({'Eke':'Ehv'})
 
             refData = refData.sel(**{Etype:slice(Erange[0], Erange[1])})
-            refData.attrs = self.data[refDataKey]['matE'].attrs # Propagate atrrs.
+            refData.attrs = self.data[refDataKey][dataType].attrs # Propagate atrrs.
 
         else:
             refData = None
@@ -626,17 +662,17 @@ class ePSbase():
             # More elegant way to swap on dims?
             if Etype == 'Ehv':
             # Subset before plot to avoid errors on empty array selection!
-                subset = self.data[key]['matE'].swap_dims({'Eke':'Ehv'}).sel(**{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
+                subset = self.data[key][dataType].swap_dims({'Eke':'Ehv'}).sel(**{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
 
             else:
-                subset = self.data[key]['matE'].sel(**{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
+                subset = self.data[key][dataType].sel(**{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
 
             # Difference data
             # NOTE: ref. data is reindexed here to ensure E-point subtraction (otherwise mismatch will give null results)
             # TODO: may want some selection logic here, this may produce empty results in many cases.
             if refData is not None:
                 subset = subset - refData.reindex(**{Etype:subset[Etype]}, method='nearest', tolerance=reindexTol, fill_value=reindexFill)
-                subset.attrs = self.data[key]['matE'].attrs  # Propagate attribs
+                subset.attrs = self.data[key][dataType].attrs  # Propagate attribs
                 subset.attrs['jobLabel'] = f"{subset.attrs['jobLabel']} diff with {refData.attrs['jobLabel']}"
 
                 # Slightly crude check for empty result.
@@ -647,7 +683,7 @@ class ePSbase():
 
             # Run lmPlot
             if subset.any():
-                daPlot, daPlotpd, legendList, gFig = lmPlot(subset, xDim = Etype, **self.lmPlotOpts)
+                daPlot, daPlotpd, legendList, gFig = lmPlot(subset, xDim = xDim, **self.lmPlotOpts)
             else:
                 daPlotpd = None
 
@@ -657,7 +693,7 @@ class ePSbase():
 
 
 
-    # **** Basic MFPAD plotting, see dev code in http://localhost:8888/lab/tree/dev/ePSproc/classDev/ePSproc_multijob_class_tests_N2O_011020_Stimpy.ipynb
+    # **** Basic MFPAD numerics & plotting, see dev code in http://localhost:8888/lab/tree/dev/ePSproc/classDev/ePSproc_multijob_class_tests_N2O_011020_Stimpy.ipynb
     def mfpadNumeric(self, selDims = {'Type':'L','it':1}, keys = None, res = 50):
         """
         MFPADs "direct" (numerical), without beta parameter computation.
@@ -689,7 +725,7 @@ class ePSbase():
 
 
 
-    def mfpadPlot(self, selDims = {}, sumDims = {}, Erange = None, Etype = 'Eke', keys = None, pType = 'a', pStyle = 'polar', backend = 'mpl'):
+    def mfpadPlot(self, selDims = {}, sumDims = {}, Erange = None, Etype = 'Eke', keys = None, pType = 'a2', pStyle = 'polar', backend = 'mpl'):
 
         # Default to all datasets
             if keys is None:

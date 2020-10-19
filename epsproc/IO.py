@@ -1522,6 +1522,9 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
     dataSet = []
     dataStack = []
     for fList in fListGrouped:
+        # Force to list for singleton case.
+        if not isinstance(fList, list):
+            fList = [fList]
 
         # Check if files should be Eke stacked
         if stackE and len(fList) > 1:
@@ -1595,7 +1598,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
                 print(f"\n*** Stacked {len(fList)} files, prefix {prefixStr}, by Eke ({dataSet[-1].Eke.size} points).")
 
         else:
-            dataSet[-1].attrs['fileList'] = dataSet[-1].attrs['file']  # Set also for single file case 
+            dataSet[-1].attrs['fileList'] = dataSet[-1].attrs['file']  # Set also for single file case
 
         # if outputType == 'list':
         # Put in a list for now, might want to use Xarray dataset here, and/or combine results from multiple files.

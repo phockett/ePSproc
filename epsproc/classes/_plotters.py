@@ -322,13 +322,13 @@ def lmPlot(self, Erange = None, Etype = 'Eke', dataType = 'matE', xDim = None, k
 
 
 
-def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM', xDim = None, keys = None, ):
+def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM', xDim = None, selDims = None, thres = None, keys = None, ):
     """
     Basic BLM line plots using Xarray plotter.
 
     See https://epsproc.readthedocs.io/en/latest/methods/geometric_method_dev_pt3_AFBLM_090620_010920_dev_bk100920.html
 
-    Similar to :py:func:`epsproc.BLMplot`, but without thresholding, and no dim selection.
+    Similar to :py:func:`epsproc.BLMplot`, may change to simple wrapper, but some differenences in terms of dim handling here.
 
     For more flexibility, use `self.lmPlot`.
 
@@ -366,6 +366,10 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM', xDim = None,
 
         subset = self.Esubset(key = key, dataType = dataType, Etype = Etype, Erange = Erange)
 
+        # Threshold results. Set to check along Eke dim, but may want to pass this as an option.
+        # Set squeeze to True also
+        subset = matEleSelector(subset, thres=thres, inds = selDims, dims = Etype, sq = True)
+
         if subset.any():
             if hasattr(subset, 'XSrescaled'):
                 print(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, XS")
@@ -373,7 +377,9 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM', xDim = None,
                 # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, XS")
 
             print(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
-            subset.real.plot(x=Etype, col='Labels', row='BLM')  # Nice... should give line plots or surfaces depending on dims
+            # TODO: add some logic here, sort or switch on flag or number of dims?
+            # subset.real.plot(x=Etype, col='Labels', row='BLM')  # Nice... should give line plots or surfaces depending on dims
+            subset.real.plot.line(x=Etype, col='Labels')  # Set to line plot here to stack BLMs
             # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
 
 

@@ -356,8 +356,9 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
 
             # Loop over facetDim with full dataArray as selector, allows for MultiIndex cases.
             for nPlot in dataPlot[facetDim]:
-                fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention, tString = f"{facetDim}: {nPlot.item()}"))
+                # fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention, tString = f"{facetDim}: {nPlot.item()}"))
                 # {dataPlot[facetDim][nPlot].item()}"))  # Will fail if dims>2 passed.
+                fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention, tString = titleString + f"\n{facetDim}: {nPlot.item()}"))
 
         else:
             # Call matplotlib plotting fn., single surface
@@ -484,6 +485,8 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None):
             facetDim = tString
             tString = f"{facetDim}: {dataPlot['facetDim'].item()}"
 
+        # else:
+
     elif tString is None:
         # Title with data details.
         if hasattr(dataPlot, 'jobLabel'):
@@ -558,7 +561,7 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
     if rc is None:
         nCols = 6
         if nData < nCols:   # Set for single row layout
-            nCols = nData 
+            nCols = nData
         rc = [nData/nCols, nCols]
 
     # rc = np.round(rc).astype(np.int)  # Fix dtype - Plotly throws type error for np types however.

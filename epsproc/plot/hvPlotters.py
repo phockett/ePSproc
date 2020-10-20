@@ -50,7 +50,7 @@ except ImportError as e:
     hvFlag = False
 
 # Set plotters & options.
-def setPlotters(hvBackend = 'bokeh', width = 500):
+def setPlotters(hvBackend = 'bokeh', width = 500, snsStyle = "darkgrid"):
     """
     Set some plot options - Seaborn style + HV defaults.
 
@@ -67,18 +67,35 @@ def setPlotters(hvBackend = 'bokeh', width = 500):
     width : int, optional, default = 500
         Setting for plot width, in pixels.
 
+    snsStyle : str, optional, default = "darkgrid"
+        If using Seaborn styles, use snsStyle.
+        See https://seaborn.pydata.org/tutorial/aesthetics.html
+
     """
 
     # Plotting libs
     # Optional - set seaborn for plot styling
     if snsFlag:
         import seaborn as sns
+
+        # For > v0.8 need to run .set_theme, see https://seaborn.pydata.org/tutorial/aesthetics.html
+        try:
+            sns.set_theme(style = snsStyle)  # Set style
+        except AttributeError:
+            pass
+
+        sns.set_style(snsStyle)  # May be unnecessary if set_theme already used?
+
         sns.set_context("paper")  # "paper", "talk", "poster", sets relative scale of elements
                                 # https://seaborn.pydata.org/tutorial/aesthetics.html
         # sns.set(rc={'figure.figsize':(11.7,8.27)})  # Set figure size explicitly (inch)
                                 # https://stackoverflow.com/questions/31594549/how-do-i-change-the-figure-size-for-a-seaborn-plot
                                 # Wraps Matplotlib rcParams, https://matplotlib.org/tutorials/introductory/customizing.html
         sns.set(rc={'figure.dpi':(120)})
+
+
+
+
 
     from matplotlib import pyplot as plt  # For addtional plotting functionality
     # import bokeh
@@ -197,7 +214,7 @@ def XCplot(dataXS, lineDashList = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}, 
             title = 'XS data plot'
 
     # print(title)
-    
+
     dsPlotSet = dsPlotSet.opts(title = title)
 
 #     (dsPlotSet + hv.Table(hv_ds)).cols(1)

@@ -12,13 +12,25 @@ Welcome to ePSproc
    :caption: Intro & demos:
 
    about
-   demos/ePSproc_demo_Aug2019
-   demos/ePSproc_BLM_calc_demo_Sept2019
-   demos/ePSproc_demo_CrossSections_Oct2019
-   demos/ePSproc_demo_matE_plotting_Feb2020
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Classes:
+
+   demos/ePSproc_class_demo_161020
    demos/ePSproc_wfPlot_tests_150720_tidy
    demos/ePSdata_download_demo_300720
    demos/ePSproc_wfPlot_tests_150720-110820-CH3I-tidy_Stimpy
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Functions:
+
+    demos/ePSproc_demo_Aug2019
+    demos/ePSproc_BLM_calc_demo_Sept2019
+    demos/ePSproc_demo_CrossSections_Oct2019
+    demos/ePSproc_demo_matE_plotting_Feb2020
+
 
 
 .. toctree::

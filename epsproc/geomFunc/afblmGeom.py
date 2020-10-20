@@ -11,11 +11,11 @@ from epsproc.geomFunc.geomUtils import genllpMatE
 # Needs some tidying, and should implement BLM Xarray attrs and format for output.
 def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = None,
                 lambdaTerm = None, RX = None, eulerAngs = None, polLabel = None,
-                thres = 1e-2, thresDims = 'Eke', selDims = {'it':1, 'Type':'L'},
+                thres = 1e-2, thresDims = 'Eke', selDims = {'Type':'L', 'it':1},
                 # sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
                 sumDims = ['mu', 'mup', 'l','lp','m','mp','S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
                 SFflag = False, SFflagRenorm = False, BLMRenorm = 1,
-                squeeze = False, phaseConvention = 'E', basisReturn = False):
+                squeeze = False, phaseConvention = 'E', basisReturn = "BLM", verbose = 0):
     r"""
     Implement :math:`\beta_{LM}^{AF}` calculation as product of tensors.
 
@@ -60,6 +60,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     - XSiso = direct sum over matrix elements
 
     Where XSrescaled == XSiso == ePS GetCro output for isotropic distribution.
+
+    TODO: fix 'it' dim handling - should be summed over by default, but only in non-singleton dim cases.
 
     """
     from epsproc.util import matEleSelector
@@ -361,11 +363,16 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
     # Set return args based on basisReturn parameter
     # Full results set, including all versions
-    if basisReturn == "Results" or "Legacy":
+    if verbose:
+        print(f"Return type {basisReturn}.")
+
+    if basisReturn in ["Results", "Legacy"]:
+        # print("Legacy")
         return mTermSumThres, mTermSum, mTerm, BetasNormX
 
     # Return basis arrays/tensors
     elif basisReturn == "Full":
+        # print("Full")
         basis = {'QNs':QNs, 'EPRX':EPRXresort, 'lambdaTerm':lambdaTermResort,
                 'BLMtable':BLMtable, 'BLMtableResort':BLMtableResort,
                 'AKQS':AKQS, 'phaseConvention':phaseConvention, 'phaseCons':phaseCons}
@@ -374,6 +381,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
     # Minimal return
     elif basisReturn == "BLM":
+        # print("BLM")
         return BetasNormX
 
     else:

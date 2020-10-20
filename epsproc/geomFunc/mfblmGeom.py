@@ -13,7 +13,7 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
                 lambdaTerm = None, RX = None, eulerAngs = None,
                 thres = 1e-2, thresDims = 'Eke', selDims = {'it':1, 'Type':'L'},
                 sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,
-                SFflag = True, squeeze = False, phaseConvention = 'S'):
+                SFflag = False, squeeze = False, phaseConvention = 'E', basisReturn = "BLM", verbose = 1):
     r"""
     Implement :math:`\beta_{LM}^{MF}` calculation as product of tensors.
 
@@ -215,4 +215,42 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, p=[0], BLMtable = None,
     mTermSumThres.attrs = mTerm.attrs
     mTermSumThres.attrs['dataType'] = 'multTest'
 
-    return mTermSumThres, mTermSum, mTerm
+    # return mTermSumThres, mTermSum, mTerm
+
+    # 20/10/20 added output options as per last afblmGeom code update.
+    #**** Tidy up and reformat to standard BLM array (see ep.util.BLMdimList() )
+    # TODO: finish this, and set this as standard output
+    BetasNormX = mTermSumThres.unstack().rename({'L':'l','M':'m'}).stack({'BLM':['l','m']})
+
+    # Set/propagate global properties
+    BetasNormX.attrs = matE.attrs
+    BetasNormX.attrs['thres'] = thres
+
+    # TODO: update this for **vargs
+    # BLMXout.attrs['sumDims'] = sumDims # May want to explicitly propagate symmetries here...?
+    # BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
+    BetasNormX.attrs['dataType'] = 'BLM'
+
+    # Set return args based on basisReturn parameter
+    # Full results set, including all versions
+    if verbose:
+        print(f"Return type {basisReturn}.")
+
+    if basisReturn in ["Results", "Legacy"]:
+        return mTermSumThres, mTermSum, mTerm
+
+    # Return basis arrays/tensors
+    elif basisReturn == "Full":
+        basis = {'QNs':QNs, 'EPRX':EPRXresort, 'lambdaTerm':lambdaTermResort,
+                'BLMtable':BLMtable, 'BLMtableResort':BLMtableResort,
+                'AKQS':AKQS, 'phaseConvention':phaseConvention, 'phaseCons':phaseCons}
+
+        return  BetasNormX, basis
+
+    # Minimal return
+    elif basisReturn == "BLM":
+        return BetasNormX
+
+    else:
+        print(f"Return type {basisReturn} not recognised, defaulting to BLM only.")
+        return BetasNormX

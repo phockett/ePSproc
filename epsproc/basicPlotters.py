@@ -24,6 +24,7 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
 # Package functions
+from epsproc.util.listFuncs import BLMdimList
 from epsproc.sphPlot import plotTypeSelector
 # from epsproc.util import matEleSelector  # Throws error, due to circular import refs?
 # from epsproc.util.conversion import multiDimXrToPD
@@ -162,6 +163,9 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr'):
         Plotter to use. Default is 'xr' for Xarray internal plotting. May be switched according to plot type in future...
 
     """
+    # Local/deferred import to avoid circular import issues at module level.
+    # TO DO: Should fix with better __init__!
+    from epsproc.util import matEleSelector
 
     # Check dims, and set facet dim
     dims = BLMdimList()
@@ -173,7 +177,7 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr'):
         thres = thres * BLM.max()
 
     # Threshold results. Set to check along Eke dim, but may want to pass this as an option.
-    BLMplot = ep.matEleSelector(BLM, thres=thres, dims = xDim)
+    BLMplot = matEleSelector(BLM, thres=thres, dims = xDim)
 
     # Set BLM index for plotting.
     # Necessary for Xarray plotter with multi-index categories it seems.
@@ -493,11 +497,19 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         dimUS = daPlot.unstack().dims
 
         # Set l (or equivalent) cmap here, ensures ordering over over dims (ordered list returned from daPlot Xarray).
+        # NOTE - set crude default case for max = 10.
         # NOTE - assumes only one of these dims is present (or will overwrite)
         # Added 28/09/20
+        # lList = []
+        lList = np.arange(0, 10, dtype=np.int64)  # Set default case. UGLY.
+        # lList = daPlot[xDim].pipe(np.unique)        # Should be able to default to first xDim passed?
         for dim in dimUS:
-            if dim in ['l', 'K', 'lp']:
+            if dim in ['l', 'K', 'lp', 'L']:
                 lList = daPlot[dim].pipe(np.unique)
+
+        # if not lList.any():
+        #     lList = lListDefault
+
 
         palL = sns.light_palette("green", n_colors=lList.size)
         lutL = dict(zip(map(str, lList), palL))
@@ -717,6 +729,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
 
             for label in item[0].astype('str'):
+
+                if verbose:
+                    print(f"Legend entry: {label} for {item}")
 #                 label = string(label)
 #                 if n%2:
                 if item[0].name in ['l','m','K','Q']:

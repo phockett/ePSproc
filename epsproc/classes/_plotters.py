@@ -47,10 +47,11 @@ def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', keys = None,
         - 'hv' : use Holoviews via :py:func:`epsproc.plotters.hvPlotters.XCplot()`
 
     """
-    # Default to all datasets
-    if keys is None:
-        keys = self.data.keys()
-
+    # # Default to all datasets
+    # if keys is None:
+    #     keys = self.data.keys()
+    keys = self._keysCheck(keys)
+    
 #         if self.jobs['jobStructure'] == 'subDirs':
     for key in keys:
 #                 testClass.dataSets[key]['XS'][0].sel(XC='SIGMA', Eke=slice(Erange[0], Erange[1])).plot.line(x='Eke', col='Type')   # This works
@@ -146,9 +147,10 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange =
     # from matplotlib import pyplot as plt  # For legend
     lText = []
 
-    # Default to all datasets
-    if keys is None:
-        keys = self.data.keys()
+    # # Default to all datasets
+    # if keys is None:
+    #     keys = self.data.keys()
+    keys = self._keysCheck(keys)
 
     for key in keys:
 #                 testClass.dataSets[key]['XS'][0].sel(XC='SIGMA', Eke=slice(Erange[0], Erange[1])).plot.line(x='Eke', col='Type')   # This works
@@ -249,9 +251,10 @@ def lmPlot(self, Erange = None, Etype = 'Eke', dataType = 'matE', xDim = None, k
     if xDim is None:
         xDim = Etype
 
-    # Default to all datasets
-    if keys is None:
-        keys = list(self.data.keys())
+    # # Default to all datasets
+    # if keys is None:
+    #     keys = list(self.data.keys())
+    keys = self._keysCheck(keys)
 
     # Set lmPlotOpts
     # Check passed args vs. self.lmPlotOpts and overwrite
@@ -341,9 +344,10 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM', xDim = None,
     if xDim is None:
         xDim = Etype
 
-    # Default to all datasets
-    if keys is None:
-        keys = list(self.data.keys())
+    # # Default to all datasets
+    # if keys is None:
+    #     keys = list(self.data.keys())
+    keys = self._keysCheck(keys)
 
     # Set default to full range of 1st dataset, keep same for all cases
     # TODO: set per dataset? Now in subset fn.
@@ -393,12 +397,13 @@ def padPlot(self, selDims = {}, sumDims = {}, Erange = None, Etype = 'Eke',
     Plot PADs from mat elements (MF) or BLMs.
     """
 
-    # Default to all datasets
-    if keys is None:
-        keys = self.data.keys()
-    else:
-        if not isinstance(keys, list):   # Force list if single item passed
-            keys = [keys]
+    # # Default to all datasets
+    # if keys is None:
+    #     keys = self.data.keys()
+    # else:
+    #     if not isinstance(keys, list):   # Force list if single item passed
+    #         keys = [keys]
+    keys = self._keysCheck(keys)
 
     # Loop over datasets
     for key in keys:

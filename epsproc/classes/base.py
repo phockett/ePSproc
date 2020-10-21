@@ -116,8 +116,23 @@ class ePSbase():
 #         self.jobs = []  # Possibly redundant, but usful for multi dir case
 
 
+    # **** Small utility fns.
+    def _keysCheck(self, keys):
+        """
+        Set keys:
 
+        - Default to all if None.
+        - Force list if singleton key passed.
 
+        """
+        # Default to all datasets
+        if keys is None:
+            keys = self.data.keys()
+        else:
+            if not isinstance(keys, list):   # Force list if single item passed
+                keys = [keys]
+
+        return keys
 
     # **** BLM calculation wrappers
     def MFBLM(self, keys = None, **kwargs):
@@ -131,9 +146,10 @@ class ePSbase():
 
         """
 
-        # Default to all datasets
-        if keys is None:
-            keys = list(self.data.keys())
+        # # Default to all datasets
+        # if keys is None:
+        #     keys = list(self.data.keys())
+        keys = self._keysCheck(keys)
 
         for key in keys:
             if self.verbose['main']:
@@ -157,9 +173,10 @@ class ePSbase():
 
         """
 
-        # Default to all datasets
-        if keys is None:
-            keys = list(self.data.keys())
+        # # Default to all datasets
+        # if keys is None:
+        #     keys = list(self.data.keys())
+        keys = self._keysCheck(keys)
 
         for key in keys:
             if self.verbose['main']:
@@ -183,9 +200,10 @@ class ePSbase():
 
         """
 
-        # Default to all datasets
-        if keys is None:
-            keys = self.data.keys()
+        # # Default to all datasets
+        # if keys is None:
+        #     keys = self.data.keys()
+        keys = self._keysCheck(keys)
 
 
         # Loop over datasets & store output

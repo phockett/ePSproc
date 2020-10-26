@@ -16,6 +16,10 @@ from pathlib import Path
 import pyvista as pv
 import cclib
 
+from functools import reduce  # For chemlab, qc.pgbf
+                                # Import here doesn't fix issue, need to confirm scope.
+                                # Adding "from functools import reduce" to chemlab.qc.pgbf.py does work.
+
 # Set chemlab fn. import
 def importChemLabQC(chemPath = None):
     """
@@ -46,6 +50,8 @@ def importChemLabQC(chemPath = None):
             sys.path.append(chemPath)
             # from chemlab.qc import wavefunction  # Can't seem to get this version to work - likely due to init files?
             from qc import wavefunction  # This is OK with Base or subdir set
+            # from qc.utils import reduce  # For additional function settings (or may need to patch?)
+                                            # This fix doesn't work - need to confirm scope here?
             qcImport = True
         except ImportError:
             pass
@@ -276,7 +282,7 @@ class molOrbPlotter():
         # Now done at init, and set by orbN above.
 
 
-    def plotOrb(self, orbN = None, isoLevels = 6, isoValsAbs = None, isoValsPC = None, interactive = True, opacity = 0.5):
+    def plotOrb(self, orbN = None, isoLevels = 6, isoValsAbs = None, isoValsPC = None, showAtoms = True, interactive = True, opacity = 0.5, subplots = False, rc = None, verbose = 0):
         """
         Plot orbital(s) with pyVista/ITK
 
@@ -296,12 +302,22 @@ class molOrbPlotter():
             Isovals to use, percentage values. Plot values are set by +/-isoValsPC * np.abs(self.vol[item]).mean().
             If both isoValsAbs and isoValsPC are passed, only PC values will be used.
 
+        showAtoms : bool, optional, default = True
+            If True, plot atoms (molecular structure).
+
         interactive : bool, optional, default = True
             Plot inteactively using itkwidgets if true.
             Otherwise use pyVista.Plotter(), which produces static output.
 
         opacity : float, optional, default = 0.5
             Set isosurface opacity.
+
+        subplots : bool, optional, default = False
+            Set to one subplot per volume if True.
+
+        rc : array, optional, default = None
+            If set, and subplots is True, use to define layout grid [rows, columns].
+            If not set, this will be set for nCols = 3
 
         To do
         -----
@@ -312,47 +328,105 @@ class molOrbPlotter():
 
         """
 
-        # Set ITK widgets or pv.Plotter
-        # May also want to add other methods here, e.g. pv.BackgroundPlotter()  # Runs plotter in separate window process.
-        if interactive:
-            pl = pv.PlotterITK()
-        else:
-            pl = pv.Plotter()
-
-        # Add atoms
-        for n, item in enumerate(self.data.atomcoords[self.geomInd]):
-        #     pl.add_mesh(pv.Sphere(center=item, radius=data.atomnos[n]/100))  # Relative scaling, small atoms
-        #     pl.add_mesh(pv.Sphere(center=item, radius=np.sqrt(data.atomnos[n]/10)))  # sqrt scaling, space filling atoms
-            pl.add_mesh(pv.Sphere(center=item, radius=np.sqrt(self.data.atomnos[n])/10), name = f'N{n}, Z={self.data.atomnos[n]}')  # sqrt scaling, mid-sized atoms
-
-
-        # Add meshes per orbital
+        # Add meshes per orbital, or use supplied list?
+        # NEEDS DEBUG!
         if orbN is None:
             orbN = self.vol.array_names
         elif type(orbN) is str:
             orbN = list(orbN)
 
+
+        # Set ITK widgets or pv.Plotter
+        # May also want to add other methods here, e.g. pv.BackgroundPlotter()  # Runs plotter in separate window process.
+        if interactive:
+            pl = pv.PlotterITK()
+        else:
+
+            # Subplot code from wfPlot.plotWf()
+            # See also sphPlot.sphPlotPL()
+            if subplots:
+                # Set subplots if required.
+                # if subplots:
+                if rc is None:
+                    pN = len(orbN)
+                    rP = np.rint(np.sqrt(pN)).astype(np.int32)
+                    cP = np.ceil(pN/rP).astype(np.int32)
+                    sPlots=(rP,cP)
+
+                else:
+                    sPlots=(rc[0],rc[1])
+
+                currPlot = [0, 0]
+
+                pl = pv.Plotter(shape = sPlots)
+
+            else:
+                pl = pv.Plotter()
+
+
+        # Add atoms
+        if showAtoms:
+            for n, item in enumerate(self.data.atomcoords[self.geomInd]):
+            #     pl.add_mesh(pv.Sphere(center=item, radius=data.atomnos[n]/100))  # Relative scaling, small atoms
+            #     pl.add_mesh(pv.Sphere(center=item, radius=np.sqrt(data.atomnos[n]/10)))  # sqrt scaling, space filling atoms
+                pl.add_mesh(pv.Sphere(center=item, radius=np.sqrt(self.data.atomnos[n])/10), name = f'N{n}, Z={self.data.atomnos[n]}')  # sqrt scaling, mid-sized atoms
+
+
+
         # NOTE 18/07/20 - should be orbN list here? Didn't test yet.
-        for item in self.vol.array_names:
-            limitVals = [self.vol[item].min(), self.vol[item].max(), np.abs(self.vol[item]).mean()]
+        # for item in self.vol.array_names:
+        # 26/10/20 - fixing list selection + added subplotting option
+        for item in orbN:
 
-            # Set default case
-            isoValsOrb = np.linspace(-limitVals[2], limitVals[2], isoLevels)  # Again set from mean.
+            if item in self.vol.array_names:
+                if subplots:
+                    pl.subplot(currPlot[0], currPlot[1])
+                    # Increment
+                    currPlot[1] += 1
+                    if currPlot[1] > (sPlots[1]-1):  # Wrap rows - probably a neater way to do this...!
+                        currPlot[1] = 0
+                        currPlot[0] += 1
 
-            # Override if alternative limits set (logic may be dodgy here)
-            if isoValsAbs is not None:
-                isoValsOrb = np.array(isoValsAbs)
+                limitVals = [self.vol[item].min(), self.vol[item].max(), np.abs(self.vol[item]).mean()]
 
-            if isoValsPC is not None:
-                isoValsPC = np.array(isoValsPC)
-                isoValsOrb = np.r_[isoValsPC, -isoValsPC] * limitVals[2]  # Set PC vals from mean?
+                # Set default case
+                isoValsOrb = np.linspace(-limitVals[2], limitVals[2], isoLevels)  # Again set from mean.
 
-            # print(isoValsOrb)
+                # Override if alternative limits set (logic may be dodgy here)
+                if isoValsAbs is not None:
+                    isoValsOrb = np.array(isoValsAbs)
 
-            # Add contours for currently selected scalars (orbital)
-            pl.add_mesh(self.vol.contour(isosurfaces = isoValsOrb, scalars = item), smooth_shading=True, opacity=opacity)  # Plot iso = 0.1
+                if isoValsPC is not None:
+                    isoValsPC = np.array(isoValsPC)
+                    isoValsOrb = np.r_[isoValsPC, -isoValsPC] * limitVals[2]  # Set PC vals from mean?
+
+                # Ensure ordering, may be required if using for clims
+                # isoValsOrb.sort()
+                # print(isoValsOrb)
+
+                # Add contours for currently selected scalars (orbital)
+                pl.add_mesh(self.vol.contour(isosurfaces = isoValsOrb, scalars = item), smooth_shading=True,
+                            opacity=opacity,
+                            clim=[isoValsOrb.min(), isoValsOrb.max()],
+                            stitle=item)
+                            # clim=[isoValsOrb[0], isoValsOrb[-1]])  # Requires sorted order
+
+                if subplots:
+                    pl.add_scalar_bar(item)  # For subplot case, this ensures cbar per subplot, and correct label, but THIS ALWAYS SEEMS TO set a shared cmap, WHY????
+                    # Not the case in demos, e.g. https://docs.pyvista.org/examples/02-plot/multi-window.html
+
+                if verbose:
+                    print(f"Volume: {item}, limitVals: {limitVals}, isoValsOrb: {isoValsOrb}")
+
+            else:
+                print(f"*** Volume {item} not found, skipping plot")
 
         # Render plot
         # In notebook tests this doesn't reneder unless called again?
         self.pl = pl
+
+        # Additional options (for some plotters)
+        if hasattr(self.pl, 'add_axes'):
+            self.pl.add_axes()
+
         self.pl.show()

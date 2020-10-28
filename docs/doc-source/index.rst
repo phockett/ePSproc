@@ -17,7 +17,7 @@ Welcome to ePSproc
 
 .. toctree::
    :maxdepth: 2
-   :caption: Classes:
+   :caption: Class demos:
 
    demos/ePSproc_wfPlot_tests_150720_tidy
    demos/ePSdata_download_demo_300720
@@ -26,7 +26,7 @@ Welcome to ePSproc
 
 .. toctree::
    :maxdepth: 2
-   :caption: Functions demos:
+   :caption: Function demos:
 
    demos/ePSproc_demo_Aug2019
    demos/ePSproc_BLM_calc_demo_Sept2019

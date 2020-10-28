@@ -15,6 +15,7 @@ import pprint
 from pathlib import Path
 from matplotlib import pyplot as plt  # For plot legends with Xarray plotter
 import numpy as np # Needed only for np.nan at the moment
+import scipy.constants
 
 # Local functions
 # from epsproc import lmPlot, matEleSelector, plotTypeSelector, multiDimXrToPD, mfpad, sphSumPlotX, sphFromBLMPlot
@@ -23,7 +24,7 @@ import numpy as np # Needed only for np.nan at the moment
 # from epsproc.util.summary import getOrbInfo, molPlot
 # from epsproc.util.env import isnotebook
 
-from epsproc import mfpad
+from epsproc import mfpad, plotTypeSelector
 from epsproc.geomFunc.afblmGeom import afblmXprod
 from epsproc.geomFunc.mfblmGeom import mfblmXprod
 
@@ -71,6 +72,7 @@ class ePSbase():
     TODO:
 
     - verbosity levels, subtract for subfunctions? Or use a dict to handle multiple levels?
+    - Stick with .data for all data, or just promote to top-level keys per dataset? This might be neater overall.
 
 
     """
@@ -216,6 +218,43 @@ class ePSbase():
 
             # Propagate attrs
             TX.attrs = self.data[key]['matE'].attrs
-            TX['dataType'] = 'mfpad'
+            TX.attrs['dataType'] = 'mfpad'
 
             self.data[key]['TX'] = TX
+
+
+
+    def wignerDelay(self, selDims = {'Type':'L','it':1}, keys = None):
+        """
+        Wigner delay computation - phase derivative of TX grid.
+
+        27/10/20 initial version added. Looks OK for N2 & N2O test cases, but not carefully tested as yet.
+        http://localhost:8888/lab/tree/dev/ePSproc/classDev/ePSproc_class_demo_161020_Wigner_271020.ipynb
+
+        TODO: move to backend function, and just wrap here.
+        
+        """
+
+        keys = self._keysCheck(keys)
+
+        # Compute energy derivatives
+        for key in keys:
+
+            # Set full wavefn expansion if not present.
+            if 'TX' not in self.data[key].keys():
+                self.mfpadNumeric(selDims = selDims, keys = key)
+
+            self.data[key]['wigner'] = self.data[key]['TX'].copy() # Init array with copy (may not be necessary)
+
+            self.data[key]['wigner']['EJ'] = self.data[key]['wigner']['Eke']*scipy.constants.e  # Convert to J units
+
+            unitConv = scipy.constants.hbar/1e-18  # Convert to attoseconds
+            # TODO: move this to util functions.
+
+            # Use existing functionality to set phases - easier if unwrap required (uses lambdas)
+            self.data[key]['wigner'] = plotTypeSelector(self.data[key]['wigner'].conj(), pType = 'phaseUW').differentiate('EJ')* unitConv # Same results as above, bit smoother for phaseUW case
+
+            # Propagate attrs
+            self.data[key]['wigner'].attrs = self.data[key]['TX'].attrs
+            self.data[key]['wigner'].attrs['dataType'] = 'wigner'
+            self.data[key]['wigner'].attrs['units'] = 'attosecond'

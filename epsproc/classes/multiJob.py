@@ -68,6 +68,7 @@ class ePSmultiJob(ePSbase):
     TODO:
 
     - verbosity levels, subtract for subfunctions? Or use a dict to handle multiple levels?
+        UPDATE: now handled in base class with verbose['main'] and verbose['sub'].
 
 
 
@@ -163,6 +164,7 @@ class ePSmultiJob(ePSbase):
         - Fix xr.dataset: currently aligns data, so will set much to Nan if, e.g., different symmetries etc.
         Change to structure as ds('XS','matE') per orb, rather than ds('XS') and ds('matE') for all orbs?
         This should also be in line with hypothetical base dataclass, which will be per orb by defn.
+        UPDATE 16/10/20: now handled in base class, use flat dict with entry per job or dir (for E-stacked case).
 
 
         14/10/20    v2  Now using ePSbase() class for functionality.
@@ -325,7 +327,7 @@ class ePSmultiJob(ePSbase):
             jobs[n] = {'dir': dirScan, 'fN':self.job['fN'],
                         'fileList': [self.data[key]['job']['files'] for key in self.data.keys()]}
 
-        self.dataSets = self.data  # Just set pointer for now
+        self.dataSets = self.data  # Just set pointer for now, but should be redundant in reworked class with flat data dict
 
         # Aggregate data per dir, from self.data[key][job]
         self.jobs['files'] = jobs  # self.dataSets['jobs']
@@ -351,7 +353,7 @@ class ePSmultiJob(ePSbase):
 
         self.dataSets[key]['XS'][0].attrs['jobLabel'] = lString
         self.dataSets[key]['matE'][0].attrs['jobLabel'] = lString
-        self.dataSets[key]['jobNotes'][0]['orbLabel'] = lString
+        self.dataSets[key]['jobNotes']['orbLabel'] = lString
 
 
     def jobsSummary(self):

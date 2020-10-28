@@ -15,6 +15,9 @@ def Esubset(self, key = None, dataType = None, Erange = None, Etype = None):
 
     Q: currently set for single dataset. May want to handle multiple & set consistent Erange, as per original paradigm.
 
+    Note: originally written for E-subselection, but should work on any slicable dataType + dim.
+    NOTE: may have issues using .sel for MultiIndex coord slices if all inds are not specified, see http://xarray.pydata.org/en/stable/indexing.html#multi-level-indexing
+
     """
 
     if Erange is None:

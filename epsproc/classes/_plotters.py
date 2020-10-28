@@ -13,6 +13,7 @@ import numpy as np # Needed only for np.nan at the moment
 
 from epsproc import matEleSelector, plotTypeSelector, multiDimXrToPD, mfpad, sphSumPlotX, sphFromBLMPlot
 from epsproc import lmPlot as lmPlotCore  # Hack rename here to prevent circular logic with local function - TODO: fix with core fn. reorg.
+from epsproc.plot import hvPlotters
 from epsproc.util.env import isnotebook
 
 # ************** Plotters
@@ -51,7 +52,7 @@ def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', keys = None,
     # if keys is None:
     #     keys = self.data.keys()
     keys = self._keysCheck(keys)
-    
+
 #         if self.jobs['jobStructure'] == 'subDirs':
     for key in keys:
 #                 testClass.dataSets[key]['XS'][0].sel(XC='SIGMA', Eke=slice(Erange[0], Erange[1])).plot.line(x='Eke', col='Type')   # This works
@@ -108,7 +109,7 @@ def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', keys = None,
 
 # Basically as per plotGetCro, but subselect and put on single plot.
 # Should do all of this with Holoviews...!
-def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange = None, Etype = 'Eke',  keys = None):
+def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange = None, Etype = 'Eke', Eshift = None, keys = None, backend = 'mpl', returnHandles = False):
     """
     Basic GetCro (cross-section) data plotting for multijob class, comparitive plots.
     Run self.plot.line(x=Etype) for each dataset after subselection on Gauge and Symmetry, and use single axis.
@@ -134,9 +135,23 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange =
     Etype : str, optional, default = 'Eke'
         Set plot dimension, either 'Eke' (electron kinetic energy) or 'Ehv' (photon energy).
 
+    Eshift : int or float, optional, default = None
+        Apply energy shift to results if set.
+
     keys : list, optional, default = None
         Keys for datasets to plot.
         If None, all datasets will be plotted.
+
+    backend : str, optional, default = 'mpl'
+        Set plotter to use.
+
+        - 'mpl' : Use Matplotlib/native Xarray plotter
+        - 'hv' : use Holoviews via :py:func:`epsproc.plotters.hvPlotters.XCplot()`
+
+    returnHandles : bool, optional, default = False
+        If true, return plot object and legend test list.
+
+    NOTE: added backend options 27/10/20. CURRENTLY NOT WORKING for hv, due to data structure assumed in `hvPlotters.XCplot()`
 
     """
 
@@ -172,9 +187,43 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange =
         else:
             subset = self.data[key]['XS'].sel(XC=pType, Type=pGauge, Sym=pSym, **{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
 
+
         if subset.any():
-            pltObj = subset.plot.line(x=Etype)
+
             lText.append(self.data[key]['jobNotes']['orbLabel'])
+
+            # This is currently a bit dodgy, overwriting original data with in place update?
+            # TODO: fix and test!
+            if Eshift is not None:
+                subset[Etype] += Eshift
+
+            # Basic plot with Xarray
+            # pltObj = subset.plot.line(x=Etype)
+            # lText.append(self.data[key]['jobNotes']['orbLabel'])
+
+            # Version with mpl or hv (crude - basically from XC plot above.)
+            if backend == 'mpl':
+                pltObj = subset.plot.line(x=Etype)
+
+                # if pType == 'SIGMA':
+                #     plt.ylabel('XS/Mb')
+                # else:
+                #     plt.ylabel(r"$\beta_{LM}$")
+
+            # NOTE: added backend options 27/10/20. CURRENTLY NOT WORKING for hv, due to data structure assumed in `hvPlotters.XCplot()`
+            # TODO: change formatting to use XCplot and/or set up new subfunction.
+            if backend == 'hv':
+                pltObj, *_ = hvPlotters.XCplot(subset, kdims = Etype)
+
+                print(f"\n*** {jobLabel}")
+                # Check if notebook and output
+                if isnotebook():
+                    display(pltObj) # Use IPython display(), works nicely for notebook output
+                    # Q: is display() always loaded automatically? I think so.
+                else:
+                    pltObj  # Not yet tested - not sure what the options are here for hv/Bokeh.
+                            # May just want to return this object (hv layout)?
+
 
         # Label with orb_sym
 #                 lText.append(self.dataSets[key]['XS'][m].attrs['fileBase'].rsplit('/',maxsplit=1)[0])
@@ -183,12 +232,18 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange =
 
         # lText.append(self.dataSets[key]['jobNotes'][m]['orbLabel'])
 
-    plt.legend(lText)
 
-    if pType == 'SIGMA':
-        plt.ylabel('XS/Mb')
-    else:
-        plt.ylabel(r"$\beta_{LM}$")
+    # Update legend etc.
+    if backend == 'mpl':
+        plt.legend(lText)
+
+        if pType == 'SIGMA':
+            plt.ylabel('XS/Mb')
+        else:
+            plt.ylabel(r"$\beta_{LM}$")
+
+    if returnHandles:
+        return pltObj, lText
 
 
 
@@ -286,8 +341,9 @@ def lmPlot(self, Erange = None, Etype = 'Eke', dataType = 'matE', xDim = None, k
 #                 testClass.dataSets[key]['XS'][0].sel(XC='SIGMA', Eke=slice(Erange[0], Erange[1])).plot.line(x='Eke', col='Type')   # This works
 
         # Init empty list for daPlotpd data
-        if setPD:
-            self.data[key]['daPlotpd'] = []
+        # 21/10/20 - should only be single item per key in current data schema, so just set directly below
+        # if setPD:
+        #     self.data[key]['daPlotpd'] = []
 
         # for m, item in enumerate(self.data[key]['matE']):
 
@@ -320,8 +376,10 @@ def lmPlot(self, Erange = None, Etype = 'Eke', dataType = 'matE', xDim = None, k
             daPlotpd = None
 
         # Set Pandas table to dataset if specified.
+        # 21/10/20 - should only be single item per key in current data schema, so just set directly
         if setPD:
-            self.data[key]['daPlotpd'].append(daPlotpd)  # Set to include None cases to keep indexing. Should set as dict instead?
+            # self.data[key]['daPlotpd'].append(daPlotpd)  # Set to include None cases to keep indexing. Should set as dict instead?
+            self.data[key]['daPlotpd'] = daPlotpd
 
 
 
@@ -459,7 +517,8 @@ def padPlot(self, selDims = {}, sumDims = {}, Erange = None, Etype = 'Eke',
         subset.attrs = self.data[key][dataType].attrs
 
         # Compute PADs if not already present in dataset
-        if dataType != "TX":
+        # TODO: more careful type checking here, should have general dist case?
+        if dataType not in ["TX", "wigner"]:
             subset, _ = sphFromBLMPlot(subset, plotFlag = False)
 
 
@@ -480,7 +539,7 @@ def padPlot(self, selDims = {}, sumDims = {}, Erange = None, Etype = 'Eke',
                             _ = sphSumPlotX(subset[EulerInd], pType = pType, backend = backend, facetDim = Etype, titleString = tString)
 
                     elif pStyle is 'grid':
-                        print(f"Grid plot: {subset.attrs['jobLabel']}")
+                        print(f"Grid plot: {subset.attrs['jobLabel']}, dataType: {dataType}, plotType: {pType}")
 
                         # Set data
                         subset = plotTypeSelector(subset, pType = pType, axisUW = Etype)

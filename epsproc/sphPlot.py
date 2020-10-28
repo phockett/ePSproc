@@ -222,7 +222,12 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
             BLMX = None
 
     # For normal BLMs, no action required.
-    if BLMXin.attrs['dataType'] is 'BLM':
+    elif BLMXin.attrs['dataType'] is 'BLM':
+        BLMX = BLMXin
+
+    # Default case - set as BLM case but include dataType warning.
+    else:
+        print(f"*** sphPlot dataType = {BLMXin.attrs['dataType']} not recognised, trying anyway.")
         BLMX = BLMXin
 
     fig = None

@@ -25,6 +25,7 @@ import scipy.constants
 # from epsproc.util.env import isnotebook
 
 from epsproc import mfpad, plotTypeSelector
+from epsproc.MFPAD import mfWignerDelay
 from epsproc.geomFunc.afblmGeom import afblmXprod
 from epsproc.geomFunc.mfblmGeom import mfblmXprod
 
@@ -73,6 +74,7 @@ class ePSbase():
 
     - verbosity levels, subtract for subfunctions? Or use a dict to handle multiple levels?
     - Stick with .data for all data, or just promote to top-level keys per dataset? This might be neater overall.
+    - Change to decorators for basic function wrappers - should be cleaner, and enforce method/style.
 
 
     """
@@ -192,11 +194,20 @@ class ePSbase():
 
 
     # **** Basic MFPAD numerics & plotting, see dev code in http://localhost:8888/lab/tree/dev/ePSproc/classDev/ePSproc_multijob_class_tests_N2O_011020_Stimpy.ipynb
-    def mfpadNumeric(self, selDims = {'Type':'L','it':1}, keys = None, res = 50):
+    def mfpadNumeric(self, keys = None, **kwargs):
         """
         MFPADs "direct" (numerical), without beta parameter computation.
 
         Wrapper for :py:func:`epsproc.mfpad`, loops over all loaded datasets.
+
+        Parameters
+        ----------
+        keys : str, int or list, optional, default = None
+            If set, use only these datasets (keys).
+            Otherwise run for all datasets in self.data.
+
+        **kwargs : optional
+            Args passed to :py:func:`epsproc.mfpad`.
 
         NOTE: for large datasets and/or large res, this can be memory-hungry.
 
@@ -213,7 +224,7 @@ class ePSbase():
             # TX = []
             # for m, item in enumerate(self.dataSets[key]['matE']):
 
-            TX, _ = mfpad(self.data[key]['matE'], inds=selDims, res=res)  # Expand MFPADs
+            TX, _ = mfpad(self.data[key]['matE'], **kwargs)  # Expand MFPADs
             # TX.append(TXtemp)
 
             # Propagate attrs
@@ -224,15 +235,31 @@ class ePSbase():
 
 
 
-    def wignerDelay(self, selDims = {'Type':'L','it':1}, keys = None):
+    def wignerDelay(self, keys = None, pType = 'phaseUW', **kwargs):
         """
-        Wigner delay computation - phase derivative of TX grid.
+        Wigner delay computation as phase derivative of TX grid.
+
+        Multi data-set wrapper for numerics; uses :py:func:`epsproc.MFPAD.mfpad()` and :py:func:`epsproc.MFPAD.mfWignerDelay()`.
 
         27/10/20 initial version added. Looks OK for N2 & N2O test cases, but not carefully tested as yet.
         http://localhost:8888/lab/tree/dev/ePSproc/classDev/ePSproc_class_demo_161020_Wigner_271020.ipynb
 
-        TODO: move to backend function, and just wrap here.
-        
+
+        Parameters
+        ----------
+        keys : str, int or list, optional, default = None
+            If set, use only these datasets (keys).
+            Otherwise run for all datasets in self.data.
+
+        pType : str, optional, default = 'phaseUW'
+            Used to set data conversion options, as implemented in :py:func:`epsproc.plotTypeSelector()`
+            - 'phase' use np.angle()
+            - 'phaseUW' unwapped with np.unwrap(np.angle())
+
+        **kwargs : optional
+            Args passed to :py:func:`epsproc.mfpad`.
+
+
         """
 
         keys = self._keysCheck(keys)
@@ -242,19 +269,22 @@ class ePSbase():
 
             # Set full wavefn expansion if not present.
             if 'TX' not in self.data[key].keys():
-                self.mfpadNumeric(selDims = selDims, keys = key)
+                self.mfpadNumeric(selDims = selDims, keys = key, **kwargs)
 
-            self.data[key]['wigner'] = self.data[key]['TX'].copy() # Init array with copy (may not be necessary)
+            # self.data[key]['wigner'] = self.data[key]['TX'].copy() # Init array with copy (may not be necessary)
+            #
+            # self.data[key]['wigner']['EJ'] = self.data[key]['wigner']['Eke']*scipy.constants.e  # Convert to J units
+            #
+            # unitConv = scipy.constants.hbar/1e-18  # Convert to attoseconds
+            # # TODO: move this to util functions.
+            #
+            # # Use existing functionality to set phases - easier if unwrap required (uses lambdas)
+            # self.data[key]['wigner'] = plotTypeSelector(self.data[key]['wigner'].conj(), pType = 'phaseUW').differentiate('EJ')* unitConv # Same results as above, bit smoother for phaseUW case
+            #
+            # # Propagate attrs
+            # self.data[key]['wigner'].attrs = self.data[key]['TX'].attrs
+            # self.data[key]['wigner'].attrs['dataType'] = 'wigner'
+            # self.data[key]['wigner'].attrs['units'] = 'attosecond'
 
-            self.data[key]['wigner']['EJ'] = self.data[key]['wigner']['Eke']*scipy.constants.e  # Convert to J units
-
-            unitConv = scipy.constants.hbar/1e-18  # Convert to attoseconds
-            # TODO: move this to util functions.
-
-            # Use existing functionality to set phases - easier if unwrap required (uses lambdas)
-            self.data[key]['wigner'] = plotTypeSelector(self.data[key]['wigner'].conj(), pType = 'phaseUW').differentiate('EJ')* unitConv # Same results as above, bit smoother for phaseUW case
-
-            # Propagate attrs
-            self.data[key]['wigner'].attrs = self.data[key]['TX'].attrs
-            self.data[key]['wigner'].attrs['dataType'] = 'wigner'
-            self.data[key]['wigner'].attrs['units'] = 'attosecond'
+            # Using function
+            self.data[key]['wigner'] = mfWignerDelay(self.data[key]['TX'], pType = pType)

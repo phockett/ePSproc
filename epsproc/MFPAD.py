@@ -3,6 +3,9 @@ r"""
 ePSproc MFPAD functions
 -----------------------
 
+29/10/20    v2  Updated with Wigner delay routine.
+                Tidied up To Do list items.
+                Tidied up docstring.
 
 05/08/19    v1  Initial python version.
                 Based on original Matlab code ePS_MFPAD.m
@@ -28,14 +31,16 @@ Choices for functions...
 
 To Do
 -----
-* Propagate scale-factor to Mb.
-* Benchmark on NO2 reference results.
-* ~~Test over multiple E.~~
-* Test over multiple R.
 * More efficient computation?  Use Xarray group by?
 
 Formalism
 ---------
+
+MF-PADs numerical expansion
+============================
+
+This is implemented numerically in :py:func:`epsproc.MFPAD.mfpad()`. For direct computation of $\beta_{LM}$ parameters (rather than full observable expansion) see :py:func:`epsproc.MFBLM` (original looped version) or :py:func:`epsproc.geomFunc.mfblmGeom` (geometric tensor version).
+
 From `ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations <https://www.authorea.com/users/71114/articles/122402/_show_article>`_.
 
 .. math::
@@ -55,8 +60,40 @@ In this formalism:
 * :math:`I_{\mu_{0}}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})` is the final (observable) MFPAD, for a polarization :math:`\mu_{0}` and summed over all symmetry components of the initial and final states, :math:`\mu_{i}` and :math:`\mu_{f}`. Note that this sum can be expressed as an incoherent summation, since these components are (by definition) orthogonal.
 * :math:`g_{p_{i}}` is the degeneracy of the state :math:`p_{i}`.
 
+For more details see: Toffoli, D., Lucchese, R. R., Lebech, M., Houver, J. C., & Dowek, D. (2007). Molecular frame and recoil frame photoelectron angular distributions from dissociative photoionization of NO2. The Journal of Chemical Physics, 126(5), 054307. https://doi.org/10.1063/1.2432124
+
+
+(MF) Wigner Delays
+==================
+
+This is implemented numerically in :py:func:`epsproc.MFPAD.mfWignerDelay()`.
+
+The partial wave, or channel resolved, Wigner delay can be given as the energy-derivative of the continuum wavefunction phase, $\arg(\psi_{lm}^{*})$
+
+.. math::
+    \begin{equation}
+    \tau_{w}(k,\theta,\phi)=\hbar\frac{d\arg(\psi_{lm}^{*})}{d\epsilon}
+    \end{equation}
+
+
+And the total, or group, delay from the (coherent) sum over these channels.
+
+.. math::
+    \begin{equation}
+    \tau_{w}^{g}(k,\theta,\phi)=\hbar\frac{d\arg(\sum_{l,m}\psi_{lm}^{*})}{d\epsilon}\label{eq:tauW_mol_sum}
+    \end{equation}
+
+
+Here the full wavefunction $\sum_{l,m}\psi_{lm}^{*}$ is essentially equivalent to the phase of the (conjugate) $T_{\mu_{0}}^{p_{i}\mu_{i},p_{f}\mu_{f}*}(\theta_{\hat{k}},\phi_{\hat{k}},\theta_{\hat{n}},\phi_{\hat{n}})$ functions given above (and by :py:func:`epsproc.MFPAD.mfpad()`).
+
+For more details see, for example:
+
+- Hockett, Paul, Eugene Frumker, David M Villeneuve, and Paul B Corkum. “Time Delay in Molecular Photoionization.” Journal of Physics B: Atomic, Molecular and Optical Physics 49, no. 9 (May 2016): 095602. https://doi.org/10.1088/0953-4075/49/9/095602.
+- Carvalho, C.A.A. de, and H.M. Nussenzveig. “Time Delay.” Physics Reports 364, no. 2 (June 2002): 83–174. https://doi.org/10.1016/S0370-1573(01)00092-8.
+- Wigner, Eugene. “Lower Limit for the Energy Derivative of the Scattering Phase Shift.” Physical Review 98, no. 1 (April 1955): 145–47. https://doi.org/10.1103/PhysRev.98.145.
 
 """
+
 
 # Imports
 import numpy as np
@@ -67,10 +104,13 @@ import xarray as xr
 import spherical_functions as sf
 import quaternion
 
+import scipy.constants
+
 # Package fns.
 # TODO: tidy this up!
 from epsproc.util import matEleSelector
 from epsproc.sphCalc import sphCalc, setPolGeoms
+from epsproc.sphPlot import plotTypeSelector
 
 def mfpad(dataIn, thres = 1e-2, inds = {'Type':'L','it':1}, res = 50, R = None, p = 0):
     """
@@ -190,4 +230,44 @@ def mfpad(dataIn, thres = 1e-2, inds = {'Type':'L','it':1}, res = 50, R = None, 
     TlmX = TlmX.assign_coords(Euler = R['Euler'])  # Coords from Euler Xarray.
     TaX = TaX.assign_coords(Euler = R['Euler'])
 
+    # Set generic data type as TX
+    TlmX.attrs['dataType'] = 'TX'
+    TaX.attrs['dataType'] = 'TX'
+
     return TaX, TlmX  # , Ta, Tlm  # For debug also return lists
+
+
+
+def mfWignerDelay(dataIn, pType = 'phaseUW'):
+    """
+    Compute MF Wigner Delay as phase derivative of continuum wavefunction.
+
+    Parameters
+    ----------
+    dataIn : Xarray
+        Contains set(s) of wavefunctions to use, as output by :py:func:`epsproc.MFPAD.mfpad()`.
+
+    pType : str, optional, default = 'phaseUW'
+        Used to set data conversion options, as implemented in :py:func:`epsproc.plotTypeSelector()`
+        - 'phase' use np.angle()
+        - 'phaseUW' unwapped with np.unwrap(np.angle())
+
+    """
+
+    # Set data
+    Tw = dataIn.copy()
+
+    Tw['EJ'] = Tw['Eke']*scipy.constants.e  # Convert to J units
+
+    unitConv = scipy.constants.hbar/1e-18  # Convert to attoseconds
+    # TODO: move this to util functions.
+
+    # Use existing functionality to set phases - easier if unwrap required (uses lambdas)
+    Tw = plotTypeSelector(Tw.conj(), pType = pType).differentiate('EJ')* unitConv
+
+    # Propagate attrs
+    Tw.attrs = dataIn.attrs
+    Tw.attrs['dataType'] = 'Wigner'
+    Tw.attrs['units'] = 'attosecond'
+
+    return Tw 

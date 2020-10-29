@@ -161,6 +161,16 @@ def dataTypesList():
                     'desc':'Photoionziation cross section results from ePS, GetCro command and CrossSection file segments.',
                     'recordType':'CrossSection'
                     },
+                'TX' :
+                    {'source':'epsproc.MFPAD.mfpad',
+                    'desc':'MF continuum wavefunction (E,theta,phi), expanded or summed over (l,m). Abs(TX)^2 gives the MFPAD.',
+                    'recordType':'DumpIdy'
+                    },
+                'Wigner' :
+                    {'source':'epsproc.MFPAD.mfWignerDelay',
+                    'desc':'Phase derivative of the MF continuum wavefunction (E,theta,phi), expanded or summed over (l,m), converted to temporal units.',
+                    'recordType':'DumpIdy'
+                    },
                 'Euler' :
                     {'source':'epsproc.sphCalc.setPolGeoms()',
                      'desc':'Frame rotation definitions in terms of Euler angles and corresponding Quaternions.',

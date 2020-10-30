@@ -743,75 +743,75 @@ class ePSmultiJob(ePSbase):
     # #     return orbPD  # Could also set return value here for simple orbPD printing.
 
 
-    def matEtoPD(self, keys = None, xDim = 'Eke', Erange = None, printTable = True, selDims = None, dType = None,
-                thres = None, drop = True, fillna = False, squeeze = True, setPD = True):
-        """
-        Convert Xarray to PD for nice tabular display.
-
-        Basically code as per basicPlotters.lmPlot(), but looped over datasets.
-
-        """
-
-        # Default to all datasets
-        if keys is None:
-            keys = self.dataSets.keys()
-
-        pdConv = [] # List for outputs
-
-        for key in keys:
-            # Init empty list for daPlotpd data
-            if setPD:
-                self.dataSets[key]['daPlotpd'] = []
-
-            for m, item in enumerate(self.dataSets[key]['matE']):
-
-                #*** Set, select & threshold
-                da = self.dataSets[key]['matE'][m]
-
-                # Check xDim Eke/Ehv and clip if specified
-                # More elegant way to swap on dims?
-                if xDim == 'Ehv':
-                    # Subset before plot to avoid errors on empty array selection!
-                    da = da.swap_dims({'Eke':'Ehv'})
-
-                daSub = matEleSelector(da, thres=thres, inds = selDims, dims = xDim, drop = drop)
-
-                # NOTE: assumes xDim = Eke or Ehv, otherwise will fail.
-                if Erange is not None:
-                    # Check Etype, assuming only Eke or Ehv options.
-                    Etype = 'Eke'
-                    if 'Ehv' in daSub.dims:
-                        Etype = 'Ehv'
-
-                    daSub = daSub.sel(**{Etype:slice(Erange[0], Erange[1])})  # With dict unpacking for var as keyword
-
-                #*** Data conversion if specified
-                if dType is not None:
-                    daSub = plotTypeSelector(daSub, pType = pType, axisUW = xDim)
-
-                #*** Convert to PD
-                daPD, daSub = multiDimXrToPD(daSub, colDims = xDim, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze)
-
-                pdConv.append(daPD)
-
-                if printTable:
-                    print(f"\n*** {da.jobLabel}")
-                    print(f"Matrix element table, threshold={thres}, data type={daSub.dtype}.")
-                    # Check if notebook and output
-                    if isnotebook():
-                        display(daPD) # Use IPython display(), works nicely for notebook output
-                        # Q: is display() always loaded automatically? I think so.
-                    else:
-                        print(daPD)
-
-                # Set Pandas table to dataset if specified.
-                if setPD:
-                    self.dataSets[key]['daPlotpd'].append(daPD)
-
-
-        # Return value if not set to dataSets.
-        if not setPD:
-            return pdConv
+    # def matEtoPD(self, keys = None, xDim = 'Eke', Erange = None, printTable = True, selDims = None, dType = None,
+    #             thres = None, drop = True, fillna = False, squeeze = True, setPD = True):
+    #     """
+    #     Convert Xarray to PD for nice tabular display.
+    #
+    #     Basically code as per basicPlotters.lmPlot(), but looped over datasets.
+    #
+    #     """
+    #
+    #     # Default to all datasets
+    #     if keys is None:
+    #         keys = self.dataSets.keys()
+    #
+    #     pdConv = [] # List for outputs
+    #
+    #     for key in keys:
+    #         # Init empty list for daPlotpd data
+    #         if setPD:
+    #             self.dataSets[key]['daPlotpd'] = []
+    #
+    #         for m, item in enumerate(self.dataSets[key]['matE']):
+    #
+    #             #*** Set, select & threshold
+    #             da = self.dataSets[key]['matE'][m]
+    #
+    #             # Check xDim Eke/Ehv and clip if specified
+    #             # More elegant way to swap on dims?
+    #             if xDim == 'Ehv':
+    #                 # Subset before plot to avoid errors on empty array selection!
+    #                 da = da.swap_dims({'Eke':'Ehv'})
+    #
+    #             daSub = matEleSelector(da, thres=thres, inds = selDims, dims = xDim, drop = drop)
+    #
+    #             # NOTE: assumes xDim = Eke or Ehv, otherwise will fail.
+    #             if Erange is not None:
+    #                 # Check Etype, assuming only Eke or Ehv options.
+    #                 Etype = 'Eke'
+    #                 if 'Ehv' in daSub.dims:
+    #                     Etype = 'Ehv'
+    #
+    #                 daSub = daSub.sel(**{Etype:slice(Erange[0], Erange[1])})  # With dict unpacking for var as keyword
+    #
+    #             #*** Data conversion if specified
+    #             if dType is not None:
+    #                 daSub = plotTypeSelector(daSub, pType = pType, axisUW = xDim)
+    #
+    #             #*** Convert to PD
+    #             daPD, daSub = multiDimXrToPD(daSub, colDims = xDim, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze)
+    #
+    #             pdConv.append(daPD)
+    #
+    #             if printTable:
+    #                 print(f"\n*** {da.jobLabel}")
+    #                 print(f"Matrix element table, threshold={thres}, data type={daSub.dtype}.")
+    #                 # Check if notebook and output
+    #                 if isnotebook():
+    #                     display(daPD) # Use IPython display(), works nicely for notebook output
+    #                     # Q: is display() always loaded automatically? I think so.
+    #                 else:
+    #                     print(daPD)
+    #
+    #             # Set Pandas table to dataset if specified.
+    #             if setPD:
+    #                 self.dataSets[key]['daPlotpd'].append(daPD)
+    #
+    #
+    #     # Return value if not set to dataSets.
+    #     if not setPD:
+    #         return pdConv
 
 
 # 14/10/20 Moved to base class

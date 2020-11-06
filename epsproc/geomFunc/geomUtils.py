@@ -147,6 +147,7 @@ def genllLList(Llist, uniqueFlag = True, mFlag = True):
     ----------
     Llist : list
         Values [l, lp, L] to use for calculations.
+        Note this needs to be 2D array in current form of function, i.e. defined as np.array([[L1,L2,L3],...])
 
     uniqueFlag : bool, optional, default = True
         Drop duplicate [l,lp,L] sets from list.

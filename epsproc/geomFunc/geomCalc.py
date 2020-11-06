@@ -334,7 +334,11 @@ def remapllpL(dataIn, QNs, form = 'dict', method = 'sel', dlist = ['l','lp','L',
 
     # Find unique (l,lp,L) and corresponding rows
     uniquellpL, setllpL, indllpL = np.unique(QNs[:,:3], axis = 0, return_inverse = True, return_index = True)
-    uniquellpL = uniquellpL.astype('int')
+
+    # Int conversion UNLESS half int values!
+    if not (uniquellpL%1.0).any():
+        uniquellpL = uniquellpL.astype('int')
+
     llpLKeys = tuple(map(tuple, uniquellpL))  # Map values to tuple for dict keys
 
     # Set structures
@@ -450,6 +454,8 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
         List of QNs [l, lp, L, m, mp, M] to compute 3j terms for.
         If not supplied all allowed terms for {Lmin, Lmax} will be set.
         (If supplied, values for Lmin, Lmax and mFlag are not used.)
+        NOTE: some return types will convert QNs to int when constructing Xarray output, unless half-int values present.
+        Functions using :py:func:`epsproc.geomFunc.geomCalc.remapllpL()` support half-int values in Xarray.
 
     mFlag : bool, optional, default = True
         m, mp take all values -l...+l if mFlag=True, or =0 only if mFlag=False
@@ -527,7 +533,12 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
     elif form == 'xarray':
         # Multindex case - this retains same size as original, since coords are stacked
 
-        QNs = pd.MultiIndex.from_arrays(QNs.real.T.astype('int8'), names = dlist)
+        # Int conversion UNLESS half int values!
+        if not (QNs.real%1.0).any():
+            QNs = pd.MultiIndex.from_arrays(QNs.real.T.astype('int8'), names = dlist)
+        else:
+            QNs = pd.MultiIndex.from_arrays(QNs.real.T, names = dlist)
+
         w3jX = xr.DataArray(w3j_QNs, coords={'QN':QNs}, dims = ['QN'])
         w3jX.attrs['dataType'] = 'Wigner3j'
         return w3jX
@@ -541,7 +552,13 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
     #     w3jX2 = xr.DataArray(w3j_QNs, coords={'ls':QNllpL, 'ms':QNmmpM}, dims = ['ls','ms'])
 
         # Array by stack/unstack - works, but will be slow for large arrays however
-        QNs = pd.MultiIndex.from_arrays(QNs.real.T.astype('int8'), names = dlist)
+        # QNs = pd.MultiIndex.from_arrays(QNs.real.T.astype('int8'), names = dlist)
+        # Int conversion UNLESS half int values!
+        if not (QNs.real%1.0).any():
+            QNs = pd.MultiIndex.from_arrays(QNs.real.T.astype('int8'), names = dlist)
+        else:
+            QNs = pd.MultiIndex.from_arrays(QNs.real.T, names = dlist)
+
         w3jX = xr.DataArray(w3j_QNs, coords={'QN':QNs}, dims = ['QN'])
         w3jX = w3jX.unstack('QN').stack(ls = ['l','lp','L'], ms = ['m','mp','M']).dropna('ms', how = 'all').dropna('ls', how='all')
         w3jX.attrs['dataType'] = 'Wigner3j'

@@ -196,7 +196,7 @@ def symListGen(data):
     symList = []
     [symList.append(list(item)) for item in data.get_index('Sym').to_list()]
 
-    return np.ravel(symList)
+    return np.unique(np.ravel(symList))
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
         selDims = None, sumDims = None, plotDims = None, squeeze = True, fillna = False,
@@ -322,6 +322,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     History
     -------
 
+    * 14/01/21 - Fixed bug in handling nested dims for unknown datatypes (hopefully), specifically for Sym dims.
     * 27/02/20 - handling for MultiIndex cases for Wigner 3j type data (function of (l,lp,L,m,mp,M))
         * Fixed issue with conversion to Pandas table - should now handle dims better.
         * Improved multidim dropna() using Xarray version (previously used Pandas version).
@@ -391,7 +392,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         dimMap = dataTypes[daPlot.attrs['dataType']]['dims']
     else:
         # dimMap = None  # This is painful and gives errors for arb data types symmetry cases
-        dimMap = list(daPlot.dims)  # This is OK, but won't get nested dims.
+        # dimMap = list(daPlot.dims)  # This is OK, but won't get nested dims.
+        dimMap = {item:(list(daPlot.get_index(item).names) if len(daPlot.get_index(item).names)>1 else []) for item in daPlot.dims }  # Return subdims or empty list in dict format
 
 
 
@@ -483,6 +485,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             lutSym = dict(zip(map(str, np.unique(symList)), palSym))
         else:
             symFlag = False
+            symList = []
 
 
         # Set unified cmap for (m,mu)
@@ -665,14 +668,18 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             # This will keep things consistent over all sym sub-labels
             # NOTE - symFlag setting allows for case when dimMap['Sym'] is missing (will throw an error otherwise)
             # 24/06/20 - removed "and" here - throws error for unmapped types. Nope, reinstated - causes other issues!
+            # 14/01/21 - hopefully fixed by using symList, and setting empty default.
             elif symFlag and (dim in dimMap['Sym']):
             # elif symFlag and (dim in symList):
+            # elif symFlag or (dim in symList):
 #                 pal = sns.color_palette("hls", np.unique(symList).size)
 #                 lut = dict(zip(map(str, np.unique(symList)), pal))
+
                 pal = palSym
                 lut = lutSym
                 cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
                 legendList.append((Labels.unique().sort_values(), lut))
+                # pass
 
             # For other dims, set to categorical mapping.
             # Should check for shared dims here, e.g. Syms, for mapping...?

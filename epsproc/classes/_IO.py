@@ -12,7 +12,7 @@ from epsproc import readMatEle, headerFileParse, molInfoParse, multiDimXrToPD, p
 from epsproc.util.summary import getOrbInfo, molPlot
 from epsproc.util.env import isnotebook
 
-def scanFiles(self, dataPath = None, reset = False, keyType = 'orb'):
+def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'orb'):
     """
     Scan ePS output files from a dir for multiple data types. Sort data, and set to list/dict/Xarray structures.
 
@@ -50,8 +50,12 @@ def scanFiles(self, dataPath = None, reset = False, keyType = 'orb'):
 
     """
 
-    # Allow override here for subclasses/independent use
-    if dataPath is None:
+    # Allow dir & file override here for subclasses/independent use
+    if fileIn is None:
+        fileIn = self.job['fileIn']  # This will be set to None if not set, which is fine for readMatEle
+
+    # Set to None if a filelist is provided
+    if (dataPath is None) and (fileIn is None):
         dataPath = self.job['fileBase']
 #         else:
 #             self.job['fileBase']
@@ -71,8 +75,8 @@ def scanFiles(self, dataPath = None, reset = False, keyType = 'orb'):
     # - a one-element list for a dir with Eke split files.
     # - a multi-element list for a dir with multiple jobs.
     # - Note cross-over with multiJob class in latter case.
-    dataSetXS = readMatEle(fileBase = dataPath, recordType = 'CrossSection', verbose = self.verbose['sub'])  # Set for XS + betas only
-    dataSetMatE = readMatEle(fileBase = dataPath, recordType = 'DumpIdy', verbose = self.verbose['sub'])
+    dataSetXS = readMatEle(fileBase = dataPath, fileIn = fileIn, recordType = 'CrossSection', verbose = self.verbose['sub'])  # Set for XS + betas only
+    dataSetMatE = readMatEle(fileBase = dataPath, fileIn = fileIn, recordType = 'DumpIdy', verbose = self.verbose['sub'])
 
     # Log some details - currently not passed directly from readMatEle()
     # NOTE - with updated code, this is now in data.fileList
@@ -173,7 +177,8 @@ def scanFiles(self, dataPath = None, reset = False, keyType = 'orb'):
 
         fN = len(fList)
 
-        dsSet[key]['job'] = {'dir': dataPath, 'fN': fN, 'files': fList}
+        # dsSet[key]['job'] = {'dir': dataPath, 'fN': fN, 'files': fList}
+        dsSet[key]['job'] = {'dir': item.attrs['fileBase'], 'fN': fN, 'files': fList}  # Set individual fileBase here for cases when dataPath=None
         fNTotal += fN
 
 
@@ -223,7 +228,7 @@ def jobsSummary(self):
     for key in self.data:
         print(f"\n*** Job {key} details")
         print(f"Key: {key}")
-        print(f"Dir {self.data[key]['job']['dir']}, {self.data[key]['job']['fN']} files.")
+        print(f"Dir {self.data[key]['job']['dir']}, {self.data[key]['job']['fN']} file(s).")
         pp.pprint(self.data[key]['jobNotes'])
 #             print(f"Directory: {self.jobs['files'][key]['dir']}")
 #             print(f"{self.job['files']['fN']} files")

@@ -24,7 +24,7 @@ import scipy.constants
 # from epsproc.util.summary import getOrbInfo, molPlot
 # from epsproc.util.env import isnotebook
 
-from epsproc import mfpad, plotTypeSelector
+from epsproc import mfpad, plotTypeSelector, writeXarray, readXarray
 from epsproc.MFPAD import mfWignerDelay
 from epsproc.geomFunc.afblmGeom import afblmXprod
 from epsproc.geomFunc.mfblmGeom import mfblmXprod
@@ -75,17 +75,18 @@ class ePSbase():
     - verbosity levels, subtract for subfunctions? Or use a dict to handle multiple levels?
     - Stick with .data for all data, or just promote to top-level keys per dataset? This might be neater overall.
     - Change to decorators for basic function wrappers - should be cleaner, and enforce method/style.
+    - Check file IO logic, some of this is already handled in lower level codes.
 
 
     """
 
     # Import methods - these are essentially wrappers for core functions
-    from ._IO import scanFiles, jobsSummary, molSummary
+    from ._IO import scanFiles, jobsSummary, molSummary, matEtoPD
     from ._plotters import BLMplot, padPlot, lmPlot, plotGetCro, plotGetCroComp
     from ._selectors import Esubset
 
     # TODO: set to varg in for jobs dict
-    def __init__(self, fileBase = None,
+    def __init__(self, fileBase = None, fileIn = None,
                  prefix = None, ext = '.out', Edp = 1, verbose = 1,
                  thres = 1e-2, thresDims = 'Eke', selDims = {'Type':'L'}):
 
@@ -106,9 +107,15 @@ class ePSbase():
         if fileBase is None:
 #             fileBase = os.getcwd()
             fileBase = Path.cwd()
+        else:
+            fileBase = Path(fileBase)  # Force Path object
+
+        # if fileIn is not None:
+        #     fileIn = Path(fileIn)
 
         # Set file properties
-        self.job = {'fileBase':Path(fileBase),
+        self.job = {'fileBase':fileBase,
+                    'fileIn':fileIn,
                      'ext':ext,
                      'prefix':prefix,
                      }
@@ -288,3 +295,6 @@ class ePSbase():
 
             # Using function
             self.data[key]['wigner'] = mfWignerDelay(self.data[key]['TX'], pType = pType)
+
+
+    # **** Quick hack IO for dataarrays

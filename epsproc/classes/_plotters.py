@@ -445,45 +445,230 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM', xDim = None,
             # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
 
 
-# Plot PADs from mat elements (MF) or BLMs
-def padPlot(self, selDims = {}, sumDims = {}, Erange = None, Etype = 'Eke',
-                keys = None, dataType = 'TX',
-                pType = 'a', pStyle = 'polar', plotFlagGlobal = True,
+# # Plot PADs from mat elements (MF) or BLMs
+# def padPlot(self, selDims = {}, sumDims = {}, Erange = None, Etype = 'Eke',
+#                 keys = None, dataType = 'TX',
+#                 pType = 'a', pStyle = 'polar', plotFlagGlobal = True,
+#                 backend = 'mpl'):
+#
+#     """
+#     Plot PADs from mat elements (MF) or BLMs.
+#     """
+#
+#     # # Default to all datasets
+#     # if keys is None:
+#     #     keys = self.data.keys()
+#     # else:
+#     #     if not isinstance(keys, list):   # Force list if single item passed
+#     #         keys = [keys]
+#     keys = self._keysCheck(keys)
+#
+#     # Loop over datasets
+#     for key in keys:
+#         # for m, item in enumerate(self.dataSets[key]['TX']):
+#         plotFlag = True
+#
+#         # # More elegant way to swap on dims?
+#         # subset = self.data[key][dataType]
+#         #
+#         # if Etype == 'Ehv':
+#         # # Subset before plot to avoid errors on empty array selection!
+#         #     subset = subset.swap_dims({'Eke':'Ehv'})
+#         #
+#         # # Slice on Erange with/without step size - bit ugly.
+#         # if Erange is not None:
+#         #     if len(Erange) == 3:
+#         #         subset = subset.sel(**{Etype:slice(Erange[0], Erange[1], Erange[2])})   # With dict unpacking for var as keyword
+#         #     else:
+#         #         subset = subset.sel(**{Etype:slice(Erange[0], Erange[1])})
+#         subset = self.Esubset(key = key, dataType = dataType,  Erange = Erange, Etype = Etype)
+#
+#         # Handling for Euler or Labels dim
+#         eDim = 'Euler'
+#         if hasattr(subset, 'Labels'):
+# #                 if 'Labels' in selDims:
+#             if eDim in subset.dims:
+#                 subset = subset.swap_dims({'Euler':'Labels'})
+#
+#             eDim = 'Labels'
+#
+#         # if selDims is not None:  # Now set as empty dict to avoid issues later.
+#         # TODO: smarter dim handling here - selDims may not be consistent over all dataSets!
+#         if selDims:
+#             subset = subset.sel(selDims)
+#
+#
+#         # Compute PADs if not already present in dataset
+#         # TODO: more careful type checking here, should have general dist case?
+#         # 16/01/21 moved up to allow for dim checking for grid case - BUT THIS IS SHIT CODE, LOTs of this already in sph plot fns.
+#         if dataType not in ["TX", "wigner"]:
+#             subset, _ = sphFromBLMPlot(subset, plotFlag = False)
+#             subset = subset.sum('LM')
+#
+#
+#         if self.verbose['main']>2:
+#             print(subset.dims)
+#
+#         # Check dimensionality - sum over Sym & it if necessary
+#         if (subset.ndim > 3):  # Need some additional dim logic here!
+#             print(f"Found dims {subset.dims}, summing to reduce for plot. Pass selDims to avoid.")
+#             if 'Sym' in subset.dims:
+#                 subset = subset.sum('Sym').squeeze()
+#             if 'it' in subset.dims:
+#                 subset = subset.sum('it').squeeze()
+#
+#             # Check result is OK
+#             # TODO: check for specific dims here
+#             if (subset.ndim > 3): # and not (eDim in subset.dims):
+#                 # Try squeezing in case of singleton dims
+#                 subset = subset.squeeze()
+#
+#                 # Define non-parseable case - should make this more general.
+#                 # This also isn't correct for handling BLM vs. gridded data types.
+#                 testDims = list(set(subset.dims) - set(eDim))
+#                 if self.verbose['main']>2:
+#                     print(testDims)
+#
+#                 if (len(testDims) > 3):
+#                     print(f"*** ERROR: dataset {self.data[key][dataType].jobLabel}  ndims = {subset.ndim}, dims = {subset.dims}. Skipping MFPAD plotting.")
+#                     plotFlag = False
+#
+#             # else:
+#             #     pass
+#
+#         # Propagate attrs
+#         subset.attrs = self.data[key][dataType].attrs
+#         #
+#         # # Compute PADs if not already present in dataset
+#         # # TODO: more careful type checking here, should have general dist case?
+#         # if dataType not in ["TX", "wigner"]:
+#         #     subset, _ = sphFromBLMPlot(subset, plotFlag = False)
+#
+#
+#         # Plot
+#         if plotFlag and plotFlagGlobal:
+#             if eDim in subset.dims:
+#                 # TODO: make this more robust. Currently assumes Euler dim is 1st dim.
+#                 if subset[eDim].size > 1:
+#                     if pStyle is 'polar':
+#                         for EulerInd in range(0,subset[eDim].size):
+# #                                 print(f"*** Pol Geom: {subset[eDim][EulerInd].item()}")  # Need to pass all this through to plotters otherwise appears before plots!
+#
+#                             # Set full title string here to pass to plotter.
+#                             # tString = f"{eDim}: {subset[eDim][EulerInd].item()}"
+#                             tString = f"Pol geom: {subset[eDim][EulerInd].item()}, ploType: {pType}"
+#
+#                             _ = sphSumPlotX(subset[EulerInd], pType = pType, backend = backend, facetDim = Etype, titleString = tString)
+#
+#                     elif pStyle is 'grid':
+#                         print(f"Grid plot: {subset.attrs['jobLabel']}, dataType: {dataType}, plotType: {pType}")
+#
+#                         # Set data
+#                         subset = plotTypeSelector(subset, pType = pType, axisUW = Etype)
+#
+#                         if self.verbose['main']>2:
+#                             print(subset)
+#
+#                         # If Phi is sliced, assumed 2D (Theta,E) plots
+#                         # NOTE - force real datatype here, otherwise get errors from complex residuals.
+#                         # TODO: why is this (after abs pType selection?) Should error check & clean up - this could cause issues sometimes...
+#                         if 'Phi' in selDims.keys():
+#                             # print(subset)
+#                             # subset.pipe(np.abs).plot(x='Theta', y=Etype, col=eDim, robust=True)
+#                             subset.plot(x='Theta', y=Etype, col=eDim, robust=True)
+#                         else:
+#                             # subset.pipe(np.abs).plot(y='Theta',x='Phi', row=eDim, col=Etype, robust=True)
+#                             subset.plot(y='Theta',x='Phi', row=eDim, col=Etype, robust=True)
+#
+#                         # plt.title(subset.attrs['jobLabel'])
+#
+#             else:
+#                 # 15/01/21: developing/debugging here - this case seems to be called even with data WITH EULERs?  Why?
+#                 # tString = f"Pol geom: {subset[eDim][EulerInd].item()}, ploType: {pType}"
+#                 tString = 'No Euler test'
+#
+#                 if pStyle is 'polar':
+#                     _ = sphSumPlotX(subset, pType = pType, backend = backend, facetDim = Etype, titleString = tString)
+#
+#                 elif pStyle is 'grid':
+#                     # Autoset dims from non (Theta,Phi) Dims
+#                     rowDim = list(set(subset.dims) - set(('Theta','Phi',Etype)))
+#
+#                     # Set data
+#                     subset = plotTypeSelector(subset, pType = pType, axisUW = Etype)
+#
+#                     if len(rowDim) > 1:
+#                         print(f"*** ERROR: gridplot skipped for  {self.data[key][dataType].jobLabel}, rowDims = {rowDim} too many dims.")
+#
+#                     elif len(rowDim) == 1:
+#                         print(f"Grid plot: {self.data[key][dataType].attrs['jobLabel']}, dataType: {dataType}, plotType: {pType}, dims ({rowDim}, {Etype})")
+#                         subset.plot(y='Theta',x='Phi', row=rowDim, col=Etype, robust=True)
+#
+#                     else:
+#                         print(f"Grid plot: {self.data[key][dataType].attrs['jobLabel']}, dataType: {dataType}, plotType: {pType}, dims ({Etype})")
+#                         subset.plot(y='Theta',x='Phi', col=Etype, robust=True)
+#
+#     # Return data for further use
+#     if not plotFlagGlobal:
+#         return subset
+
+# padPlot v2, rewritten 19/01/21
+# This has better dim handling, and simpler logic, but still needs some work.
+def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = 'Eke',
+                keys = None, dataType = 'TX', facetDims = None, squeeze = False,
+                pType = 'a', pStyle = 'polar', returnFlag = False,
                 backend = 'mpl'):
 
     """
-    Plot PADs from mat elements (MF) or BLMs.
+    Plot I(theta,phi) data from BLMs or gridded datasets.
+
+
     """
 
-    # # Default to all datasets
-    # if keys is None:
-    #     keys = self.data.keys()
-    # else:
-    #     if not isinstance(keys, list):   # Force list if single item passed
-    #         keys = [keys]
+
+    # Default to all datasets
     keys = self._keysCheck(keys)
+
+    # Default facetDims, (Eulers, Eke)
+    # Should test these?
+    if facetDims is None:
+        facetDims = ['Labels', Etype]
+
+    if len(facetDims) == 1:
+        facetDims.append(None)
+    if len(facetDims) > 2:
+        print(f"Too many facetDims (max=2), using only {facetDims[0:2]}.")
+
 
     # Loop over datasets
     for key in keys:
         # for m, item in enumerate(self.dataSets[key]['TX']):
         plotFlag = True
 
-        # # More elegant way to swap on dims?
-        # subset = self.data[key][dataType]
-        #
-        # if Etype == 'Ehv':
-        # # Subset before plot to avoid errors on empty array selection!
-        #     subset = subset.swap_dims({'Eke':'Ehv'})
-        #
-        # # Slice on Erange with/without step size - bit ugly.
-        # if Erange is not None:
-        #     if len(Erange) == 3:
-        #         subset = subset.sel(**{Etype:slice(Erange[0], Erange[1], Erange[2])})   # With dict unpacking for var as keyword
-        #     else:
-        #         subset = subset.sel(**{Etype:slice(Erange[0], Erange[1])})
+        # Set data & slice on E
         subset = self.Esubset(key = key, dataType = dataType,  Erange = Erange, Etype = Etype)
 
-        # Handling for Euler or Labels dim
+        # if selDims is not None:  # Now set as empty dict to avoid issues later.
+        # TODO: smarter dim handling here - selDims may not be consistent over all dataSets!
+        if selDims:
+            subset = subset.sel(selDims)
+
+        # If theta and/or phi present, assume angular gridded data
+        # If not present, assumed LM parameters, and expand on grid
+        if not (('Theta' in subset.dims) or ('Phi' in subset.dims)):
+            subset, _ = sphFromBLMPlot(subset, plotFlag = False)
+            subset = subset.sum('LM')
+
+        if sumDims:
+            sumDimsCheck = set(subset.dims)&{*sumDims}  # This checks sumDims are present, otherwise will throw an error.
+            subset = subset.sum(sumDimsCheck)
+
+        if squeeze:
+            subset = subset.squeeze()
+
+
+        #***** Check dims
+        # Handling for Euler or Labels dim - UGLY
         eDim = 'Euler'
         if hasattr(subset, 'Labels'):
 #                 if 'Labels' in selDims:
@@ -492,122 +677,39 @@ def padPlot(self, selDims = {}, sumDims = {}, Erange = None, Etype = 'Eke',
 
             eDim = 'Labels'
 
-        # if selDims is not None:  # Now set as empty dict to avoid issues later.
-        # TODO: smarter dim handling here - selDims may not be consistent over all dataSets!
-        if selDims:
-            subset = subset.sel(selDims)
-
-
-        # Compute PADs if not already present in dataset
-        # TODO: more careful type checking here, should have general dist case?
-        # 16/01/21 moved up to allow for dim checking for grid case - BUT THIS IS SHIT CODE, LOTs of this already in sph plot fns.
-        if dataType not in ["TX", "wigner"]:
-            subset, _ = sphFromBLMPlot(subset, plotFlag = False)
-            subset = subset.sum('LM')
-
-
-        if self.verbose['main']>2:
-            print(subset.dims)
-
-        # Check dimensionality - sum over Sym & it if necessary
-        if (subset.ndim > 3):  # Need some additional dim logic here!
-            print(f"Found dims {subset.dims}, summing to reduce for plot. Pass selDims to avoid.")
-            if 'Sym' in subset.dims:
-                subset = subset.sum('Sym').squeeze()
-            if 'it' in subset.dims:
-                subset = subset.sum('it').squeeze()
-
-            # Check result is OK
-            # TODO: check for specific dims here
-            if (subset.ndim > 3): # and not (eDim in subset.dims):
-                # Try squeezing in case of singleton dims
-                subset = subset.squeeze()
-
-                # Define non-parseable case - should make this more general.
-                # This also isn't correct for handling BLM vs. gridded data types.
-                testDims = list(set(subset.dims) - set(eDim))
-                if self.verbose['main']>2:
-                    print(testDims)
-
-                if (len(testDims) > 3):
-                    print(f"*** ERROR: dataset {self.data[key][dataType].jobLabel}  ndims = {subset.ndim}, dims = {subset.dims}. Skipping MFPAD plotting.")
-                    plotFlag = False
-
-            # else:
-            #     pass
-
-        # Propagate attrs
-        subset.attrs = self.data[key][dataType].attrs
         #
-        # # Compute PADs if not already present in dataset
-        # # TODO: more careful type checking here, should have general dist case?
-        # if dataType not in ["TX", "wigner"]:
-        #     subset, _ = sphFromBLMPlot(subset, plotFlag = False)
+#         plotDims = set(subset.dims) - set(facetDims)
+
+        extraDims = set(subset.dims) - {*facetDims,*sumDims} - {'Theta','Phi'}  # Check for outstanding dims, this will return an empty set if all dims accounted for here
+
+        if extraDims:
+            print(f"Found additional dims {extraDims}, summing to reduce for plot. Pass selDims to avoid.")
+
+            for dim in extraDims:
+                subset = subset.sum(dim)  #.squeeze()
 
 
-        # Plot
-        if plotFlag and plotFlagGlobal:
-            if eDim in subset.dims:
-                # TODO: make this more robust. Currently assumes Euler dim is 1st dim.
-                if subset[eDim].size > 1:
-                    if pStyle is 'polar':
-                        for EulerInd in range(0,subset[eDim].size):
-#                                 print(f"*** Pol Geom: {subset[eDim][EulerInd].item()}")  # Need to pass all this through to plotters otherwise appears before plots!
+        # Ensure attrs propagated
+        subset.attrs = self.data[key][dataType].attrs
 
-                            # Set full title string here to pass to plotter.
-                            # tString = f"{eDim}: {subset[eDim][EulerInd].item()}"
-                            tString = f"Pol geom: {subset[eDim][EulerInd].item()}, ploType: {pType}"
+        # GROUPBY AND PLOT?  NOT SURE HOW BEST TO HANDLE MULTIPLE DIMS HERE? Can pass 1 facet dim to SPH plotter already.
+        # TODO: decide MAX 4D. Then reduce > groupby > facet to existing plotter.
+        # TODO: general way to handle more dims?
 
-                            _ = sphSumPlotX(subset[EulerInd], pType = pType, backend = backend, facetDim = Etype, titleString = tString)
+        if pStyle is 'polar':
+            for groupLabel, item in subset.groupby(facetDims[0]):
+#                 tString = f"Pol geom: {item.item()}, plotType: {pType}"
+                tString = f"Pol geom: {groupLabel}, plotType: {pType}"
+                _ = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDims[1], titleString = tString)
 
-                    elif pStyle is 'grid':
-                        print(f"Grid plot: {subset.attrs['jobLabel']}, dataType: {dataType}, plotType: {pType}")
+        elif pStyle is 'grid':
+            print(f"Grid plot: {subset.attrs['jobLabel']}, dataType: {dataType}, plotType: {pType}")
 
-                        # Set data
-                        subset = plotTypeSelector(subset, pType = pType, axisUW = Etype)
+            # Set data
+            subset = plotTypeSelector(subset, pType = pType, axisUW = Etype)
 
-                        if self.verbose['main']>2:
-                            print(subset)
+            subset.plot(y='Theta',x='Phi', row=facetDims[1], col=facetDims[0], robust=True)  # This might fail for only one facetDim
 
-                        # If Phi is sliced, assumed 2D (Theta,E) plots
-                        # NOTE - force real datatype here, otherwise get errors from complex residuals.
-                        # TODO: why is this (after abs pType selection?) Should error check & clean up - this could cause issues sometimes...
-                        if 'Phi' in selDims.keys():
-                            # print(subset)
-                            # subset.pipe(np.abs).plot(x='Theta', y=Etype, col=eDim, robust=True)
-                            subset.plot(x='Theta', y=Etype, col=eDim, robust=True)
-                        else:
-                            # subset.pipe(np.abs).plot(y='Theta',x='Phi', row=eDim, col=Etype, robust=True)
-                            subset.plot(y='Theta',x='Phi', row=eDim, col=Etype, robust=True)
-
-                        # plt.title(subset.attrs['jobLabel'])
-
-            else:
-                # 15/01/21: developing/debugging here - this case seems to be called even with data WITH EULERs?  Why?
-                # tString = f"Pol geom: {subset[eDim][EulerInd].item()}, ploType: {pType}"
-                tString = 'No Euler test'
-
-                if pStyle is 'polar':
-                    _ = sphSumPlotX(subset, pType = pType, backend = backend, facetDim = Etype, titleString = tString)
-
-                elif pStyle is 'grid':
-                    # Autoset dims from non (Theta,Phi) Dims
-                    rowDim = list(set(subset.dims) - set(('Theta','Phi',Etype)))
-
-                    # Set data
-                    subset = plotTypeSelector(subset, pType = pType, axisUW = Etype)
-
-                    if len(rowDim) > 1:
-                        print(f"*** ERROR: gridplot skipped for  {self.data[key][dataType].jobLabel}, rowDims = {rowDim} too many dims.")
-
-                    elif len(rowDim) == 1:
-                        print(f"Grid plot: {self.data[key][dataType].attrs['jobLabel']}, dataType: {dataType}, plotType: {pType}, dims ({rowDim}, {Etype})")
-                        subset.plot(y='Theta',x='Phi', row=rowDim, col=Etype, robust=True)
-
-                    else:
-                        print(f"Grid plot: {self.data[key][dataType].attrs['jobLabel']}, dataType: {dataType}, plotType: {pType}, dims ({Etype})")
-                        subset.plot(y='Theta',x='Phi', col=Etype, robust=True)
-
-    # Return data for further use
-    if not plotFlagGlobal:
+    # Return data? Note this is only set for final key value at the moment.
+    if returnFlag:
         return subset

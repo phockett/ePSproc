@@ -1392,7 +1392,7 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
 
     if fileIn is not None:
         # Wrap in list if only single file passed
-        if type(fileIn) is str:
+        if type(fileIn) is not list:
             fileIn = [fileIn]
 
         fList = []

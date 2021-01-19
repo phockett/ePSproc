@@ -249,6 +249,7 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
         # Calculate MFPADs (theta,phi)
         dataPlot = BLMX*YLMX
         dataPlot = dataPlot.rename({'BLM':'LM'})    # Switch naming back for plotting function
+        dataPlot.attrs = BLMX.attrs # Ensure attrs propagated
         dataPlot.attrs['normType'] = fnType
 
         # Pass data to plotting function

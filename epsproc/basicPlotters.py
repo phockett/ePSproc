@@ -199,7 +199,7 @@ def symListGen(data):
     return np.unique(np.ravel(symList))
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
-        selDims = None, sumDims = None, plotDims = None, squeeze = True, fillna = False,
+        selDims = None, sumDims = None, plotDims = None, squeeze = False, fillna = False,
         xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10, titleString = None):
     """
     Plotting routine for ePS matrix elements & BLMs.
@@ -316,6 +316,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     - Improved dim handling, maybe use :py:func:`epsproc.util.matEdimList()` (and related functions) to avoid hard-coding multiple cases here.
         - Partially implemented in dimMap.
         - Currently throws an error for None in symmetry plotting cases for unrecognised dataType. TO FIX!
+           - 14/01/21 fixed, but possibly introduced other issues!
+        - Consider consolidating mapping styles further, and keeping a global list of parent and child dims? Or otherwise pulling from stacked Xarray?
     - Improved handling of sets of polarization geometries (angles).
     - CONSOLIDATE stacked/unstacked dim handling.  At the moment some functions use stacked, some unstacked, which is leading to annoying bugs.
 
@@ -429,7 +431,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     # Sum & threshold
     if sumDims is not None:
-        daPlot = daPlot.sum(sumDims).squeeze()
+        daPlot = daPlot.sum(sumDims) #.squeeze()  # Set squeeze condition below.
         daPlot.attrs = data.attrs  # Reset attribs
 
     # If xDim is stacked, check it exists and create it if not.
@@ -442,7 +444,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     # Threshold on abs() value before setting type, otherwise all terms will appear for some cases (e.g. phase plot)
     # daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = xDim) # , sq = True)  # Squeeze may cause issues here if a singleton dim is used for xDim.
-    daPlot = matEleSelector(daPlot, thres=thres, dims = xDim, drop = False) # Version without selection, now incorporated above.
+    daPlot = matEleSelector(daPlot, thres=thres, dims = xDim, drop = False, sq = squeeze) # Version without selection, now incorporated above.
     daPlot = plotTypeSelector(daPlot, pType = pType, axisUW = xDim)
 
     # daPlot = ep.util.matEleSelector(daPlot, thres=thres, inds = selDims, dims = 'Eke', sq = True)
@@ -487,6 +489,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             symFlag = False
             symList = []
 
+        # 14/01/20 Set catch-all defaults for dims with shared cmaps - UGLY, partially implemented below, but still have lots of special cases
+        lDims = ['l', 'K', 'lp', 'L']
+        mDims = ['m', 'mp', 'mu', 'Q', 'S', 'mu0', 'Lambda', 'M']
 
         # Set unified cmap for (m,mu)
         # Switch for matE or BLM data type.
@@ -507,7 +512,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         lList = np.arange(0, 10, dtype=np.int64)  # Set default case. UGLY.
         # lList = daPlot[xDim].pipe(np.unique)        # Should be able to default to first xDim passed?
         for dim in dimUS:
-            if dim in ['l', 'K', 'lp', 'L']:
+            # if dim in ['l', 'K', 'lp', 'L']:
+            if dim in lDims:
                 lList = daPlot[dim].pipe(np.unique)
 
         # if not lList.any():
@@ -648,7 +654,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             # 28/09/20: revisiting to fix ordering over multiple states.
             #   Should be fixed by setting master list above, as per M state settings, since that takes ordered list over full dataset.
             #   (Otherwise l cmap may be split by sym or other dim ordering)
-            if dim in ['l', 'K', 'lp']:
+            # if dim in ['l', 'K', 'lp', 'L']:
+            if dim in lDims:
                 # pal = sns.light_palette("green", n_colors=Labels.unique().size)
                 # lut = dict(zip(map(str, Labels.unique()), pal))
                 pal = palL
@@ -656,7 +663,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                 cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
                 legendList.append((Labels.unique().sort_values(), lut))
 
-            elif dim in ['m', 'mp', 'mu', 'Q', 'S']:
+            elif dim in mDims:
 #                 pal = sns.diverging_palette(220, 20, n=Labels.unique().size)
 #                 lut = dict(zip(map(str, Labels.unique().sort_values()), pal))  # Note .sort_values() required here.
                 pal = palM
@@ -726,6 +733,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # Using this method it's only possible to set two sets of legends, split these based on n here.
         # Method from https://stackoverflow.com/questions/27988846/how-to-express-classes-on-the-axis-of-a-heatmap-in-seaborn
         # TO DO: For further control over legend layout may need to add dummy items: https://stackoverflow.com/questions/34212241/control-the-number-of-rows-within-a-legend
+
+        # 14/01/21: testing with preset dims & conditionals
+        # TO DO: Should be able to just use lutM list and plot global min-max? Currently may have issues with different sized dims?
+        mDimLabel = None
         for n, item in enumerate(legendList):
             # To avoid issues with long floats, round to 3dp
             # TODO: fix this, currently fails for Euler angles case?
@@ -741,17 +752,39 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                     print(f"Legend entry: {label} for {item}")
 #                 label = string(label)
 #                 if n%2:
-                if item[0].name in ['l','m','K','Q']:
+
+                # 1st legend for l,m,mu
+#                 if item[0].name in ['l','m','K','Q','Lambda']:
+#                     g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
+#                 elif item[0].name in ['mu','S','mu0']:  # Skip to avoid repetition, assuming m or Q already plotted on same colour scale. TODO: add conditionals here?
+#                     pass
+# #                 elif symFlag and (item[0].name is 'Cont'):
+# #                     g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
+#                 elif symFlag and (item[0].name in dimMap['Sym']):  # Skip symmetries
+#                 # elif symFlag and (item[0].name in symList):  # Skip symmetries
+#                     pass
+
+                # 14/01/21: testing with preset dims & conditionals
+                if item[0].name in lDims:
                     g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
-                elif item[0].name in ['mu','S']:  # Skip to avoid repetition, assuming m or Q already plotted on same colour scale.
-                    pass
+                elif item[0].name in mDims:
+                    if mDimLabel is None:  # Set first found mDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
+                        mDimLabel = item[0].name
+                    if item[0].name == mDimLabel:
+                        g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=f"({label})", linewidth=0)
+
+                # elif item[0].name in ['mu','S','mu0']:  # Skip to avoid repetition, assuming m or Q already plotted on same colour scale. TODO: add conditionals here?
+                #     pass
 #                 elif symFlag and (item[0].name is 'Cont'):
 #                     g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
                 elif symFlag and (item[0].name in dimMap['Sym']):  # Skip symmetries
                 # elif symFlag and (item[0].name in symList):  # Skip symmetries
                     pass
+
+                # 2nd legend for other dims.
                 else:
-                    g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
+                    # g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)  # Label with value only
+                    g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=f"{item[0].name}: {label}", linewidth=0)  # Label with category too.
 
         # Add symmetry labels separately from master list to avoid repetition
         if symFlag:

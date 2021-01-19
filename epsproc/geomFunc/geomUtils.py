@@ -461,3 +461,142 @@ def genKQStermsFromTensors(EPR, AKQS, uniqueFlag = True, phaseConvention = 'S'):
         return np.unique(QNs1, axis = 0), np.unique(QNs2, axis = 0)
     else:
         return np.array(QNs1), np.array(QNs2)
+
+
+# Generate QNs for LF aligned case wavefunction expansion from AKQS + matE.
+# 13/01/21 rough code adapted from existing genKQStermsFromTensors() function.
+# TODO: write generalised functions for D and 3j multiplication terms. Lots of repeated code here otherwise.
+def genLmLamKQStermsFromTensors(matE, AKQS, mu0 = [-1,0,1], uniqueFlag = True, phaseConvention = 'S'):
+    '''
+    Generate all QNs for triple product :math:`D_{m\Lambda}^{l*}(\Omega)D_{\mu,\mu_{0}}^{1*}(\Omega)D_{Q,S}^{K*}(\Omega)` from existing tensors (Xarrays) of matrix elements and and :math:`A^K_{Q,S}`.
+
+    13/01/21 rough code adapted from existing genKQStermsFromTensors() function.
+
+    Cf. :py:func:`epsproc.geomFunc.genllpMatE`, code originally adapted from there.
+
+
+    Parameters
+    ----------
+    matE : Xarray
+        Xarray containing matrix elements, with QNs (l,m), as created by :py:func:`readMatEle`
+
+    AKQS : Xarray
+        Alignment parameters, as set by :py:func:`setADMs`
+
+    mu0 : list, optional, default = [-1,0,1]
+        Set LF polarization term. If None, calcualte for all allowed terms.
+
+    uniqueFlag : bool, default = True
+        Check for duplicates and remove (can occur with some forms of matrix elements).
+
+    mFlag : bool, optional, default = True
+        m, mp take all passed values if mFlag=True, or =0 only if mFlag=False
+
+    phaseConvention : optional, str, default = 'S'
+        Set phase conventions with :py:func:`epsproc.geomCalc.setPhaseConventions`.
+        To use preset phase conventions, pass existing dictionary.
+        If matE.attrs['phaseCons'] is already set, this will be used instead of passed args.
+
+
+    Returns
+    -------
+    QNs1, QNs2 : two 2D np.arrays
+        Values take all allowed combinations ['l','E','K','m','mu','Q'] and ['l','E','K','Lambda','mu0','S'] from supplied matE & AKQS terms.
+        Note phase conventions not applied to QN lists as yet.
+
+    To do
+    -----
+
+    - Implement output options (see dev. function w3jTable).
+    - Write generalised functions for D and 3j multiplication terms. Lots of repeated code here otherwise.
+
+    '''
+
+    # Local import.
+    from epsproc.geomFunc.geomCalc import setPhaseConventions
+
+    # # For transparency/consistency with subfunctions, str/dict now set in setPhaseConventions()
+    # if 'phaseCons' in EPR.attrs.keys():
+    #     phaseCons = EPR.attrs['phaseCons']
+    # else:
+    #     phaseCons = setPhaseConventions(phaseConvention = phaseConvention)
+
+    # Get QNs from inputs
+    KQScoords = AKQS.unstack().coords  # Use unstack here, or np.unique(matE.l), to avoid duplicates
+    LMcoords = matE.unstack().coords
+
+    # Use passed (m,mp) values, or run for m=mp=0 only.
+#     if mFlag:
+#         mList = matE.unstack().m.values
+#     else:
+#         mList = 0
+
+    # Set QNs for calculation, one set for each 3j term
+    QNs1 = []
+    QNs2 = []
+    for l in LMcoords['l'].values:   # Note dictionary syntax for coords objects
+        for K in KQScoords['K'].values:
+            # for L in np.arange(np.abs(P-K), P+K+1):  # Allowed L given P and K defined
+            if abs(l-K) < 2:    # Assume 1-photon case, hence l = K +/- 1 only terms allowed.
+
+#                 if mFlag:    # Include "m" (or equivalent) terms?
+#                     mMax = L
+#                     RMax = P
+#                     QMax = K
+#                 else:
+#                     mMax = 0
+#                     RMax = 0
+#                     QMax = 0
+
+                for m in LMcoords['m'].values:
+                    for Q in KQScoords['Q'].values:
+
+                        # Set M, with +/- phase convention - TBC MAY BE INCORRECT IN THIS CASE/CONTEXT?
+                        # Note that setting phaseCons['afblmCons']['negM']  = phaseCons['genMatEcons']['negm'] is current default case, but doesn't have to be!
+                        # if phaseCons['genMatEcons']['negm']:
+                        #     M = (-R+Q)  # Case for M -> -M switch
+                        # else:
+                        #     M = -(R+Q)  # Usual phase convention.
+                        mu = -(m+Q)  # Usual phase convention.
+
+                        if (abs(mu)<=1) and (abs(Q)<=K) and (abs(m)<=l): # Check term is valid.
+                            QNs1.append([l, 1, K, m, mu, Q])
+
+                        # QNs1.append([P, K, L, R, Q, M])
+
+                # Set Rp and S - these are essentially independent of R,Q,M, but keep nested for full dim output.
+                # for Rp in PRcoords['P'].values:
+                # for Rp in PRcoords['R'].values:  # OOOPS, this gives accidental correlations between R and Rp
+                for Lam in np.arange(-l, l+1):
+                    for S in KQScoords['S'].values:
+                        # SRp = S-Rp  # Set final 3j term, S-Rp
+                        # if phaseCons['genMatEcons']['negm']:
+                        #     SRp = (-Rp+S)  # Case for M -> -M switch
+                        # else:
+                        #     SRp = -(Rp+S)  # Usual phase convention.
+#                             SRp = S-Rp  # Set final 3j term, S-Rp
+                            # SRp = -(Rp-S)  # Usual phase convention.
+                        mu0 = -(Lam+S) # Usual phase convention.
+
+                        if (abs(mu0)<=1) and (abs(S)<=K) and (abs(Lam)<=l): # Check term is valid.
+                            QNs2.append([l, 1, K, Lam, mu0, S])
+
+                        # QNs2.append([P, K, L, Rp, S, SRp])
+
+                            #for M in np.arange(np.abs(l-lp), l+lp+1):
+    #                         for M in np.arange(-mMax, mMax+1):
+                                # Set M - note this implies specific phase choice.
+                                # M = -(m+mp)
+                                # M = (-m+mp)
+                                # if np.abs(M) <= L:  # Skip terms with invalid M
+                                #     QNs.append([l, lp, L, m, mp, M])
+
+                            # Run for all possible M
+    #                         for M in np.arange(-L, L+1):
+    #                             QNs.append([P, K, L, R, Q, M])
+
+
+    if uniqueFlag:
+        return np.unique(QNs1, axis = 0), np.unique(QNs2, axis = 0)
+    else:
+        return np.array(QNs1), np.array(QNs2)

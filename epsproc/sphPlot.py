@@ -50,6 +50,7 @@ except ImportError as e:
 
 # Local functions
 from epsproc.sphCalc import sphCalc
+from epsproc.util.env import isnotebook
 
 #***** Plotting top-level functions & logic
 
@@ -119,7 +120,10 @@ def plotTypeSelector(dataPlot = None, pType = 'a', axisUW = 'Eke', returnDict = 
                  'a2b': {'Type':'(abs)^2','Formula':'np.abs(dataPlot)**2','Exec': lambda x: np.abs(x)**2},
                  'r':   {'Type':'real', 'Formula':'np.real(dataPlot)',  'Exec': lambda x: np.real(x)},
                  'i':   {'Type':'imaginary', 'Formula':'np.imag(dataPlot)',  'Exec': lambda x: np.imag(x)},
-                 'p':   {'Type':'product', 'Formula':'dataPlot * np.conj(dataPlot)',  'Exec': lambda x: x * np.conj(x)},
+                 'p':   {'Type':'product (x*conj(x))', 'Formula':'dataPlot * np.conj(dataPlot)',  'Exec': lambda x: x * np.conj(x)},
+                 'pa':   {'Type':'abs(x*conj(x))', 'Formula':'dataPlot * np.conj(dataPlot)',  'Exec': lambda x: np.abs(x * np.conj(x))},
+                 'pr':   {'Type':'real(x*conj(x))', 'Formula':'dataPlot * np.conj(dataPlot)',  'Exec': lambda x: np.real(x * np.conj(x))},
+                 'pi':   {'Type':'imag(x*conj(x))', 'Formula':'dataPlot * np.conj(dataPlot)',  'Exec': lambda x: np.imag(x * np.conj(x))},
                  'phase':{'Type':'phase', 'Formula':'np.angle(dataPlot)',  'Exec': lambda x: np.angle(x)},
                  'phaseUW':{'Type':'phase (unwrapped)', 'Formula':'np.unwrap(np.angle(dataPlot), axis = axisUW)',  'Exec': lambda x: np.unwrap(np.angle(x), axis = axisNum)}
                  }
@@ -161,7 +165,7 @@ def sphPlotHV(dataIn):
 
 
 # Plot MFPADs from a set of BLM
-def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = None, backend = 'mpl', fnType = None):
+def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = None, backend = 'mpl', fnType = None, conj = False):
     r'''
     Calculate spherical harmonic expansions from BLM parameters and plot.
 
@@ -197,6 +201,9 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
     fnType : str, optional, default = 'sph'
         Set function for expansion parameters, default is YLM from scipy.special.sph_harm.
         See :py:func:`ep.sphCalc` for details.
+
+    conj : bool, optional, default = False
+        Use conjugate harmonics.
 
     Returns
     -------
@@ -243,7 +250,7 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
             print(f'Using default {fnType} betas.')
 
 
-        YLMX = sphCalc(BLMX.l.max(), res=res, fnType=fnType)
+        YLMX = sphCalc(BLMX.l.max(), res=res, fnType=fnType, conj = conj)
         YLMX = YLMX.rename({'LM':'BLM'})    # Switch naming for multiplication & plotting
 
         # Calculate MFPADs (theta,phi)
@@ -299,6 +306,9 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
 
     convention : str, optional, default = 'phys'
         Spherical polar coord convention, see :py:func:`epsproc.sphToCart`
+
+    titleString : str, optional, default = None
+        Additional info to use for plot title.
 
     Returns
     -------
@@ -368,7 +378,7 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
 
         else:
             # Call matplotlib plotting fn., single surface
-            fig.append(sphPlotMPL(dataPlot, theta, phi,  convention = convention))
+            fig.append(sphPlotMPL(dataPlot, theta, phi,  convention = convention, tString = titleString))
 
     # Plotly - note that faceting is handled directly by Plotly in this case.
     if backend is 'pl':
@@ -650,6 +660,12 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
                 #     fig.update_layout(**{sceneN:dict(showscale=True)})  # Set scale bar for row?
 
 
-    fig.show()
+    # fig.show()
+    # Check if notebook and output
+    if isnotebook():
+        display(fig) # Use IPython display(), works nicely for notebook output
+        # Q: is display() always loaded automatically? I think so.
+    else:
+        fig.show()  # Try fig.show(), although may not work in all cases.
 
     return fig

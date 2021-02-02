@@ -255,7 +255,7 @@ def lmPlot(self, Erange = None, Etype = 'Eke', dataType = 'matE', xDim = None, k
     Parameters
     ----------
     Erange : list of int or float, optional, default = None
-        Set plot range [Emin, Emax]. Defaults to full data range if not set
+        Set plot range [Emin, Emax]. Defaults to full data range if not set.
 
     Etype : str, optional, default = 'Eke'
         Set plot dimension, either 'Eke' (electron kinetic energy) or 'Ehv' (photon energy).
@@ -317,9 +317,14 @@ def lmPlot(self, Erange = None, Etype = 'Eke', dataType = 'matE', xDim = None, k
         for key, value in kwargs.items():
             self.lmPlotOpts[key] = value
 
+    # Check Etype exists, it may not for some data types.
+    # if not Etype in self.data[keys[0]].keys():
+    if not Etype in list(self.data[keys[0]][dataType].coords):
+        Etype = None
+
     # Set default to full range of 1st dataset, keep same for all cases
     # TODO: set per dataset?
-    if Erange is None:
+    if (Erange is None) and Etype:
         Erange = [self.data[keys[0]][dataType][Etype].min().data, self.data[keys[0]][dataType][Etype].max().data]
 
     # Set ref dataset if required
@@ -329,7 +334,9 @@ def lmPlot(self, Erange = None, Etype = 'Eke', dataType = 'matE', xDim = None, k
         if Etype == 'Ehv':
             refData = refData.swap_dims({'Eke':'Ehv'})
 
-        refData = refData.sel(**{Etype:slice(Erange[0], Erange[1])})
+        if Etype:
+            refData = refData.sel(**{Etype:slice(Erange[0], Erange[1])})  # Case for slicing on Etype
+
         refData.attrs = self.data[refDataKey][dataType].attrs # Propagate atrrs.
 
     else:
@@ -352,8 +359,11 @@ def lmPlot(self, Erange = None, Etype = 'Eke', dataType = 'matE', xDim = None, k
         # Subset before plot to avoid errors on empty array selection!
             subset = self.data[key][dataType].swap_dims({'Eke':'Ehv'}).sel(**{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
 
-        else:
+        elif Etype == 'Eke':
             subset = self.data[key][dataType].sel(**{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
+
+        else:
+            subset = self.data[key][dataType]  # Case for no Etype dim.
 
         # Difference data
         # NOTE: ref. data is reindexed here to ensure E-point subtraction (otherwise mismatch will give null results)
@@ -615,13 +625,20 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM', xDim = None,
 # padPlot v2, rewritten 19/01/21
 # This has better dim handling, and simpler logic, but still needs some work.
 def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = 'Eke',
-                keys = None, dataType = 'TX', facetDims = None, squeeze = False,
+                keys = None, dataType = 'TX', facetDims = None, squeeze = False, reducePhi = None,
                 pType = 'a', pStyle = 'polar', returnFlag = False,
                 backend = 'mpl'):
 
     """
     Plot I(theta,phi) data from BLMs or gridded datasets.
 
+    reducePhi : optional, default = None
+    This allow phi selection or summation for parameters which required Ylm expansion before plotting.
+        Pass 'sum' to sum over phi before plotting.
+        Pass a value to select.
+
+
+    TODO: fix dim handling for pl case, need to pass facetDim != None.
 
     """
 
@@ -661,7 +678,14 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
 
         if sumDims:
             sumDimsCheck = set(subset.dims)&{*sumDims}  # This checks sumDims are present, otherwise will throw an error.
+            print(f"Summing over dims: {sumDimsCheck}")
             subset = subset.sum(sumDimsCheck)
+
+        if reducePhi:
+            if reducePhi == 'sum':
+                subset = subset.sum('Phi')
+            else:
+                subset = subset.sel({'Phi':reducePhi})
 
         if squeeze:
             subset = subset.squeeze()
@@ -680,14 +704,21 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
         #
 #         plotDims = set(subset.dims) - set(facetDims)
 
-        extraDims = set(subset.dims) - {*facetDims,*sumDims} - {'Theta','Phi'}  # Check for outstanding dims, this will return an empty set if all dims accounted for here
+        # Check facetDims exist, otherwise may get groupby errors (may be cleaner to use try/except here?)
+        # NOTE this will still produce errors in some cases (0 dims matched)
+        facetDimsCheck = list(set(subset.dims)&{*facetDims})
+        if len(facetDimsCheck) == 0:
+            print(f'***Error: missing dims {facetDims}.')
+        elif len(facetDimsCheck) == 1:
+            facetDimsCheck.append(None)
+
+        extraDims = set(subset.dims) - {*facetDimsCheck,*sumDims} - {'Theta','Phi'}  # Check for outstanding dims, this will return an empty set if all dims accounted for here
 
         if extraDims:
             print(f"Found additional dims {extraDims}, summing to reduce for plot. Pass selDims to avoid.")
 
             for dim in extraDims:
                 subset = subset.sum(dim)  #.squeeze()
-
 
         # Ensure attrs propagated
         subset.attrs = self.data[key][dataType].attrs
@@ -697,10 +728,10 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
         # TODO: general way to handle more dims?
 
         if pStyle is 'polar':
-            for groupLabel, item in subset.groupby(facetDims[0]):
+            for groupLabel, item in subset.groupby(facetDimsCheck[0]):
 #                 tString = f"Pol geom: {item.item()}, plotType: {pType}"
-                tString = f"Pol geom: {groupLabel}, plotType: {pType}"
-                _ = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDims[1], titleString = tString)
+                tString = f"{facetDimsCheck[0]}: {groupLabel}, plotType: {pType}"
+                _ = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
 
         elif pStyle is 'grid':
             print(f"Grid plot: {subset.attrs['jobLabel']}, dataType: {dataType}, plotType: {pType}")
@@ -708,7 +739,11 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
             # Set data
             subset = plotTypeSelector(subset, pType = pType, axisUW = Etype)
 
-            subset.plot(y='Theta',x='Phi', row=facetDims[1], col=facetDims[0], robust=True)  # This might fail for only one facetDim
+            if reducePhi:
+                # subset.plot(x='Theta', y=Etype, col=eDim, robust=True)
+                subset.plot(x='Theta', y=facetDimsCheck[0], col=facetDimsCheck[1], robust=True)  # This might fail for only one facetDim
+            else:
+                subset.plot(y='Theta',x='Phi', row=facetDimsCheck[1], col=facetDimsCheck[0], robust=True)  # This might fail for only one facetDim
 
     # Return data? Note this is only set for final key value at the moment.
     if returnFlag:

@@ -490,7 +490,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             symList = []
 
         # 14/01/20 Set catch-all defaults for dims with shared cmaps - UGLY, partially implemented below, but still have lots of special cases
-        lDims = ['l', 'K', 'lp', 'L']
+        # 01/02/21 Added set check with xDim to ensure this works for mixed (l,K) cases, with one as xDim (otherwise can miss labels).
+        lDims = list(set(['l', 'K', 'lp', 'L'])-set(xDim))
         mDims = ['m', 'mp', 'mu', 'Q', 'S', 'mu0', 'Lambda', 'M']
 
         # Set unified cmap for (m,mu)

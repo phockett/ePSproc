@@ -283,7 +283,7 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False, name = N
 
 
 # Calculate a set of sph function
-def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph', convention = 'phys'):
+def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph', convention = 'phys', conj = False):
     '''
     Calculate set of spherical harmonics Ylm(theta,phi) on a grid.
 
@@ -306,6 +306,8 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
     convention : str, optional, default = 'phys'
         Set to 'phys' (theta from z-axis) or 'maths' (phi from z-axis) spherical polar conventions.
         (Might need some work!)
+    conj : bool, optional, default = False
+        Return complex conjugate.
 
 
     Note that either res OR angs needs to be passed.
@@ -391,9 +393,18 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
         # YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta',theta[0,:]), ('Phi',phi[:,0])])
         # YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta', TP[0][0,:]), ('Phi', TP[1][:,0])])
         YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Phi', TP[1][:,0]), ('Theta', TP[0][0,:])])  # Fixed dim ordering for SciPy maths convention.
-        return YlmX
+
+        if conj:
+            return YlmX.conj()
+        else:
+            return YlmX
+
     else:
-        return np.asarray(Ylm), np.asarray(lm)
+        if conj:
+            return np.conj(np.asarray(Ylm)), np.asarray(lm)
+        else:
+            return np.asarray(Ylm), np.asarray(lm)
+
 
 
 # Calculate wignerD functions

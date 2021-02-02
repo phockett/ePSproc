@@ -162,3 +162,16 @@ def timeStamp():
     dt = datetime.now()
 
     return dt.strftime("%d-%m-%y_%H-%M-%S")
+
+
+def checkDims(data, refDims = []):
+    """
+    Check dimensions for a data array (Xarray) vs. a reference list.
+
+    Returns dictionary of dims, intersection and differences.
+    """
+
+    sharedDims = list(set(data.dims)&{*refDims})  # Intersection 
+    extraDims = list(set(data.dims) - {*refDims})  # Difference
+
+    return {'dataDims':data.dims, 'refDims':refDims, 'shared':sharedDims, 'extra':extraDims}

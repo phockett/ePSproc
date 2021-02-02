@@ -4,6 +4,8 @@ ePSproc conversion functions
 17/07/20    Added orb3DCoordConv(), for orbital file coord conversions.
 12/03/20    Added multiDimXrToPD(), function adapted from lmPlot() code.
 
+TODO: consider implementing CCLIB for unit conversions. See also pint library.
+
 """
 
 import scipy.constants

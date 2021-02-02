@@ -26,7 +26,7 @@ import scipy.constants
 
 from epsproc import mfpad, plotTypeSelector, writeXarray, readXarray
 from epsproc.MFPAD import mfWignerDelay
-from epsproc.geomFunc.afblmGeom import afblmXprod
+from epsproc.geomFunc.afblmGeom import afblmXprod, AFwfExp
 from epsproc.geomFunc.mfblmGeom import mfblmXprod
 
 class ePSbase():
@@ -138,7 +138,7 @@ class ePSbase():
         """
         # Default to all datasets
         if keys is None:
-            keys = self.data.keys()
+            keys = list(self.data.keys())  # Get keys and set as list
         else:
             if not isinstance(keys, list):   # Force list if single item passed
                 keys = [keys]
@@ -196,6 +196,62 @@ class ePSbase():
             BetaNormX = afblmXprod(self.data[key]['matE'], **kwargs)
 
             self.data[key]['AFBLM'] = BetaNormX
+
+
+    # **** Basic AFPAD numerics, see dev code in http://localhost:8888/lab/tree/SLAC/angular_streaking/AF_wavefns_method_dev_050121.ipynb
+    # Function here basically as per mfpadNumeric
+    def afpadNumeric(self, keys = None, **kwargs):
+        """
+        AFPADs "direct" (numerical), without beta parameter computation.
+
+        Wrapper for :py:func:`epsproc.afblmGeom.AFwfExp()`, loops over all loaded datasets.
+
+        NOTE: this is preliminary and unverified.
+
+        Parameters
+        ----------
+        keys : str, int or list, optional, default = None
+            If set, use only these datasets (keys).
+            Otherwise run for all datasets in self.data.
+
+        **kwargs : optional
+            Args passed to :py:func:`epsproc.mfpad`.
+
+        NOTE: for large datasets and/or large res, this can be memory-hungry.
+
+        Returns
+        -------
+
+        None, but sets self.data[key]['TXaf'] and self.data[key]['DeltaKQS'] for each key.
+
+        """
+
+        # # Default to all datasets
+        # if keys is None:
+        #     keys = self.data.keys()
+        keys = self._keysCheck(keys)
+
+
+        # Loop over datasets & store output
+        for key in keys:
+            # TX = []
+            # for m, item in enumerate(self.dataSets[key]['matE']):
+
+            TX, AFterm, DeltaKQS = AFwfExp(self.data[key]['matE'], **kwargs)  # Expand MFPADs
+            # TX.append(TXtemp)
+
+            # Propagate attrs
+            TX.attrs = self.data[key]['matE'].attrs
+            TX.attrs['dataType'] = 'afpad'
+
+            DeltaKQS.attrs = TX.attrs
+            DeltaKQS.attrs['dataType'] = 'DeltaKQS'
+
+            self.data[key]['TXaf'] = TX
+            self.data[key]['DeltaKQS'] = DeltaKQS
+
+            if self.verbose['main']:
+                print(f'Set AF expansion parameters TXaf and DeltaKQS for {key}')
 
 
 

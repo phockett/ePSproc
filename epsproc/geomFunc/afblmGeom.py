@@ -387,3 +387,43 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     else:
         print(f"Return type {basisReturn} not recognised, defaulting to BLM only.")
         return BetasNormX
+
+
+def AFwfExp(matE, AKQS=None, thres = 1e-2, thresDims = 'Eke', selDims = {'Type':'L', 'it':1}):
+    r"""
+    Implement (approximate) LF/AF wavefunction expansion,
+
+    .. math::
+        \begin{equation}
+        ^{AF}T_{\mu_{0}}^{p_{i}\mu_{i},p_{f}\mu_{f}}(\hat{k}_{L})=8\pi^{2}\sum_{K,Q,S}\sum_{l,m,\mu,\Lambda}A_{Q,S}^{K}I_{l,m,\mu}^{p_{i}\mu_{i},p_{f}\mu_{f}}(E)(-1)^{m-\Lambda}(-1)^{\mu-\mu_{0}}(-1)^{Q-S}\left(\begin{array}{ccc}
+        l & 1 & K\\
+        -m & -\mu & -Q
+        \end{array}\right)\left(\begin{array}{ccc}
+        l & 1 & K\\
+        -\Lambda & -\mu_{0} & -S
+        \end{array}\right)Y_{l\Lambda}^{*}(\hat{k}_{M})
+        \end{equation}
+
+    Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
+
+    01/02/21 version 1, this is pretty rough and ready, and possibly not correct.
+
+    See http://localhost:8888/lab/tree/SLAC/angular_streaking/AF_wavefns_method_dev_050121.ipynb for dev notes.
+
+    """
+
+    from epsproc.util import matEleSelector
+
+    matEthres = matEleSelector(matE, thres = thres, inds = selDims, dims = thresDims, sq = True, drop = True)
+
+    #*** Alignment term
+    if AKQS is None:
+        AKQS = sphCalc.setADMs()    # If not passed, set to defaults - A(0,0,0)=1 term only, i.e. isotropic distribution.
+
+    # New alignment function
+    AFterm, DeltaKQS = geomCalc.deltalmKQSwf(matEthres, AKQS) #, phaseConvention = phaseConvention)
+
+    AFexp = matEthres.unstack('LM') * AFterm
+    AFexp.attrs['dataType'] = 'AFwfExp'  # Set this for lmPlot
+
+    return AFexp, AFterm, DeltaKQS # Return other values for debug

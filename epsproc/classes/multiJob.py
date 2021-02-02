@@ -348,12 +348,21 @@ class ePSmultiJob(ePSbase):
 
         """
 
-        if append:
-            lString = self.dataSets[key]['XS'][0].attrs['jobLabel'] + " " + lString
+        # WITH DATASET
+        # if append:
+        #     lString = self.dataSets[key]['XS'][0].attrs['jobLabel'] + " " + lString
+        #
+        # self.dataSets[key]['XS'][0].attrs['jobLabel'] = lString
+        # self.dataSets[key]['matE'][0].attrs['jobLabel'] = lString
+        # self.dataSets[key]['jobNotes']['orbLabel'] = lString
 
-        self.dataSets[key]['XS'][0].attrs['jobLabel'] = lString
-        self.dataSets[key]['matE'][0].attrs['jobLabel'] = lString
-        self.dataSets[key]['jobNotes']['orbLabel'] = lString
+        # FOR FLAT DATA STRUCTURES
+        if append:
+            lString = self.data[key]['XS'].attrs['jobLabel'] + " " + lString
+
+        self.data[key]['XS'].attrs['jobLabel'] = lString
+        self.data[key]['matE'].attrs['jobLabel'] = lString
+        self.data[key]['jobNotes']['orbLabel'] = lString
 
 
     def jobsSummary(self):

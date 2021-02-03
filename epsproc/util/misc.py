@@ -169,9 +169,11 @@ def checkDims(data, refDims = []):
     Check dimensions for a data array (Xarray) vs. a reference list.
 
     Returns dictionary of dims, intersection and differences.
+
+    TODO: check and order dims by size? Otherwise set return is alphebetical
     """
 
-    sharedDims = list(set(data.dims)&{*refDims})  # Intersection 
+    sharedDims = list(set(data.dims)&{*refDims})  # Intersection
     extraDims = list(set(data.dims) - {*refDims})  # Difference
 
     return {'dataDims':data.dims, 'refDims':refDims, 'shared':sharedDims, 'extra':extraDims}

@@ -393,7 +393,9 @@ def lmPlot(self, Erange = None, Etype = 'Eke', dataType = 'matE', xDim = None, k
 
 
 
-def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM', xDim = None, selDims = None, thres = None, keys = None, ):
+def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
+            xDim = None, selDims = None, col = 'Labels', row = None,
+            thres = None, keys = None):
     """
     Basic BLM line plots using Xarray plotter.
 
@@ -406,6 +408,8 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM', xDim = None,
     TODO: update BLMplot to support more datatypes, and implement here instead.
 
     TODO: fix dim handling and subselection, see old plotting code.
+
+    03/02/21: added col, row arguments for flexibility on calling. Still needs automated dim handling.
 
     """
     # Set xDim if not passed.
@@ -443,15 +447,24 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM', xDim = None,
         subset = matEleSelector(subset, thres=thres, inds = selDims, dims = Etype, sq = True)
 
         if subset.any():
-            if hasattr(subset, 'XSrescaled'):
-                print(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, XS")
-                subset.XSrescaled.real.plot(x=Etype, col='Labels')
-                # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, XS")
+            # THIS IS SHIT
+            # if hasattr(subset, 'XSrescaled'):
+            # #     print(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, XS")
+            #     # list(set(subset.dims) - {row} - {col})
+            #     rowXS = row
+            #     colXS = col
+            #     if 'BLM' in row:
+            #         rowXS = None
+            #     if 'BLM' in col:
+            #         colXS = None
+            #     subset.XSrescaled.real.plot(x=Etype, col=colXS, row=rowXS)   # UGH THESE DIMENSION ARE NOT THE SAME OF COURSE SO WILL POTENTIALLY BREAK. SHITTY CODE AGAIN.
+            #     # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, XS")
 
             print(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
             # TODO: add some logic here, sort or switch on flag or number of dims?
             # subset.real.plot(x=Etype, col='Labels', row='BLM')  # Nice... should give line plots or surfaces depending on dims
-            subset.real.plot.line(x=Etype, col='Labels')  # Set to line plot here to stack BLMs
+            # subset.where(subset.l>0).real.plot.line(x=Etype, col=col, row=row)  # Set to line plot here to stack BLMs, also force l>0 - THIS SUCKS, get an empty B00 panel.
+            subset.real.plot.line(x=Etype, col=col, row=row)
             # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
 
 
@@ -741,9 +754,11 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
 
             if reducePhi:
                 # subset.plot(x='Theta', y=Etype, col=eDim, robust=True)
-                subset.plot(x='Theta', y=facetDimsCheck[0], col=facetDimsCheck[1], robust=True)  # This might fail for only one facetDim
+                # subset.plot(x='Theta', y=facetDimsCheck[0], col=facetDimsCheck[1], robust=True)  # This might fail for only one facetDim
+                                                                                                    # This did work initially, but not later - dim ordering always goes to alphabetical with set selection above
+                subset.plot(x='Theta', y=Etype, col=list({*facetDimsCheck}-{Etype})[0], robust=True)  # Force E dim to y
             else:
-                subset.plot(y='Theta',x='Phi', row=facetDimsCheck[1], col=facetDimsCheck[0], robust=True)  # This might fail for only one facetDim
+                subset.plot(y='Theta',x='Phi', row=facetDimsCheck[1], col=facetDimsCheck[0], robust=True)  # This might fail for only one facetDim. DIM ORDERING NOT PRESERVED
 
     # Return data? Note this is only set for final key value at the moment.
     if returnFlag:

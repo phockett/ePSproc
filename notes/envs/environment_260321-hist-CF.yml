@@ -1,0 +1,17 @@
+name: epsdev
+channels:
+  - defaults
+dependencies:
+  - python=3.7
+  - holoviews
+  - plotly
+  - scipy
+  - xarray
+  - matplotlib
+  - seaborn
+  - numba
+  - pyvista
+  - ipykernel
+  - pip
+  - numpy
+prefix: /home/paul/anaconda3/envs/epsdev

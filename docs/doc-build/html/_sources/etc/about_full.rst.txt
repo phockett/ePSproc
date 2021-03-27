@@ -88,7 +88,7 @@ ePolyScat
 For details about ePolyScat (ePS), a tool for computation of
 electron-molecule scattering, see:
 
-* ePS website & manual, maintained by R.R. Lucchese, http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html
+* ePS website & manual, maintained by R.R. Lucchese, https://epolyscat.droppages.com
 * F. A. Gianturco, R. R. Lucchese, and N. Sanna, J. Chem. Phys. 100, 6464 (1994), http://dx.doi.org/10.1063/1.467237
 * A. P. P. Natalense and R. R. Lucchese, J. Chem. Phys. 111, 5344 (1999), http://dx.doi.org/10.1063/1.479794
 

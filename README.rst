@@ -112,7 +112,7 @@ ePolyScat
 
 For details about ePolyScat (ePS), a tool for computation of electron-molecule scattering, see:
 
-* `ePS website & manual <http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html>`_, maintained by R.R. Lucchese.
+* `ePS website & manual <https://epolyscat.droppages.com>`_, maintained by R.R. Lucchese.
 
 * Calculation of low-energy elastic cross sections for electron-CF4 scattering, F. A. Gianturco, R. R. Lucchese, and N. Sanna, J. Chem. Phys. 100, 6464 (1994), http://dx.doi.org/10.1063/1.467237
 
@@ -178,7 +178,7 @@ Cite the software directly via either Github or Figshare repositories for the so
 Acknowledgements
 ----------------
 
-Special thanks to R.R. Lucchese and coworkers for `ePolyScat <http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html>`_.
+Special thanks to R.R. Lucchese and coworkers for `ePolyScat <https://epolyscat.droppages.com>`_.
 
 Thanks to the multiple collaborators and co-authors who encouraged and suggested the cavilier use of ePS "out of the box", for many different problems incorporating electron scattering and photoionization. This spirit of "shoot first, ask questions later" indeed raised many questions which, eventually, necessitated proper use of ePS and careful post-processing of the results, and sharpened related foundational expertise - efforts well worth making.
 

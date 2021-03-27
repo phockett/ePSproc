@@ -503,7 +503,7 @@ def molInfoParse(fileName, verbose = True):
         EHind = 2
 
     orbTable = np.c_[orbTable, conv_ev_atm(orbTable[:,EHind], to='ev')]  # Convert to eV and add to array
-    EVind = orbTable.shape[1]  # Set E index for Xarray conv later.
+    EVind = orbTable.shape[1] -1  # Set E index for Xarray conv later.
 
     # Sort coords to np.array
     atomTable = []

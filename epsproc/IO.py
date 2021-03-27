@@ -489,7 +489,6 @@ def molInfoParse(fileName, verbose = True):
     orbTable = []
     [orbTable.append(parseLineDigits(orb)) for orb in orbList]
     orbTable = np.asarray(orbTable).astype('float')
-    orbTable = np.c_[orbTable, conv_ev_atm(orbTable[:,2], to='ev')]  # Convert to eV and add to array
 
     # # Convert to Xarray - now moved below to include additional orb info.
     # cols = ['N', 'EH', 'Occ', 'E']
@@ -498,8 +497,12 @@ def molInfoParse(fileName, verbose = True):
     # 26/03/21 - moved labels here with basic dim check to allow for different output in ePS build 3885d87
     if 'SymOrb' in orbList[0]:
         orbListCols = ['N', 'SymOrb', 'EH', 'Occ', 'E']
+        EVind = 3
     else:
         orbListCols = ['N', 'EH', 'Occ', 'E']
+        EVind = 2
+
+    orbTable = np.c_[orbTable, conv_ev_atm(orbTable[:,EVind], to='ev')]  # Convert to eV and add to array
 
     # Sort coords to np.array
     atomTable = []

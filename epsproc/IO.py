@@ -495,6 +495,12 @@ def molInfoParse(fileName, verbose = True):
     # cols = ['N', 'EH', 'Occ', 'E']
     # orbTableX = xr.DataArray(orbTable[:,1:], coords = {'orb':orbTable[:,0], 'props':cols}, dims=['orb','props'])
 
+    # 26/03/21 - moved labels here with basic dim check to allow for different output in ePS build 3885d87
+    if 'SymOrb' in orbList[0]:
+        orbListCols = ['N', 'SymOrb', 'EH', 'Occ', 'E']
+    else:
+        orbListCols = ['N', 'EH', 'Occ', 'E']
+
     # Sort coords to np.array
     atomTable = []
     [atomTable.append(parseLineDigits(atom)) for atom in atomList]
@@ -565,8 +571,9 @@ def molInfoParse(fileName, verbose = True):
 
     #*** Set as Xarray
     # TODO: make this neater/better!
-    cols = ['N', 'EH', 'Occ', 'E', 'Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt']
-    orbTableX = xr.DataArray(temp, coords = {'orb':orbTable[:,0].astype(int), 'props':cols}, dims=['orb','props'])  # TODO: fix type here - changes to float in Xarray...?
+    # cols = ['N', 'EH', 'Occ', 'E', 'Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt']
+    orbListCols.extend(['Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt'])  # 26/03/21 adapted for new ePS build
+    orbTableX = xr.DataArray(temp, coords = {'orb':orbTable[:,0].astype(int), 'props':orbListCols}, dims=['orb','props'])  # TODO: fix type here - changes to float in Xarray...?
     orbTableX['Sym'] = ('orb', orbSymList)  # Add symmetries, E and OrbGrp as non-dim coords - possibly not a great thing to do...?  Not easy to index with these
     orbTableX['E'] = ('orb', temp[:,3])
     orbTableX['OrbGrp'] = ('orb', orbList[:,3])

@@ -497,12 +497,13 @@ def molInfoParse(fileName, verbose = True):
     # 26/03/21 - moved labels here with basic dim check to allow for different output in ePS build 3885d87
     if 'SymOrb' in orbList[0]:
         orbListCols = ['N', 'SymOrb', 'EH', 'Occ', 'E']
-        EVind = 3
+        EHind = 3
     else:
         orbListCols = ['N', 'EH', 'Occ', 'E']
-        EVind = 2
+        EHind = 2
 
-    orbTable = np.c_[orbTable, conv_ev_atm(orbTable[:,EVind], to='ev')]  # Convert to eV and add to array
+    orbTable = np.c_[orbTable, conv_ev_atm(orbTable[:,EHind], to='ev')]  # Convert to eV and add to array
+    EVind = orbTable.shape[1]  # Set E index for Xarray conv later.
 
     # Sort coords to np.array
     atomTable = []
@@ -578,7 +579,7 @@ def molInfoParse(fileName, verbose = True):
     orbListCols.extend(['Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt'])  # 26/03/21 adapted for new ePS build
     orbTableX = xr.DataArray(temp, coords = {'orb':orbTable[:,0].astype(int), 'props':orbListCols}, dims=['orb','props'])  # TODO: fix type here - changes to float in Xarray...?
     orbTableX['Sym'] = ('orb', orbSymList)  # Add symmetries, E and OrbGrp as non-dim coords - possibly not a great thing to do...?  Not easy to index with these
-    orbTableX['E'] = ('orb', temp[:,3])
+    orbTableX['E'] = ('orb', temp[:,EVind])
     orbTableX['OrbGrp'] = ('orb', orbList[:,3])
 
     # Alternatively - add as dim coords. This duplicates data in this case, would need to sort by line or reshape array to get this working (cf. matrix elements)

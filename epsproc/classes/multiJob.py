@@ -348,21 +348,12 @@ class ePSmultiJob(ePSbase):
 
         """
 
-        # WITH DATASET
-        # if append:
-        #     lString = self.dataSets[key]['XS'][0].attrs['jobLabel'] + " " + lString
-        #
-        # self.dataSets[key]['XS'][0].attrs['jobLabel'] = lString
-        # self.dataSets[key]['matE'][0].attrs['jobLabel'] = lString
-        # self.dataSets[key]['jobNotes']['orbLabel'] = lString
-
-        # FOR FLAT DATA STRUCTURES
         if append:
-            lString = self.data[key]['XS'].attrs['jobLabel'] + " " + lString
+            lString = self.dataSets[key]['XS'][0].attrs['jobLabel'] + " " + lString
 
-        self.data[key]['XS'].attrs['jobLabel'] = lString
-        self.data[key]['matE'].attrs['jobLabel'] = lString
-        self.data[key]['jobNotes']['orbLabel'] = lString
+        self.dataSets[key]['XS'][0].attrs['jobLabel'] = lString
+        self.dataSets[key]['matE'][0].attrs['jobLabel'] = lString
+        self.dataSets[key]['jobNotes']['orbLabel'] = lString
 
 
     def jobsSummary(self):
@@ -374,8 +365,12 @@ class ePSmultiJob(ePSbase):
 
         # Print multi-dir aggregate data
         # [len(item['fList']) for item in self.jobs['files'].values()]
-        fN = [self.jobs['files'][key]['fN'] for key in self.jobs['files'].keys()]
-        print(f"Found {len(self.jobs['files'])} directories, with {sum(fN)} files.")
+        try:
+            fN = [self.jobs['files'][key]['fN'] for key in self.jobs['files'].keys()]
+            print(f"Found {len(self.jobs['files'])} directories, with {sum(fN)} files.")
+
+        except KeyError as E:
+            print(f"Skipping jobs summary, missing key: {E}. Try running self.jobsSummary() after file IO completes.")
 
         # Run parent fn - this is OK, but only outputs self.job info at the moment
         super().jobsSummary()

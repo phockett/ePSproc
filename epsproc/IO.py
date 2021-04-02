@@ -1081,7 +1081,7 @@ def getCroSegsParseX(dumpSegs, symSegs, ekeList):
             sRep = {'ScatSym':'Total', 'ScatContSym':'Cont'}    # Dicitonary look-up for sym names
             try:
                 # dataList.append(daTmp.expand_dims({'Sym':symSegs[n]}))
-                symList = [symString[2].split()[1][1:3] for symString in symSegs[n]]
+                symList = [symString[2].split()[1].strip('"').strip('\'') for symString in symSegs[n]]
                 symRep = [stringRepMap(symString[2].split()[0],sRep) for symString in symSegs[n]]
 
             except IndexError as e:

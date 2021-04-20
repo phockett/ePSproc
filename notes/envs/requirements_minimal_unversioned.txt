@@ -1,18 +1,19 @@
 # Unversioned minimal requirements
 
-numpy_quaternion  # ==2019.7.23.15.26.49
-numpy # ==1.16.4
-scipy #==1.3.1
-xarray #>=0.12.3
-pandas #==0.25.1
-matplotlib #==3.1.0
-seaborn #==0.9.0
-spherical_functions  # ==2019.7.12.23.25.11
+numpy_quaternion
+numpy
+scipy
+xarray
+pandas
+matplotlib
+seaborn
+spherical_functions
 
 # Optional, but included here for now
 # Set version for Sphinx build - throwing errors with spherical_functions April/May 2020, but may also be sf version? Seems to be loading 2020.5.9.16.33.28
 # New issues for same issue mid-June 2020, looks like version mismatch again (RTD keeps installing updated sf version), so try without versions specified here.
-numba  # ==0.45.0
+
+numba
 pyvista
 cclib
 holoviews

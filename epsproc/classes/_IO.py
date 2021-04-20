@@ -47,6 +47,7 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
     keyType : str, optional, default = 'orb'
         'orb': Use orbital labels as dataset keys
         'int': Use integer labels as dataset keys (will be ordered by file read)
+        Any other setting will result in key = keyType, which can be used to explicitly pass a key (e.g. in multijob wrapper case). This should be tidied up.
 
     """
 
@@ -157,8 +158,12 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
                 key = f"orb{item.orbX['orb'].data[0]}-{m}"  # Add m if key already exists to avoid overwrite.
 
         # Use int key. This might cause issues for multiJob wrapper
-        else:
+        elif keyType == 'int':
             key = m
+
+        # 06/04/21 Crude hack for multiJob case to pass preset key (for dir stacking with no overwrite for bond scan case)
+        else:
+            key = keyType
 
         # Set as xr.ds(), staked by dataType, one per job/orbital
         # Note stacking all jobs can be problematic due to alignment of dims - so use one Dataset per job as model for now.

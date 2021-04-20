@@ -489,11 +489,21 @@ def molInfoParse(fileName, verbose = True):
     orbTable = []
     [orbTable.append(parseLineDigits(orb)) for orb in orbList]
     orbTable = np.asarray(orbTable).astype('float')
-    orbTable = np.c_[orbTable, conv_ev_atm(orbTable[:,2], to='ev')]  # Convert to eV and add to array
 
     # # Convert to Xarray - now moved below to include additional orb info.
     # cols = ['N', 'EH', 'Occ', 'E']
     # orbTableX = xr.DataArray(orbTable[:,1:], coords = {'orb':orbTable[:,0], 'props':cols}, dims=['orb','props'])
+
+    # 26/03/21 - moved labels here with basic dim check to allow for different output in ePS build 3885d87
+    if 'SymOrb' in orbList[0]:
+        orbListCols = ['N', 'SymOrb', 'EH', 'Occ', 'E']
+        EHind = 3
+    else:
+        orbListCols = ['N', 'EH', 'Occ', 'E']
+        EHind = 2
+
+    orbTable = np.c_[orbTable, conv_ev_atm(orbTable[:,EHind], to='ev')]  # Convert to eV and add to array
+    EVind = orbTable.shape[1] - 2  # Set E index for Xarray conv later.
 
     # Sort coords to np.array
     atomTable = []
@@ -565,10 +575,11 @@ def molInfoParse(fileName, verbose = True):
 
     #*** Set as Xarray
     # TODO: make this neater/better!
-    cols = ['N', 'EH', 'Occ', 'E', 'Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt']
-    orbTableX = xr.DataArray(temp, coords = {'orb':orbTable[:,0].astype(int), 'props':cols}, dims=['orb','props'])  # TODO: fix type here - changes to float in Xarray...?
+    # cols = ['N', 'EH', 'Occ', 'E', 'Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt']
+    orbListCols.extend(['Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt'])  # 26/03/21 adapted for new ePS build
+    orbTableX = xr.DataArray(temp, coords = {'orb':orbTable[:,0].astype(int), 'props':orbListCols}, dims=['orb','props'])  # TODO: fix type here - changes to float in Xarray...?
     orbTableX['Sym'] = ('orb', orbSymList)  # Add symmetries, E and OrbGrp as non-dim coords - possibly not a great thing to do...?  Not easy to index with these
-    orbTableX['E'] = ('orb', temp[:,3])
+    orbTableX['E'] = ('orb', temp[:,EVind])
     orbTableX['OrbGrp'] = ('orb', orbList[:,3])
 
     # Alternatively - add as dim coords. This duplicates data in this case, would need to sort by line or reshape array to get this working (cf. matrix elements)

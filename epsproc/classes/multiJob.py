@@ -143,7 +143,7 @@ class ePSmultiJob(ePSbase):
                 print(f"Found ePS output files in root dir {self.jobs['fileBase']}.")
 
 
-    def scanFiles(self, keys = None):
+    def scanFiles(self, keys = None, outputKeyType = 'dir'):
         """
         Scan ePS output files from dir list.
 
@@ -153,6 +153,21 @@ class ePSmultiJob(ePSbase):
         - Entry per dir scanned.
         - Sub-entries per file, but collapsed in some cases.
         - Sending to Xarray dataset with orb labels should be cleaner.
+
+        Parameters
+        -----------
+        keys : int or list, optional, defaults to all jobDirs
+            Set keys (dirs) to use by index.
+            Default = enumerate(self.jobs['jobDirs'])
+
+
+        outputKeyType : str, optional, default = 'orb'
+            Types as supported by super().scanFiles()
+            'orb': Use orbital labels as dataset keys
+            'int': Use integer labels as dataset keys (will be ordered by file read)
+            Any other setting will result in key = keyType, which can be used to explicitly pass a key (e.g. in multijob wrapper case). This should be tidied up.
+
+
 
         TODO:
 
@@ -194,8 +209,14 @@ class ePSmultiJob(ePSbase):
 #             dataPath = Path(workingDir[0], dirScan)
             dataPath = dirScan  # Assume abs paths (?)
 
+            # 06/04/21 Crude hack for multiJob case to pass preset key (for dir stacking with no overwrite for bond scan case)
+            if outputKeyType == 'dir':
+                outputKey = dirScan.name
+            else:
+                outputKey = outputKeyType
+
             # Call super class to handle reading per dir
-            super().scanFiles(dataPath = dataPath, reset = False)
+            super().scanFiles(dataPath = dataPath, reset = False, keyType = outputKey)
             #********** IN PROGRESS!
 
 #             # For dir scan
@@ -348,21 +369,12 @@ class ePSmultiJob(ePSbase):
 
         """
 
-        # WITH DATASET
-        # if append:
-        #     lString = self.dataSets[key]['XS'][0].attrs['jobLabel'] + " " + lString
-        #
-        # self.dataSets[key]['XS'][0].attrs['jobLabel'] = lString
-        # self.dataSets[key]['matE'][0].attrs['jobLabel'] = lString
-        # self.dataSets[key]['jobNotes']['orbLabel'] = lString
-
-        # FOR FLAT DATA STRUCTURES
         if append:
-            lString = self.data[key]['XS'].attrs['jobLabel'] + " " + lString
+            lString = self.dataSets[key]['XS'][0].attrs['jobLabel'] + " " + lString
 
-        self.data[key]['XS'].attrs['jobLabel'] = lString
-        self.data[key]['matE'].attrs['jobLabel'] = lString
-        self.data[key]['jobNotes']['orbLabel'] = lString
+        self.dataSets[key]['XS'][0].attrs['jobLabel'] = lString
+        self.dataSets[key]['matE'][0].attrs['jobLabel'] = lString
+        self.dataSets[key]['jobNotes']['orbLabel'] = lString
 
 
     def jobsSummary(self):
@@ -374,8 +386,12 @@ class ePSmultiJob(ePSbase):
 
         # Print multi-dir aggregate data
         # [len(item['fList']) for item in self.jobs['files'].values()]
-        fN = [self.jobs['files'][key]['fN'] for key in self.jobs['files'].keys()]
-        print(f"Found {len(self.jobs['files'])} directories, with {sum(fN)} files.")
+        try:
+            fN = [self.jobs['files'][key]['fN'] for key in self.jobs['files'].keys()]
+            print(f"Found {len(self.jobs['files'])} directories, with {sum(fN)} files.")
+
+        except KeyError as E:
+            print(f"Skipping jobs summary, missing key: {E}. Try running self.jobsSummary() after file IO completes.")
 
         # Run parent fn - this is OK, but only outputs self.job info at the moment
         super().jobsSummary()

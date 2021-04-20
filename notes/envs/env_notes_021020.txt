@@ -22,3 +22,84 @@ Testing on Stimpy, 02/10/20
 conda create --name epsdev1.3min --file requirements_minimal_unversioned.txt
  > Missing channels for some packages - can this be set in requirements.txt?
  > Can set in .yml
+
+
+ 26/03/21 - testing on Jake
+
+- conda env create -f environment_021020.yml
+    This fails with missing packages, but looks like version issues only...?
+
+- conda create --name epsdev --file requirements_minimal_unversioned.txt
+    Missing just a few channels:
+          PackagesNotFoundError: The following packages are not available from current channels:
+
+        - spherical_functions
+        - cclib
+        - pyvista
+        - numpy_quaternion
+
+  - Quick fix is just to iterate over lines, as per https://stackoverflow.com/questions/35802939/install-only-available-packages-using-conda-install-yes-file-requirements-t
+
+      conda create --name epsdev python=3.7
+      conda activate epsdev
+      while read requirement; do conda install --yes $requirement; done < requirements_minimal_unversioned.txt
+
+      - This pulls everything from main channels, aside from packages listed above.
+      - Missing pkgs
+
+        conda install -c conda-forge pyvista
+        # conda install -c moble spherical_functions  # This currently fails with python <3.7 requirement, although wasn't previously an issue?
+        pip install git+git://github.com/moble/quaternion
+        pip install git+git://github.com/moble/spherical_functions
+        pip install cclib
+
+      - If using nb_conda_kernels:
+        conda install ipykernel
+
+  - This env output to:
+    - Full:
+      conda env export > environment_260321.yml
+
+    - User-specified (basically as per requirements.txt, but missing pip installed dependencies):
+      conda env export --from-history > environment_260321-hist.yml
+
+  - ePSproc from:
+      - local, ON TESTING THIS IS OK in ipython, but not in Jupyter? Env issues?
+      pip install -e ~/github/ePSproc
+
+      - Or from Github
+      pip install git+git://github.com/phockett/ePSproc
+
+      - Or from Pypy
+      pip install ePSproc
+
+      NOTE: on Jake, had to provide full pip path here, not sure why - inconsistent env on remote login?
+      Once updated pip packages show up in 'conda list', and are importable as usual.
+      Which pip gives:
+        /home/paul/anaconda3/bin/pip
+      Should be:
+        /home/paul/anaconda3/envs/epsdev/bin/pip
+
+      Also needed to update Numpy, since main channel version is 1.19.2 and throws issues with Quaternion v2021.3.17.16.51.43 on import.
+        conda update -c conda-forge numpy
+      Currently gives v1.20.1, and updates A LOT of stuff to conda-forge versions.
+      Now working OK.
+
+- From clone of existing ePSproc-v1.2 env, also exported envs to yml.
+    conda create --name ePSproc-v1.2-dev --clone ePSproc-v1.2
+
+    Update ePSproc to local working copy (was Pypy version)
+      /home/paul/anaconda3/envs/ePSproc-v1.2-dev/bin/pip install -e /home/paul/github/ePSproc/
+
+    Add missing pkgs
+      conda install -c pyviz holoviews bokeh
+
+    Also had to manually fix/update bokeh, not quite sure why - the above pulled v0.13
+      conda install bokeh==1.4.0
+      conda update bokeh
+    (Running update bokeh initially didn't work, not sure why - maybe channel issue?)
+
+    Scooby for version outputs:
+      conda install -c conda-forge scooby
+
+- Try from scratch...

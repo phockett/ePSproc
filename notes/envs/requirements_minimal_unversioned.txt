@@ -1,4 +1,6 @@
 # Unversioned minimal requirements
+# Can force Anaconda env install with: while read requirement; do conda install --yes $requirement; done < requirements_minimal_unversioned.txt
+# See https://stackoverflow.com/questions/35802939/install-only-available-packages-using-conda-install-yes-file-requirements-t
 
 numpy_quaternion
 numpy
@@ -10,20 +12,9 @@ seaborn
 spherical_functions
 
 # Optional, but included here for now
-# Set version for Sphinx build - throwing errors with spherical_functions April/May 2020, but may also be sf version? Seems to be loading 2020.5.9.16.33.28
-# New issues for same issue mid-June 2020, looks like version mismatch again (RTD keeps installing updated sf version), so try without versions specified here.
 
 numba
 pyvista
 cclib
 holoviews
 plotly
-
-# Doc functionality
-# sphinxcontrib.apidoc==0.3.0
-# nbsphinx>=0.4
-
-# For nbsphinx formatting in Read the Docs, include ipython here, see https://github.com/spatialaudio/nbsphinx/issues/24
-# ipython
-
-# NOTE - for Sphinx RTD build, see /docs/doc-source/requirements-RTD.txt

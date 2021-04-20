@@ -207,11 +207,12 @@ class ePSmultiJob(ePSbase):
 
         for n, dirScan in keys:
 #             dataPath = Path(workingDir[0], dirScan)
-            dataPath = dirScan  # Assume abs paths (?)
+            dataPath = Path(dirScan)  # Assume abs paths (?)
 
             # 06/04/21 Crude hack for multiJob case to pass preset key (for dir stacking with no overwrite for bond scan case)
             if outputKeyType == 'dir':
-                outputKey = dirScan.name
+                # outputKey = dirScan.name
+                outputKey = dataPath.name
             else:
                 outputKey = outputKeyType
 

@@ -153,6 +153,8 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange =
 
     NOTE: added backend options 27/10/20. CURRENTLY NOT WORKING for hv, due to data structure assumed in `hvPlotters.XCplot()`
 
+    UPDATE 06/04/21: looking at this again, subselect on XC is one issue (can be fixed as per code plotGetCro()), but likely want to write this very differently for comparison case.
+
     """
 
 
@@ -204,6 +206,7 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange =
             # Version with mpl or hv (crude - basically from XC plot above.)
             if backend == 'mpl':
                 pltObj = subset.plot.line(x=Etype)
+                # pltObj = subset.sel(XC=pType).plot.line(x=Etype)
 
                 # if pType == 'SIGMA':
                 #     plt.ylabel('XS/Mb')

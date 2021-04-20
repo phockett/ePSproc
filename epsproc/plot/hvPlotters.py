@@ -172,6 +172,11 @@ def XCplot(dataXS, lineDashList = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}, 
     >>> plotObj, _,_ = XCplot(dataXS[0])
     >>> plotObj
 
+
+    Notes
+    -----
+    - Should add some limit finding params here, to skip/fix cases for out-of-range XS or betas (e.g. null XS cases).
+
     """
 
     # Convert to HV dataset
@@ -198,6 +203,12 @@ def XCplot(dataXS, lineDashList = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}, 
         #         plotList.append(hv_ds.to(hv.Curve, kdims=["Eke"], vdims=[vdim, 'Type'], dynamic=False).select(Type=gauge.item()).opts(line_dash=lineDashList[gauge.item()], color=lineColorList[gauge.item()]).overlay(['Cont']))
                 # Cmap on Cont
             plotList.append(hv_ds.to(hv.Curve, kdims=[kdims], vdims=[vdim, 'Type'], dynamic=False).select(Type=gauge.item()).opts(line_dash=lineDashList[gauge.item()]).overlay(['Cont']))
+
+            # For beta case, force scale
+            # Note 'beta' in lower case in hv_ds, and need to set as parameter in redim
+            # Method from http://holoviews.org/user_guide/Customizing_Plots.html
+            if vdim == 'beta':
+                plotList[-1] = plotList[-1].redim(beta=hv.Dimension(vdim, range=(-1.5, 2.2)))
 
         dsPlotSet += hv.Overlay(plotList)  #.groupby('Cont') #.collate()
 

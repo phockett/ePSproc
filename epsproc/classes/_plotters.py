@@ -18,7 +18,7 @@ from epsproc.util.env import isnotebook
 
 # ************** Plotters
 
-def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', keys = None, backend = 'mpl'):
+def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', selDims = None, keys = None, backend = 'mpl'):
     """
     Basic GetCro (cross-section) data plotting for multijob class. Run self.plot.line(x=Etype, col='Type') for each dataset.
     (See :py:func:`epsproc.classes.ePSmultiJob.plotGetCroComp()` for comparitive plots over datasets.)
@@ -36,6 +36,10 @@ def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', keys = None,
 
     Etype : str, optional, default = 'Eke'
         Set plot dimension, either 'Eke' (electron kinetic energy) or 'Ehv' (photon energy).
+
+    selDims : str, optional, default = None
+        Subselect dims, as a dictionary.
+        E.g. to select a specific continuum symmetry set selDims = {'Cont':'Ag'}
 
     keys : list, optional, default = None
         Keys for datasets to plot.
@@ -62,7 +66,7 @@ def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', keys = None,
         if Erange is None:
             Erange = [self.data[key]['XS'][Etype].min().data, self.data[key]['XS'][Etype].max().data]
 
-        subset = self.data[key]['XS']
+        subset = self.data[key]['XS'].sel(selDims)  # SelDims here - uses dictionary as passed, OK for None too.
         jobLabel = self.data[key]['XS'].jobLabel
 
         # More elegant way to swap on dims?
@@ -86,6 +90,7 @@ def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', keys = None,
                     plt.ylabel('XS/Mb')
                 else:
                     plt.ylabel(r"$\beta_{LM}$")
+                    # plt.ylim([-1.5, 2.5])
 
             if backend == 'hv':
                 layout, *_ = hvPlotters.XCplot(subset, kdims = Etype)
@@ -244,6 +249,7 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange =
             plt.ylabel('XS/Mb')
         else:
             plt.ylabel(r"$\beta_{LM}$")
+            # plt.ylim([-1.5, 2.5])
 
     if returnHandles:
         return pltObj, lText

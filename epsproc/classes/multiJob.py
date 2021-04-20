@@ -390,8 +390,10 @@ class ePSmultiJob(ePSbase):
             fN = [self.jobs['files'][key]['fN'] for key in self.jobs['files'].keys()]
             print(f"Found {len(self.jobs['files'])} directories, with {sum(fN)} files.")
 
+        # If this is called when 'files' is not set, just skip
         except KeyError as E:
-            print(f"Skipping jobs summary, missing key: {E}. Try running self.jobsSummary() after file IO completes.")
+            pass
+            # print(f"Skipping jobs summary, missing key: {E}. Try running self.jobsSummary() after file IO completes.")
 
         # Run parent fn - this is OK, but only outputs self.job info at the moment
         super().jobsSummary()

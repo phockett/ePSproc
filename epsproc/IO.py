@@ -699,16 +699,44 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
 
     """
 
+    # Logging
     dataList = []
     ekeList = []
     blankSegs = 0
+
+    blankMatE = 0
+    blankSymList = []
 
     # Loop over DumpIdy segments, extract data & reformat
     # If blank, skip parser and append blankSegs.
     for dumpSeg in dumpSegs:
         if len(dumpSeg)>6:
             segBlock, attribs = dumpIdySegParse(dumpSeg)
-            dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])
+
+            # Test also on returned sebBlock, this can be empty in some cases (matrix elements below threhold, which creates stub in output file but contains no values)
+            # if not segBlock.any():
+                # segBlock = np.zeros([1,7])  # With zeros - gives index issues later
+                # segBlock = np.full([1,7], fill_value = np.nan)  # With NaNs - gives issues later however.
+
+            if segBlock.any():
+                dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])
+                ekeList.append(attribs[0][1])
+
+            # Skip and treat as blankSeg in this case, as per default case below
+            # HOWEVER - may want to propagate missing symmetry case here?
+            # ACTUALLY - propagate as blankMatE, and skip Eke listing.
+            else:
+                blankMatE += 1
+                # ekeList.append(attribs[0][1])
+                blankSymList.append(attribs[4][1])
+
+                # ekeList.append(np.nan)  # This adds multiple np.nan entries which propagate through np.unique() later.
+
+            # else:
+            #     # dataList.append([*(6*[np.nan]), attribs])  # Set list of nans for empty case.
+            #     dataList.append([*(6*[np.nan]), attribs])
+
+
             # Switch l,m - with advanced indexing, other methods faster...? https://stackoverflow.com/questions/4857927/swapping-columns-in-a-numpy-array
             # Now done later via pd.MultiIndex.swaplevel()
             # dataList[-1][0][[0,1],:] = dataList[-1][0][[1,0],:]
@@ -716,7 +744,7 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
             # dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])
             # dataList.append([segBlock[:,0:5], segBlock[:,5]+1j*segBlock[:,6], attribs])
 
-            ekeList.append(attribs[0][1])
+
 
         else:
             blankSegs += 1
@@ -730,6 +758,9 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
     # Check here according to expected input, but should also be logged in blankSegs above.
     if len(ekeList) != ekeTest.size * len(symSegs):
         print("*** Warning: Missing records, expected {0}, found {1}.".format(ekeTest.size * len(symSegs),len(ekeList)))
+
+    if blankMatE > 0:
+        print("*** Warning: Found {0} blank sets of matrix elements, symmetries {1}".format(blankMatE, np.unique(blankSymList)))
 
     #**** Convert to xarray - ugly loop version, probably a better way to do this!
     #TODO Should:

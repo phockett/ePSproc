@@ -22,3 +22,10 @@ Testing on Stimpy, 02/10/20
 conda create --name epsdev1.3min --file requirements_minimal_unversioned.txt
  > Missing channels for some packages - can this be set in requirements.txt?
  > Can set in .yml
+
+
+Testing for local installs and pkg versions etc.
+
+  conda create --name epsInstallTest --python=3.7
+
+See "installation_notes_051120.rst" for more, this should end up as main installation guide.

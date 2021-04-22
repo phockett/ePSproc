@@ -205,7 +205,7 @@ def conv_ev_atm(data, to = 'ev'):
 
 # Convert energy in eV to wavelength in nm
 def conv_ev_nm(data): #, to = 'nm'):
-    """Convert E(eV) <> nu(nm)."""
+    """Convert E(eV) <> lambda(nm)."""
 
     # Define constants from scipy.constants
     h = scipy.constants.h
@@ -223,6 +223,29 @@ def conv_ev_nm(data): #, to = 'nm'):
     #     dataOut = (data/waveConv)*evJ/(h * c)
 
     return dataOut
+
+# Convert energy in eV to wavelength in A, for electrons
+def conv_ev_nm_elec(data): #, to = 'nm'):
+    """Convert Eke(eV) > lambda(A) for electrons."""
+
+    # Define constants from scipy.constants
+    h = scipy.constants.h
+    # c = scipy.constants.c
+    m = scipy.constants.m_e
+    # ec = scipy.constants.e
+    evJ = scipy.constants.physical_constants['electron volt-joule relationship'][0]
+
+    # Define output units - wavelength in m
+    waveConv = 1e-10
+#     dataOut = (h * c)/(data * evJ)/waveConv
+
+    # KE = data*ec
+    # nu = np.sqrt(2*KE/m)
+    nu = np.sqrt(2*(data*evJ)/m)
+    lam = h/(m*nu)/waveConv
+
+    # return (lam, nu, KE)
+    return lam
 
 # Renorm by L=0 term
 def renormL0(data):

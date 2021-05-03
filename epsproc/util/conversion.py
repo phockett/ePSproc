@@ -45,7 +45,7 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
         Fill any NaN values with 0.0. Useful for plotting/making data contiguous.
 
     colRound : int, optional, default = True
-        Round column values to colRound dp. Only applied for Eke or Ehv dimensions.
+        Round column values to colRound dp. Only applied for Eke, Ehv, Euler or t dimensions.
 
     Returns
     -------
@@ -116,7 +116,7 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
 
     # Rounding for column values to prevent large float labels in some cases
     for dim in colDims:
-        if (dim in ['Eke', 'Ehv']) and (colRound is not None):
+        if (dim in ['Eke', 'Ehv', 'Euler', 't']) and (colRound is not None):
             daRestack[dim] = daRestack[dim].round(colRound)
 
 

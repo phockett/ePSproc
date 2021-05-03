@@ -200,7 +200,8 @@ def symListGen(data):
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
         selDims = None, sumDims = None, plotDims = None, squeeze = False, fillna = False,
-        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10, titleString = None):
+        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10, titleString = None,
+        labelRound = 3):
     """
     Plotting routine for ePS matrix elements & BLMs.
 
@@ -283,6 +284,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     titleString : str, optional, default = None
         Set main title for plot. If not set, filename or data.attr['jobLabel'] will be used if present.
         Some plot settings labels will also be appended to this.
+
+    labelRound : int, optional, default = 3
+        Round to N d.p. for plot labels (legend text).
+        This is also passed to :py:func:`epsproc.multiDimXrToPD()` for column labels (for E, t or Euler dims only)
 
     Returns
     -------
@@ -556,7 +561,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
 # 12/03/20 - moving this to separate conversion function, since tabulation is handy.
         # Note thres=None set here to avoid putting holes in the pd data. This is a temp workaround!
-        daPlotpd, daPlot = multiDimXrToPD(daPlot, colDims = xDim, rowDims = plotDims, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze)
+        daPlotpd, daPlot = multiDimXrToPD(daPlot, colDims = xDim, rowDims = plotDims, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze, colRound = labelRound)
 
         # # Convert to Pandas 2D array, stacked along plotDims - these will be used for colour bar.
         # # TO DO: fix hard-coded axis number for dropna()
@@ -737,17 +742,32 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
         # 14/01/21: testing with preset dims & conditionals
         # TO DO: Should be able to just use lutM list and plot global min-max? Currently may have issues with different sized dims?
+        # 03/05/21 - testing label rounding here, for float quantities. This fails either for tuple overwrite or on lookup later, ugh. HORRIBLE SHIT.
+        #           NOW FORCED WITH enumerate(), but it's still pretty UGLY.  Seems OK in testing, working for legend labels only.
+        # TODO: fix with Pandas methods? Should be able to fix for ledgend & axis labels?
+        # NOTE: this is set for column labels with multiDimXrToPD() above, should also add index rounding there?
         mDimLabel = None
         for n, item in enumerate(legendList):
             # To avoid issues with long floats, round to 3dp
             # TODO: fix this, currently fails for Euler angles case?
             # 26/09/20: added name check here, hopefully this will fix Euler case...TBC...
+            # 03/05/21: retested this... failing for all tried variations, due to either tuple immutability and/or lookups later if values changed.  THIS IS HORRIBLE CODE.
             # Also added above for xDim labels.
-            if (item[0].dtype == np.float) and (item[0].name in ['Eke','Ehv']):
-                item[0] = np.round(item[0],3)
+            if (item[0].dtype == np.float) or (item[0].name in ['Eke','Ehv','t','Euler']):
+                labelsR = np.round(item[0],3).astype('str')
+            else:
+                labelsR = item[0].astype('str')
 
+            # for label in item[0].astype('str'):
+            for ln, label in enumerate(item[0].astype('str')):
+            # for label in labels:
 
-            for label in item[0].astype('str'):
+                # 03/05/21 - testing label rounding here, this fails on lookup later, ugh.
+                # if isinstance(label, np.float):
+                #     labelR = np.round(label,3).astype('str')
+                # else:
+                #     labelR = label  #.astype('str')
+                labelR = labelsR[ln]
 
                 if verbose:
                     print(f"Legend entry: {label} for {item}")
@@ -768,11 +788,13 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                 # 14/01/21: testing with preset dims & conditionals
                 if item[0].name in lDims:
                     g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
+                    # g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=labelR, linewidth=0)
                 elif item[0].name in mDims:
                     if mDimLabel is None:  # Set first found mDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
                         mDimLabel = item[0].name
                     if item[0].name == mDimLabel:
                         g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=f"({label})", linewidth=0)
+                        # g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=f"({labelR})", linewidth=0)
 
                 # elif item[0].name in ['mu','S','mu0']:  # Skip to avoid repetition, assuming m or Q already plotted on same colour scale. TODO: add conditionals here?
                 #     pass
@@ -785,7 +807,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                 # 2nd legend for other dims.
                 else:
                     # g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)  # Label with value only
-                    g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=f"{item[0].name}: {label}", linewidth=0)  # Label with category too.
+                    # g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=f"{item[0].name}: {label}", linewidth=0)  # Label with category too.
+                    g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=f"{item[0].name}: {labelR}", linewidth=0)  # Label with category too.
 
         # Add symmetry labels separately from master list to avoid repetition
         if symFlag:

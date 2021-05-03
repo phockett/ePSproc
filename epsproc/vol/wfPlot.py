@@ -665,12 +665,20 @@ class wfPlotter():
         # Set plotter based on options
         if self.plotOptions['global']['inline']:
             if self.plotOptions['global']['subplot']:
-                pN = len(self.fDictSel)
-                rP = np.rint(np.sqrt(pN)).astype(np.int32)
-                cP = np.ceil(pN/rP).astype(np.int32)
-                sPlots=(rP,cP)
-                currPlot = [0, 0]
-                pl = pv.Plotter(shape = sPlots)
+
+
+                if self.plotOptions['global']['animate']:
+                    # pl = pv.Plotter(shape = (2,2))  # Set for 2x2 grid with slice views
+                    pl = pv.Plotter(shape = (1,2)) # Set for 1x2 grid with slice views
+
+                # Set for subplot per dataset
+                else:
+                    pN = len(self.fDictSel)
+                    rP = np.rint(np.sqrt(pN)).astype(np.int32)
+                    cP = np.ceil(pN/rP).astype(np.int32)
+                    sPlots=(rP,cP)
+                    currPlot = [0, 0]
+                    pl = pv.Plotter(shape = sPlots)
 
                 # Temporary hack - reset interactive here to avoid plotter related issues.
                 self.plotOptions['global']['interactive'] = False
@@ -691,6 +699,7 @@ class wfPlotter():
 
         # Set up animation stuff
         if self.plotOptions['global']['animate']:
+
             fN = 0  # Frame counter
             fString = f'wfAnimation_{self.mol}_{timeStamp()}' # File name schema
 
@@ -740,18 +749,68 @@ class wfPlotter():
                     # Calculate contours with selected scalars
                     contourItem = vol.contour(isosurfaces = self.fDictSel[key][pType]['isoValsOrb'],scalars = item)
 
-                    # TODO - add subplot options
-                    if self.plotOptions['global']['subplot']:
-                        pass
+                    # TODO - add subplot options - now set for slices below
+                    # if self.plotOptions['global']['subplot']:
+                    #     pass
 
                     # For animation save frame then clear
                     if self.plotOptions['global']['animate']:
-                        self.pl.add_mesh(contourItem, smooth_shading=True, opacity=opacity, clim=self.fDictSel[key][pType]['cmapLimitVals'])  # Plot iso = 0.1
-                        # cpos = self.pl.render(cpos = cpos)  # TODO - camera position setting & matching, orbits & pans.
-                        # self.pl.add_axes()  # Throws error ERROR:root:The interactor must be set prior to enabling/disabling widget
-                        self.pl.view_isometric()  # Add this explicitly, otherwise get a flat (x,y) view.
-                        # self.pl.add_text(f"{self.fDictSel[key]['E']} eV", position='lower_left')
-                        self.pl.add_text("{: >8.2f} eV".format(self.fDictSel[key]['E']), position='upper_right')
+
+                        # 29/04/21 - added multiple slice planes subplotting option, based on https://docs.pyvista.org/examples/02-plot/ortho-slices.html#sphx-glr-examples-02-plot-ortho-slices-py
+                        if self.plotOptions['global']['subplot']:
+                            # slices = contourItem.slice_orthogonal(x=0, y=0, z=0)  # Slice from contours
+                            slices = vol.slice_orthogonal(x=0, y=0, z=0)  # Slice from full volume
+
+
+                            # ADditional options
+                            #dargs = dict(cmap='gist_ncar_r')
+                            dargs = {}
+
+                            # Plot 2x2 grid
+                            # p = pv.Plotter(shape=(2,2))
+                            # XYZ - show 3D scene first
+                            # self.pl.subplot(1,1)
+                            self.pl.subplot(0,0)
+                            # p.add_mesh(slices, **dargs)  # As slices
+                            self.pl.add_mesh(contourItem, smooth_shading=True, opacity=opacity, clim=self.fDictSel[key][pType]['cmapLimitVals'])  # As vol
+                            self.pl.show_grid()
+                            # p.camera_position = cpos
+                            self.pl.view_isometric()
+                            self.pl.add_text("{: >8.2f} eV".format(self.fDictSel[key]['E']), position='upper_right')
+
+                            # # XY
+                            # self.pl.subplot(0,0)
+                            # self.pl.add_mesh(slices, **dargs)
+                            # self.pl.show_grid()
+                            # self.pl.camera_position = 'xy'
+                            # self.pl.enable_parallel_projection()
+                            # # ZY
+                            # self.pl.subplot(0,1)
+                            # self.pl.add_mesh(slices, **dargs)
+                            # self.pl.show_grid()
+                            # self.pl.camera_position = 'zy'
+                            # self.pl.enable_parallel_projection()
+                            # # XZ
+                            # self.pl.subplot(1,0)
+                            # self.pl.add_mesh(slices, **dargs)
+                            # self.pl.show_grid()
+                            # self.pl.camera_position = 'xz'
+                            # self.pl.enable_parallel_projection()
+
+                            self.pl.subplot(0,1)
+                            self.pl.add_mesh(slices, **dargs)
+                            self.pl.show_grid()
+                            self.pl.camera_position = 'yz'
+                            self.pl.enable_parallel_projection()
+
+                        else:
+
+                            self.pl.add_mesh(contourItem, smooth_shading=True, opacity=opacity, clim=self.fDictSel[key][pType]['cmapLimitVals'])  # Plot iso = 0.1
+                            # cpos = self.pl.render(cpos = cpos)  # TODO - camera position setting & matching, orbits & pans.
+                            # self.pl.add_axes()  # Throws error ERROR:root:The interactor must be set prior to enabling/disabling widget
+                            self.pl.view_isometric()  # Add this explicitly, otherwise get a flat (x,y) view.
+                            # self.pl.add_text(f"{self.fDictSel[key]['E']} eV", position='lower_left')
+                            self.pl.add_text("{: >8.2f} eV".format(self.fDictSel[key]['E']), position='upper_right')
 
                         # Following example code... but not quite correct here.
                         # For now just use render() option.
@@ -765,7 +824,12 @@ class wfPlotter():
                         frames.append(self.pl.screenshot(filename = tempdir.joinpath("f{:04}_{}.png".format(fN,fString)).as_posix(), return_img = True))
                         self.pl.write_frame()
 
-                        self.pl.clear()
+                        if self.plotOptions['global']['subplot']:
+                            # self.pl.subplot(1,1)  # Clear iso plot specifically.
+                            self.pl.subplot(0,0)
+                            self.pl.clear()
+                        else:
+                            self.pl.clear()
                         fN += 1
 
                     # Otherwise plot with/without subplotting

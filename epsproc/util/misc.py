@@ -90,12 +90,16 @@ def arraySort2D(a, col):
 # Quick hack to get this working for different file-naming conventions.
 # TODO: make nicer & generalise.
 # TODO: consider cases with/without prefix str for single and multiple dirs - that's the main difference with prefixStr...?
+# 28/04/21 - currently broken for wavefn files, must have changed this for other purposes AFTER https://epsproc.readthedocs.io/en/dev/demos/ePSproc_wfPlot_tests_150720-110820-CH3I-tidy_Stimpy.html ?
+#           Quick fix by also matching by file type for orb data files (.dat)
+#           Should really use regex here!
 def sortGroupFn(fListSorted, prefixStr):
 
     # (1) Original case, works for wavefunction files with naming convention
     #  <jobSym>_<Eke>_Orb.dat, e.g. CH3ISA1CA1_1.0eV_Orb.dat
     #  In this case, split and group on first part of file name
-    if len(fListSorted[0].replace(prefixStr,'').split('_')) < 2:
+    partName = fListSorted[0].replace(prefixStr,'')
+    if (len(partName.split('_')) < 2) or (partName.endswith('.dat')):
         return lambda x:x.replace(prefixStr,'').split('_')[0]
 
     # (2) Case for multi-E ePS job output files.

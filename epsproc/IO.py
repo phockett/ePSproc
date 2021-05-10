@@ -72,6 +72,12 @@ except ImportError as e:
 # Package fns.
 from epsproc.util import matEleSelector, dataGroupSel, matEdimList, BLMdimList, stringRepMap, conv_ev_atm, orb3DCoordConv
 from epsproc.util.misc import fileListSort
+from epsproc.util.env import isnotebook
+
+# Set HTML output style for Xarray in notebooks (optional), may also depend on version of Jupyter notebook or lab, or Xr
+# See http://xarray.pydata.org/en/stable/generated/xarray.set_options.html
+if isnotebook():
+    xr.set_options(display_style = 'html')
 
 # ***** Ancillary functions
 
@@ -1816,6 +1822,8 @@ def writeOrb3Dvtk(dataSet):
 
         * https://pyscience.wordpress.com/2014/09/06/numpy-to-vtk-converting-your-numpy-arrays-to-vtk-arrays-and-files/
         * https://bitbucket.org/pauloh/pyevtk/src/default/
+
+        `pip install pyevtk` to install.
 
 
     """

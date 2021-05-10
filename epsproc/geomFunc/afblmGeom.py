@@ -9,13 +9,17 @@ from epsproc.geomFunc.geomUtils import genllpMatE
 
 # Code as developed 16/17 March 2020.
 # Needs some tidying, and should implement BLM Xarray attrs and format for output.
-def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = None,
+def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
+                BLMtable = None, BLMtableResort = None,
                 lambdaTerm = None, RX = None, eulerAngs = None, polLabel = None,
+                polProd = None, AFterm = None,
+                # basisDict = {},  May want to pass full dict here, or just pass as **basisDict from calling fn?
                 thres = 1e-2, thresDims = 'Eke', selDims = {'Type':'L', 'it':1},
                 # sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
                 sumDims = ['mu', 'mup', 'l','lp','m','mp','S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
                 SFflag = False, SFflagRenorm = False, BLMRenorm = 1,
-                squeeze = False, phaseConvention = 'E', basisReturn = "BLM", verbose = 0):
+                squeeze = False, phaseConvention = 'E',  #  , phaseCons = None
+                basisReturn = "BLM", verbose = 0):
     r"""
     Implement :math:`\beta_{LM}^{AF}` calculation as product of tensors.
 
@@ -27,18 +31,22 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
     Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
 
+    03/05/21 Tidying up a bit & improving/wrapping for fitting use (inc. basis function reuse).
+
     10/09/20 Verified (but messy) version, with updated defaults.
 
     01/09/20 Verified (but messy) version, including correct renormalisation routines.
 
     15/06/20 In progress!  Using mfblmXprod() as template, with just modified lambda term, and new alignment term, to change.
 
-    Dev code:
-        geometric_method_dev_pt3_AFBLM_090620.ipynb
-        http://localhost:8888/lab/tree/dev/ePSproc/geometric_method_dev_Betas_090320.ipynb
-        D:\code\ePSproc\python_dev\ePSproc_MFBLM_Numba_dev_tests_120220.PY
-    TOTAL MESS AT THE MOMENT>>?>>>>?DFdas<>r ty
 
+
+    Dev code:
+
+        - afblmGeom_v1-ref_2020.py - Messy working v1 for reference, archived 04/05/21. Now working on tidier version.
+        - geometric_method_dev_pt3_AFBLM_090620.ipynb
+        - http://localhost:8888/lab/tree/dev/ePSproc/geometric_method_dev_Betas_090320.ipynb
+        - D:\code\ePSproc\python_dev\ePSproc_MFBLM_Numba_dev_tests_120220.PY
 
 
     Parameters
@@ -47,6 +55,9 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     phaseConvention : optional, str, default = 'S'
         Set phase conventions with :py:func:`epsproc.geomCalc.setPhaseConventions`.
         To use preset phase conventions, pass existing dictionary.
+
+    basisDict : optional, dictionary, default = {}
+        Basis set dictionary as returned by a previous run of the function with basisReturn = "Full" or "ProductBasis"
 
 
 
@@ -76,7 +87,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     phaseCons = geomCalc.setPhaseConventions(phaseConvention = phaseConvention)
 
     # Fudge - set this for now to enforce additonal unstack and phase corrections later.
-    BLMtableResort = None
+    # 03/05/21 - now in passed args for basis set.
+    # BLMtableResort = None
 
     #*** Threshold and selection
     # Make explicit copy of data to avoid any overwrite issues
@@ -99,12 +111,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
             matEthres = matEthres.sum('Sym')  # Sum over ['Cont','Targ','Total'] stacked dims.
 
 
-    # Set terms if not passed to function
-    if QNs is None:
-        QNs = genllpMatE(matEthres, phaseConvention = phaseConvention)
-
     #*** Polarization terms
-    if EPRX is None:
+    if (EPRX is None) and (polProd is None):  # Skip if product term already passed
         # *** EPR
         # EPRX = geomCalc.EPR(form = 'xarray', p = p, phaseConvention = phaseConvention).sel({'R-p':0})  # Set for R-p = 0 for p=0 case (redundant coord) - need to fix in e-field mult term!
         # EPRXresort = EPRX.unstack().squeeze().drop('l').drop('lp')  # This removes photon (l,lp) dims fully. Be careful with squeeze() - sends singleton dims to non-dimensional labels.
@@ -119,7 +127,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
         if phaseCons['mfblmCons']['negRcoordSwap']:
             EPRXresort['R'] *= -1
 
-    if lambdaTerm is None:
+    if (lambdaTerm is None) and (polProd is None):  # Skip if product term already passed
         # Set polGeoms if Euler angles are passed.
         # if eulerAngs is not None:
 
@@ -149,7 +157,11 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
         # NOTE dropping of redundant R coord here - otherwise get accidental R=Rp correlations later!
 
     # *** Blm term with specified QNs
-    if BLMtable is None:
+    if (BLMtable is None) and (BLMtableResort is None):  # Skip this is BLMtableResort is passed
+
+        # Set terms if not passed to function
+        if QNs is None:
+            QNs = genllpMatE(matEthres, phaseConvention = phaseConvention)
 
         QNsBLMtable = QNs.copy()
 
@@ -186,13 +198,34 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
 
     #*** Alignment term
-    if AKQS is None:
-        AKQS = sphCalc.setADMs()     # If not passed, set to defaults - A(0,0,0)=1 term only, i.e. isotropic distribution.
+    if (AFterm is None) and (polProd is None):  # Skip if product term already passed
 
-    AFterm, DeltaKQS = geomCalc.deltaLMKQS(EPRXresort, AKQS, phaseConvention = phaseConvention)
+        if AKQS is None:
+            AKQS = sphCalc.setADMs()     # If not passed, set to defaults - A(0,0,0)=1 term only, i.e. isotropic distribution.
+
+        AFterm, DeltaKQS = geomCalc.deltaLMKQS(EPRXresort, AKQS, phaseConvention = phaseConvention)
 
 
     #*** Products
+
+    # polProd, takes account of polarization + alignment (geometric) terms inc. sum over `sumDimsPol`
+    if polProd is None:
+        polProd = (EPRXresort * lambdaTermResort * AFterm)
+
+        # Set additional phase term, (-1)^(mup-p) **** THIS MIGHT BE SPURIOUS FOR GENERAL EPR TENSOR CASE??? Not sure... but definitely won't work if p summed over above!
+        if phaseCons['mfblmCons']['mupPhase']:
+            mupPhaseTerm = np.power(-1, np.abs(polProd.mup - polProd.p))
+            polProd *= mupPhaseTerm
+
+        # Additional [P]^1/2 degen term, NOT included in EPR defn.
+        # Added 09/04/20
+        polProd *= np.sqrt(2*polProd.P+1)
+
+        polProd = polProd.sum(sumDimsPol)
+
+        polProd = matEleSelector(polProd, thres = thres)  # Select over dims for reduction.
+
+
     # Matrix element pair-wise multiplication by (l,m,mu) dims
     matEconj = matEthres.copy().conj()
     # matEconj = matEconj.unstack().rename({'l':'lp','m':'mp','mu':'mup'})  # Full unstack
@@ -211,23 +244,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
 
     # Product terms with similar dims
     BLMprod = matEmult * BLMtableResort  # Unstacked case with phase correction - THIS DROPS SYM TERMS? Takes intersection of das - http://xarray.pydata.org/en/stable/computation.html#automatic-alignment
-    # polProd = (EPRXresort * lambdaTermResort).sum(sumDimsPol)  # Sum polarization terms here to keep total dims minimal in product. Here dims = (mu,mup,Euler/Labels)
-    # polProd = (EPRXresort * lambdaTermResort)  # Without polarization terms sum to allow for mupPhase below (reqs. p)
-    # Test with alignment term
-    polProd = (EPRXresort * lambdaTermResort * AFterm)
 
-    # Set additional phase term, (-1)^(mup-p) **** THIS MIGHT BE SPURIOUS FOR GENERAL EPR TENSOR CASE??? Not sure... but definitely won't work if p summed over above!
-    if phaseCons['mfblmCons']['mupPhase']:
-        mupPhaseTerm = np.power(-1, np.abs(polProd.mup - polProd.p))
-        polProd *= mupPhaseTerm
-
-    # Additional [P]^1/2 degen term, NOT included in EPR defn.
-    # Added 09/04/20
-    polProd *= np.sqrt(2*polProd.P+1)
-
-    polProd = polProd.sum(sumDimsPol)
-
-    polProd = matEleSelector(polProd, thres = thres)  # Select over dims for reduction.
 
     # Test big mult...
     # mTerm = polProd.sel({'R':0,'Labels':'z'}) * BLMprod.sum(['Total'])    # With selection of z geom.  # BLMprod.sum(['Cont', 'Targ', 'Total'])
@@ -300,6 +317,10 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
     # Renorm betas by B00?
     if BLMRenorm:
         # mTermSumThres /= mTermSumThres.sel({'L':0,'M':0}).drop('LM')
+        if BLMRenorm == 0:
+            # Keep values, scale by normBeta & sqrt(4pi), to match ePS values.
+            mTermSumThres *= normBeta * np.sqrt(4*np.pi)
+
         if BLMRenorm == 1:
             # Renorm by isotropic XS only
             mTermSumThres /= mTermSumThres['XSraw']
@@ -333,7 +354,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
             mTermSumThres /= (2*mTermSumThres.L + 1)
 
         else:
-            mTermSumThres *= normBeta
+            mTermSumThres *= normBeta  # Scale by normBeta only.
 
     # Propagate attrs
     mTermSum.attrs = mTerm.attrs
@@ -375,7 +396,14 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0], BLMtable = N
         # print("Full")
         basis = {'QNs':QNs, 'EPRX':EPRXresort, 'lambdaTerm':lambdaTermResort,
                 'BLMtable':BLMtable, 'BLMtableResort':BLMtableResort,
-                'AKQS':AKQS, 'phaseConvention':phaseConvention, 'phaseCons':phaseCons}
+                'AFterm':AFterm, 'AKQS':AKQS, 'polProd':polProd,
+                'phaseConvention':phaseCons, 'BLMRenorm':BLMRenorm}   #, 'phaseCons':phaseCons}
+
+        return  BetasNormX, basis
+
+    # Return product basis fns. for use in fitting routines
+    elif basisReturn == "ProductBasis":
+        basis = {'BLMtableResort':BLMtableResort, 'polProd':polProd, 'phaseConvention':phaseCons, 'BLMRenorm':BLMRenorm}
 
         return  BetasNormX, basis
 

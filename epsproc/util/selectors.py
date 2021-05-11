@@ -1,6 +1,7 @@
 #*************** Selection functions
 
 import numpy as np
+from .misc import subselectDims
 
 # Selector function for matrix elements in Xarray
 def matEleSelector(da, thres = None, inds = None, dims = None, sq = False, drop=True):
@@ -37,16 +38,33 @@ def matEleSelector(da, thres = None, inds = None, dims = None, sq = False, drop=
     -------
     >>> daOut = matEleSelector(da, inds = {'Type':'L','Cont':'A2'})
 
+    Notes
+    -----
+    xr.sel(inds) is used here. For single values xr.sel({name:[value]}) or xr.sel({name:value}) is different! Automatically squeeze out dim in latter case.
+    (Tested on xr v0.15)
+
+    E.g., for selecting a single Eke value:
+    da.sel({'Eke':[1.1]})  # Keeps Eke dim
+    da.sel({'Eke':1.1})  # Drops Eke to non-dimension coord.
+    da.sel({'Eke':1.1}, drop=True)  # Drops Eke completely
+    da.sel({'Eke':[1.1]}, drop=True)  # Keeps Eke
+    da.sel({'Eke':[1.1]}, drop=True).squeeze()  # Drops Eke to non-dim coord
+
     """
 
     # Iterate over other selection criteria
     # This may return view or copy - TBC - but seems to work as expected.
     # http://xarray.pydata.org/en/v0.12.3/indexing.html#copies-vs-views
+    # 11/05/21 - added subselectDims() to skip any missing dims.
+    # NOW set as optional, since it breaks IO.matEleGroupDimX() at line 1251, not sure why! "ValueError: conflicting MultiIndex level name(s):'mu' (LM), (mu)"
+    # Squeezing didn't help.
+    # Ah - issue is compatibility with multi-level indexes...
+    # NOW FIXED - added multi-level dim checking in .util.misc.checkDims
     if inds is not None:
-        da = da.sel(inds)    # Fors inds as dict, e.g. {'Type':'L','it':1,'Cont':'A2'}
+        indsRed = subselectDims(da, inds)
+        da = da.sel(indsRed)    # Fors inds as dict, e.g. {'Type':'L','it':1,'Cont':'A2'}
                                 # May want to send as list, or automate vs. dim names?
                                 # NOTE - in current dev code this is used to reindex, so .squeeze() casuses issues!
-
 
     # Reduce dims by thesholding on abs values
     # Do this after selection to ensure Nans removed.

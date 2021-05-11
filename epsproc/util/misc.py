@@ -170,14 +170,45 @@ def timeStamp():
 
 def checkDims(data, refDims = []):
     """
-    Check dimensions for a data array (Xarray) vs. a reference list.
+    Check dimensions for a data array (Xarray) vs. a reference list (or dict).
 
     Returns dictionary of dims, intersection and differences.
 
     TODO: check and order dims by size? Otherwise set return is alphebetical
+
+    11/05/21 Added handling for stacked dims.
+
+    """
+    dims = data.dims # Set dim list - this excludes stacked dims
+    dimsUS = data.unstack().dims  # Set unstaked (full) dim list
+
+    stackedDims = list(set(dims) - set(dimsUS))
+
+    # Check ref vs. full dim list
+    sharedDims = list(set(dimsUS)&{*refDims})  # Intersection
+    extraDims = list(set(dimsUS) - {*refDims})  # Difference
+    invalidDims = list({*refDims} - set(dimsUS))
+
+    return {'dataDims':dims, 'dataDimsUS':dimsUS, 'refDims':refDims, 'shared':sharedDims,
+            'extra':extraDims, 'stacked':stackedDims, 'invalid':invalidDims}
+
+
+# Subselect from sharedDims
+def subselectDims(data, refDims = []):
+    """
+    Subselect dims from shared dim dict.
+    Check dimensions for a data array (Xarray) vs. a reference list.
+
+    Used to set safe selection criteria in matEleSelector.
     """
 
-    sharedDims = list(set(data.dims)&{*refDims})  # Intersection
-    extraDims = list(set(data.dims) - {*refDims})  # Difference
+    # Check dims
+    dimSets = checkDims(data, refDims)
 
-    return {'dataDims':data.dims, 'refDims':refDims, 'shared':sharedDims, 'extra':extraDims}
+    # Subselect
+    if isinstance(refDims,dict):
+        # Return dim with only subselected keys, i.e. existing dims.
+        return {k:v for k,v in refDims.items() if k in dimSets['shared']}
+
+    else:
+        return dimsSets['shared']  # Return shared dim list only.

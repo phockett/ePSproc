@@ -133,7 +133,10 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
     # Get quaternions from Eulers, if provided or as set above for default case.
     if eulerAngs is not None:
         if type(eulerAngs) is not np.ndarray:
-            eulerAngs = np.asarray(eulerAngs)
+            # eulerAngs = np.asarray(eulerAngs)
+            eulerAngs = np.array(eulerAngs, ndmin=2)  # 11/05/21 added to force ndmin for single element list case.
+        elif eulerAngs.ndim is 1:
+            eulerAngs = np.expand_dims(eulerAngs, 0)  # 11/05/21 added to force ndmin for single element list case.
 
         if eulerAngs.shape[1] is 3:
             if labels is None:
@@ -142,6 +145,9 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
                     labels = list(string.ascii_uppercase[0:eulerAngs.shape[0]])
                 else:
                     labels = np.arange(1,eulerAngs.shape[0]+1)
+
+            elif not isinstance(labels, (list, np.ndarray)):  # 11/05/21 added to fix for single element non-list case.
+                labels = [labels]
 
             eulerAngs = np.c_[labels, eulerAngs]
 
@@ -410,7 +416,8 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
 # Calculate wignerD functions
 #   Adapted directly from Matlab code,
 #   via Jupyter test Notebook "Spherical function testing Aug 2019.ipynb"
-def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, QNs = None, dlist = ['lp','mu','mu0'], eNames = ['P','T','C'], conjFlag = False):
+def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, QNs = None, dlist = ['lp','mu','mu0'],
+            eNames = ['P','T','C'], conjFlag = False, sfError = None):
     '''
     Calculate set of Wigner D functions D(l,m,mp; R) on a grid.
 
@@ -447,6 +454,13 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, 
 
     conjFlag : bool, optional, default = False
         If true, return complex conjuage values.
+
+    sfError : bool, optional, default = None
+        If not None, set `sf.error_on_bad_indices = sfError`
+        If True (default case), this will raise a value error on bad QNs.
+        If False, set = 0.
+        See code at https://github.com/moble/spherical_functions/blob/master/spherical_functions/WignerD/__init__.py
+        **05/05/21 - added, but CURRENTLY NOT WORKING**
 
     Outputs
     -------
@@ -512,17 +526,35 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, 
 
 
     # Calculate WignerDs
+
+    # 05/05/21 - Testing term skipping here and try/except below for afpad routine with sub-selected polarization terms, which currently sets some invalid QNs.
+    # Setting sf.error here currently doesn't work - may be version or scope issue? Use in try/except in main loop instead, also with option of skipping terms.
+    # Term skipping may be problematic, since it changes size of QNs array, so left as setting zeros for now.
+    if sfError is not None:
+        sf.error_on_bad_indices = sfError
+
     # sf.Wigner_D_element is vectorised for QN OR angles
     # Here loop over QNs for a set of angles R
     wD = []
     lmmp = []
     for n in np.arange(0, QNs.shape[0]):
-        lmmp.append(QNs[n,:])
 
-        if conjFlag:
-            wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]).conj())
-        else:
-            wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]))
+        try:
+            lmmp.append(QNs[n,:])
+
+            if conjFlag:
+                wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]).conj())
+            else:
+                wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]))
+
+        except ValueError:
+            # Set to zero to maintain array dims
+            if sfError:
+                print(f'*** WignerD calc invalid (l,m,m) term ({QNs[n,0]}, {QNs[n,1]}, {QNs[n,2]}) set to 0')
+                lmmp.append(QNs[n,:])
+                wD.append(0.0)
+            else:
+                print(f'*** WignerD calc skipping invalid (l,m,m) term ({QNs[n,0]}, {QNs[n,1]}, {QNs[n,2]})')
 
     # Return values as Xarray or np.arrays
     if XFlag:

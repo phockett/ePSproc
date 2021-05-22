@@ -517,10 +517,15 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # lList = []
         lList = np.arange(0, 10, dtype=np.int64)  # Set default case. UGLY.
         # lList = daPlot[xDim].pipe(np.unique)        # Should be able to default to first xDim passed?
+        lListTemp = []
         for dim in dimUS:
             # if dim in ['l', 'K', 'lp', 'L']:
             if dim in lDims:
-                lList = daPlot[dim].pipe(np.unique)
+                # lList = daPlot[dim].pipe(np.unique)  # This fails for multiple l-types with different values
+                lListTemp.extend(daPlot[dim].pipe(np.unique))  # Stack over all matching dims then recheck for unique values.
+
+        if lListTemp:
+            lList = np.unique(lListTemp)
 
         # if not lList.any():
         #     lList = lListDefault

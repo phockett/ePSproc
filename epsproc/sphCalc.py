@@ -417,7 +417,7 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
 #   Adapted directly from Matlab code,
 #   via Jupyter test Notebook "Spherical function testing Aug 2019.ipynb"
 def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, QNs = None, dlist = ['lp','mu','mu0'],
-            eNames = ['P','T','C'], conjFlag = False, sfError = None):
+            eNames = ['P','T','C'], conjFlag = False, sfError = True):
     '''
     Calculate set of Wigner D functions D(l,m,mp; R) on a grid.
 

@@ -6,7 +6,9 @@ from .misc import subselectDims
 # Selector function for matrix elements in Xarray
 def matEleSelector(da, thres = None, inds = None, dims = None, sq = False, drop=True):
     """
-    Select & threshold raw matrix elements in an Xarray
+    Select & threshold raw matrix elements in an Xarray. Wraps Xarray.sel(), plus some additional options.
+
+    See Xarray docs for more: http://xarray.pydata.org/en/stable/user-guide/indexing.html
 
     Parameters
     ----------

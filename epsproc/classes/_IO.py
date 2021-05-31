@@ -295,7 +295,7 @@ def molSummary(self, dataKey = None, tolConv = 1e-2):
 
 
 def matEtoPD(self, keys = None, xDim = 'Eke', Erange = None, dataType = 'matE', printTable = True, selDims = None, pType = None,
-            thres = None, drop = True, fillna = False, squeeze = True, setPD = True):
+            thres = None, drop = True, dropna = True, fillna = False, squeeze = True, setPD = True):
     """
     Convert Xarray to PD for nice tabular display.
 
@@ -345,7 +345,7 @@ def matEtoPD(self, keys = None, xDim = 'Eke', Erange = None, dataType = 'matE', 
             daSub = plotTypeSelector(daSub, pType = pType, axisUW = xDim)
 
         #*** Convert to PD
-        daPD, daSub = multiDimXrToPD(daSub, colDims = xDim, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze)
+        daPD, daSub = multiDimXrToPD(daSub, colDims = xDim, thres = thres, dropna = dropna, fillna = fillna, squeeze = squeeze)
 
         # pdConv.append(daPD)
 

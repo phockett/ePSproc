@@ -115,7 +115,7 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
     daRestack = da.unstack().stack(plotDim = rowDimsRed).dropna(dim = 'plotDim', how = 'all')
 
     # Rounding for column values to prevent large float labels in some cases
-    for dim in colDims:
+    for dim in colDimsList:
         if (dim in ['Eke', 'Ehv', 'Euler', 't']) and (colRound is not None):
             daRestack[dim] = daRestack[dim].round(colRound)
 
@@ -137,7 +137,7 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
 
     # Transpose Pandas table if necessary - colDims must be columns
     if type(colDims) != dict:
-        if colDims not in daRestackpd.columns.names:
+        if hasattr(daRestackpd, 'columns') and (colDims not in daRestackpd.columns.names):  # Check coldims, won't exist in singleton dim case.
             daRestackpd = daRestackpd.T
 
     # For dictionary case, check items for each key are in column names.

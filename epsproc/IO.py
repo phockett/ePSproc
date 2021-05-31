@@ -77,7 +77,11 @@ from epsproc.util.env import isnotebook
 # Set HTML output style for Xarray in notebooks (optional), may also depend on version of Jupyter notebook or lab, or Xr
 # See http://xarray.pydata.org/en/stable/generated/xarray.set_options.html
 if isnotebook():
-    xr.set_options(display_style = 'html')
+    # Try/except here to allow for different XR versions.
+    try:
+        xr.set_options(display_style = 'html')
+    except ValueError:
+        pass
 
 # ***** Ancillary functions
 

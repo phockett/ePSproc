@@ -400,6 +400,17 @@ def lmPlot(self, Erange = None, Etype = 'Eke', dataType = 'matE', xDim = None, k
             # self.data[key]['daPlotpd'].append(daPlotpd)  # Set to include None cases to keep indexing. Should set as dict instead?
             self.data[key]['daPlotpd'] = daPlotpd
 
+def ADMplot(self, dataType = 'ADM', xDim = 't', Etype='t', col = None, **kwargs):
+    """
+    Wrap BLMplot() for ADMs. Thin wrapper with some ADM-specific defaults.
+
+    TODO: make this good.
+    """
+    # Pass using locals()
+    # self.BLMplot(**locals())  # Almost neat, but needs logic to remove self and unpack kwargs
+
+    # Pass explicitly
+    self.BLMplot(dataType = dataType, xDim = xDim, Etype = Etype, col = col, **kwargs)
 
 
 def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
@@ -469,7 +480,11 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             #     subset.XSrescaled.real.plot(x=Etype, col=colXS, row=rowXS)   # UGH THESE DIMENSION ARE NOT THE SAME OF COURSE SO WILL POTENTIALLY BREAK. SHITTY CODE AGAIN.
             #     # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, XS")
 
-            print(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
+            try:
+                print(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
+            except KeyError:
+                print(f"Dataset: {key}, {dataType}")
+
             # TODO: add some logic here, sort or switch on flag or number of dims?
             # subset.real.plot(x=Etype, col='Labels', row='BLM')  # Nice... should give line plots or surfaces depending on dims
             # subset.where(subset.l>0).real.plot.line(x=Etype, col=col, row=row)  # Set to line plot here to stack BLMs, also force l>0 - THIS SUCKS, get an empty B00 panel.

@@ -82,7 +82,7 @@ class ePSbase():
 
     # Import methods - these are essentially wrappers for core functions
     from ._IO import scanFiles, jobsSummary, molSummary, matEtoPD
-    from ._plotters import BLMplot, padPlot, lmPlot, plotGetCro, plotGetCroComp
+    from ._plotters import BLMplot, padPlot, lmPlot, plotGetCro, plotGetCroComp, ADMplot
     from ._selectors import Esubset
 
     # TODO: set to varg in for jobs dict

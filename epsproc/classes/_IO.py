@@ -112,8 +112,14 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
         dataSetXS[m].attrs['orbX'], dataSetXS[m].attrs['orbInfo'] = getOrbInfo(item.attrs['jobInfo'], item.attrs['molInfo'])
 
         # Additional labels, use these in plotting routines later
-        dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
-        dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+        # Try/except here to allow for different formats, fallback to full comment line.
+        try:
+            dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+            dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+        except IndexError:
+            dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1]
+            dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1]
+
 
         # Set absolute photon energy
         dataSetXS[m]['Ehv'] = (item['Ehv'] - (float(item.jobInfo['IPot']) + item.orbX['E'].data[0])).round(self.Edp)
@@ -295,7 +301,7 @@ def molSummary(self, dataKey = None, tolConv = 1e-2):
 
 
 def matEtoPD(self, keys = None, xDim = 'Eke', Erange = None, dataType = 'matE', printTable = True, selDims = None, pType = None,
-            thres = None, drop = True, dropna = True, fillna = False, squeeze = True, setPD = True):
+            thres = None, drop = True, fillna = False, squeeze = True, setPD = True):
     """
     Convert Xarray to PD for nice tabular display.
 
@@ -345,7 +351,7 @@ def matEtoPD(self, keys = None, xDim = 'Eke', Erange = None, dataType = 'matE', 
             daSub = plotTypeSelector(daSub, pType = pType, axisUW = xDim)
 
         #*** Convert to PD
-        daPD, daSub = multiDimXrToPD(daSub, colDims = xDim, thres = thres, dropna = dropna, fillna = fillna, squeeze = squeeze)
+        daPD, daSub = multiDimXrToPD(daSub, colDims = xDim, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze)
 
         # pdConv.append(daPD)
 

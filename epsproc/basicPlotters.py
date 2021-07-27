@@ -138,7 +138,7 @@ def molPlot(molInfo):
 
 #*** BLM surface plots
 
-def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr'):
+def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr', **kwargs):
     """
     Plotting routines for BLM values from Xarray.
     Plot line or surface plot, with various backends available.
@@ -161,6 +161,7 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr'):
 
     backend : str, optional, default = 'xr'
         Plotter to use. Default is 'xr' for Xarray internal plotting. May be switched according to plot type in future...
+        **kwargs are currently passed to the plotter backend.
 
     """
     # Local/deferred import to avoid circular import issues at module level.
@@ -185,7 +186,7 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr'):
 
     #*** Plot
     if backend is 'xr':
-        BLMplot.real.squeeze().plot(x=xDim, y='BLMind', col=cDims, size = 5)
+        BLMplot.real.squeeze().plot(x=xDim, y='BLMind', col=cDims, size = 5, **kwargs)
 
 
 

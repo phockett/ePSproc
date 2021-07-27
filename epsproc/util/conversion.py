@@ -10,6 +10,7 @@ TODO: consider implementing CCLIB for unit conversions. See also pint library.
 
 import scipy.constants
 import numpy as np
+import xarray as xr
 
 def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = True, dropna = True, fillna = False,
                     colRound = 2, verbose = False):
@@ -310,6 +311,14 @@ def conv_BL_BLM(data, to = 'sph', renorm = True):
         Bconv = np.sqrt((2*data.L+1)/(4*np.pi))
     elif hasattr(data,'l'):
         Bconv = np.sqrt((2*data.l+1)/(4*np.pi))
+
+    elif hasattr(data,'XC'):
+        # Case for ePS GetCro LF (B2 only) output, with no sigma/XC renorm
+        # Q: Sigma renorm in this case...?
+        # Bconv = xr.DataArray([np.sqrt(1/(4*np.pi)), np.sqrt(5/(4*np.pi))], dims='XC', coords={'XC':['SIGMA','BETA']})
+        Bconv = xr.DataArray([1, np.sqrt(5/(4*np.pi))/np.sqrt(1/(4*np.pi))], dims='XC', coords={'XC':['SIGMA','BETA']})
+        renorm = False # No further renorm in this case
+
     else:
         print("*** Beta conversion error: Data type not supported.")
         return None

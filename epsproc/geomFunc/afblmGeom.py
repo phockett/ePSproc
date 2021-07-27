@@ -11,7 +11,8 @@ from epsproc.geomFunc.geomUtils import genllpMatE
 # Needs some tidying, and should implement BLM Xarray attrs and format for output.
 def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
                 BLMtable = None, BLMtableResort = None,
-                lambdaTerm = None, RX = None, eulerAngs = None, polLabel = None,
+                lambdaTerm = None,
+                # RX = None, eulerAngs = None, polLabel = None,
                 polProd = None, AFterm = None,
                 # basisDict = {},  May want to pass full dict here, or just pass as **basisDict from calling fn?
                 thres = 1e-2, thresDims = 'Eke', selDims = {'Type':'L', 'it':1},
@@ -30,6 +31,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
 
     Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
+
+    27/07/21 Removed eulerAngs & RX input options, since these are redundant (and lead to confusion here!). For cases where E-field and alignment distribution are rotated, set AKQS in rotated frame.
 
     03/05/21 Tidying up a bit & improving/wrapping for fitting use (inc. basis function reuse).
 
@@ -131,22 +134,24 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
         # Set polGeoms if Euler angles are passed.
         # if eulerAngs is not None:
 
+        # 27/07/21 - removed extraneous (and possibly erroneous) frame rotation "option"
         # Set explictly here - only want (0,0,0) term in any case!
         # eulerAngs = np.array([0,0,0], ndmin=2)
         # RX = ep.setPolGeoms(eulerAngs = eulerAngs)   # This throws error in geomCalc.MFproj???? Something to do with form of terms passed to wD, line 970 vs. 976 in geomCalc.py
         # Set polGeoms if Euler angles are passed.
-        if eulerAngs is not None:
-            RX = setPolGeoms(eulerAngs = eulerAngs)
-
-        if RX is None:
-            # Alternatively - just set default values then sub-select.
-            RX = sphCalc.setPolGeoms()
-
+        # if eulerAngs is not None:
+        #     RX = setPolGeoms(eulerAngs = eulerAngs)
+        #
+        # if RX is None:
+        #     # Alternatively - just set default values then sub-select.
+        #     RX = sphCalc.setPolGeoms()
+        #
         # Subselect on pol geoms if label is passed.
         # May want to add try/fail here as this might be a bit fragile.
-        if polLabel is not None:
-            RX = RX.sel({'Label':polLabel})
+        # if polLabel is not None:
+        #     RX = RX.sel({'Label':polLabel})
 
+        RX = sphCalc.setPolGeoms(eulerAngs = [0,0,0])  # Use setPolGeoms, but ONLY VALID FOR (0,0,0) case BY DEFINITION (no frame rotation term in AF formulation, although can ACCIDENTALLY APPLY with MFproj() function below).
 
         # *** Lambda term
         lambdaTerm, lambdaTable, lambdaD, _ = geomCalc.MFproj(RX = RX, form = 'xarray', phaseConvention = phaseConvention)

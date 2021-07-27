@@ -415,7 +415,7 @@ def ADMplot(self, dataType = 'ADM', xDim = 't', Etype='t', col = None, **kwargs)
 
 def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             xDim = None, selDims = None, col = 'Labels', row = None,
-            thres = None, keys = None):
+            thres = None, keys = None, **kwargs):
     """
     Basic BLM line plots using Xarray plotter.
 
@@ -429,6 +429,7 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 
     TODO: fix dim handling and subselection, see old plotting code.
 
+    05/06/21: added **kwargs pass to Xarray line plot
     03/02/21: added col, row arguments for flexibility on calling. Still needs automated dim handling.
 
     """
@@ -488,7 +489,7 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             # TODO: add some logic here, sort or switch on flag or number of dims?
             # subset.real.plot(x=Etype, col='Labels', row='BLM')  # Nice... should give line plots or surfaces depending on dims
             # subset.where(subset.l>0).real.plot.line(x=Etype, col=col, row=row)  # Set to line plot here to stack BLMs, also force l>0 - THIS SUCKS, get an empty B00 panel.
-            subset.real.plot.line(x=Etype, col=col, row=row)
+            subset.real.plot.line(x=Etype, col=col, row=row, **kwargs)
             # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
 
 

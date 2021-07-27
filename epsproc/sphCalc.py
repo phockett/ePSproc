@@ -233,6 +233,10 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False, name = N
     >>> ADMX = setADMs()
     >>> ADMX
 
+    >>> # Set with ranges (as an array [K,Q,S, t(0), t(1)...]), with values per t
+    >>> tPoints = 10
+    >>> ADMX = setADMs(ADMs = [[0,0,0, *np.ones(10)], [2,0,0, *np.linspace(0,1,tPoints)], [4,0,0, *np.linspace(0,0.5,tPoints)]])
+
     >>> # With full N2 rotational wavepacket ADM set from demo data (ePSproc\data\alignment), where modPath defines root...
     >>> # Load ADMs for N2
     >>> from scipy.io import loadmat

@@ -1,5 +1,6 @@
 
 import numpy as np
+import xarray as xr # Currently used for type checks only.
 
 # from epsproc.util import matEleSelector   # Circular/undefined import issue - call in function instead for now.
 from epsproc import sphCalc
@@ -15,7 +16,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
                 # RX = None, eulerAngs = None, polLabel = None,
                 polProd = None, AFterm = None,
                 # basisDict = {},  May want to pass full dict here, or just pass as **basisDict from calling fn?
-                thres = 1e-2, thresDims = 'Eke', selDims = {'Type':'L', 'it':1},
+                thres = 1e-2, thresDims = 'Eke', selDims = {'Type':'L'},   #, 'it':1},
                 # sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
                 sumDims = ['mu', 'mup', 'l','lp','m','mp','S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
                 SFflag = False, SFflagRenorm = False, BLMRenorm = 1,
@@ -32,7 +33,9 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
     Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
 
-    27/07/21 Removed eulerAngs & RX input options, since these are redundant (and lead to confusion here!). For cases where E-field and alignment distribution are rotated, set AKQS in rotated frame.
+    27/07/21 Removed eulerAngs & RX input options, since these are redundant (and lead to confusion here!).
+             For cases where E-field and alignment distribution are rotated, set AKQS in rotated frame, see https://epsproc.readthedocs.io/en/latest/tests/ePSproc_frame_rotation_tests_Dec2019.html
+             Also removed selDims={'it':1}, which can result in issues! In current code, adding 'it' to sumDims doesn't work (dim issues somewhere), so may be best to treat independently...?
 
     03/05/21 Tidying up a bit & improving/wrapping for fitting use (inc. basis function reuse).
 
@@ -79,6 +82,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
     """
     from epsproc.util import matEleSelector
+
+    calcSettings = locals()  # Grab passed args (calc. settings) for reference later.
 
     # Set phase conventions - either from function call or via passed dict.
     # if type(phaseConvention) is str:
@@ -380,11 +385,17 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
     # Set/propagate global properties
     BetasNormX.attrs = matE.attrs
-    BetasNormX.attrs['thres'] = thres
+    # BetasNormX.attrs['thres'] = thres
 
     # TODO: update this for **vargs
     # BLMXout.attrs['sumDims'] = sumDims # May want to explicitly propagate symmetries here...?
     # BLMXout.attrs['selDims'] = [(k,v) for k,v in selDims.items()]  # Can't use Xarray to_netcdf with dict set here, at least for netCDF3 defaults.
+
+    # 28/07/21 added locals() to pipe all args > attrs. Ignore dict issue for now!
+    # BetasNormX.attrs.update(calcSettings)  # This works, but can be a bit of a mess due to passed basis sets
+    [BetasNormX.attrs.update({k:calcSettings[k]}) for k in calcSettings.keys() if not (isinstance(calcSettings[k], xr.DataArray))]  # Slightly ugly, but set only items which are not Xarrays.
+
+
     BetasNormX.attrs['dataType'] = 'BLM'
 
     # Set return args based on basisReturn parameter

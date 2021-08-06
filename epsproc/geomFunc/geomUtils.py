@@ -600,3 +600,71 @@ def genLmLamKQStermsFromTensors(matE, AKQS, mu0 = [-1,0,1], uniqueFlag = True, p
         return np.unique(QNs1, axis = 0), np.unique(QNs2, axis = 0)
     else:
         return np.array(QNs1), np.array(QNs2)
+
+
+#************************
+# Additional utility functions
+#
+
+# Degenerate states checks/settings
+def degenChecks(matEin, selDims, sumDims, degenDrop, verbose):
+    """
+    Check for matrix element state degenaracies & set handling.
+
+    Note inputs all required, defaults defined in calling routine (e.g. :py:func:`epsproc.afblmGeom.afblmXprod`).
+
+    Parameters
+    ----------
+    matE : Xarray
+        Xarray containing matrix elements, with QNs (l,m), as created by :py:func:`readMatEle`
+
+    selDims : dict
+        Selection parameters for calculations, may be be checked and appened herein.
+
+    sumDims : list
+        Summation dims, will be checked herein.
+
+    degenDrop : bool
+        Flag to set dropping of degenerate components.
+
+    verbose : bool or int
+        Print output?
+
+    Returns
+    -------
+    dict :
+        Dictionary of degen options & settings.
+
+    """
+
+    # Check for degeneracies
+    degenN = matEin.it.max().data
+    degenFlag = False
+    if (degenN > 1):
+
+        # If degenerate state and states specified for selection or summation:
+        # - Set flag for later to skip muliplication
+        if ('it' in selDims.keys()) or ('it' in sumDims):
+            if verbose:
+                print(f"*** Degenerate state found, degeneracy factor = {degenN} will be ignored for selection or sum over components.")
+
+            degenFlag = False
+
+        # If degenerate state and no states specified for selection or summation:
+        # - Set flag for later (used to define multiplication)
+        # - Optionally subselect on it=1 if degenDrop = True
+        if ('it' not in selDims.keys()) and ('it' not in sumDims):
+            if verbose:
+                print(f"*** Degenerate state found, degeneracy factor = *{degenN} will be included in XS output.")
+
+            degenFlag = True
+
+            if degenDrop:
+                if verbose:
+                    print(f"Dropping extra degnerate components (setting it=1), pass degenDrop = False to keep.")
+
+                selDims['it']=1
+
+    degenDict = {'it':matEin.it, 'degenN':degenN, 'degenFlag':degenFlag, 'degenDrop':degenDrop, 'selDims':selDims}
+
+    return degenDict

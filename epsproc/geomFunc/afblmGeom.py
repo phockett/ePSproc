@@ -6,7 +6,7 @@ import xarray as xr # Currently used for type checks only.
 from epsproc import sphCalc
 from epsproc.geomFunc import geomCalc
 # from epsproc.geomFunc.geomCalc import (EPR, MFproj, betaTerm, remapllpL, w3jTable,)
-from epsproc.geomFunc.geomUtils import genllpMatE
+from epsproc.geomFunc.geomUtils import genllpMatE, degenChecks
 
 # Code as developed 16/17 March 2020.
 # Needs some tidying, and should implement BLM Xarray attrs and format for output.
@@ -19,7 +19,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
                 thres = 1e-2, thresDims = 'Eke', selDims = {'Type':'L'},   #, 'it':1},
                 # sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
                 sumDims = ['mu', 'mup', 'l','lp','m','mp','S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
-                SFflag = False, SFflagRenorm = False, BLMRenorm = 1,
+                degenDrop = True, SFflag = False, SFflagRenorm = False,
+                BLMRenorm = 1,
                 squeeze = False, phaseConvention = 'E',  #  , phaseCons = None
                 basisReturn = "BLM", verbose = 0):
     r"""
@@ -32,6 +33,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
 
     Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
+
+    06/08/21 Added basic handling for degenerate states, including `degenDrop` option.
 
     27/07/21 Removed eulerAngs & RX input options, since these are redundant (and lead to confusion here!).
              For cases where E-field and alignment distribution are rotated, set AKQS in rotated frame, see https://epsproc.readthedocs.io/en/latest/tests/ePSproc_frame_rotation_tests_Dec2019.html
@@ -73,10 +76,11 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
     Cross-section outputs now set as:
 
     - XSraw = direct AF calculation output.
-    - XSrescaled = XSraw * SF * sqrt(4pi)
+    - XSrescaled = XSraw * sqrt(4pi)
     - XSiso = direct sum over matrix elements
 
     Where XSrescaled == XSiso == ePS GetCro output for isotropic distribution.
+    Optionally set SFflag = True to multiply by (complex) scale-factor.
 
     TODO: fix 'it' dim handling - should be summed over by default, but only in non-singleton dim cases.
 
@@ -107,6 +111,10 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
     # Write to data.values to make sure attribs are maintained. (Not the case for da = da*da.SF)
     if SFflag:
         matE.values = matE * matE.SF
+
+    # Degenerate state handling
+    degenDict = degenChecks(matE, selDims, sumDims, degenDrop, verbose)
+    selDims = degenDict['selDims']  # Update selDims
 
     matEthres = matEleSelector(matE, thres = thres, inds = selDims, dims = thresDims, sq = True, drop = True)
 
@@ -297,7 +305,9 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
                                 # Quick hack for testing, add expand_dims({'t':[0]}) need to ensure matching dims for division!
     normBeta = 3/5 * (1/XSmatE)  # Normalise by sum over matrix elements squared.
 
-
+    # Additional scaling if required for degeneracy and/or SF
+    if degenDict['degenFlag']:
+        mTermSumThres.values = mTermSumThres * degenDict['degenN']
 
     if SFflagRenorm:
         mTermSumThres.values = mTermSumThres/mTermSumThres.SF
@@ -332,11 +342,11 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
             mTermSumThres *= normBeta * np.sqrt(4*np.pi)
 
         if BLMRenorm == 1:
-            # Renorm by isotropic XS only
+            # Renorm by full t-dependent XS only
             mTermSumThres /= mTermSumThres['XSraw']
 
         elif BLMRenorm == 2:
-            # Renorm by full t-dependent XS only
+            # Renorm by isotropic XS only
             mTermSumThres /= mTermSumThres['XSiso']
 
         elif BLMRenorm == 3:

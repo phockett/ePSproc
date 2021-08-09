@@ -45,6 +45,14 @@ Welcome to ePSproc
 
 .. toctree::
    :maxdepth: 2
+   :caption: Advanced/Special Topics:
+
+   special_topics/ePS_ePSproc_degenerate_states_demo_030821-v4-tidy.ipynb
+
+
+
+.. toctree::
+   :maxdepth: 2
    :caption: Test Notebooks:
 
    tests/Spherical_function_testing_Aug_2019

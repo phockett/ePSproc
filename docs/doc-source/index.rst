@@ -33,6 +33,11 @@ Welcome to ePSproc
    demos/ePSproc_demo_CrossSections_Oct2019
    demos/ePSproc_demo_matE_plotting_Feb2020
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Function demos:
+
+   demos/ePSproc_Matlab_demo_notebook_090821
 
 
 .. toctree::

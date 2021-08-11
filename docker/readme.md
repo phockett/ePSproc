@@ -30,10 +30,11 @@ For more details & options, see:
 - [Dockerfile reference](https://docs.docker.com/engine/reference/builder/).
 - [Docker Compose reference](https://docs.docker.com/compose/compose-file/compose-file-v3/).
 
-For use with JupyterHub, see https://github.com/phockett/jupyterhub-docker
+For use with full JupyterHub deployment, see https://github.com/phockett/jupyterhub-docker
 
 
 ## TODO
 
 - Further testing.
 - Different install types. (Here using `pip install git+git://github.com/phockett/ePSproc@dev`).
+- Deploy to Docker Cloud/Jupyter Stacks repos.

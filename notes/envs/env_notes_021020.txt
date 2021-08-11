@@ -49,6 +49,7 @@ conda create --name epsdev1.3min --file requirements_minimal_unversioned.txt
 
         conda install -c conda-forge pyvista
         # conda install -c moble spherical_functions  # This currently fails with python <3.7 requirement, although wasn't previously an issue?
+        # UPDATE: looks like this has moved to conda-forge, https://anaconda.org/search?q=spherical_functions
         pip install git+git://github.com/moble/quaternion
         pip install git+git://github.com/moble/spherical_functions
         pip install cclib
@@ -103,3 +104,11 @@ conda create --name epsdev1.3min --file requirements_minimal_unversioned.txt
       conda install -c conda-forge scooby
 
 - Try from scratch...
+
+
+10/08/21 - testing on Docker (via FF JupyterHub build)
+
+- Bemo dev code: `~/code/jupyterhub-docker-opendreamkit/` (with Git versioning, local only).
+- Deployed for testing on FF OK, see `/docker/jupyter-hub/jupyterhub-docker_FF_new/`
+- Working version with JupyterHub deploy (fork): https://github.com/phockett/jupyterhub-docker/ (original: https://github.com/defeo/jupyterhub-docker/)
+- Basic container only also now in ePSproc repo `./docker`

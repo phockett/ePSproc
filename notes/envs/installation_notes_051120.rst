@@ -54,6 +54,8 @@ conda install -c moble spherical_functions
 https://github.com/moble/spherical_functions
 CURRENTLY missing channel??? Conda won't find this or numpy_quaternion
 
+UPDATE: looks like this has moved to conda-forge, https://anaconda.org/search?q=spherical_functions
+
 With pip
   pip install git+git://github.com/moble/quaternion
   pip install git+git://github.com/moble/spherical_functions

@@ -1,0 +1,31 @@
+Pip, Anaconda and Venv environment testing
+02/10/20
+
+After breaking conda env *again*, it's time to make this work better...
+(This issue after installing then uninstalling Plotly Jupyter Lab extension - weird.)
+
+- Current requirements.txt should be (roughly) minimal working env for ePSproc, with known working versions.
+- Set up minimal requirments.txt based on current env, without versions.
+- Version with Jupyter too?
+
+Good guide: https://stackoverflow.com/questions/48787250/set-up-virtualenv-using-a-requirements-txt-generated-by-conda
+
+Conda
+
+conda create --name <env_name> --file requirements.txt
+
+conda env export --from-history
+
+
+Testing on Stimpy, 02/10/20
+
+conda create --name epsdev1.3min --file requirements_minimal_unversioned.txt
+ > Missing channels for some packages - can this be set in requirements.txt?
+ > Can set in .yml
+
+
+Testing for local installs and pkg versions etc.
+
+  conda create --name epsInstallTest --python=3.7
+
+See "installation_notes_051120.rst" for more, this should end up as main installation guide.

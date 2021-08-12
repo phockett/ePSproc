@@ -9,10 +9,11 @@ After breaking conda env *again*, it's time to make this work better...
 - Version with Jupyter too?
 
 Good guide: https://stackoverflow.com/questions/48787250/set-up-virtualenv-using-a-requirements-txt-generated-by-conda
+For channels: https://stackoverflow.com/questions/63379968/using-requirements-txt-to-automatically-install-packages-from-conda-channels-and
 
 Conda
 
-conda create --name <env_name> --file requirements.txt
+conda create --name <env_name> --file requirements.txt --channel default --channel <additional channel>
 
 conda env export --from-history
 
@@ -23,6 +24,13 @@ conda create --name epsdev1.3min --file requirements_minimal_unversioned.txt
  > Missing channels for some packages - can this be set in requirements.txt?
  > Can set in .yml
 
+ Testing for local installs and pkg versions etc.
+
+   conda create --name epsInstallTest --python=3.7
+
+ See "installation_notes_051120.rst" for more, this should end up as main installation guide.
+
+ 
 
  26/03/21 - testing on Jake
 
@@ -39,6 +47,7 @@ conda create --name epsdev1.3min --file requirements_minimal_unversioned.txt
         - numpy_quaternion
 
   - Quick fix is just to iterate over lines, as per https://stackoverflow.com/questions/35802939/install-only-available-packages-using-conda-install-yes-file-requirements-t
+    (UPDATE: can also add missing channels: https://stackoverflow.com/questions/63379968/using-requirements-txt-to-automatically-install-packages-from-conda-channels-and)
 
       conda create --name epsdev python=3.7
       conda activate epsdev

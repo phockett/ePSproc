@@ -1,6 +1,8 @@
 # Unversioned minimal requirements
 # Can force Anaconda env install with: while read requirement; do conda install --yes $requirement; done < requirements_minimal_unversioned.txt
 # See https://stackoverflow.com/questions/35802939/install-only-available-packages-using-conda-install-yes-file-requirements-t
+#
+# 20/04/21: unversioned requirements testing
 
 numpy_quaternion
 numpy

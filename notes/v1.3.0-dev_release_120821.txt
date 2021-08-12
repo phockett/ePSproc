@@ -1,0 +1,41 @@
+Github: https://github.com/phockett/ePSproc/releases/tag/v1.3.0-dev
+
+Released 12/08/21
+
+---
+
+# v1.3.0-dev: Classes implemented, general tidy-up, more testing and some restructuring (may break old code).
+
+Consolidated updates [since v1.2.5-dev](https://github.com/phockett/ePSproc/releases/tag/v1.2.5-dev) (and v1.2.6 release).
+
+([This version from PyPi](https://pypi.org/project/ePSproc/1.3.0.dev0/).)
+
+
+# Main additions since v1.2.6 release:
+
+- Sept/Oct 2020: main class methods development, more-or-less completed by 20/10/20 commit https://github.com/phockett/ePSproc/commit/aaddba4a60c6122268ddaa76ed935609a0a7ae48
+- 28/10/20: added Wigner delay routine https://github.com/phockett/ePSproc/commit/9057dad49cbe5a4069942404d4e2c2f97ecef6e5
+- 30/10/20: added Pandas tabulation functionality https://github.com/phockett/ePSproc/commit/f6fb781341ad0e1611d81438d117c15ebb46c667
+- 02/02/21: added approximate AF wavefunction routine https://github.com/phockett/ePSproc/commit/69d9a590f7fbf8fb8c6b67487738c19c85232f36
+- 26/03/21: added environment files https://github.com/phockett/ePSproc/commit/b4f070357ba53010c3d2db32171b4ae0d00575b4
+- 03/05/21: added wavefunction animation routines https://github.com/phockett/ePSproc/commit/c4457ab7c830b4a91f248351a66f9f87890bd422
+- 10/05/21: added basis set return routines for use with PEMtk and matrix element fitting https://github.com/phockett/ePSproc/commit/7554f8333395af38fc3687a5f697fcbe22255f1c
+- 31/05/21: added ADMplot() https://github.com/phockett/ePSproc/commit/714bde678506dc8adf59c4e6826e28a60a3e37e8
+- 06/08/21: added degenerate state handling to AF geom routine https://github.com/phockett/ePSproc/commit/2153b3139a3b7cabad8e14695e0981b4303683db
+- 11/08/21: added basic Docker bulid https://github.com/phockett/ePSproc/commit/926448be349b709c4bd49ca0b709385c5937d52b
+
+
+
+# Bug-fixes & docs
+
+- 20/10/20: added base class demo notebook https://github.com/phockett/ePSproc/commit/2a0b584bfbd1414127ffb4fc1813de30418631e4
+- 06/11/20: fixed half-int QN handling https://github.com/phockett/ePSproc/commit/c1209e9c46f2a4891ecd233255980c1849cef101
+- 19/01/21: lmPlot debug https://github.com/phockett/ePSproc/commit/dfeff66a2ed0ff5a3c0c39f18b67cf4c90945cfd
+- 20/04/21: skip missing file segments instead of throwing errors https://github.com/phockett/ePSproc/commit/df051d36497a682004efbb529f118b58d7de6254
+- 31/05/21: fixed ongoing dim issues with singleton pol dim https://github.com/phockett/ePSproc/commit/da12376cc36f640d8974f5ce2c121be3d391caab
+- 09/08/21: added degenerate state notebooks https://github.com/phockett/ePSproc/commit/51d4d8426a277fd788cb71aae1fb2d325a7e126f
+- 09/08/21: added Matlab version demo notebook https://github.com/phockett/ePSproc/commit/d7ca614181e1a5e2c96cfbe5824727917c63a920
+- 12/08/21: added & updated installation notes and files https://github.com/phockett/ePSproc/commit/e19167b9ec554af0dadcfc66e0c57a542cc4bc1d
+
+
+See dev-branch commit history for more: https://github.com/phockett/ePSproc/commits/dev

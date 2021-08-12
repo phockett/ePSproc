@@ -1,4 +1,4 @@
-.. highlight:: shell
+.. highlight:: console
 
 ###########################
 Extended installation notes
@@ -52,7 +52,7 @@ Or manually... adding a couple of core packages should cover most dependencies:
 Conda
 -----
 
-Either as pip case above, plus Conda for the dependencies; or from source - see below.
+Either as pip case above, plus Conda for the dependencies; or from source - `see below for more <#using-conda>`_.
 
 
 
@@ -136,16 +136,22 @@ Other options
 
 A few other options...
 
-- Some development envs are available as Conda .yml files in ``/notes/envs``, these can be used to clone a known-working env.
-  - E.g. ``conda env create -f environment_epsdev_v1.3.0_040821_no-builds.yml`` for the current v1.3.0 environment.
-  - Note that these envs may included extra packages and/or platform specific packages.
-  - Note that the envs are currently a bit of a mess, but will be cleared up soon.
-  - See the `Conda docs for more details on .yml env files <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#sharing-an-environment>`_
+* Some development envs are available as Conda .yml files in ``/notes/envs``, these can be used to clone a known-working env.
+  * E.g. ``conda env create -f environment_epsdev_v1.3.0_040821_no-builds.yml`` for the current v1.3.0 environment.
+  * Note that these envs may included extra packages and/or platform specific packages.
+  * Note that the envs are currently a bit of a mess, but will be cleared up soon.
+  * See the `Conda docs for more details on .yml env files <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#sharing-an-environment>`_
 
-- Similarly, there are some alternative Pip requirement.txt files in ``/notes/envs``, corresponding to some specific development envs.
-  - E.g. ``pip install -r requirements_epsdev_v1.3.0_040821.txt`` for the current v1.3.0 environment.
-  - Note that these envs may included extra packages and/or platform specific packages.
-  - Note that the envs are currently a bit of a mess, but will be cleared up soon.
+* Similarly, there are some alternative Pip requirement.txt files in ``/notes/envs``, corresponding to some specific development envs.
+  * E.g. ``pip install -r requirements_epsdev_v1.3.0_040821.txt`` for the current v1.3.0 environment.
+  * Note that these envs may included extra packages and/or platform specific packages.
+  * Note that the envs are currently a bit of a mess, but will be cleared up soon.
 
-- If using nb_conda_kernels:
+* If using nb_conda_kernels:
   ``conda install ipykernel``
+
+
+Docker
+=======
+
+A basic Docker build is available in `/docker`, see `the Docker notes <docker.html>`_ for more details.

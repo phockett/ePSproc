@@ -5,9 +5,25 @@ Extended installation notes
 ###########################
 05/11/20
 
-ePSproc is available on PyPi, which is the simplest means of installing the latest stable release. For testing and/or development updates, use the Github repo source.
+ePSproc is available on PyPi, which is the simplest means of installing the latest stable release. For testing and/or development updates, use the Github repo source. Details for these, and other options, are given below.
 
-It has been tested with Python >= 3.7, and various package versions. Currently (v1.3.0, 12th August 2021), up-to-date packages are working apart from Xarray (>=0.12, <=0.15.0) and Seaborn (==0.9.0) - this will be fixed in future. (Note that packages in `requirements.txt` are currently unversioned apart from these, see notes below for more details.)
+
+
+General notes
+=============
+
+Requirements/prerequisites
+--------------------------
+
+ePSproc has been tested mainly with Python = 3.7, and various package versions to date. Currently (v1.3.0, 12th August 2021), up-to-date packages are working apart from Xarray (>=0.12, <=0.15.0) and Seaborn (==0.9.0) - this will be fixed in future. (Note that packages in `requirements.txt` are currently unversioned apart from these, see notes below for more details.)
+
+The main requirements are `Xarray <http://xarray.pydata.org/en/stable/index.html>`_ (>=0.12, <=0.15.0), and `Moble's spherical functions (quaternion based) <https://github.com/moble/spherical_functions>`_ . See the individual package docs for full details.
+
+The usual SciPy stack is also used (numpy, matplotlib etc.) - see `requirements.txt file <https://github.com/phockett/ePSproc/blob/master/requirements.txt>`_ for full list - plus some optional packages for additional functionality. In the current release (v1.3.0), package versions are not specified in the main requirements.txt file, but `specific versioned build environments are also available <#other-options>`.
+
+
+Virtual environments
+--------------------
 
 In all cases, you might want to use a virtual environment, e.g.:
 
@@ -26,8 +42,8 @@ With venv (see https://docs.python.org/3/library/venv.html)
   python -m venv /path/to/new/virtual/environment
 
 
-From PyPi
-=========
+From PyPi (releases)
+====================
 
 Pip only
 --------
@@ -45,20 +61,28 @@ Or manually... adding a couple of core packages should cover most dependencies:
 
 .. code-block:: console
 
-  pip install xarray
-  pip install --user git+git://github.com/moble/spherical_functions
+  pip install xarray==0.15.0
+  pip install git+git://github.com/moble/spherical_functions
 
 
 Conda
 -----
 
-Either as pip case above, plus Conda for the dependencies; or from source - `see below for more <#using-conda>`_.
+Either as pip case above, plus Conda for the dependencies (as below); or from source - `see source options below for more details <#using-conda>`_.
+
+.. code-block:: console
+
+  conda install -c conda-forge xarray=0.15.0
+  conda install -c conda-forge spherical_functions
 
 
 
 
 From source + local pip install
 ===============================
+
+For up-to-date version and alternative branches, use the Github repo.
+
 
 Using pip
 ---------
@@ -104,6 +128,7 @@ With pip (this is for `Moble's spherical functions library <https://github.com/m
   pip install git+git://github.com/moble/spherical_functions
 
 
+
 Using Conda
 -----------
 
@@ -132,7 +157,7 @@ With specific (working) package versions: select from the various `*.yml` files 
 
 
 Other options
-===================
+--------------
 
 A few other options...
 

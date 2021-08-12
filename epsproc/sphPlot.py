@@ -33,6 +33,7 @@ TODO
 
 # imports
 import numpy as np
+import xarray as xr
 # For plotting functions
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -49,11 +50,12 @@ except ImportError as e:
 
 # Local functions
 from epsproc.sphCalc import sphCalc
+from epsproc.util.env import isnotebook
 
 #***** Plotting top-level functions & logic
 
 # Define plot types
-def plotTypeSelector(dataPlot, pType = 'a', axisUW = 'Eke', returnDict = False):
+def plotTypeSelector(dataPlot = None, pType = 'a', axisUW = 'Eke', returnDict = False):
     """
     Set plotting data type.
 
@@ -61,6 +63,7 @@ def plotTypeSelector(dataPlot, pType = 'a', axisUW = 'Eke', returnDict = False):
     ----------
     dataPlot : np.array, Xarray
         Data for plotting, output converted to type defined by pType.
+        Note: this parameter is required, unless returnDict = True.
 
     pType : char, optional, default 'a'
         Set type of plot.
@@ -117,7 +120,10 @@ def plotTypeSelector(dataPlot, pType = 'a', axisUW = 'Eke', returnDict = False):
                  'a2b': {'Type':'(abs)^2','Formula':'np.abs(dataPlot)**2','Exec': lambda x: np.abs(x)**2},
                  'r':   {'Type':'real', 'Formula':'np.real(dataPlot)',  'Exec': lambda x: np.real(x)},
                  'i':   {'Type':'imaginary', 'Formula':'np.imag(dataPlot)',  'Exec': lambda x: np.imag(x)},
-                 'p':   {'Type':'product', 'Formula':'dataPlot * np.conj(dataPlot)',  'Exec': lambda x: x * np.conj(x)},
+                 'p':   {'Type':'product (x*conj(x))', 'Formula':'dataPlot * np.conj(dataPlot)',  'Exec': lambda x: x * np.conj(x)},
+                 'pa':   {'Type':'abs(x*conj(x))', 'Formula':'dataPlot * np.conj(dataPlot)',  'Exec': lambda x: np.abs(x * np.conj(x))},
+                 'pr':   {'Type':'real(x*conj(x))', 'Formula':'dataPlot * np.conj(dataPlot)',  'Exec': lambda x: np.real(x * np.conj(x))},
+                 'pi':   {'Type':'imag(x*conj(x))', 'Formula':'dataPlot * np.conj(dataPlot)',  'Exec': lambda x: np.imag(x * np.conj(x))},
                  'phase':{'Type':'phase', 'Formula':'np.angle(dataPlot)',  'Exec': lambda x: np.angle(x)},
                  'phaseUW':{'Type':'phase (unwrapped)', 'Formula':'np.unwrap(np.angle(dataPlot), axis = axisUW)',  'Exec': lambda x: np.unwrap(np.angle(x), axis = axisNum)}
                  }
@@ -159,7 +165,7 @@ def sphPlotHV(dataIn):
 
 
 # Plot MFPADs from a set of BLM
-def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = None, backend = 'mpl', fnType = None):
+def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = None, backend = 'mpl', fnType = None, conj = False):
     r'''
     Calculate spherical harmonic expansions from BLM parameters and plot.
 
@@ -196,6 +202,9 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
         Set function for expansion parameters, default is YLM from scipy.special.sph_harm.
         See :py:func:`ep.sphCalc` for details.
 
+    conj : bool, optional, default = False
+        Use conjugate harmonics.
+
     Returns
     -------
     Xarray
@@ -220,7 +229,12 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
             BLMX = None
 
     # For normal BLMs, no action required.
-    if BLMXin.attrs['dataType'] is 'BLM':
+    elif BLMXin.attrs['dataType'] is 'BLM':
+        BLMX = BLMXin
+
+    # Default case - set as BLM case but include dataType warning.
+    else:
+        print(f"*** sphPlot dataType = {BLMXin.attrs['dataType']} not recognised, trying anyway.")
         BLMX = BLMXin
 
     fig = None
@@ -236,12 +250,13 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
             print(f'Using default {fnType} betas.')
 
 
-        YLMX = sphCalc(BLMX.l.max(), res=res, fnType=fnType)
+        YLMX = sphCalc(BLMX.l.max(), res=res, fnType=fnType, conj = conj)
         YLMX = YLMX.rename({'LM':'BLM'})    # Switch naming for multiplication & plotting
 
         # Calculate MFPADs (theta,phi)
         dataPlot = BLMX*YLMX
         dataPlot = dataPlot.rename({'BLM':'LM'})    # Switch naming back for plotting function
+        dataPlot.attrs = BLMX.attrs # Ensure attrs propagated
         dataPlot.attrs['normType'] = fnType
 
         # Pass data to plotting function
@@ -256,7 +271,7 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
 # TODO: This currently assumes matplotlib cm is already loaded.
 # TODO: More plot types.
 # TODO: More careful testing - not totally sure if summation & axes consistent here.
-def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convention = 'phys'):
+def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convention = 'phys', titleString = None):
     '''
     Plot sum of spherical harmonics from an Xarray.
 
@@ -289,6 +304,12 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
         - hv    holoviews: fancier plotting with additional back-end options.
                 Can facet on specific data types.
 
+    convention : str, optional, default = 'phys'
+        Spherical polar coord convention, see :py:func:`epsproc.sphToCart`
+
+    titleString : str, optional, default = None
+        Additional info to use for plot title.
+
     Returns
     -------
     fig
@@ -319,6 +340,18 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
     # Set data according to type of plot selected
     dataPlot = plotTypeSelector(dataPlot, pType = pType)
 
+    # Set main plot title if not passed.
+    if titleString is None:
+        if hasattr(dataIn,'jobLabel'):
+            titleString = dataIn.attrs['jobLabel']
+        elif hasattr(dataIn,'file'):
+            titleString = dataIn.attrs['file']
+        else:
+            titleString = ""
+
+    print(f"Sph plots: {titleString}")  # Throw out titlestring here for ease.
+
+
     # Switch plot function based on backend
     print('Plotting with {0}'.format(backend))
 
@@ -339,15 +372,17 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
 
             # Loop over facetDim with full dataArray as selector, allows for MultiIndex cases.
             for nPlot in dataPlot[facetDim]:
-                fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention))  # Will fail if dims>2 passed.
+                # fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention, tString = f"{facetDim}: {nPlot.item()}"))
+                # {dataPlot[facetDim][nPlot].item()}"))  # Will fail if dims>2 passed.
+                fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention, tString = titleString + f"\n{facetDim}: {nPlot.item()}"))
 
         else:
             # Call matplotlib plotting fn., single surface
-            fig.append(sphPlotMPL(dataPlot, theta, phi,  convention = convention))
+            fig.append(sphPlotMPL(dataPlot, theta, phi,  convention = convention, tString = titleString))
 
-    # Plotly
+    # Plotly - note that faceting is handled directly by Plotly in this case.
     if backend is 'pl':
-        fig.append(sphPlotPL(dataPlot, theta, phi, facetDim))
+        fig.append(sphPlotPL(dataPlot, theta, phi, facetDim, convention = convention))
 
     return fig
 
@@ -414,7 +449,7 @@ def sphToCart(R, theta, phi, convention = 'phys'):
 #     sphPlotMatplotLib(dataPlot, theta, phi)
 
 # Plot using matplotlib
-def sphPlotMPL(dataPlot, theta, phi, convention = 'phys'):
+def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None):
     '''
     Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Matplotlib.
 
@@ -425,6 +460,14 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys'):
 
     theta, phi : np.arrays
         Angles defining spherical polar grid, 2D arrays.
+
+    convention : str, optional, default = 'phys'
+        Set spherical polar coord convention, see :py:func:`epsproc.sphToCart`.
+
+    tString : str, optional, default = None
+        Text to be used for plot title.
+        This will be appended with other data info, if set.
+        If facetDim is passed here, this will be used to set the label.
 
     Returns
     -------
@@ -444,15 +487,42 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys'):
     # ax.axis('equal') # Not implemented for 3D axes
     # Rescale axis to equal, hack from https://stackoverflow.com/questions/8130823/set-matplotlib-3d-plot-aspect-ratio
     scaling = np.array([getattr(ax, 'get_{}lim'.format(dim))() for dim in 'xyz'])
-    ax.auto_scale_xyz(*[[np.min(scaling), np.max(scaling)]]*3)
-    plt.show()
+    # ax.auto_scale_xyz(*[[np.min(scaling), np.max(scaling)]]*3)  # Not quite right - can have lopsided axes for asymmetric distributions.
+    mRange = np.max([np.abs(np.min(scaling)), np.max(scaling)])
+    ax.auto_scale_xyz(*[[-mRange, mRange]]*3)
+
+    # Force axis off
+    # ax.set_axis_off()
+
+    #*** Title string
+    # Check if facetDim was passed
+    if tString is not None:
+        if tString in dataPlot.dims:
+            facetDim = tString
+            tString = f"{facetDim}: {dataPlot['facetDim'].item()}"
+
+        # else:
+
+    elif tString is None:
+        # Title with data details.
+        if hasattr(dataPlot, 'jobLabel'):
+            tString = dataPlot.jobLabel
+        elif hasattr(dataPlot, 'file'):
+            tString = dataPlot.file
+        else:
+            tString = 'None test'
+
+
+    plt.title(tString)
+    # plt.show()
+    # fig.show()
 
     return fig
 
 
 # Plot as Plotly subplots, as function of selected dim.
 # Currently set for subplotting over facetDim, but assumes other dims (theta,phi)
-def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None):
+def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global', convention = 'phys'):
     '''
     Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Plotly.
 
@@ -467,10 +537,37 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None):
     facetDim : str, default 'Eke'
         Dimension to use for faceting (subplots), currently set for single dim only.
 
+    rc : array, optional, default = None
+        If set, use to define layout grid [rows, columns].
+        If not set, this will be set for nCols = 5
+
+    norm : str, optional, default = 'global'
+        Set for plot normalisation.
+        - 'global' : use same (x,y,z) limits for all plots.
+        - 'local' : auto set (x,y,z) limits for each plot.
+
+    convention : str, optional, default = 'phys'
+        Spherical polar coord convention, see :py:func:`epsproc.sphToCart`
+
+
     Returns
     -------
     fig
         Handle to figure.
+
+    Notes
+    -----
+    For additional dev notes, see:
+    - http://localhost:8889/notebooks/dev/ePSproc/plottingDev/plotly_subplot_tests_051020.ipynb
+    - http://localhost:8889/notebooks/dev/ePSproc/classDev/ePSproc_multijob_class_tests_N2O_011020_Stimpy_PLrenderTESTING_local.ipynb
+
+    For Jupyter use: currently (Oct. 2020) working only for Notebook Export to HTML (not nbsphinx), and max of 12 subplots. Possible issues with rendering in Firefox (80.0.1, Oct. 2020).
+    Should be fixable with some effort/testing, see https://plotly.com/python/renderers/
+
+    TODO:
+
+    - More playing around with Plotly.
+    - Camera control and linking, e.g. https://community.plotly.com/t/synchronize-camera-across-3d-subplots/22236
 
     '''
 
@@ -478,13 +575,34 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None):
     nData = dataPlot[facetDim].size
 
     if rc is None:
-        nCols = 3
+        nCols = 6
+        if nData < nCols:   # Set for single row layout
+            nCols = nData
         rc = [nData/nCols, nCols]
+
+    # rc = np.round(rc).astype(np.int)  # Fix dtype - Plotly throws type error for np types however.
+    rc = [int(np.ceil(rc[0])), int(np.ceil(rc[1]))]
 
     pType = {'type':'surface'}
     specs = [[pType] * rc[1] for i in range(rc[0])]  # Set specs as 2D list of dicts.
 
-    fig = make_subplots(rows=rc[0], cols=rc[1], specs=specs)
+    # Check/set some global props - assumes Xarray datatype at the moment (also assumed later!)
+    if isinstance(dataPlot, xr.core.dataarray.DataArray):
+        # Check max coord limit, to use for all subplot ranges
+        # Should rewrite sphToCart for Xarray output?
+        X,Y,Z =sphToCart(dataPlot,dataPlot.Theta,dataPlot.Phi)
+
+        Cmax = np.max([X.max(), Y.max(), Z.max()])  # Check max & min coord values - may be unequal in some cases.
+        Cmin = np.min([X.min(), Y.min(), Z.min()])
+        Rmax = np.max([np.abs(Cmin), Cmax])
+        padding = 0.1 * Rmax  # Padding %age
+        aRanges = dict(range=[-(Rmax + padding), Rmax+padding])
+
+        # Set subplot titles, see https://stackoverflow.com/questions/53991810/how-to-add-subplot-title-to-3d-subplot-in-plotly
+        titles = [f"{facetDim}: {item.item()}" for item in dataPlot[facetDim]]
+
+    # Set up subplots
+    fig = make_subplots(rows=rc[0], cols=rc[1], specs=specs, subplot_titles=titles)
     nPlots = rc[0] * rc[1]
 
     # Add surfaces
@@ -494,10 +612,19 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None):
     for rInd in range(1,rc[0]+1):
         for cInd in range(1,rc[1]+1):
             if n < nData:
+
+                # Set data (NOTE - now repeats above in Xarray case)
                 X,Y,Z = sphToCart(dataPlot.sel({facetDim:dataPlot[facetDim][n]}),theta,phi)  # Bit ugly, probably a better way to select here.
+
+                # Set plot object
+                showscale = False
+                # if rInd == (rc[0]):
+                #     showscale = True  # Set scale bar for row?  Only for global scaling? With this code get multiple cbars?
+
                 fig.add_trace(
-                    go.Surface(x=X, y=Y, z=Z, colorscale='Viridis', showscale=False),
-                    row=rInd, col=cInd) # , title=[facetDim + '=' + str(dataPlot[facetDim][n].data)])  # Needs some work here...
+                    go.Surface(x=X, y=Y, z=Z, colorscale='Viridis', showscale=showscale),
+                    row=rInd, col=cInd)  # Needs some work here...
+                    # title=[facetDim + '=' + str(dataPlot[facetDim][n].data.item())]),
 
                 # fig['layout'].update(scene=dict(aspectmode="data"))  # Try and fix aspect ratio issues - getting stuck on first subplot?  Seems independent of setting here.
 
@@ -510,6 +637,35 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None):
 
                 n=n+1
 
-    fig.show()
+                # Set additional axis properties if required
+                # Needs some work, see
+                # - https://plotly.com/python/3d-axes/
+                # - https://plotly.com/python/3d-surface-plots/
+                # - https://plotly.com/python/3d-subplots/#3d-surface-subplots
+                # TODO: try linking cameras...? https://community.plotly.com/t/synchronize-camera-across-3d-subplots/22236
+
+                # Set string for "scene" (axis) object to update - will be labelled scene1, scene2... by Plotly.
+                sceneN = f'scene{n}'
+                if norm is 'global':
+                    # Try looping... OK with dict unpacking... huzzah!
+                    # NOTE Scene indexing starts at 1, so do this after n increments
+                    options = dict(xaxis = aRanges, yaxis = aRanges, zaxis = aRanges, aspectmode='cube')
+
+                else:
+                    options = dict(aspectmode='cube')
+
+                fig.update_layout(**{sceneN:options})  # No effect of aspect here? auto/cube/data/manual
+
+                # if rInd == (rc[0]):
+                #     fig.update_layout(**{sceneN:dict(showscale=True)})  # Set scale bar for row?
+
+
+    # fig.show()
+    # Check if notebook and output
+    if isnotebook():
+        display(fig) # Use IPython display(), works nicely for notebook output
+        # Q: is display() always loaded automatically? I think so.
+    else:
+        fig.show()  # Try fig.show(), although may not work in all cases.
 
     return fig

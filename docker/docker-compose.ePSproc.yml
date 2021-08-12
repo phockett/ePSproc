@@ -1,0 +1,41 @@
+# Modified for Syno env + some local settings + ePS version of lab
+# 10/08/21
+# Original: https://github.com/defeo/jupyterhub-docker
+# For more options, see https://docs.docker.com/compose/reference/
+
+version: '3.7'
+
+services:
+
+  jupyterlab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: jupyterlab_epsproc
+    container_name: jupyterlab-ePSproc
+    network_mode: none
+    command: echo
+    ports:
+      - 8966:8888
+    volumes:
+      - jupyter_data:/home/jupyterlab
+
+# Set persistent volume with default Docker settings.
+volumes:
+  jupyter_data:
+
+
+# Fix for OVPN network sharign issue, https://stackoverflow.com/a/56136591
+# NOTE may want to change subnet here!
+# Without this, defulat network creation fails with
+#   Creating network "app_default" with the default driver
+#   ERROR: could not find an available, non-overlapping IPv4 address pool among the defaults to assign to the network
+
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.1/24

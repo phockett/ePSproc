@@ -6,7 +6,7 @@ ePSproc Readme
 
 Post-processing suite for ePolyScat calculations.
 
-ePSproc scripts are designed for photoionization studies. The scripts were originally written for Matlab (2009 - 2016); a Python version is currently under (heavy) development (Aug. 2019), and will be the main version in future.
+ePSproc scripts are designed for photoionization studies. The scripts were originally written for Matlab (2009 - 2016); a Python version is currently under (heavy) development (2019 to date), and is now the main/preferred version.
 
 Source code is `available on Github <https://github.com/phockett/ePSproc>`_.
 
@@ -16,27 +16,17 @@ For more background, and details on the Matlab version, see the software metapap
 
 .. image:: https://epsproc.readthedocs.io/en/latest/_images/output_12_2.png
 
-Installation
-------------
 
-From source: simply download `from Github <https://github.com/phockett/ePSproc>`_. See specific version notes below for more details on the source code.
+Installation (Python)
+---------------------
 
-Python:
+Basics:
 
-.. code-block:: bash
+* From source: simply download `from Github <https://github.com/phockett/ePSproc>`_ and use locally, or run ``pip install git+https://github.com/phockett/ePSproc.git``.
 
-    $ pip install ePSproc
+* From Pypi ``pip install ePSproc``
 
-Main requirements are `Xarray <http://xarray.pydata.org/en/stable/index.html>`_ (>= 0.12.2), and `Moble's spherical functions (quaternion based) <https://github.com/moble/spherical_functions>`_ (tested with v2019.7.12.23.25.11). See the individual package docs for full instructions - one option is via conda-forge:
-(Update Sept. 2019 - Xarray v0.13.0 is now on the main Anaconda channel.)
-
-.. code-block:: bash
-
-    .. $ conda install -c conda-forge xarray=0.12.3
-    $ conda install -c conda-forge spherical_functions
-
-
-The usual SciPy stack is also used (numpy, matplotlib etc.) - see requirements.txt for full list - plus some optional packages for additional functionality.
+See the `extended installation notes for more details & options <etc/installation_notes_051120.html>`_.
 
 
 Python
@@ -44,25 +34,31 @@ Python
 
 Functionality:
 
-* Read raw photoionization matrix elements from ePS output files with “dumpIdy” segments
-* Calculate MF-PADs from the matrix elements (ePSproc_MFPAD.m, see also ePSproc_NO2_MFPADs_demo.m)
-* Plot MF-PADs
-* Calculate MF-$\beta_{LM}$ parameters
+* Plot basic properties (cross-secions, anisotropy parameters) from ePS ``GetCro`` outputs.
+* Read raw photoionization matrix elements from ePS output files with ``dumpIdy`` segments.
+* Process matrix elements:
+
+  * Plot matrix elements.
+  * Calculate MF-PADs from the matrix elements.
+  * Calculate MF, LF and AF $\beta_{LM}$ from the matrix elements.
+  * Plot $\beta_{LM}$ & PADs.
+
 * `Distirbution via PyPi (latest stable version) <https://pypi.org/project/ePSproc/>`__ .`
-* Under development: additional functionality and distribution via PyPi.
+* `Docs on Read the Docs <https://epsproc.readthedocs.io>`__ .
 
 .. This doesn't work for PyPi: See the demo :doc:`Jupyter notebook <ePSproc_demo_Aug2019/ePSproc_demo_Aug2019>` for example usage.
 
-See the demo Jupyter notebooks for example usage:
+To get started, see the demo Jupyter notebooks for example usage:
 
-* `Basic usage <https://epsproc.readthedocs.io/en/latest/ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html>`__ .
-* `Beta parameters <https://epsproc.readthedocs.io/en/latest/ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html>`__ .
+* `Base class usage demo <https://epsproc.readthedocs.io/en/latest/demos/ePSproc_class_demo_161020.html>`__ (note this wraps most functionality as of Oct. 2020).
+* `Basic functional demo <https://epsproc.readthedocs.io/en/latest/ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html>`__ .
+* `MF $\beta_{LM}$ parameters demo <https://epsproc.readthedocs.io/en/latest/ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html>`__ .
 
 
 
 Source:
 
-* ./epsproc: basic python version, code still under development.
+* ./epsproc: python version, code still under development.
 
 * ./docs: documentation tree, `HTML version on Read the Docs <https://epsproc.readthedocs.io>`__.
 
@@ -76,7 +72,7 @@ Matlab
 
 Functionality:
 
-* Read raw photoionization matrix elements from ePS output files with “dumpIdy” segments
+* Read raw photoionization matrix elements from ePS output files with ``dumpIdy`` segments
 * Calculate MF-PADs from the matrix elements (ePSproc_MFPAD.m, see also ePSproc_NO2_MFPADs_demo.m)
 * Plot MF-PADs
 * Plot X-sects
@@ -97,7 +93,10 @@ Source:
   * the benchmark results from these calculations, ePSproc_NO2_testing_summary_250915.pdf
   * additional notes on ePS photoionization matrix elements, ePSproc_scattering_theory_ePS_notes_011015.pdf.
 
-See `ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations <https://www.authorea.com/users/71114/articles/122402/_show_article>`_ for more details.
+For more details see
+
+* `ePSproc Matlab demo notebook <https://epsproc.readthedocs.io/en/latest/demos/ePSproc_Matlab_demo_notebook_090821.html>`_ .
+* `ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations <https://www.authorea.com/users/71114/articles/122402/_show_article>`_ .
 
 
 Resources

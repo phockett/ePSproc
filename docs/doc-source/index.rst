@@ -9,16 +9,36 @@ Welcome to ePSproc
 
 .. toctree::
    :maxdepth: 2
-   :caption: Intro & demos:
+   :caption: Intro:
 
    about
+   etc/installation_notes_051120
+   demos/ePSproc_class_demo_161020
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Class demos:
+
+   demos/ePSproc_wfPlot_tests_150720_tidy
+   demos/ePSdata_download_demo_300720
+   demos/ePSproc_wfPlot_tests_150720-110820-CH3I-tidy_Stimpy
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Function demos:
+
    demos/ePSproc_demo_Aug2019
    demos/ePSproc_BLM_calc_demo_Sept2019
    demos/ePSproc_demo_CrossSections_Oct2019
    demos/ePSproc_demo_matE_plotting_Feb2020
-   demos/ePSproc_wfPlot_tests_150720_tidy
-   demos/ePSdata_download_demo_300720
-   demos/ePSproc_wfPlot_tests_150720-110820-CH3I-tidy_Stimpy
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Matlab demos:
+
+   demos/ePSproc_Matlab_demo_notebook_090821
 
 
 .. toctree::
@@ -27,6 +47,14 @@ Welcome to ePSproc
 
    ePS_ePSproc_tutorial/ePS_tutorial_080520.ipynb
    ePS_ePSproc_tutorial/ePS_adv_tutorial_080520.ipynb
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Advanced/Special Topics:
+
+   special_topics/ePS_ePSproc_degenerate_states_demo_030821-v4-tidy.ipynb
+
 
 
 .. toctree::

@@ -1,0 +1,183 @@
+Pip, Anaconda and Venv environment testing
+02/10/20
+
+After breaking conda env *again*, it's time to make this work better...
+(This issue after installing then uninstalling Plotly Jupyter Lab extension - weird.)
+
+- Current requirements.txt should be (roughly) minimal working env for ePSproc, with known working versions.
+- Set up minimal requirments.txt based on current env, without versions.
+- Version with Jupyter too?
+
+Good guide: https://stackoverflow.com/questions/48787250/set-up-virtualenv-using-a-requirements-txt-generated-by-conda
+For channels: https://stackoverflow.com/questions/63379968/using-requirements-txt-to-automatically-install-packages-from-conda-channels-and
+
+Conda
+
+conda create --name <env_name> --file requirements.txt --channel default --channel <additional channel>
+
+conda env export --from-history
+
+
+Testing on Stimpy, 02/10/20
+
+conda create --name epsdev1.3min --file requirements_minimal_unversioned.txt
+ > Missing channels for some packages - can this be set in requirements.txt?
+ > Can set in .yml
+
+ Testing for local installs and pkg versions etc.
+
+   conda create --name epsInstallTest --python=3.7
+
+ See "installation_notes_051120.rst" for more, this should end up as main installation guide.
+
+
+
+ 26/03/21 - testing on Jake
+
+- conda env create -f environment_021020.yml
+    This fails with missing packages, but looks like version issues only...?
+
+- conda create --name epsdev --file requirements_minimal_unversioned.txt
+    Missing just a few channels:
+          PackagesNotFoundError: The following packages are not available from current channels:
+
+        - spherical_functions
+        - cclib
+        - pyvista
+        - numpy_quaternion
+
+  - Quick fix is just to iterate over lines, as per https://stackoverflow.com/questions/35802939/install-only-available-packages-using-conda-install-yes-file-requirements-t
+    (UPDATE: can also add missing channels: https://stackoverflow.com/questions/63379968/using-requirements-txt-to-automatically-install-packages-from-conda-channels-and)
+
+      conda create --name epsdev python=3.7
+      conda activate epsdev
+      while read requirement; do conda install --yes $requirement; done < requirements_minimal_unversioned.txt
+
+      - This pulls everything from main channels, aside from packages listed above.
+      - Missing pkgs
+
+        conda install -c conda-forge pyvista
+        # conda install -c moble spherical_functions  # This currently fails with python <3.7 requirement, although wasn't previously an issue?
+        # UPDATE: looks like this has moved to conda-forge, https://anaconda.org/search?q=spherical_functions
+        pip install git+git://github.com/moble/quaternion
+        pip install git+git://github.com/moble/spherical_functions
+        pip install cclib
+
+      - If using nb_conda_kernels:
+        conda install ipykernel
+
+  - This env output to:
+    - Full:
+      conda env export > environment_260321.yml
+
+    - User-specified (basically as per requirements.txt, but missing pip installed dependencies):
+      conda env export --from-history > environment_260321-hist.yml
+
+    - 12/08/21: testing rebuild from this file... (on Jake)
+        Changed name: and prefix: to new env. (`epsdevTestYML`)
+        Ran `conda env create -f environment_260321.yml`
+        THIS FAILS with mulitple package version conflicts. WTF???
+
+        Try fresh export with --no-builds:
+          (epsdev-040821) paul@jake:~/github$ conda env export --no-builds > environment_epsdev_v1.3.0_040821_no-builds.yml
+
+        MANUALLY CHANGED XARRAY to v0.15.0 AND CHANGED name + prefix again (`epsdevTestYMLnb`)
+
+        (epsdev-040821) paul@jake:~/github$ conda env create -f environment_epsdev_v1.3.0_040821_no-builds.yml
+
+        FAILED at pip install for spherical_functions.
+        MANUALLY changed to conda version as on Stimpy, spherical_functions=2019.7.12.23.25.11
+
+        (epsdev-040821) paul@jake:~/github$ conda env create -f environment_epsdev_v1.3.0_040821_no-builds.yml
+
+        RAN OK.
+
+        Also exported Pip version:
+          (epsdev-040821-YMLnb) paul@jake:~/github$ /home/paul/anaconda3/envs/epsdev-040821-YMLnb/bin/pip freeze > requirements_epsdev_v1.3.0_040821.txt
+        UGH... exports lots of Conda stuff too :(
+          May want to try pipreqs https://github.com/bndr/pipreqs
+          (Or already have something like this in ubelt?)
+        Q: how was this done previously??? See, e.g., requirements_021020.txt
+          Ah, need to set with format, `pip list --format=freeze > requirements`, see https://stackoverflow.com/questions/50777849/from-conda-create-requirements-txt-for-pip3
+            (epsdev-040821-YMLnb) paul@jake:~/github$ /home/paul/anaconda3/envs/epsdev-040821-YMLnb/bin/pip3 list --format=freeze > requirements_epsdev_v1.3.0_040821c.txt
+
+
+        Check also envs cross-platform/from Stimpy:
+
+        Stimpy:
+          (ePSdev) D:\temp>conda env export --no-builds > environment_epsdev_v1.3.0_Stimpy_120821_no-builds.yml
+
+        Initially gives some missing packages, but seem to be windows things, e.g. m2w64-gcc-libgfortran=5.3.0
+
+
+
+
+  - ePSproc from:
+      - local, ON TESTING THIS IS OK in ipython, but not in Jupyter? Env issues?
+      pip install -e ~/github/ePSproc
+
+      - Or from Github
+      pip install git+git://github.com/phockett/ePSproc
+
+      - Or from Pypy
+      pip install ePSproc
+
+      NOTE: on Jake, had to provide full pip path here, not sure why - inconsistent env on remote login?
+      Once updated pip packages show up in 'conda list', and are importable as usual.
+      Which pip gives:
+        /home/paul/anaconda3/bin/pip
+      Should be:
+        /home/paul/anaconda3/envs/epsdev/bin/pip
+
+      (Or /home/paul/anaconda3/envs/<env name>/bin/pip)
+
+
+      Also needed to update Numpy, since main channel version is 1.19.2 and throws issues with Quaternion v2021.3.17.16.51.43 on import.
+        conda update -c conda-forge numpy
+      Currently gives v1.20.1, and updates A LOT of stuff to conda-forge versions.
+      Now working OK.
+
+- From clone of existing ePSproc-v1.2 env, also exported envs to yml.
+    conda create --name ePSproc-v1.2-dev --clone ePSproc-v1.2
+
+    Update ePSproc to local working copy (was Pypy version)
+      /home/paul/anaconda3/envs/ePSproc-v1.2-dev/bin/pip install -e /home/paul/github/ePSproc/
+
+    Add missing pkgs
+      conda install -c pyviz holoviews bokeh
+
+    Also had to manually fix/update bokeh, not quite sure why - the above pulled v0.13
+      conda install bokeh==1.4.0
+      conda update bokeh
+    (Running update bokeh initially didn't work, not sure why - maybe channel issue?)
+
+    Scooby for version outputs:
+      conda install -c conda-forge scooby
+
+- Try from scratch...
+
+
+10/08/21 - testing on Docker (via FF JupyterHub build)
+
+- Bemo dev code: `~/code/jupyterhub-docker-opendreamkit/` (with Git versioning, local only).
+- Deployed for testing on FF OK, see `/docker/jupyter-hub/jupyterhub-docker_FF_new/`
+- Working version with JupyterHub deploy (fork): https://github.com/phockett/jupyterhub-docker/ (original: https://github.com/defeo/jupyterhub-docker/)
+- Basic container only also now in ePSproc repo `./docker`
+
+
+--------------
+
+April 2021 on Stimpy (no longer a problem...):
+
+RuntimeError: The current Numpy installation ('C:\\Users\\femtolab\\AppData\\Local\\Temp\\pip-build-env-gqcuairg\\overlay\\Lib\\site-packages\\numpy\\__init__.py') fails to pass a sanity check due to a bug in the windows runtime. See this issue for more information: https://tinyurl.com/y3dm3h86
+
+May need first:
+  conda install numpy numba
+
+CURRENTLY issues with numpy v1.19.2 (Win), see https://developercommunity.visualstudio.com/content/problem/1207405/fmod-after-an-update-to-windows-2004-is-causing-a.html
+
+* conda install numpy==1.19.1 didn't fix.
+* conda install numpy==1.17.4 (random old version!) didn't fix.
+* pip install numpy==1.19.3 didn't fix
+
+Q: is pip pulling latest version at pip install?

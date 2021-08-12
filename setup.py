@@ -14,7 +14,16 @@ with open('README.rst', 'r', encoding='utf-8') as f:
 # with open('README.md', 'r', encoding='utf-8') as f:
     readme = f.read()
 
-REQUIRES = []
+# REQUIRES = []
+# Quick hack to pull in from requirements.txt, although possibly not recommended.
+# See https://stackoverflow.com/a/33685899
+with open('requirements.txt', 'r') as f:
+    REQUIRES = [
+        s for s in [
+            line.split('#', 1)[0].strip(' \t\n') for line in f
+        ] if s != ''
+    ]
+    
 
 setup(
     name='ePSproc',

@@ -133,7 +133,10 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
     # Get quaternions from Eulers, if provided or as set above for default case.
     if eulerAngs is not None:
         if type(eulerAngs) is not np.ndarray:
-            eulerAngs = np.asarray(eulerAngs)
+            # eulerAngs = np.asarray(eulerAngs)
+            eulerAngs = np.array(eulerAngs, ndmin=2)  # 11/05/21 added to force ndmin for single element list case.
+        elif eulerAngs.ndim is 1:
+            eulerAngs = np.expand_dims(eulerAngs, 0)  # 11/05/21 added to force ndmin for single element list case.
 
         if eulerAngs.shape[1] is 3:
             if labels is None:
@@ -142,6 +145,9 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
                     labels = list(string.ascii_uppercase[0:eulerAngs.shape[0]])
                 else:
                     labels = np.arange(1,eulerAngs.shape[0]+1)
+
+            elif not isinstance(labels, (list, np.ndarray)):  # 11/05/21 added to fix for single element non-list case.
+                labels = [labels]
 
             eulerAngs = np.c_[labels, eulerAngs]
 
@@ -188,7 +194,7 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
 
 
 # Create Xarray from set of ADMs - adapted from existing blmXarray()
-def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False):
+def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False, name = None, tUnits = 'ps'):
     """
     Create Xarray from ADMs, or create default case ADM(K,Q,S) = [0,0,0,1].
 
@@ -209,6 +215,13 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False):
         If set, append S = 0 to ADMs.
         This allows for passing of [K,Q,ADM] type values (e.g. for symmetric top case)
 
+    name : str, optional, default = None
+        Set a name for the array.
+        If None, will be set to 'ADM' (same as dataType attrib)
+
+    tUnits : str, optional, default = 'ps'
+        Units for temporal axis, if set.
+
     Returns
     -------
     ADMX : Xarray
@@ -219,6 +232,10 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False):
     >>> # Default case
     >>> ADMX = setADMs()
     >>> ADMX
+
+    >>> # Set with ranges (as an array [K,Q,S, t(0), t(1)...]), with values per t
+    >>> tPoints = 10
+    >>> ADMX = setADMs(ADMs = [[0,0,0, *np.ones(10)], [2,0,0, *np.linspace(0,1,tPoints)], [4,0,0, *np.linspace(0,0.5,tPoints)]])
 
     >>> # With full N2 rotational wavepacket ADM set from demo data (ePSproc\data\alignment), where modPath defines root...
     >>> # Load ADMs for N2
@@ -252,19 +269,31 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False):
     # Set indexing, default to numerical
     if t is None:
         t = np.arange(0,ADMs.shape[1])
-
+        tUnits = 'Index'
 
     # Set up Xarray
     QNs = pd.MultiIndex.from_arrays(KQSLabels.real.T.astype('int8'), names = ['K','Q','S'])  # Set lables, enforce type
     ADMX = xr.DataArray(ADMs, coords={'ADM':QNs,'t':t}, dims = ['ADM','t'])
 
+    # Metadata
+    if name is None:
+        ADMX.name = 'ADM'
+    else:
+        ADMX.name = name
+
     ADMX.attrs['dataType'] = 'ADM'
+    ADMX.attrs['long_name'] = 'Axis distribution moments'
+
+    # Set units
+    ADMX.attrs['units'] = 'arb'
+    ADMX.t.attrs['units'] = tUnits
+
 
     return ADMX
 
 
 # Calculate a set of sph function
-def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph', convention = 'phys'):
+def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph', convention = 'phys', conj = False):
     '''
     Calculate set of spherical harmonics Ylm(theta,phi) on a grid.
 
@@ -274,15 +303,21 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
         Maximum L for the set. Ylm calculated for Lmin:Lmax, all m.
     Lmin : int, optional, default 0
         Min L for the set. Ylm calculated for Lmin:Lmax, all m.
-    res : int, optional, default None
-        (Theta, Phi) grid resolution, outputs will be of dim [res,res].
+    res : int or list, optional, default None
+        (Theta, Phi) grid resolution, outputs will be of dim [res,res] (if int) or [res[0], res[1]] (if list).
     angs : list of 2D np.arrays, [thetea, phi], optional, default None
-        If passed, use these grids for calculation
+        If passed, use these grids for calculation.
+        NOTE: if 'maths' convention set, this array will be assumed to be [phi, theta]
     XFlag : bool, optional, default True
         Flag for output. If true, output is Xarray. If false, np.arrays
     fnType : str, optional, default = 'sph'
         Currently can set to 'sph' for SciPy spherical harmonics, or 'lg' for SciPy Legendre polynomials.
         More backends to follow.
+    convention : str, optional, default = 'phys'
+        Set to 'phys' (theta from z-axis) or 'maths' (phi from z-axis) spherical polar conventions.
+        (Might need some work!)
+    conj : bool, optional, default = False
+        Return complex conjugate.
 
 
     Note that either res OR angs needs to be passed.
@@ -307,20 +342,29 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
 
     '''
 
+    # Check if res is 1D or 2D if passed
+    if res is not None:
+        if isinstance(res, int):
+            res = [res, res]
+
     # Set coords based on inputs
     # TODO: better code here (try/fail?)
     # TODO: 03/09/20 checking/testing coords defns, needs a tidy up (or just remove)
     if angs is None and res:
         if convention == 'maths':
             # theta, phi = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
-            TP = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
+            TP = np.meshgrid(np.linspace(0,2*np.pi,res[0]),np.linspace(0,np.pi,res[1]))
         elif convention == 'phys':
             # phi, theta = np.meshgrid(np.linspace(0,2*np.pi,res),np.linspace(0,np.pi,res))
-            TP = np.meshgrid(np.linspace(0,np.pi,res),np.linspace(0,2*np.pi,res))
+            TP = np.meshgrid(np.linspace(0,np.pi,res[0]),np.linspace(0,2*np.pi,res[1]))
 
     elif res is None and angs:
-        theta = angs[0]
-        phi = angs[1]
+        # theta = angs[0]
+        # phi = angs[1]
+        if convention == 'maths':
+            TP = angs.T
+        else:
+            TP = angs  # Used passed angs directly.
 
     else:
         print('Need to pass either res or angs.')
@@ -357,16 +401,27 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
         # Set indexes
         QNs = pd.MultiIndex.from_arrays(np.asarray(lm).T, names = ['l','m'])
         # YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta',theta[0,:]), ('Phi',phi[:,0])])
-        YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta', TP[0][0,:]), ('Phi', TP[1][:,0])])
-        return YlmX
+        # YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta', TP[0][0,:]), ('Phi', TP[1][:,0])])
+        YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Phi', TP[1][:,0]), ('Theta', TP[0][0,:])])  # Fixed dim ordering for SciPy maths convention.
+
+        if conj:
+            return YlmX.conj()
+        else:
+            return YlmX
+
     else:
-        return np.asarray(Ylm), np.asarray(lm)
+        if conj:
+            return np.conj(np.asarray(Ylm)), np.asarray(lm)
+        else:
+            return np.asarray(Ylm), np.asarray(lm)
+
 
 
 # Calculate wignerD functions
 #   Adapted directly from Matlab code,
 #   via Jupyter test Notebook "Spherical function testing Aug 2019.ipynb"
-def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, QNs = None, dlist = ['lp','mu','mu0'], eNames = ['P','T','C'], conjFlag = False):
+def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, QNs = None, dlist = ['lp','mu','mu0'],
+            eNames = ['P','T','C'], conjFlag = False, sfError = True, verbose = False):
     '''
     Calculate set of Wigner D functions D(l,m,mp; R) on a grid.
 
@@ -403,6 +458,13 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, 
 
     conjFlag : bool, optional, default = False
         If true, return complex conjuage values.
+
+    sfError : bool, optional, default = None
+        If not None, set `sf.error_on_bad_indices = sfError`
+        If True (default case), this will raise a value error on bad QNs.
+        If False, set = 0.
+        See code at https://github.com/moble/spherical_functions/blob/master/spherical_functions/WignerD/__init__.py
+        **05/05/21 - added, but CURRENTLY NOT WORKING**
 
     Outputs
     -------
@@ -468,17 +530,38 @@ def wDcalc(Lrange = [0, 1], Nangs = None, eAngs = None, R = None, XFlag = True, 
 
 
     # Calculate WignerDs
+
+    # 05/05/21 - Testing term skipping here and try/except below for afpad routine with sub-selected polarization terms, which currently sets some invalid QNs.
+    # Setting sf.error here currently doesn't work - may be version or scope issue? Use in try/except in main loop instead, also with option of skipping terms.
+    # Term skipping may be problematic, since it changes size of QNs array, so left as setting zeros for now.
+    if sfError is not None:
+        sf.error_on_bad_indices = sfError
+
     # sf.Wigner_D_element is vectorised for QN OR angles
     # Here loop over QNs for a set of angles R
     wD = []
     lmmp = []
     for n in np.arange(0, QNs.shape[0]):
-        lmmp.append(QNs[n,:])
 
-        if conjFlag:
-            wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]).conj())
-        else:
-            wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]))
+        try:
+
+            if conjFlag:
+                wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]).conj())
+            else:
+                wD.append(sf.Wigner_D_element(R, QNs[n,0], QNs[n,1], QNs[n,2]))
+
+            lmmp.append(QNs[n,:])
+
+        except ValueError:
+            # Set to zero to maintain array dims
+            if sfError:
+                if verbose:
+                    print(f'*** WignerD calc invalid (l,m,m) term ({QNs[n,0]}, {QNs[n,1]}, {QNs[n,2]}) set to 0')
+                lmmp.append(QNs[n,:])
+                wD.append(0.0)
+            else:
+                if verbose:
+                    print(f'*** WignerD calc skipping invalid (l,m,m) term ({QNs[n,0]}, {QNs[n,1]}, {QNs[n,2]})')
 
     # Return values as Xarray or np.arrays
     if XFlag:

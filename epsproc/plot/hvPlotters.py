@@ -50,7 +50,7 @@ except ImportError as e:
     hvFlag = False
 
 # Set plotters & options.
-def setPlotters(hvBackend = 'bokeh', width = 500):
+def setPlotters(hvBackend = 'bokeh', width = 500, snsStyle = "darkgrid"):
     """
     Set some plot options - Seaborn style + HV defaults.
 
@@ -67,18 +67,35 @@ def setPlotters(hvBackend = 'bokeh', width = 500):
     width : int, optional, default = 500
         Setting for plot width, in pixels.
 
+    snsStyle : str, optional, default = "darkgrid"
+        If using Seaborn styles, use snsStyle.
+        See https://seaborn.pydata.org/tutorial/aesthetics.html
+
     """
 
     # Plotting libs
     # Optional - set seaborn for plot styling
     if snsFlag:
         import seaborn as sns
+
+        # For > v0.8 need to run .set_theme, see https://seaborn.pydata.org/tutorial/aesthetics.html
+        try:
+            sns.set_theme(style = snsStyle)  # Set style
+        except AttributeError:
+            pass
+
+        sns.set_style(snsStyle)  # May be unnecessary if set_theme already used?
+
         sns.set_context("paper")  # "paper", "talk", "poster", sets relative scale of elements
                                 # https://seaborn.pydata.org/tutorial/aesthetics.html
         # sns.set(rc={'figure.figsize':(11.7,8.27)})  # Set figure size explicitly (inch)
                                 # https://stackoverflow.com/questions/31594549/how-do-i-change-the-figure-size-for-a-seaborn-plot
                                 # Wraps Matplotlib rcParams, https://matplotlib.org/tutorials/introductory/customizing.html
         sns.set(rc={'figure.dpi':(120)})
+
+
+
+
 
     from matplotlib import pyplot as plt  # For addtional plotting functionality
     # import bokeh
@@ -123,7 +140,7 @@ def hvdsConv(dataXS):
 
 
 # HV plotting routine for XS data
-def XCplot(dataXS, lineDashList = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}):
+def XCplot(dataXS, lineDashList = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}, kdims = "Eke", tString = None):
     """
     Plot XC data using Holoviews.
 
@@ -138,6 +155,12 @@ def XCplot(dataXS, lineDashList = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}):
     lineDashList : dict, optional, default = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}
         Set line types for calculation gauge.
 
+    kdims : str, optional, default = 'Eke'
+        Set x-axis dimension.
+
+    tString : str, optional, default = None
+        Set
+
     Returns
     --------
     layout : hv object
@@ -148,6 +171,11 @@ def XCplot(dataXS, lineDashList = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}):
 
     >>> plotObj, _,_ = XCplot(dataXS[0])
     >>> plotObj
+
+
+    Notes
+    -----
+    - Should add some limit finding params here, to skip/fix cases for out-of-range XS or betas (e.g. null XS cases).
 
     """
 
@@ -174,9 +202,31 @@ def XCplot(dataXS, lineDashList = {'L': 'dashed', 'M': 'solid', 'V': 'dashed'}):
                 # With cmap also on type
         #         plotList.append(hv_ds.to(hv.Curve, kdims=["Eke"], vdims=[vdim, 'Type'], dynamic=False).select(Type=gauge.item()).opts(line_dash=lineDashList[gauge.item()], color=lineColorList[gauge.item()]).overlay(['Cont']))
                 # Cmap on Cont
-            plotList.append(hv_ds.to(hv.Curve, kdims=["Eke"], vdims=[vdim, 'Type'], dynamic=False).select(Type=gauge.item()).opts(line_dash=lineDashList[gauge.item()]).overlay(['Cont']))
+            plotList.append(hv_ds.to(hv.Curve, kdims=[kdims], vdims=[vdim, 'Type'], dynamic=False).select(Type=gauge.item()).opts(line_dash=lineDashList[gauge.item()]).overlay(['Cont']))
+
+            # For beta case, force scale
+            # Note 'beta' in lower case in hv_ds, and need to set as parameter in redim
+            # Method from http://holoviews.org/user_guide/Customizing_Plots.html
+            if vdim == 'beta':
+                plotList[-1] = plotList[-1].redim(beta=hv.Dimension(vdim, range=(-1.5, 2.2)))
 
         dsPlotSet += hv.Overlay(plotList)  #.groupby('Cont') #.collate()
+
+    # Set title if required
+    # Default to passed string if set, or use existing labels.
+    # TODO: this currently doesn't seem to display when rendering layout (only tested in Jupyter lab)
+    title = tString
+    if title is None:
+        if hasattr(dataXS, 'jobLabel'):
+            title = dataXS.jobLabel
+        elif hasattr(dataXS, 'file'):
+            title = dataXS.file
+        else:
+            title = 'XS data plot'
+
+    # print(title)
+
+    dsPlotSet = dsPlotSet.opts(title = title)
 
 #     (dsPlotSet + hv.Table(hv_ds)).cols(1)
     # return (dsPlotSet + hv.Table(hv_ds)).cols(1), hv_ds, ds

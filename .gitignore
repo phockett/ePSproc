@@ -5,6 +5,7 @@
 .idea/
 .vscode/
 epsproc.egg-info/
+ePSproc.egg-info/
 build/
 dist/
 docs/build/

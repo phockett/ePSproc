@@ -4,12 +4,16 @@ ePSproc conversion functions
 17/07/20    Added orb3DCoordConv(), for orbital file coord conversions.
 12/03/20    Added multiDimXrToPD(), function adapted from lmPlot() code.
 
+TODO: consider implementing CCLIB for unit conversions. See also pint library.
+
 """
 
 import scipy.constants
 import numpy as np
+import xarray as xr
 
-def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = True, dropna = True, fillna = False, verbose = False):
+def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = True, dropna = True, fillna = False,
+                    colRound = 2, verbose = False):
     """
     Convert multidim Xarray to stacked Pandas 2D array, (rowDims, colDims)
 
@@ -40,6 +44,9 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
 
     fillna : bool, optional, default = False
         Fill any NaN values with 0.0. Useful for plotting/making data contiguous.
+
+    colRound : int, optional, default = True
+        Round column values to colRound dp. Only applied for Eke, Ehv, Euler or t dimensions.
 
     Returns
     -------
@@ -108,10 +115,15 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
     # NOTE - plotDim name retained here for compatibility with lmPlot(), may change in future.
     daRestack = da.unstack().stack(plotDim = rowDimsRed).dropna(dim = 'plotDim', how = 'all')
 
+    # Rounding for column values to prevent large float labels in some cases
+    for dim in colDimsList:
+        if (dim in ['Eke', 'Ehv', 'Euler', 't']) and (colRound is not None):
+            daRestack[dim] = daRestack[dim].round(colRound)
+
+
     # Restack colDims in cases where it is a MultiIndex
     if type(colDims) == dict:
         daRestack = daRestack.stack(colDims)
-
 
     # TODO: add work-around here for singleton x-dim to avoid dropping in that case. (Otherwise have to manually set squeeze = True)
     if squeeze:
@@ -126,7 +138,7 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
 
     # Transpose Pandas table if necessary - colDims must be columns
     if type(colDims) != dict:
-        if colDims not in daRestackpd.columns.names:
+        if hasattr(daRestackpd, 'columns') and (colDims not in daRestackpd.columns.names):  # Check coldims, won't exist in singleton dim case.
             daRestackpd = daRestackpd.T
 
     # For dictionary case, check items for each key are in column names.
@@ -194,7 +206,7 @@ def conv_ev_atm(data, to = 'ev'):
 
 # Convert energy in eV to wavelength in nm
 def conv_ev_nm(data): #, to = 'nm'):
-    """Convert E(eV) <> nu(nm)."""
+    """Convert E(eV) <> lambda(nm)."""
 
     # Define constants from scipy.constants
     h = scipy.constants.h
@@ -212,6 +224,29 @@ def conv_ev_nm(data): #, to = 'nm'):
     #     dataOut = (data/waveConv)*evJ/(h * c)
 
     return dataOut
+
+# Convert energy in eV to wavelength in A, for electrons
+def conv_ev_nm_elec(data): #, to = 'nm'):
+    """Convert Eke(eV) > lambda(A) for electrons."""
+
+    # Define constants from scipy.constants
+    h = scipy.constants.h
+    # c = scipy.constants.c
+    m = scipy.constants.m_e
+    # ec = scipy.constants.e
+    evJ = scipy.constants.physical_constants['electron volt-joule relationship'][0]
+
+    # Define output units - wavelength in m
+    waveConv = 1e-10
+#     dataOut = (h * c)/(data * evJ)/waveConv
+
+    # KE = data*ec
+    # nu = np.sqrt(2*KE/m)
+    nu = np.sqrt(2*(data*evJ)/m)
+    lam = h/(m*nu)/waveConv
+
+    # return (lam, nu, KE)
+    return lam
 
 # Renorm by L=0 term
 def renormL0(data):
@@ -276,6 +311,14 @@ def conv_BL_BLM(data, to = 'sph', renorm = True):
         Bconv = np.sqrt((2*data.L+1)/(4*np.pi))
     elif hasattr(data,'l'):
         Bconv = np.sqrt((2*data.l+1)/(4*np.pi))
+
+    elif hasattr(data,'XC'):
+        # Case for ePS GetCro LF (B2 only) output, with no sigma/XC renorm
+        # Q: Sigma renorm in this case...?
+        # Bconv = xr.DataArray([np.sqrt(1/(4*np.pi)), np.sqrt(5/(4*np.pi))], dims='XC', coords={'XC':['SIGMA','BETA']})
+        Bconv = xr.DataArray([1, np.sqrt(5/(4*np.pi))/np.sqrt(1/(4*np.pi))], dims='XC', coords={'XC':['SIGMA','BETA']})
+        renorm = False # No further renorm in this case
+
     else:
         print("*** Beta conversion error: Data type not supported.")
         return None

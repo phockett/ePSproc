@@ -13,14 +13,17 @@ import pandas as pd
 import xarray as xr
 
 # Fast calc functions
-from epsproc.geomFunc.w3jVecMethods import w3jguVecCPU, w3jprange
+from epsproc.geomFunc.w3jVecMethods import Wigner3jQNs, w3jguVecCPU, w3jprange
 # from epsproc.geomFunc import w3jVecMethods
+
+# Sympy wrappers
+from epsproc.geomFunc.wNjSympyWrapper import w3jSympy
 
 # Other geom functions
 from epsproc.sphCalc import setPolGeoms, wDcalc
 
 # Util funcs.
-from epsproc.geomFunc.geomUtils import genllL, selQNsRow, genllpMatE, genllLList, genKQStermsFromTensors
+from epsproc.geomFunc.geomUtils import genllL, selQNsRow, genllpMatE, genllLList, genKQStermsFromTensors, genLmLamKQStermsFromTensors
 
 # Optional imports
 try:
@@ -334,7 +337,11 @@ def remapllpL(dataIn, QNs, form = 'dict', method = 'sel', dlist = ['l','lp','L',
 
     # Find unique (l,lp,L) and corresponding rows
     uniquellpL, setllpL, indllpL = np.unique(QNs[:,:3], axis = 0, return_inverse = True, return_index = True)
-    uniquellpL = uniquellpL.astype('int')
+
+    # Int conversion UNLESS half int values!
+    if not (uniquellpL%1.0).any():
+        uniquellpL = uniquellpL.astype('int')
+
     llpLKeys = tuple(map(tuple, uniquellpL))  # Map values to tuple for dict keys
 
     # Set structures
@@ -450,6 +457,8 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
         List of QNs [l, lp, L, m, mp, M] to compute 3j terms for.
         If not supplied all allowed terms for {Lmin, Lmax} will be set.
         (If supplied, values for Lmin, Lmax and mFlag are not used.)
+        NOTE: some return types will convert QNs to int when constructing Xarray output, unless half-int values present.
+        Functions using :py:func:`epsproc.geomFunc.geomCalc.remapllpL()` support half-int values in Xarray.
 
     mFlag : bool, optional, default = True
         m, mp take all values -l...+l if mFlag=True, or =0 only if mFlag=False
@@ -511,7 +520,15 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
     # w3jguVecCPU(QNs, w3j_QNs)
 
     # Calculate with numba prange version (fastest in testing Feb 2020)
-    w3j_QNs = w3jprange(QNs)
+    if backend == 'par':
+        w3j_QNs = w3jprange(QNs)
+
+    elif backend == 'sympy':
+        w3j_QNs = w3jSympy(QNs)
+        w3j_QNs = np.array(w3j_QNs)  # Convert to np.array to match other function returns
+
+    else:
+        w3j_QNs = Wigner3jQNs(QNs)  # Fallback to vanilla spherical_functions version.
 
     if nonzeroFlag:
         # Drop zero terms
@@ -527,7 +544,12 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
     elif form == 'xarray':
         # Multindex case - this retains same size as original, since coords are stacked
 
-        QNs = pd.MultiIndex.from_arrays(QNs.real.T.astype('int8'), names = dlist)
+        # Int conversion UNLESS half int values!
+        if not (QNs.real%1.0).any():
+            QNs = pd.MultiIndex.from_arrays(QNs.real.T.astype('int8'), names = dlist)
+        else:
+            QNs = pd.MultiIndex.from_arrays(QNs.real.T, names = dlist)
+
         w3jX = xr.DataArray(w3j_QNs, coords={'QN':QNs}, dims = ['QN'])
         w3jX.attrs['dataType'] = 'Wigner3j'
         return w3jX
@@ -541,7 +563,13 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
     #     w3jX2 = xr.DataArray(w3j_QNs, coords={'ls':QNllpL, 'ms':QNmmpM}, dims = ['ls','ms'])
 
         # Array by stack/unstack - works, but will be slow for large arrays however
-        QNs = pd.MultiIndex.from_arrays(QNs.real.T.astype('int8'), names = dlist)
+        # QNs = pd.MultiIndex.from_arrays(QNs.real.T.astype('int8'), names = dlist)
+        # Int conversion UNLESS half int values!
+        if not (QNs.real%1.0).any():
+            QNs = pd.MultiIndex.from_arrays(QNs.real.T.astype('int8'), names = dlist)
+        else:
+            QNs = pd.MultiIndex.from_arrays(QNs.real.T, names = dlist)
+
         w3jX = xr.DataArray(w3j_QNs, coords={'QN':QNs}, dims = ['QN'])
         w3jX = w3jX.unstack('QN').stack(ls = ['l','lp','L'], ms = ['m','mp','M']).dropna('ms', how = 'all').dropna('ls', how='all')
         w3jX.attrs['dataType'] = 'Wigner3j'
@@ -1235,6 +1263,119 @@ def deltaLMKQS(EPRX, AKQS, phaseConvention = 'S'):
     KQphase = np.power(-1, np.abs(thrjMult.K + thrjMult.Q))
 
     DeltaKQS =  Kdegen * KQphase * thrjMult
+
+    # AF term
+    AFterm = (DeltaKQS * AKQS.unstack()).sum({'K','Q','S'})
+
+    return AFterm, DeltaKQS
+
+# Calculate alignment term - this cell should form core function, cf. betaTerm() etc.
+# 13/01/21 Rough version for AF wavefunction expansion, adapted from existing deltaLMKQS() function.
+def deltalmKQSwf(matE, AKQS, phaseConvention = 'S', dlist1 = ['l','E','K','m','mu','Q'], dlist2 = ['l','E','K','Lambda','mu0','S']):
+    r"""
+    Calculate aligned-frame "alignment" term, version for AF wavefunction expansion.
+
+    .. math::
+        \begin{equation}
+        ^{AF}\Delta_{l,m}(K,Q,S)=(-1)^{m-\Lambda}(-1)^{\mu-\mu_{0}}(-1)^{Q-S}\left(\begin{array}{ccc}
+        l & 1 & K\\
+        -m & -\mu & -Q
+        \end{array}\right)\left(\begin{array}{ccc}
+        l & 1 & K\\
+        -\Lambda & -\mu_{0} & -S
+        \end{array}\right)
+        \end{equation}
+
+    13/01/21 IN PROGRESS, adapted from existing deltaLMKQS() function.
+
+    NOTE: photon QN currently labelled as (E,mu,mu0), but may want to change to avoid confusion with EPR term.
+
+    Parameters
+    ----------
+    matE : Xarray
+        Xarray containing matrix elements, with QNs (l,m), as created by :py:func:`readMatEle`
+
+    AKQS : Xarray
+        Alignement terms in an Xarray, as set by :py:func:`epsproc.setADMs`
+
+    phaseConvention : optional, str, default = 'S'
+        Set phase conventions with :py:func:`epsproc.geomCalc.setPhaseConventions`.
+        To use preset phase conventions, pass existing dictionary.
+        If matE.attrs['phaseCons'] is already set, this will be used instead of passed args.
+
+    dlist1, dlist2 : optional, lists, defaults =  ['l','E','K','m','mu','Q'], ['l','E','K','Lambda','mu0','S']
+        Labels for output QNs.
+
+    Returns
+    -------
+    AFterm : Xarray
+        Full term, including multiplication and sum over (K,Q,S).
+
+    DeltaKQS : Xarray
+        Alignment term :math:`\Delta_{L,M}(K,Q,S)`.
+
+    To do
+    -----
+    - Add optional inputs.
+    - Add error checks.
+    See other similar functions for schemes.
+
+    """
+
+    # Get phase conventions
+    phaseCons = setPhaseConventions(phaseConvention = phaseConvention)
+
+    # Set QNs
+    QNs1, QNs2 = genLmLamKQStermsFromTensors(matE, AKQS, uniqueFlag = True, phaseConvention = phaseConvention)
+
+    # Then calc 3js.... as per betaTerm
+    form = 'xdaLM'  # xds
+    # dlist1 = ['P', 'K', 'L', 'R', 'Q', 'M']  # Now passed to fn.
+    # dlist2 = ['P', 'K', 'L', 'Rp', 'S', 'S-Rp']
+
+    # Copy QNs and apply any additional phase conventions
+    QNs1DeltaTable = QNs1.copy()
+    QNs2DeltaTable = QNs2.copy()
+
+    # Set additional phase cons here - these will be set in master function eventually!
+    # NOW - set in setPhaseConventions()
+    # # NOTE - only testing for Q=S=0 case initially.
+    # phaseCons['afblmCons']['negM'] = phaseCons['genMatEcons']['negm']  # IF SET TO TRUE THIS KNOCKS OUT M!=0 terms - not sure if this is correct here, depends also on phase cons in genKQStermsFromTensors().
+    #                                                                     # Yeah, looks like phase error in current case, get terms with R=M, instead of R=-M
+    #                                                                     # Confusion is due to explicit assignment of +/-M terms in QN generation (only allowed terms), which *already* enforces this phase convention.
+    # phaseCons['afblmCons']['negQ'] = True
+    # phaseCons['afblmCons']['negS'] = True
+
+    # Switch signs (m,M) before 3j calcs.
+    # if phaseCons['afblmCons']['negQ']:
+    #     QNs1DeltaTable[:,4] *= -1
+    #
+    # # Switch sign Q > -Q before 3j calcs.
+    # if phaseCons['afblmCons']['negM']:
+    #     QNs1DeltaTable[:,5] *= -1
+    #
+    # # Switch sign S > -S before 3j calcs.
+    # if phaseCons['afblmCons']['negS']:
+    #     QNs2DeltaTable[:,4] *= -1
+
+
+    # Calculate two 3j terms, with respective QN sets
+    thrj1 = w3jTable(QNs = QNs1DeltaTable, nonzeroFlag = True, form = form, dlist = dlist1)
+    thrj2 = w3jTable(QNs = QNs2DeltaTable, nonzeroFlag = True, form = form, dlist = dlist2)
+
+    # Multiply
+    thrjMult = thrj1.unstack() * thrj2.unstack()
+
+    # Additional terms & multiplications
+    # NOTE THESE ASSUME QN labels.
+    # Kdegen = np.sqrt(2*thrjMult.K + 1)
+    # degen = 8*(np.pi**2)
+    degen = 1
+    lLamPhase = np.power(-1, np.abs(thrjMult.m - thrjMult.Lambda))
+    muPhase = np.power(-1, np.abs(thrjMult.mu - thrjMult.mu0))
+    QSphase = np.power(-1, np.abs(thrjMult.Q - thrjMult.S))
+
+    DeltaKQS =  degen * lLamPhase * muPhase * QSphase * thrjMult
 
     # AF term
     AFterm = (DeltaKQS * AKQS.unstack()).sum({'K','Q','S'})

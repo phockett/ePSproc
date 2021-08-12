@@ -24,6 +24,7 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
 # Package functions
+from epsproc.util.listFuncs import BLMdimList
 from epsproc.sphPlot import plotTypeSelector
 # from epsproc.util import matEleSelector  # Throws error, due to circular import refs?
 # from epsproc.util.conversion import multiDimXrToPD
@@ -137,7 +138,7 @@ def molPlot(molInfo):
 
 #*** BLM surface plots
 
-def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr'):
+def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr', **kwargs):
     """
     Plotting routines for BLM values from Xarray.
     Plot line or surface plot, with various backends available.
@@ -160,8 +161,12 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr'):
 
     backend : str, optional, default = 'xr'
         Plotter to use. Default is 'xr' for Xarray internal plotting. May be switched according to plot type in future...
+        **kwargs are currently passed to the plotter backend.
 
     """
+    # Local/deferred import to avoid circular import issues at module level.
+    # TO DO: Should fix with better __init__!
+    from epsproc.util import matEleSelector
 
     # Check dims, and set facet dim
     dims = BLMdimList()
@@ -173,7 +178,7 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr'):
         thres = thres * BLM.max()
 
     # Threshold results. Set to check along Eke dim, but may want to pass this as an option.
-    BLMplot = ep.matEleSelector(BLM, thres=thres, dims = xDim)
+    BLMplot = matEleSelector(BLM, thres=thres, dims = xDim)
 
     # Set BLM index for plotting.
     # Necessary for Xarray plotter with multi-index categories it seems.
@@ -181,7 +186,7 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr'):
 
     #*** Plot
     if backend is 'xr':
-        BLMplot.real.squeeze().plot(x=xDim, y='BLMind', col=cDims, size = 5)
+        BLMplot.real.squeeze().plot(x=xDim, y='BLMind', col=cDims, size = 5, **kwargs)
 
 
 
@@ -192,11 +197,12 @@ def symListGen(data):
     symList = []
     [symList.append(list(item)) for item in data.get_index('Sym').to_list()]
 
-    return np.ravel(symList)
+    return np.unique(np.ravel(symList))
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
-        selDims = None, sumDims = None, plotDims = None, squeeze = True, fillna = False,
-        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10):
+        selDims = None, sumDims = None, plotDims = None, squeeze = False, fillna = False,
+        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10, titleString = None,
+        labelRound = 3):
     """
     Plotting routine for ePS matrix elements & BLMs.
 
@@ -276,6 +282,14 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         Used as default for m colour mapping, in cases where coords are not parsed.
         TODO: fix this, it's ugly.
 
+    titleString : str, optional, default = None
+        Set main title for plot. If not set, filename or data.attr['jobLabel'] will be used if present.
+        Some plot settings labels will also be appended to this.
+
+    labelRound : int, optional, default = 3
+        Round to N d.p. for plot labels (legend text).
+        This is also passed to :py:func:`epsproc.multiDimXrToPD()` for column labels (for E, t or Euler dims only)
+
     Returns
     -------
     daPlot : Xarray
@@ -308,12 +322,15 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     - Improved dim handling, maybe use :py:func:`epsproc.util.matEdimList()` (and related functions) to avoid hard-coding multiple cases here.
         - Partially implemented in dimMap.
         - Currently throws an error for None in symmetry plotting cases for unrecognised dataType. TO FIX!
+           - 14/01/21 fixed, but possibly introduced other issues!
+        - Consider consolidating mapping styles further, and keeping a global list of parent and child dims? Or otherwise pulling from stacked Xarray?
     - Improved handling of sets of polarization geometries (angles).
     - CONSOLIDATE stacked/unstacked dim handling.  At the moment some functions use stacked, some unstacked, which is leading to annoying bugs.
 
     History
     -------
 
+    * 14/01/21 - Fixed bug in handling nested dims for unknown datatypes (hopefully), specifically for Sym dims.
     * 27/02/20 - handling for MultiIndex cases for Wigner 3j type data (function of (l,lp,L,m,mp,M))
         * Fixed issue with conversion to Pandas table - should now handle dims better.
         * Improved multidim dropna() using Xarray version (previously used Pandas version).
@@ -383,7 +400,8 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         dimMap = dataTypes[daPlot.attrs['dataType']]['dims']
     else:
         # dimMap = None  # This is painful and gives errors for arb data types symmetry cases
-        dimMap = list(daPlot.dims)  # This is OK, but won't get nested dims.
+        # dimMap = list(daPlot.dims)  # This is OK, but won't get nested dims.
+        dimMap = {item:(list(daPlot.get_index(item).names) if len(daPlot.get_index(item).names)>1 else []) for item in daPlot.dims }  # Return subdims or empty list in dict format
 
 
 
@@ -419,7 +437,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     # Sum & threshold
     if sumDims is not None:
-        daPlot = daPlot.sum(sumDims).squeeze()
+        daPlot = daPlot.sum(sumDims) #.squeeze()  # Set squeeze condition below.
         daPlot.attrs = data.attrs  # Reset attribs
 
     # If xDim is stacked, check it exists and create it if not.
@@ -432,7 +450,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     # Threshold on abs() value before setting type, otherwise all terms will appear for some cases (e.g. phase plot)
     # daPlot = matEleSelector(daPlot, thres=thres, inds = selDims, dims = xDim) # , sq = True)  # Squeeze may cause issues here if a singleton dim is used for xDim.
-    daPlot = matEleSelector(daPlot, thres=thres, dims = xDim) # Version without selection, now incorporated above.
+    daPlot = matEleSelector(daPlot, thres=thres, dims = xDim, drop = False, sq = squeeze) # Version without selection, now incorporated above.
     daPlot = plotTypeSelector(daPlot, pType = pType, axisUW = xDim)
 
     # daPlot = ep.util.matEleSelector(daPlot, thres=thres, inds = selDims, dims = 'Eke', sq = True)
@@ -475,6 +493,12 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             lutSym = dict(zip(map(str, np.unique(symList)), palSym))
         else:
             symFlag = False
+            symList = []
+
+        # 14/01/20 Set catch-all defaults for dims with shared cmaps - UGLY, partially implemented below, but still have lots of special cases
+        # 01/02/21 Added set check with xDim to ensure this works for mixed (l,K) cases, with one as xDim (otherwise can miss labels).
+        lDims = list(set(['l', 'K', 'lp', 'L'])-set(xDim))
+        mDims = ['m', 'mp', 'mu', 'Q', 'S', 'mu0', 'Lambda', 'M']
 
         # Set unified cmap for (m,mu)
         # Switch for matE or BLM data type.
@@ -486,6 +510,31 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
         # Set unstaked (full) dim list
         dimUS = daPlot.unstack().dims
+
+        # Set l (or equivalent) cmap here, ensures ordering over over dims (ordered list returned from daPlot Xarray).
+        # NOTE - set crude default case for max = 10.
+        # NOTE - assumes only one of these dims is present (or will overwrite)
+        # Added 28/09/20
+        # lList = []
+        lList = np.arange(0, 10, dtype=np.int64)  # Set default case. UGLY.
+        # lList = daPlot[xDim].pipe(np.unique)        # Should be able to default to first xDim passed?
+        lListTemp = []
+        for dim in dimUS:
+            # if dim in ['l', 'K', 'lp', 'L']:
+            if dim in lDims:
+                # lList = daPlot[dim].pipe(np.unique)  # This fails for multiple l-types with different values
+                lListTemp.extend(daPlot[dim].pipe(np.unique))  # Stack over all matching dims then recheck for unique values.
+
+        if lListTemp:
+            lList = np.unique(lListTemp)
+
+        # if not lList.any():
+        #     lList = lListDefault
+
+
+        palL = sns.light_palette("green", n_colors=lList.size)
+        lutL = dict(zip(map(str, lList), palL))
+
 
         if 'LM' in daPlot.dims:
             try:
@@ -518,7 +567,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
 # 12/03/20 - moving this to separate conversion function, since tabulation is handy.
         # Note thres=None set here to avoid putting holes in the pd data. This is a temp workaround!
-        daPlotpd, daPlot = multiDimXrToPD(daPlot, colDims = xDim, rowDims = plotDims, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze)
+        daPlotpd, daPlot = multiDimXrToPD(daPlot, colDims = xDim, rowDims = plotDims, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze, colRound = labelRound)
 
         # # Convert to Pandas 2D array, stacked along plotDims - these will be used for colour bar.
         # # TO DO: fix hard-coded axis number for dropna()
@@ -603,7 +652,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         cList = []
         legendList = []
         for dim in daPlotpd.index.names:
-            Labels = daPlotpd.index.get_level_values(dim) #.astype('str')
+            # 28/09/20: added .unique().sort_values(), should clean up legend a little bit?
+            # EDIT: actually added only for legendList.append() stuff below.
+            # Q: this should be OK, but may mess up multidim labels...?
+            Labels = daPlotpd.index.get_level_values(dim)  # .unique().sort_values() #.astype('str')
 
             if verbose:
                 print(dim)
@@ -611,13 +663,19 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
             # For (l,m,mu) set colour scales as linear (l), and diverging (m,mu)
             # May want to modify (m,mu) mappings to be shared?
-            if dim in ['l', 'K', 'lp']:
-                pal = sns.light_palette("green", n_colors=Labels.unique().size)
-                lut = dict(zip(map(str, Labels.unique()), pal))
+            # 28/09/20: revisiting to fix ordering over multiple states.
+            #   Should be fixed by setting master list above, as per M state settings, since that takes ordered list over full dataset.
+            #   (Otherwise l cmap may be split by sym or other dim ordering)
+            # if dim in ['l', 'K', 'lp', 'L']:
+            if dim in lDims:
+                # pal = sns.light_palette("green", n_colors=Labels.unique().size)
+                # lut = dict(zip(map(str, Labels.unique()), pal))
+                pal = palL
+                lut = lutL
                 cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
-                legendList.append((Labels.unique(), lut))
+                legendList.append((Labels.unique().sort_values(), lut))
 
-            elif dim in ['m', 'mp', 'mu', 'Q', 'S']:
+            elif dim in mDims:
 #                 pal = sns.diverging_palette(220, 20, n=Labels.unique().size)
 #                 lut = dict(zip(map(str, Labels.unique().sort_values()), pal))  # Note .sort_values() required here.
                 pal = palM
@@ -629,14 +687,18 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             # This will keep things consistent over all sym sub-labels
             # NOTE - symFlag setting allows for case when dimMap['Sym'] is missing (will throw an error otherwise)
             # 24/06/20 - removed "and" here - throws error for unmapped types. Nope, reinstated - causes other issues!
+            # 14/01/21 - hopefully fixed by using symList, and setting empty default.
             elif symFlag and (dim in dimMap['Sym']):
             # elif symFlag and (dim in symList):
+            # elif symFlag or (dim in symList):
 #                 pal = sns.color_palette("hls", np.unique(symList).size)
 #                 lut = dict(zip(map(str, np.unique(symList)), pal))
+
                 pal = palSym
                 lut = lutSym
                 cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
-                legendList.append((Labels.unique(), lut))
+                legendList.append((Labels.unique().sort_values(), lut))
+                # pass
 
             # For other dims, set to categorical mapping.
             # Should check for shared dims here, e.g. Syms, for mapping...?
@@ -649,7 +711,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 #                 pal = sns.light_palette("blue", n_colors=Labels.unique().size)
                 lut = dict(zip(map(str, Labels.unique()), pal))
                 cList.append(pd.Series(Labels.astype('str'), index=daPlotpd.index).map(lut))  # Mapping colours to rows
-                legendList.append((Labels.unique(), lut))
+                legendList.append((Labels.unique().sort_values(), lut))
 
             # For legend, keep also Labels.unique, lut, pairs
 #             legendList.append((Labels.unique(), lut, dim))  # Include dim... redundant if Labels is pd.index with name
@@ -660,6 +722,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         colors = pd.DataFrame(cList[0])
         for c in cList[1:]:
             colors = colors.join(pd.DataFrame(c))
+
+        # Rounding for long labels on xDim
+        # if daPlotpd.columns.name in ['Eke','Ehv']:
+        # NOW SET IN multiDimXrToPD()
 
         # *** Plot with modified clustermap code.
         g = snsMatMod.clustermap(daPlotpd,
@@ -679,26 +745,76 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # Using this method it's only possible to set two sets of legends, split these based on n here.
         # Method from https://stackoverflow.com/questions/27988846/how-to-express-classes-on-the-axis-of-a-heatmap-in-seaborn
         # TO DO: For further control over legend layout may need to add dummy items: https://stackoverflow.com/questions/34212241/control-the-number-of-rows-within-a-legend
+
+        # 14/01/21: testing with preset dims & conditionals
+        # TO DO: Should be able to just use lutM list and plot global min-max? Currently may have issues with different sized dims?
+        # 03/05/21 - testing label rounding here, for float quantities. This fails either for tuple overwrite or on lookup later, ugh. HORRIBLE SHIT.
+        #           NOW FORCED WITH enumerate(), but it's still pretty UGLY.  Seems OK in testing, working for legend labels only.
+        # TODO: fix with Pandas methods? Should be able to fix for ledgend & axis labels?
+        # NOTE: this is set for column labels with multiDimXrToPD() above, should also add index rounding there?
+        mDimLabel = None
         for n, item in enumerate(legendList):
             # To avoid issues with long floats, round to 3dp
             # TODO: fix this, currently fails for Euler angles case?
-            # if item[0].dtype == np.float:
-            #     item[0] = np.round(item[0],3)
+            # 26/09/20: added name check here, hopefully this will fix Euler case...TBC...
+            # 03/05/21: retested this... failing for all tried variations, due to either tuple immutability and/or lookups later if values changed.  THIS IS HORRIBLE CODE.
+            # Also added above for xDim labels.
+            if (item[0].dtype == np.float) or (item[0].name in ['Eke','Ehv','t','Euler']):
+                labelsR = np.round(item[0],3).astype('str')
+            else:
+                labelsR = item[0].astype('str')
 
-            for label in item[0].astype('str'):
+            # for label in item[0].astype('str'):
+            for ln, label in enumerate(item[0].astype('str')):
+            # for label in labels:
+
+                # 03/05/21 - testing label rounding here, this fails on lookup later, ugh.
+                # if isinstance(label, np.float):
+                #     labelR = np.round(label,3).astype('str')
+                # else:
+                #     labelR = label  #.astype('str')
+                labelR = labelsR[ln]
+
+                if verbose:
+                    print(f"Legend entry: {label} for {item}")
 #                 label = string(label)
 #                 if n%2:
-                if item[0].name in ['l','m','K','Q']:
+
+                # 1st legend for l,m,mu
+#                 if item[0].name in ['l','m','K','Q','Lambda']:
+#                     g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
+#                 elif item[0].name in ['mu','S','mu0']:  # Skip to avoid repetition, assuming m or Q already plotted on same colour scale. TODO: add conditionals here?
+#                     pass
+# #                 elif symFlag and (item[0].name is 'Cont'):
+# #                     g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
+#                 elif symFlag and (item[0].name in dimMap['Sym']):  # Skip symmetries
+#                 # elif symFlag and (item[0].name in symList):  # Skip symmetries
+#                     pass
+
+                # 14/01/21: testing with preset dims & conditionals
+                if item[0].name in lDims:
                     g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
-                elif item[0].name in ['mu','S']:  # Skip to avoid repetition, assuming m or Q already plotted on same colour scale.
-                    pass
+                    # g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=labelR, linewidth=0)
+                elif item[0].name in mDims:
+                    if mDimLabel is None:  # Set first found mDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
+                        mDimLabel = item[0].name
+                    if item[0].name == mDimLabel:
+                        g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=f"({label})", linewidth=0)
+                        # g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=f"({labelR})", linewidth=0)
+
+                # elif item[0].name in ['mu','S','mu0']:  # Skip to avoid repetition, assuming m or Q already plotted on same colour scale. TODO: add conditionals here?
+                #     pass
 #                 elif symFlag and (item[0].name is 'Cont'):
 #                     g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
                 elif symFlag and (item[0].name in dimMap['Sym']):  # Skip symmetries
                 # elif symFlag and (item[0].name in symList):  # Skip symmetries
                     pass
+
+                # 2nd legend for other dims.
                 else:
-                    g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
+                    # g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)  # Label with value only
+                    # g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=f"{item[0].name}: {label}", linewidth=0)  # Label with category too.
+                    g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=f"{item[0].name}: {labelR}", linewidth=0)  # Label with category too.
 
         # Add symmetry labels separately from master list to avoid repetition
         if symFlag:
@@ -725,7 +841,14 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         else:
             thresStr = 'None'
 
-        g.ax_heatmap.set_title(f"{daPlot.attrs['file']}, plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {thresStr}, inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
+        # Set main plot title if not passed.
+        if titleString is None:
+            if hasattr(daPlot,'jobLabel'):
+                titleString = daPlot.attrs['jobLabel']
+            else:
+                titleString = daPlot.attrs['file']
+
+        g.ax_heatmap.set_title(f"{titleString}\n Plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {thresStr}\n Inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
 
         # sns.reset_orig()  # Reset gloabl plot params - leaves rc settings, also triggers Matplotlib errors
         sns.reset_defaults()

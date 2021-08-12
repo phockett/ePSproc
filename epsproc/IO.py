@@ -15,6 +15,8 @@ Main function: :py:func:`epsproc.IO.readMatEle`:
 
 History
 -------
+13/10/20        Adapted main function readMatEle() to use grouped lists for multi-file jobs, should be back-compatible if stackE = False set.
+
 06/11/19        Added jobInfo and molInfo data structures, from ePS file via :py:func:`epsproc.IO.headerFileParse()` and :py:func:`epsproc.IO.molInfoParse()`.
                 Still needs a bit of work, and may want to implement other (comp chem) libraries here.
 
@@ -69,13 +71,24 @@ except ImportError as e:
 
 # Package fns.
 from epsproc.util import matEleSelector, dataGroupSel, matEdimList, BLMdimList, stringRepMap, conv_ev_atm, orb3DCoordConv
+from epsproc.util.misc import fileListSort
+from epsproc.util.env import isnotebook
+
+# Set HTML output style for Xarray in notebooks (optional), may also depend on version of Jupyter notebook or lab, or Xr
+# See http://xarray.pydata.org/en/stable/generated/xarray.set_options.html
+if isnotebook():
+    # Try/except here to allow for different XR versions.
+    try:
+        xr.set_options(display_style = 'html')
+    except ValueError:
+        pass
 
 # ***** Ancillary functions
 
 # File parsing function - scan file for keywords & read segments
 #   Following above idiomatic solution, with full IO
 #   https://stackoverflow.com/questions/3961265/get-line-number-of-certain-phrase-in-file-python
-def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, verbose = False):
+def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, verbose = 0):
     """
     Parse a file, return segment(s) from startPhrase:endPhase, excluding comments.
 
@@ -89,6 +102,11 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
         Phrase denoting end of section to read. Default = None
     comment : str, optional
         Phrase denoting comment lines, which are skipped. Default = None
+    verbose : int, optional, default = 1
+        Level of verbosity in output.
+        - 0 no printed output
+        - 1 print summary info only
+        - 2 print detailed info
 
     Returns
     -------
@@ -119,7 +137,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
             # Note use of lstrip to skip any leading whitespace.
             # if startPhrase in line:
             if line.lstrip().startswith(startPhrase):
-                if verbose:
+                if verbose > 1:
                     print('Found "', startPhrase, '" at line: ', i)
 
                 lineStart.append(i)
@@ -154,7 +172,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
 
 
 # Simple wrapper for general fileParse function, ePS dumpIdy segments
-def dumpIdyFileParse(fileName):
+def dumpIdyFileParse(fileName, verbose = 1):
     """
     Parse an ePS file for dumpIdy segments.
 
@@ -162,6 +180,9 @@ def dumpIdyFileParse(fileName):
     ----------
     fileName : str
         File to read (file in working dir, or full path)
+
+    verbose : bool or int, optional
+        If true, print segment info.
 
     Returns
     -------
@@ -177,15 +198,16 @@ def dumpIdyFileParse(fileName):
     startPhrase = "DumpIdy - dump"
     endPhrase = ["+ Command", "Time Now"]  # In this case may have multiple end phrases
 
-    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase) # , '>')
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, verbose = verbose) # , '>')
 
     # NOTE - with current code dumpSegs has one final blank segment
-    print('Found {0} dumpIdy segments (sets of matrix elements).'.format(len(dumpSegs) - 1))
+    if verbose:
+        print('Found {0} dumpIdy segments (sets of matrix elements).'.format(len(dumpSegs) - 1))
 
     return lines, dumpSegs[:-1]
 
 # Simple wrapper for general fileParse function, ePS EDCS segments
-def EDCSFileParse(fileName):
+def EDCSFileParse(fileName, verbose = 1):
     """
     Parse an ePS file for EDCS segments.
 
@@ -193,6 +215,9 @@ def EDCSFileParse(fileName):
     ----------
     fileName : str
         File to read (file in working dir, or full path)
+
+    verbose : bool or int, optional
+        If true, print segment info.
 
     Returns
     -------
@@ -208,15 +233,16 @@ def EDCSFileParse(fileName):
     startPhrase = "EDCS - differential cross section program"
     endPhrase = ["+ Command", "Time Now"]  # In this case may have multiple end phrases
 
-    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase) # , '>')
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, verbose = verbose) # , '>')
 
     # NOTE - with current code dumpSegs has one final blank segment
-    print('Found {0} EDCS segments (sets of scattering results).'.format(len(dumpSegs) - 1))
+    if verbose:
+        print('Found {0} EDCS segments (sets of scattering results).'.format(len(dumpSegs) - 1))
 
     return lines, dumpSegs[:-1]
 
 # Simple wrapper for general fileParse function, ePS GetCro/CrossSection segments
-def getCroFileParse(fileName):
+def getCroFileParse(fileName, verbose = 1):
     """
     Parse an ePS file for GetCro/CrossSection segments.
 
@@ -224,6 +250,9 @@ def getCroFileParse(fileName):
     ----------
     fileName : str
         File to read (file in working dir, or full path)
+
+    verbose : bool or int, optional
+        If true, print segment info.
 
     Returns
     -------
@@ -240,17 +269,18 @@ def getCroFileParse(fileName):
     startPhrase = "COMPOSITE CROSS SECTIONS AT ALL ENERGIES"  # Final table of XSect values
     endPhrase = ["+ Command", "Time Now"]  # In this case may have multiple end phrases
 
-    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase) # , '>')
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, verbose = verbose) # , '>')
 
     # NOTE - with current code dumpSegs has one final blank segment
-    print('Found {0} CrossSection segments (sets of results).'.format(len(dumpSegs) - 1))
+    if verbose:
+        print('Found {0} CrossSection segments (sets of results).'.format(len(dumpSegs) - 1))
 
     return lines, dumpSegs[:-1]
 
 
 
 # Simple wrapper for general fileParse function, check ScatEng and return Eke list
-def scatEngFileParse(fileName):
+def scatEngFileParse(fileName, verbose = 1):
     """
     Parse an ePS file for ScatEng list.
 
@@ -258,6 +288,9 @@ def scatEngFileParse(fileName):
     ----------
     fileName : str
         File to read (file in working dir, or full path)
+
+    verbose : bool or int, optional
+        If true, print segment info.
 
     Returns
     -------
@@ -271,18 +304,19 @@ def scatEngFileParse(fileName):
     endPhrase = "#"
     comment = "+"
 
-    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, comment) # , '>')
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, comment, verbose = verbose) # , '>')
 
     # Grab E list, assuming just first segment scanned is relevant
     ekeList = np.genfromtxt(StringIO(dumpSegs[0][0][2][7:]))
 
     # print('Expecting {0} energy points.'.format(len(ekeList)))  # For np.array, this will fail for singleton dim.
-    print('Expecting {0} energy points.'.format(ekeList.size))
+    if verbose:
+        print('Expecting {0} energy points.'.format(ekeList.size))
 
     return ekeList
 
 # Simple wrapper for general fileParse function, check symmetries and return list
-def symFileParse(fileName):
+def symFileParse(fileName, verbose = 1):
     """
     Parse an ePS file for scattering symmetries.
 
@@ -290,6 +324,9 @@ def symFileParse(fileName):
     ----------
     fileName : str
         File to read (file in working dir, or full path)
+
+    verbose : bool or int, optional
+        If true, print segment info.
 
     Returns
     -------
@@ -303,10 +340,11 @@ def symFileParse(fileName):
     endPhrase = ["FileName", "\n"]
     comment = "+"
 
-    (lines, symSegs) = fileParse(fileName, startPhrase, endPhrase, comment) # , '>')
+    (lines, symSegs) = fileParse(fileName, startPhrase, endPhrase, comment, verbose = verbose) # , '>')
 
     # Grab E list, assuming just first segment scanned is relevant
-    print('Expecting {0} symmetries.'.format(len(symSegs) - 1))
+    if verbose:
+        print('Expecting {0} symmetries.'.format(len(symSegs) - 1))
 
     return symSegs[:-1]
 
@@ -353,7 +391,7 @@ def headerFileParse(fileName, verbose = True):
     startPhrase = "ePolyScat Version" # Read from top of file
     endPhrase = ["+ End of input reached"]  # In this case only have a single end phrases, but need to pass as list to avoid iterating over phrase
 
-    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase) # , '>')
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, verbose = verbose) # , '>')
 
     # NOTE - with current code dumpSegs has one final blank segment
     # print('Read {0} dumpIdy segments (sets of matrix elements).'.format(len(dumpSegs) - 1))
@@ -437,7 +475,7 @@ def molInfoParse(fileName, verbose = True):
     # Extract mol segment
     startPhrase = "Selecting orbitals" # Read from top of file
     endPhrase = ["+ "]  # In this case only have a single end phrases, but need to pass as list to avoid iterating over phrase
-    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase)
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, verbose = verbose)
 
     # Basic parsing to lists
     orbList = []
@@ -461,11 +499,21 @@ def molInfoParse(fileName, verbose = True):
     orbTable = []
     [orbTable.append(parseLineDigits(orb)) for orb in orbList]
     orbTable = np.asarray(orbTable).astype('float')
-    orbTable = np.c_[orbTable, conv_ev_atm(orbTable[:,2], to='ev')]  # Convert to eV and add to array
 
     # # Convert to Xarray - now moved below to include additional orb info.
     # cols = ['N', 'EH', 'Occ', 'E']
     # orbTableX = xr.DataArray(orbTable[:,1:], coords = {'orb':orbTable[:,0], 'props':cols}, dims=['orb','props'])
+
+    # 26/03/21 - moved labels here with basic dim check to allow for different output in ePS build 3885d87
+    if 'SymOrb' in orbList[0]:
+        orbListCols = ['N', 'SymOrb', 'EH', 'Occ', 'E']
+        EHind = 3
+    else:
+        orbListCols = ['N', 'EH', 'Occ', 'E']
+        EHind = 2
+
+    orbTable = np.c_[orbTable, conv_ev_atm(orbTable[:,EHind], to='ev')]  # Convert to eV and add to array
+    EVind = orbTable.shape[1] - 2  # Set E index for Xarray conv later.
 
     # Sort coords to np.array
     atomTable = []
@@ -482,7 +530,7 @@ def molInfoParse(fileName, verbose = True):
     # Read SymProd output, this lists orbs by symmetry & degenerate groups
     startPhrase = "SymProd - Construct products of symmetry types" # Read from top of file
     endPhrase = ["Time Now ="]  # In this case only have a single end phrases, but need to pass as list to avoid iterating over phrase
-    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase)
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, verbose = verbose)
 
     # Convert lines to useful values
     orbSet = []
@@ -512,7 +560,7 @@ def molInfoParse(fileName, verbose = True):
     # Parse ExpOrb output to check orbital expansion convergence
     startPhrase = "ExpOrb - Single Center Expansion Program" # Read from top of file
     endPhrase = ["Time Now ="]  # In this case only have a single end phrases, but need to pass as list to avoid iterating over phrase
-    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase)
+    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, verbose = verbose)
 
     # Parse 'Orbital' lines
     # Note - these are orbital groups
@@ -537,10 +585,11 @@ def molInfoParse(fileName, verbose = True):
 
     #*** Set as Xarray
     # TODO: make this neater/better!
-    cols = ['N', 'EH', 'Occ', 'E', 'Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt']
-    orbTableX = xr.DataArray(temp, coords = {'orb':orbTable[:,0].astype(int), 'props':cols}, dims=['orb','props'])  # TODO: fix type here - changes to float in Xarray...?
+    # cols = ['N', 'EH', 'Occ', 'E', 'Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt']
+    orbListCols.extend(['Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt'])  # 26/03/21 adapted for new ePS build
+    orbTableX = xr.DataArray(temp, coords = {'orb':orbTable[:,0].astype(int), 'props':orbListCols}, dims=['orb','props'])  # TODO: fix type here - changes to float in Xarray...?
     orbTableX['Sym'] = ('orb', orbSymList)  # Add symmetries, E and OrbGrp as non-dim coords - possibly not a great thing to do...?  Not easy to index with these
-    orbTableX['E'] = ('orb', temp[:,3])
+    orbTableX['E'] = ('orb', temp[:,EVind])
     orbTableX['OrbGrp'] = ('orb', orbList[:,3])
 
     # Alternatively - add as dim coords. This duplicates data in this case, would need to sort by line or reshape array to get this working (cf. matrix elements)
@@ -628,7 +677,7 @@ def dumpIdySegParse(dumpSeg):
 
 
 # Functional form for parsing full set of mat elements and putting in xarray
-def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
+def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
     """
     Extract data from ePS dumpIdy segments into usable form.
 
@@ -639,6 +688,9 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
 
     ekeListUn : list
         List of energies, used for error-checking and Xarray rearraging, as returned by :py:func:`epsproc.IO.scatEngFileParse()`
+
+    verbose : bool, default True
+        Print job info from file header if true.
 
     Returns
     -------
@@ -657,16 +709,44 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
 
     """
 
+    # Logging
     dataList = []
     ekeList = []
     blankSegs = 0
+
+    blankMatE = 0
+    blankSymList = []
 
     # Loop over DumpIdy segments, extract data & reformat
     # If blank, skip parser and append blankSegs.
     for dumpSeg in dumpSegs:
         if len(dumpSeg)>6:
             segBlock, attribs = dumpIdySegParse(dumpSeg)
-            dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])
+
+            # Test also on returned sebBlock, this can be empty in some cases (matrix elements below threhold, which creates stub in output file but contains no values)
+            # if not segBlock.any():
+                # segBlock = np.zeros([1,7])  # With zeros - gives index issues later
+                # segBlock = np.full([1,7], fill_value = np.nan)  # With NaNs - gives issues later however.
+
+            if segBlock.any():
+                dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])
+                ekeList.append(attribs[0][1])
+
+            # Skip and treat as blankSeg in this case, as per default case below
+            # HOWEVER - may want to propagate missing symmetry case here?
+            # ACTUALLY - propagate as blankMatE, and skip Eke listing.
+            else:
+                blankMatE += 1
+                # ekeList.append(attribs[0][1])
+                blankSymList.append(attribs[4][1])
+
+                # ekeList.append(np.nan)  # This adds multiple np.nan entries which propagate through np.unique() later.
+
+            # else:
+            #     # dataList.append([*(6*[np.nan]), attribs])  # Set list of nans for empty case.
+            #     dataList.append([*(6*[np.nan]), attribs])
+
+
             # Switch l,m - with advanced indexing, other methods faster...? https://stackoverflow.com/questions/4857927/swapping-columns-in-a-numpy-array
             # Now done later via pd.MultiIndex.swaplevel()
             # dataList[-1][0][[0,1],:] = dataList[-1][0][[1,0],:]
@@ -674,7 +754,7 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
             # dataList.append([segBlock[:,0:5].T, segBlock[:,5]+1j*segBlock[:,6], attribs])
             # dataList.append([segBlock[:,0:5], segBlock[:,5]+1j*segBlock[:,6], attribs])
 
-            ekeList.append(attribs[0][1])
+
 
         else:
             blankSegs += 1
@@ -689,6 +769,9 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
     if len(ekeList) != ekeTest.size * len(symSegs):
         print("*** Warning: Missing records, expected {0}, found {1}.".format(ekeTest.size * len(symSegs),len(ekeList)))
 
+    if blankMatE > 0:
+        print("*** Warning: Found {0} blank sets of matrix elements, symmetries {1}".format(blankMatE, np.unique(blankSymList)))
+
     #**** Convert to xarray - ugly loop version, probably a better way to do this!
     #TODO Should:
     #   - be able to loop more cleanly over attribs - set as dict?
@@ -699,7 +782,9 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs):
     dataSym = []
     ekeVal = ekeList[0]
 
-    print('\nProcessing segments to Xarrays...')
+    if verbose:
+        print('\nProcessing segments to Xarrays...')
+
     eLoop = 0   # For logging E vs. sym segments and looping output.
     for n, data in enumerate(dataList):
         attribs = data[2]
@@ -1359,7 +1444,7 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
 
     if fileIn is not None:
         # Wrap in list if only single file passed
-        if type(fileIn) is str:
+        if type(fileIn) is not list:
             fileIn = [fileIn]
 
         fList = []
@@ -1397,7 +1482,7 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
 #TODO: Check/fix paths if incorrectly passed, e.g. https://stackoverflow.com/a/21605790
 # ADDED: type switch for matEle or EDCS, probably more to come. Should rename function!
 
-def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'DumpIdy'):
+def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'DumpIdy', verbose = 1, stackE = True):
     r"""
     Read ePS file(s) and return results as Xarray data structures.
     File endings specified by fType, default *.out.
@@ -1423,6 +1508,14 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
         For a full list of descriptions, types and sources, run:
         >>> epsproc.util.dataTypesList()
 
+    verbose : int, optional, default = 1
+        Level of verbosity in output.
+        - 0 no printed output
+        - 1 print summary info only
+        - 2 print detailed info
+
+    stackE : bool, optional, default = True
+        Identify and stack multi-part jobs to single array (by E) if True.
 
     Returns
     -------
@@ -1432,6 +1525,9 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
     To do
     -----
     - Change to pathlib paths.
+    - Implement outputType options...?
+
+    13/10/20    Adapted to use grouped lists for multi-file jobs, should be back-compatible if stackE = False set.
 
     Examples
     --------
@@ -1455,53 +1551,113 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
     #   - file(s) and add to list with full path
     #   - default case is scan current working dir.
 
-    print('*** ePSproc readMatEle(): scanning files for ' + recordType + ' segments.')
+    if verbose:
+        print('*** ePSproc readMatEle(): scanning files for ' + recordType + ' segments.')
 
     # Call function to check files or scan dir.
-    fList = getFiles(fileIn = fileIn, fileBase = fileBase, fType = fType)
+    fList = getFiles(fileIn = fileIn, fileBase = fileBase, fType = fType, verbose = verbose)
+
+    # Check if job is multipart, and stack files if so, based on filename prefix
+    if stackE:
+        fListSorted, fListGrouped, prefixStr = fileListSort(fList, verbose = verbose)
+
+    else:
+        fListGrouped = [fList]  # Default case, just use fList here.
+        prefixStr = ''
+
+    if verbose > 2:
+        print(fListGrouped)
+
 
     # Loop over fList and scan ePS files
+    # 13/10/20 Adapted to use grouped subsets.
     dataSet = []
-    for file in fList:
-        print('\n*** Reading ePS output file: ', file)
+    dataStack = []
+    for fList in fListGrouped:
+        # Force to list for singleton case.
+        if not isinstance(fList, list):
+            fList = [fList]
 
-        # Scan the file and parse segments
-        #lines, dumpSegs = dumpIdyFileParse(os.path.join(fileBase, file))
+        # Check if files should be Eke stacked
+        if stackE and len(fList) > 1:
+            stackFlag = True
+        else:
+            stackFlag = False
 
-        if recordType is 'DumpIdy':
-            ekeList = scatEngFileParse(file)
-            symSegs = symFileParse(file)
-            print('Scanning CrossSection segments.')
-            print('Expecting {0} DumpIdy segments.'.format(ekeList.size * len(symSegs)))
-            lines, dumpSegs = dumpIdyFileParse(file)
-            data, blankSegs = dumpIdySegsParseX(dumpSegs, ekeList, symSegs)
+        for file in fList:
+            if verbose:
+                print('\n*** Reading ePS output file: ', file)
 
-        if recordType is 'EDCS':
-            # print('Expecting {0} EDCS segments.'.format(ekeList.size))
-            print('Scanning EDCS segments.')
-            lines, dumpSegs = EDCSFileParse(file)
-            data, blankSegs = EDCSSegsParseX(dumpSegs) # , ekeList, symSegs)
+            # Scan the file and parse segments
+            #lines, dumpSegs = dumpIdyFileParse(os.path.join(fileBase, file))
 
-        if recordType is 'CrossSection':
-            ekeList = scatEngFileParse(file)
-            symSegs = symFileParse(file)
-            print('Scanning CrossSection segments.')
-            print('Expecting {0} CrossSection segments.'.format(len(symSegs)+1))  # Assuming 1 segment per symmetry, plus symm-summed case.
-            lines, dumpSegs = getCroFileParse(file)
-            data, blankSegs = getCroSegsParseX(dumpSegs, symSegs, ekeList)
+            if recordType is 'DumpIdy':
+                ekeList = scatEngFileParse(file, verbose = verbose)
+                symSegs = symFileParse(file, verbose = verbose)
+
+                if verbose > 1:
+                    print('Scanning CrossSection segments.')
+                    print('Expecting {0} DumpIdy segments.'.format(ekeList.size * len(symSegs)))
+
+                lines, dumpSegs = dumpIdyFileParse(file, verbose = verbose)
+                data, blankSegs = dumpIdySegsParseX(dumpSegs, ekeList, symSegs, verbose = verbose)
+
+            if recordType is 'EDCS':
+                # print('Expecting {0} EDCS segments.'.format(ekeList.size))
+                if verbose > 1:
+                    print('Scanning EDCS segments.')
+
+                lines, dumpSegs = EDCSFileParse(file, verbose = verbose)
+                data, blankSegs = EDCSSegsParseX(dumpSegs) # , ekeList, symSegs)
+
+            if recordType is 'CrossSection':
+                ekeList = scatEngFileParse(file, verbose = verbose)
+                symSegs = symFileParse(file, verbose = verbose)
+
+                if verbose > 1:
+                    print('Scanning CrossSection segments.')
+                    print('Expecting {0} CrossSection segments.'.format(len(symSegs)+1))  # Assuming 1 segment per symmetry, plus symm-summed case.
+
+                lines, dumpSegs = getCroFileParse(file, verbose = verbose)
+                data, blankSegs = getCroSegsParseX(dumpSegs, symSegs, ekeList)
 
 
 
-        # Add some additional properties to the output
-        fName = os.path.split(file)
-        data.name = fName[1]
-        data.attrs['file'] = fName[1]
-        data.attrs['fileBase'] = fName[0]
+            # Add some additional properties to the output
+            fName = os.path.split(file)
+            data.name = fName[1]
+            data.attrs['file'] = fName[1]
+            data.attrs['fileBase'] = fName[0]
 
-        print('Processed {0} sets of {1} file segments, ({2} blank)'.format(len(dumpSegs),recordType,blankSegs))
+            if verbose:
+                print('Processed {0} sets of {1} file segments, ({2} blank)'.format(len(dumpSegs),recordType,blankSegs))
 
+            # For unstaked case, append each file to dataSet
+            if stackFlag:
+                dataStack.append(data)
+            else:
+                dataSet.append(data)
+
+        # Stack by Eke
+        if stackFlag:
+            dataSet.append(xr.combine_nested(dataStack, concat_dim = ['Eke']).sortby('Eke'))
+
+            # Propagate attribs for stacked case
+            dataSet[-1].attrs = dataStack[0].attrs
+            dataSet[-1].attrs['fileList'] = fList
+
+            if verbose:
+                print(f"\n*** Stacked {len(fList)} files, prefix {prefixStr}, by Eke ({dataSet[-1].Eke.size} points).")
+
+        else:
+            dataSet[-1].attrs['fileList'] = dataSet[-1].attrs['file']  # Set also for single file case
+
+        # if outputType == 'list':
         # Put in a list for now, might want to use Xarray dataset here, and/or combine results from multiple files.
-        dataSet.append(data)
+
+        # if outputType == 'ds':
+            # Output to Xarray Dataset, including stacking by E for multi-file jobs.
+
 
 
     return dataSet
@@ -1670,6 +1826,8 @@ def writeOrb3Dvtk(dataSet):
 
         * https://pyscience.wordpress.com/2014/09/06/numpy-to-vtk-converting-your-numpy-arrays-to-vtk-arrays-and-files/
         * https://bitbucket.org/pauloh/pyevtk/src/default/
+
+        `pip install pyevtk` to install.
 
 
     """

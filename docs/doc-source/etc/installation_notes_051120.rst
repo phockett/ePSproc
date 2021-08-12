@@ -1,3 +1,5 @@
+.. highlight:: shell
+
 ###########################
 Extended installation notes
 ###########################

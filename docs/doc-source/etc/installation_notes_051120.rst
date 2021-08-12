@@ -13,7 +13,7 @@ In all cases, you might want to use a virtual environment, e.g.:
 
 With Anaconda
 
-.. code-block::
+.. code-block:: console
 
   conda create --name epsProc python=3.7
   conda activate epsProc
@@ -21,7 +21,7 @@ With Anaconda
 
 With venv (see https://docs.python.org/3/library/venv.html)
 
-.. code-block::
+.. code-block:: console
 
   python -m venv /path/to/new/virtual/environment
 
@@ -43,7 +43,7 @@ Note that some versions may not pull dependencies (not set in ``setup.py`` in so
 
 Or manually... adding a couple of core packages should cover most dependencies:
 
-.. code-block::
+.. code-block:: console
 
   pip install xarray
   pip install --user git+git://github.com/moble/spherical_functions
@@ -63,7 +63,7 @@ From source + local pip install
 Using pip
 ---------
 
-.. code-block::
+.. code-block:: console
 
   git clone https://github.com/phockett/ePSproc.git
   pip install -e epsproc
@@ -75,7 +75,7 @@ To install with specific dependencies, just run ``pip install -e epsproc -r ePSp
 
 From `setup.py`
 
-.. code-block::
+.. code-block:: console
 
   git clone https://github.com/phockett/ePSproc.git
   cd ePSproc
@@ -96,7 +96,10 @@ Notes
 
 Assuming a fresh environment, you might also need to install some requirements manually:
 
-With pip
+With pip (this is for `Moble's spherical functions library <https://github.com/moble/spherical_functions>`_):
+
+.. code-block:: console
+
   pip install git+git://github.com/moble/quaternion
   pip install git+git://github.com/moble/spherical_functions
 
@@ -104,7 +107,7 @@ With pip
 Using Conda
 -----------
 
-.. code-block::
+.. code-block:: console
 
   git clone https://github.com/phockett/ePSproc.git
   conda create --name ePSproc --file ePSproc/requirements.txt --channel default --channel conda-forge
@@ -113,7 +116,7 @@ Using Conda
 
 However... this may fail if any of the packages are missing or give issues. A quick fix is to `iterate over lines <https://stackoverflow.com/questions/35802939/install-only-available-packages-using-conda-install-yes-file-requirements-t>`_
 
-.. code-block::
+.. code-block:: console
 
   conda create --name epsProc python=3.7
   conda activate epsProc
@@ -145,31 +148,4 @@ A few other options...
   - Note that the envs are currently a bit of a mess, but will be cleared up soon.
 
 - If using nb_conda_kernels:
-  conda install ipykernel
-
-
-
-
---------------
-
-For Conda:
-
-  conda install -c conda-forge spherical_functions
-
-
-
-
-
-
-RuntimeError: The current Numpy installation ('C:\\Users\\femtolab\\AppData\\Local\\Temp\\pip-build-env-gqcuairg\\overlay\\Lib\\site-packages\\numpy\\__init__.py') fails to pass a sanity check due to a bug in the windows runtime. See this issue for more information: https://tinyurl.com/y3dm3h86
-
-May need first:
-  conda install numpy numba
-
-CURRENTLY issues with numpy v1.19.2 (Win), see https://developercommunity.visualstudio.com/content/problem/1207405/fmod-after-an-update-to-windows-2004-is-causing-a.html
-
-* conda install numpy==1.19.1 didn't fix.
-* conda install numpy==1.17.4 (random old version!) didn't fix.
-* pip install numpy==1.19.3 didn't fix
-
-Q: is pip pulling latest version at pip install?
+  ``conda install ipykernel``

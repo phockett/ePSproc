@@ -1,6 +1,6 @@
 # ePSproc + JupyterLab builds with Docker
 
-Dockerfiles for ePSproc, based on [Jupyter Docker Stacks images](https://jupyter-docker-stacks.readthedocs.io/en/latest/index.html).
+Dockerfiles for ePSproc, based on [Jupyter Docker Stacks images](https://jupyter-docker-stacks.readthedocs.io/en/latest/index.html), are in `/docker`.
 
 
 Quick build container only:

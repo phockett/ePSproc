@@ -126,7 +126,7 @@ However... this may fail if any of the packages are missing or give issues. A qu
 Note that the python version is optional here, and the latest version will be pulled on install if not specified.
 
 
-With specific (working) package versions: select from the various `*.yml` files under `/notes/envs`. These correspond to tested working environments.
+With specific (working) package versions: select from the various `*.yml` files under `/notes/envs`. These correspond to tested working environments - see notes below for more details.
 
 
 
@@ -137,12 +137,14 @@ Other options
 A few other options...
 
 * Some development envs are available as Conda .yml files in ``/notes/envs``, these can be used to clone a known-working env.
+
   * E.g. ``conda env create -f environment_epsdev_v1.3.0_040821_no-builds.yml`` for the current v1.3.0 environment.
   * Note that these envs may included extra packages and/or platform specific packages.
   * Note that the envs are currently a bit of a mess, but will be cleared up soon.
   * See the `Conda docs for more details on .yml env files <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#sharing-an-environment>`_
 
 * Similarly, there are some alternative Pip requirement.txt files in ``/notes/envs``, corresponding to some specific development envs.
+
   * E.g. ``pip install -r requirements_epsdev_v1.3.0_040821.txt`` for the current v1.3.0 environment.
   * Note that these envs may included extra packages and/or platform specific packages.
   * Note that the envs are currently a bit of a mess, but will be cleared up soon.

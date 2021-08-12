@@ -12,6 +12,7 @@ Welcome to ePSproc
    :caption: Intro:
 
    about
+   etc/installation_notes_051120
    demos/ePSproc_class_demo_161020
 
 
@@ -35,7 +36,7 @@ Welcome to ePSproc
 
 .. toctree::
    :maxdepth: 2
-   :caption: Function demos:
+   :caption: Matlab demos:
 
    demos/ePSproc_Matlab_demo_notebook_090821
 

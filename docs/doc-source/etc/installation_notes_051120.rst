@@ -19,7 +19,7 @@ ePSproc has been tested mainly with Python = 3.7, and various package versions t
 
 The main requirements are `Xarray <http://xarray.pydata.org/en/stable/index.html>`_ (>=0.12, <=0.15.0), and `Moble's spherical functions (quaternion based) <https://github.com/moble/spherical_functions>`_ . See the individual package docs for full details.
 
-The usual SciPy stack is also used (numpy, matplotlib etc.) - see `requirements.txt file <https://github.com/phockett/ePSproc/blob/master/requirements.txt>`_ for full list - plus some optional packages for additional functionality. In the current release (v1.3.0), package versions are not specified in the main requirements.txt file, but `specific versioned build environments are also available <#other-options>`.
+The usual SciPy stack is also used (numpy, matplotlib etc.) - see `requirements.txt file <https://github.com/phockett/ePSproc/blob/master/requirements.txt>`_ for full list - plus some optional packages for additional functionality. In the current release (v1.3.0), package versions are not specified in the main requirements.txt file, but `specific versioned build environments are also available <#other-options>`_ .
 
 
 Virtual environments
@@ -68,7 +68,7 @@ Or manually... adding a couple of core packages should cover most dependencies:
 Conda
 -----
 
-Either as pip case above, plus Conda for the dependencies (as below); or from source - `see source options below for more details <#using-conda>`_.
+Either as pip case above, plus Conda for the dependencies (as below); or from source - `see source options for more details <#using-conda>`_.
 
 .. code-block:: console
 
@@ -92,7 +92,7 @@ Using pip
   git clone https://github.com/phockett/ePSproc.git
   pip install -e epsproc
 
-This should install all dependencies (for `ePSproc>=1.3.0-dev`), although ``spherical_functions`` are currently giving issues with pip+PyPi (tested 12th August 2021), so may need to be installed separately from source with ``pip install git+git://github.com/moble/spherical_functions`` (this is `Moble's spherical functions library <https://github.com/moble/spherical_functions>`_, but will be updated to the newer `spherical <https://github.com/phockett/ePSproc/issues/35>`_ package).
+This should install all dependencies (for `ePSproc>=1.3.0-dev`), although ``spherical_functions`` are currently giving issues with pip+PyPi (tested 12th August 2021), so may need to be installed separately from source with ``pip install git+git://github.com/moble/spherical_functions`` (this is `Moble's spherical functions library <https://github.com/moble/spherical_functions>`_, but will be updated to the newer `spherical package in future <https://github.com/phockett/ePSproc/issues/35>`_).
 
 To install with specific dependencies, just run ``pip install -e epsproc -r ePSproc/requirements.txt``
 
@@ -115,7 +115,7 @@ Notes
 * For a single branch use ``git clone --single-branch --branch <branchname> https://github.com/phockett/ePSproc.git``
 * The repo can be passed directly to pip, e.g. ``pip install git+https://github.com/phockett/ePSproc.git``, see `notes in the pip docs <https://pip.pypa.io/en/stable/reference/pip_install/#git>`_.
 * Note that ``pip -e`` is for 'editable', and requires the source dir to remain, but the installation is also editable, `see notes here <https://stackoverflow.com/questions/41535915/python-pip-install-from-local-dir>`_. Drop the ``-e`` for a normal installation.
-* In v1.3.0 (12/08/21), setup.py does not contain a pkg requirements list, but this will change in future (see `discussion here <https://stackoverflow.com/a/33685899>`_.)
+* As of v1.3.0 (12/08/21), ``setup.py`` contains a rough pkg requirements list, identical to the base ``requirements.txt`` file, but this may change in future (see `discussion here <https://stackoverflow.com/a/33685899>`_.)
 
 
 Assuming a fresh environment, you might also need to install some requirements manually:

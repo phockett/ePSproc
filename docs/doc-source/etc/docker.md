@@ -30,7 +30,7 @@ For more details & options, see:
 - [Dockerfile reference](https://docs.docker.com/engine/reference/builder/).
 - [Docker Compose reference](https://docs.docker.com/compose/compose-file/compose-file-v3/).
 
-For use with full JupyterHub deployment, see https://github.com/phockett/jupyterhub-docker
+For use with full JupyterHub deployment, see [the separate jupyterhub-docker repo](https://github.com/phockett/jupyterhub-docker).
 
 
 ## TODO

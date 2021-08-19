@@ -128,6 +128,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
     p : list or array, optional, default = [0]
         Specify polarization terms p.
+        Possibly currently only valid for p=0, TBC
+        See https://epsproc.readthedocs.io/en/latest/methods/geometric_method_dev_260220_090420_tidy.html#E_{P,R}-tensor
 
     BLMtable, BLMtableResort : Xarrays, optional, default = None
         Beta calculation parameters, as defined by :py:func:`geomCalc.betaTerm`.
@@ -229,7 +231,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
 #         EPRX = geomCalc.EPR(form = 'xarray', p = p).unstack().sum(['p','R-p'])  # Set for general sum over (p,R-p) terms - STILL need to fix in e-field mult term!
 #         EPRX = geomCalc.EPR(form = 'xarray', p = p).unstack().sum('R-p')  # Set for general sum over (p,R-p) terms - STILL need to fix in e-field mult term!
-        EPRX = geomCalc.EPR(form = 'xarray', p = p).unstack().sel({'R-p':0}).drop('R-p')
+# TODO: check and fix if necessary for p!=0 case
+        EPRX = geomCalc.EPR(form = 'xarray', p = p, phaseConvention = phaseConvention).unstack().sel({'R-p':0}).drop('R-p')  # Working case as of v1.3.0-dev, but valid for p=0 only?
         EPRXresort = EPRX.squeeze(['l','lp']).drop(['l','lp'])  # Safe squeeze & drop of selected singleton dims only.
 
         if phaseCons['mfblmCons']['negRcoordSwap']:

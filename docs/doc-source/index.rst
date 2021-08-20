@@ -20,8 +20,8 @@ Welcome to ePSproc
    :maxdepth: 2
    :caption: Class demos:
 
-   demos/ePSproc_wfPlot_tests_150720_tidy
    demos/ePSdata_download_demo_300720
+   demos/ePSproc_wfPlot_tests_150720_tidy
    demos/ePSproc_wfPlot_tests_150720-110820-CH3I-tidy_Stimpy
 
 
@@ -47,6 +47,7 @@ Welcome to ePSproc
 
    ePS_ePSproc_tutorial/ePS_tutorial_080520.ipynb
    ePS_ePSproc_tutorial/ePS_adv_tutorial_080520.ipynb
+   methods/ePSproc_geom_methods_summary_190821-v1-tidy
 
 
 .. toctree::

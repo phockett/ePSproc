@@ -13,15 +13,16 @@ Welcome to ePSproc
 
    about
    etc/installation_notes_051120
-   demos/ePSproc_class_demo_161020
+
 
 
 .. toctree::
    :maxdepth: 2
    :caption: Class demos:
 
-   demos/ePSproc_wfPlot_tests_150720_tidy
+   demos/ePSproc_class_demo_161020
    demos/ePSdata_download_demo_300720
+   demos/ePSproc_wfPlot_tests_150720_tidy
    demos/ePSproc_wfPlot_tests_150720-110820-CH3I-tidy_Stimpy
 
 
@@ -36,7 +37,7 @@ Welcome to ePSproc
 
 .. toctree::
    :maxdepth: 2
-   :caption: Matlab demos:
+   :caption: Matlab:
 
    demos/ePSproc_Matlab_demo_notebook_090821
 

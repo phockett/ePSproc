@@ -176,6 +176,7 @@ def checkDims(data, refDims = []):
 
     TODO: check and order dims by size? Otherwise set return is alphebetical
 
+    23/08/21 Added stacked dim mapping output.
     11/05/21 Added handling for stacked dims.
 
     """
@@ -184,13 +185,15 @@ def checkDims(data, refDims = []):
 
     stackedDims = list(set(dims) - set(dimsUS))
 
+    stackedDimsMap = {k:data.indexes[k].names for k in stackedDims}  # Get stacked dim mapping from indexes (Xarray/Pandas)
+
     # Check ref vs. full dim list
     sharedDims = list(set(dimsUS)&{*refDims})  # Intersection
     extraDims = list(set(dimsUS) - {*refDims})  # Difference
     invalidDims = list({*refDims} - set(dimsUS))
 
     return {'dataDims':dims, 'dataDimsUS':dimsUS, 'refDims':refDims, 'shared':sharedDims,
-            'extra':extraDims, 'stacked':stackedDims, 'invalid':invalidDims}
+            'extra':extraDims, 'stacked':stackedDims, 'stackedMap':stackedDimsMap, 'invalid':invalidDims}
 
 
 # Subselect from sharedDims

@@ -177,8 +177,9 @@ def checkDims(data, refDims = []):
     data : Xarray
         Data array to check.
 
-    refDims : str, list, optional, default = []
+    refDims : str, list, dict, optional, default = []
         Dims to check vs. input data array.
+        If dict is passed only keys (==stacked dims) are tested.
 
     Returns
     -------
@@ -220,10 +221,10 @@ def checkDims(data, refDims = []):
 
     # 26/08/21 - added additional tests for stacked dims vs. ref, but may want to amalgamate with above?
     # TODO: tidy output too - separate dicts for stacked and unstacked dims?
-    # Check ref vs. full dim list (stacked dims)
-    sharedDimsStacked = list(set(dims)&{*refDims})  # Intersection
-    extraDimsStacked = list(set(dims) - {*refDims})  # Difference
-    invalidDimsStacked = list({*refDims} - set(dims))  # Missing
+    # Check ref vs. full dim list (stacked dims), note also unstacked dims subtracted to avoid duplicated dims.
+    sharedDimsStacked = list(set(dims)&{*refDims} - set(dimsUS))  # Intersection
+    extraDimsStacked = list(set(dims) - {*refDims} - set(dimsUS))  # Difference
+    invalidDimsStacked = list({*refDims} - set(dims) - set(dimsUS))  # Missing
 
     # Test also missing dims overally
     missingDims = list({*refDims} - set(dimsUS) - set(dims))  # Missing

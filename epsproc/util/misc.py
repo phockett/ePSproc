@@ -172,14 +172,40 @@ def checkDims(data, refDims = []):
     """
     Check dimensions for a data array (Xarray) vs. a reference list (or dict).
 
-    Returns dictionary of dims, intersection and differences.
+    Parameters
+    ----------
+    data : Xarray
+        Data array to check.
+
+    refDims : str, list, optional, default = []
+        Dims to check vs. input data array.
+
+    Returns
+    -------
+
+    dictionary
+        Containing:
+
+        - stacked and unstacked dims
+        - stacked dim mappings
+        - intersection and differences vs. refDims
+
 
     TODO: check and order dims by size? Otherwise set return is alphebetical
+
+    26/08/21 Added additional tests for stacked dims vs. ref.
+             Bit messy, but left as-is to avoid breaking old code.
+             In future should amalgamate stacked & unstacked tests & tidy output.
 
     23/08/21 Added stacked dim mapping output.
     11/05/21 Added handling for stacked dims.
 
     """
+
+    # Force to list to avoid breaking *unpacking later
+    if not isinstance(refDims, list):
+        refDims = [refDims]
+
     dims = data.dims # Set dim list - this excludes stacked dims
     dimsUS = data.unstack().dims  # Set unstaked (full) dim list
 
@@ -187,13 +213,26 @@ def checkDims(data, refDims = []):
 
     stackedDimsMap = {k:data.indexes[k].names for k in stackedDims}  # Get stacked dim mapping from indexes (Xarray/Pandas)
 
-    # Check ref vs. full dim list
+    # Check ref vs. full dim list (unstacked dims)
     sharedDims = list(set(dimsUS)&{*refDims})  # Intersection
     extraDims = list(set(dimsUS) - {*refDims})  # Difference
-    invalidDims = list({*refDims} - set(dimsUS))
+    invalidDims = list({*refDims} - set(dimsUS))  # Missing
 
-    return {'dataDims':dims, 'dataDimsUS':dimsUS, 'refDims':refDims, 'shared':sharedDims,
-            'extra':extraDims, 'stacked':stackedDims, 'stackedMap':stackedDimsMap, 'invalid':invalidDims}
+    # 26/08/21 - added additional tests for stacked dims vs. ref, but may want to amalgamate with above?
+    # TODO: tidy output too - separate dicts for stacked and unstacked dims?
+    # Check ref vs. full dim list (stacked dims)
+    sharedDimsStacked = list(set(dims)&{*refDims})  # Intersection
+    extraDimsStacked = list(set(dims) - {*refDims})  # Difference
+    invalidDimsStacked = list({*refDims} - set(dims))  # Missing
+
+    # Test also missing dims overally
+    missingDims = list({*refDims} - set(dimsUS) - set(dims))  # Missing
+
+    return {'dataDims':dims, 'dataDimsUS':dimsUS, 'refDims':refDims,
+            'shared':sharedDims, 'extra':extraDims, 'invalid':invalidDims,
+            'stacked':stackedDims, 'stackedMap':stackedDimsMap,
+            'stackedShared':sharedDimsStacked, 'stackedExtra':extraDimsStacked, 'stackedInvalid':invalidDimsStacked,
+            'missing':missingDims}
 
 
 # Subselect from sharedDims

@@ -203,7 +203,7 @@ def checkDims(data, refDims = []):
     """
 
     # Force to list to avoid breaking *unpacking later
-    if not isinstance(refDims, list):
+    if not isinstance(refDims, (list, dict)):
         refDims = [refDims]
 
     dims = data.dims # Set dim list - this excludes stacked dims

@@ -1,7 +1,6 @@
 """
 Density matrix routines
 
-27/08/21    v2 Updated dim handling for renaming multi-index levels + working HV plotting routines.
 26/08/21    v1 Initial implementation
 
 Dev code:
@@ -169,7 +168,7 @@ def densityCalc(da, denDims = 'LM',
                                                 # Pass dims = denDims?
 
     # Restack dims if required
-    daDen, denDim, rsMap, dimCheck = dimRestack(daDen, stackDims = denDims)
+    daDen, denDim, *_ = dimRestack(daDen, stackDims = denDims)
 
 
     # Check for summation dims, cf. padPlot() routine
@@ -206,14 +205,7 @@ def densityCalc(da, denDims = 'LM',
 
 
     #*** Compute density from specified dims
-#     daDot = daDen * daDen.conj().rename({denDim:denDim+'_p'})  # Outer product along denDims
-                                                                # This works, but can give issues with shared multi-index dims
-
-
-    # Version with renaming of multi-index dims prior to outer-product - avoids linked dims in output array.
-    newDims = {item:item+'_p' for item in rsMap[denDim]}
-    daConj = daDen.conj().unstack(denDim).rename(newDims).stack({denDim+'_p':list(newDims.values())})
-    daDot = daDen * daConj
+    daDot = daDen * daDen.conj().rename({denDim:denDim+'_p'})  # Outer product along denDims
 
     # General .dot version... might be faster than above?
 #     matEdot = xr.dot(daDen, daDen.conj().rename({denDim:denDim+'_p'}), dims = sumDims)
@@ -224,25 +216,27 @@ def densityCalc(da, denDims = 'LM',
 
     return daOut, daDot
 
+
+# ******************* IN PROGRESS *******************************
+
 import pandas as pd
 import holoviews as hv
 # import hvplot.pandas
 hv.extension('bokeh')
 
-def matPlot(da, kdims = ['LMp','LM'], pTypes = ['a','i','r'], returnType = 'plot'):
+def matPlot(da, kdims = ['LMp','LM']):
     """
     General matrix (2D) plot + stacked dims plotter with HoloViews.
 
     """
 
     #*** Set data
-    daPlot = da.copy()  # May want to add thresholds etc. here?
-    attrs = daPlot.attrs.copy()
+    matEplot = da  # May want to add thresholds etc. here?
 
     #*** Relabel any multi-indexes to strings.
     # Without this HV plot throws errors for int category dims (kdims only?)
     # TODO: check for kdims vs. stacked/selection dims?
-    ind = daPlot.indexes
+    ind = matEplot.indexes
 
     labels = {}
     for dim in ind:
@@ -252,32 +246,15 @@ def matPlot(da, kdims = ['LMp','LM'], pTypes = ['a','i','r'], returnType = 'plot
         if isinstance(ind[dim], pd.core.indexes.multi.MultiIndex):
             labels[dim] = [','.join(map(str, item)) for item in ind[dim]]
 
-            daPlot = daPlot.assign_coords({dim:labels[dim]})
-
-    # Basic version - working for any dim dataset, but single pType only
-#     daPlot = ep.plotTypeSelector(matEplot, pType = pType)
-#     hvds = hv.Dataset(daPlot)
-#     hvmap = hvds.to(hv.HeatMap, kdims=kdims)
+            matEplot = matEplot.assign_coords({dim:labels[dim]})
 
     # Compose HoloMap from data for r,i,a plottypes
-    # This only works for 2D data...? (Or case where dims are otherwise specified in loop.)
-#     hvmap = hv.HoloMap({pType: hv.Dataset(ep.plotTypeSelector(matEplot, pType = pType).real).to(hv.HeatMap, kdims=kdims)
-#                          for pType in ['r','i','a']}, kdims="pType")
+    # This only works for 2D data...?
+    hvmap = hv.HoloMap({pType: hv.Dataset(ep.plotTypeSelector(matEplot, pType = pType).real).to(hv.HeatMap, kdims=kdims)
+                         for pType in ['r','i','a']}, kdims="pType")
 
     # Example with continuum included too - should be able to generalise?
 #     hvmap = hv.HoloMap({(cont,pType): hv.Dataset(ep.plotTypeSelector(matEplot.sel(Cont=cont), pType = pType).squeeze(drop=True).real).to(hv.HeatMap, kdims=['LMp','LM'])
 #                          for pType in ['r','i','a'] for cont in ['A2','B1','B2']}, kdims=['Cont',"pType"])
 
-    # Stack to xr.Dataset for pTypes...
-    # NOTE .copy() here, otherwise end up with null valued output (overwrites/sums?)
-    daPlotDS = xr.Dataset({pType:ep.plotTypeSelector(daPlot.copy(), pType = pType) for pType in pTypes}) #['r','i','a']})
-    daPlot = daPlotDS.to_array().rename({'variable':'pType'})  # Restack pType to array
-    daPlot.attrs = attrs  # Propagate attrs
-    daPlot.name = da.name
-    hvds = hv.Dataset(daPlot)
-    hvmap = hvds.to(hv.HeatMap, kdims=kdims)
-
-    if returnType is 'full':
-        return hvmap, hvds, daPlotDS
-    else:
-        return hvmap
+    return hvmap

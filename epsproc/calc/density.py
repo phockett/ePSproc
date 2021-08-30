@@ -344,6 +344,9 @@ def matPlot(da, kdims = None, pTypes = ['r','i','a'],
     daPlot = da.copy()  # May want to add thresholds etc. here?
     attrs = daPlot.attrs.copy()
 
+    if note daPlot.name:
+        daPlot.name = 'Unnamed'  # Set default name if blank, otherwise HV will error.
+
     # Try and set kdims if not passed
     if kdims is None:
         if 'kdims' in attrs.keys():

@@ -231,8 +231,13 @@ def densityCalc(da, denDims = 'LM',
 
 
     # Version with renaming of multi-index dims prior to outer-product - avoids linked dims in output array.
+
+    # Set rsMap for singleton dim cases (not set in dimRestack, but maybe should be)
     if not rsMap:
-        rsMap = {denDims:dimCheck['stackedMap'][denDims]}  # For case of single, already stacked dim, dimCheck returns rsMap = {}.
+        if dimCheck['shared']:
+            rsMap = {denDim:[denDim]}  # Case for single, unstacked dim set
+        else:
+            rsMap = {denDim:dimCheck['stackedMap'][denDim]}  # For case of single, already stacked dim, dimCheck returns rsMap = {}.
 
     newDims = {item:item+'_p' for item in rsMap[denDim]}
     denDimP = denDim+'_p'

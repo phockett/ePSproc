@@ -284,6 +284,8 @@ import holoviews as hv
 # import hvplot.pandas
 hv.extension('bokeh')
 
+from epsproc import plotTypeSelector
+
 # Quick default settings from tmo-dev, tmoDataBase.py init.
 
 imgSize = 600
@@ -388,7 +390,7 @@ def matPlot(da, kdims = None, pTypes = ['r','i','a'],
 
     # Stack to xr.Dataset for pTypes...
     # NOTE .copy() here, otherwise end up with null valued output (overwrites/sums?)
-    daPlotDS = xr.Dataset({pType:ep.plotTypeSelector(daPlot.copy(), pType = pType) for pType in pTypes}) #['r','i','a']})
+    daPlotDS = xr.Dataset({pType:plotTypeSelector(daPlot.copy(), pType = pType) for pType in pTypes}) #['r','i','a']})
     daPlot = daPlotDS.to_array().rename({'variable':'pType'})  # Restack pType to array
     daPlot.attrs = attrs  # Propagate attrs
     daPlot.name = da.name

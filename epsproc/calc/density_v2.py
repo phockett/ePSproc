@@ -1,7 +1,6 @@
 """
 Density matrix routines
 
-30/08/21    v3 Debugged and updated docstrings.
 27/08/21    v2 Updated dim handling for renaming multi-index levels + working HV plotting routines.
 26/08/21    v1 Initial implementation
 
@@ -124,8 +123,7 @@ def dimRestack(da, stackDims = []):
 
 def densityCalc(da, denDims = 'LM',
                 sumDims = None, keepDims = None,   # May want additional control here, 1/sumDims ?
-                selDims = None, thres = None, squeeze = True,
-                keepNaNs = False):
+                selDims = None, thres = None, squeeze = True):
 
     r"""
     General density matrix from Xarray.
@@ -159,31 +157,13 @@ def densityCalc(da, denDims = 'LM',
     squeeze : bool, optional, default = True
         Squeeze out singleton dims if True.
 
-    keepNaNs : bool, optional, default = False
-        Keep NaNs in result if false.
-        Otherwise, set to zero. (Note this is currently implemented indirectly via xr.sum(skipna = ~keepNaNs).)
-        Note: in some cases this may cause NaNs to propagate and give all-NaN results.
-
-
     Notes
     -----
     selDims, thres and squeeze are passed to the standard :py:func:`matEleSelector` function.
 
-
-    Examples
-    --------
-    # Calculate for standard matE dataset, restacked for [l,m,mu].
-    >>> daOut, daDot = densityCalc(matE, denDims = ['LM', 'mu'], selDims = {'Type':'L'}, thres = 1e-1)
-    # Calculate for standard matE, no restack and sum all other dims.
-    >>> daOut, daDot = densityCalc(matE, denDims = 'LM', selDims = {'Type':'L'}, thres = 1e-1, sumDims = True)
-    # Calculate for standard matE, no restack and sum all other dims, except Sym.
-    >>> daOut, daDot = densityCalc(matE, denDims = 'LM', selDims = {'Type':'L'}, thres = 1e-1, sumDims = True, keepDims = 'Sym')
-
     """
 
     # Set data
-    denSettings = locals()
-    attrs = da.attrs.copy()
     daDen = matEleSelector(da, thres = thres, inds = selDims, sq = squeeze)  #.sum(sumDims)
                                                 # TODO: pass **kwargs here?
                                                 # Pass dims = denDims?
@@ -231,130 +211,33 @@ def densityCalc(da, denDims = 'LM',
 
 
     # Version with renaming of multi-index dims prior to outer-product - avoids linked dims in output array.
-    if not rsMap:
-        rsMap = {denDims:dimCheck['stackedMap'][denDims]}  # For case of single, already stacked dim, dimCheck returns rsMap = {}.
-
     newDims = {item:item+'_p' for item in rsMap[denDim]}
-    denDimP = denDim+'_p'
-    denDimPMap = {denDimP:list(newDims.values())}
-    daConj = daDen.conj().unstack(denDim).rename(newDims).stack(denDimPMap)
+    daConj = daDen.conj().unstack(denDim).rename(newDims).stack({denDim+'_p':list(newDims.values())})
     daDot = daDen * daConj
-
-    #*** Propagate attrs & set outputs
-    daDot.attrs = attrs
-
-    daDot.attrs['dataType']='Density Matrix'
-    daDot.attrs['density'] = {'denSettings':denSettings,
-                             'sumTot':sumTot,
-                             'denDims':rsMap.update(denDimPMap),
-                             'kdims':[denDim, denDimP]}
-
-    # Note denSettings will include input da, can skip with, e.g.:
-#     [BetasNormX.attrs.update({k:calcSettings[k]}) for k in calcSettings.keys() if not (isinstance(calcSettings[k], xr.DataArray))]  # Slightly ugly, but set only items which are not Xarrays.
-
-    daDot.attrs['kdims']=daDot.attrs['density']['kdims']
 
     # General .dot version... might be faster than above?
 #     matEdot = xr.dot(daDen, daDen.conj().rename({denDim:denDim+'_p'}), dims = sumDims)
 
-#     if sumTot:
-#         daDot = daDot.sum(sumTot, keep_attrs = True,  skipna = ~keepNaNs)  # Only run if sumTot not empty?
-                                    # Otherwise .sum([]) will push NaNs > zeros
-
-    daOut = matEleSelector(daDot.sum(sumTot, keep_attrs = True,  skipna = ~keepNaNs),
-                           thres = thres, sq = squeeze) # Threshold density mat
+    daOut = matEleSelector(daDot, thres = thres, sq = squeeze).sum(sumTot) # Threshold density mat
                                                                         # TODO: pass **kwargs here?
                                                                         # Pass dims = denDims?
 
-#     daOut.attrs = daDot.attrs  # Propagate attrs - may be lost after .sum(), should be OK if .sum(keep_attrs = True)
-
     return daOut, daDot
-
-
-#******* HV plotting code
-#
-#  TODO:
-#  - Move to hvPlotters
-#  - Add heatmap defaults to hvPlotters
-#  - Seaborn version for matrix plotting.
 
 import pandas as pd
 import holoviews as hv
 # import hvplot.pandas
 hv.extension('bokeh')
 
-# Quick default settings from tmo-dev, tmoDataBase.py init.
-
-imgSize = 600
-from holoviews import opts
-
-opts.defaults(opts.HeatMap(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True))
-
-
-
-def matPlot(da, kdims = None, pTypes = ['r','i','a'],
-            negQs = True, thres = None,
-            returnType = 'plot', verbose = 1):
+def matPlot(da, kdims = ['LMp','LM'], pTypes = ['a','i','r'], returnType = 'plot'):
     """
     General matrix (2D) plot + stacked dims plotter with HoloViews.
-
-    Parameters
-    ----------
-
-    da : Xarray
-        Input dataset for plotting.
-        Assumed to contain a "matrix" (2D) to plot, with other dims stacked to HV plot widgets.
-
-    kdims : list, optional, default = None
-        Key dims for plotting.
-        If None,
-        - will be taken from da.attrs[kdims] if it is set.
-        - otherwise, uses da.dims[-2:]
-
-    pTypes : list, optional, default = ['r','i','a']
-        List of plot types to set (via :py:func:`epsproc.plotTypeSelector`_
-        These will be available via the HV plot widgets.
-
-    negQs : NOT YET IMPLEMENTED
-        Include -ve valued QNs in plot?
-
-    thres : NOT YET IMPLEMENTED
-        optional, float, default = None
-        Threshold for plot.
-
-    returnType : str, optional, default = 'plot'
-        If 'plot' return plot object only.
-        Otherwise, returns plot + datasets = (hvmap, hvds, daPlotDS)
-
-    verbose : int, bool, optional, default = 1
-        Print additional info if true.
-
-    Returns
-    -------
-    Holoviews holomap object
-        If 'plot'; otherwise, returns plot + datasets = (hvmap, hvds, daPlotDS)
-
 
     """
 
     #*** Set data
     daPlot = da.copy()  # May want to add thresholds etc. here?
     attrs = daPlot.attrs.copy()
-
-    # Try and set kdims if not passed
-    if kdims is None:
-        if 'kdims' in attrs.keys():
-            kdims = attrs['kdims']
-        else:
-            kdims = list(daPlot.dims[-2:])  # Use final two dims? This matches denCalc outputs.
-
-        if verbose:
-            print(f'Set plot kdims to {kdims}; pass kdims = [dim1,dim2] for more control.')
-
-
-#     if not negQs:
-#         if daPlot.dims
-
 
     #*** Relabel any multi-indexes to strings.
     # Without this HV plot throws errors for int category dims (kdims only?)

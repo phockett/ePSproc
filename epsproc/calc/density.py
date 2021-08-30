@@ -278,6 +278,7 @@ def densityCalc(da, denDims = 'LM',
 #  - Add heatmap defaults to hvPlotters
 #  - Seaborn version for matrix plotting.
 
+import xarray as xr
 import pandas as pd
 import holoviews as hv
 # import hvplot.pandas

@@ -351,7 +351,7 @@ def matEtoPD(self, keys = None, xDim = 'Eke', Erange = None, dataType = 'matE', 
             daSub = plotTypeSelector(daSub, pType = pType, axisUW = xDim)
 
         #*** Convert to PD
-        daPD, daSub = multiDimXrToPD(daSub, colDims = xDim, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze)
+        daPD, daSub = multiDimXrToPD(daSub, colDims = xDim, thres = thres, dropna = drop, fillna = fillna, squeeze = squeeze)
 
         # pdConv.append(daPD)
 

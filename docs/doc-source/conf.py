@@ -98,3 +98,15 @@ html_logo = 'figs/ePSproc_logo.png'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# Add custom CSS to fix max width issue
+# Fix RTD standard template (sphinx_rtd_theme) max width.
+# See
+# https://github.com/readthedocs/sphinx_rtd_theme/issues/295
+# https://stackoverflow.com/questions/23211695/modifying-content-width-of-the-sphinx-theme-read-the-docs
+html_css_files = [
+    'max_width_fix.css',
+]
+
+# This might also work:
+# html_theme_options = {'body_max_width': '70%'}

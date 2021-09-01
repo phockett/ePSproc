@@ -78,7 +78,8 @@ Welcome to ePSproc
    methods/geometric_method_dev_pt3_AFBLM_090620_010920_dev_bk100920
    methods/LF_AF_verification_tests_060720_tidy_100920
    methods/ePSproc_orbPlot_tests_130520
-   ../../notebooks/in_progress/density_mat_notes_demo_300821
+   methods/density_mat_notes_demo_300821
+..   ../../notebooks/in_progress/density_mat_notes_demo_300821   NEED TO USE INDLUCED HERE, .. include::
 
 
 .. toctree::

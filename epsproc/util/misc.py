@@ -17,6 +17,10 @@ from datetime import datetime
 # # Package fns.
 # from epsproc.basicPlotters import molPlot
 
+# Used for data type checking later, but may not be required if this can be done per data object?
+import xarray as xr
+import pandas as pd
+
 try:
     from natsort import natsorted  # For natural sorting
     natsortFlag = True
@@ -194,6 +198,9 @@ def checkDims(data, refDims = []):
 
     TODO: check and order dims by size? Otherwise set return is alphebetical
 
+    28/09/21 Added basic support for Pandas DataFrames, still needs some work.
+             See https://stackoverflow.com/questions/21081042/detect-whether-a-dataframe-has-a-multiindex for some thoughts.
+
     26/08/21 Added additional tests for stacked dims vs. ref.
              Bit messy, but left as-is to avoid breaking old code.
              In future should amalgamate stacked & unstacked tests & tidy output.
@@ -207,12 +214,51 @@ def checkDims(data, refDims = []):
     if not isinstance(refDims, (list, dict)):
         refDims = [refDims]
 
-    dims = data.dims # Set dim list - this excludes stacked dims
-    dimsUS = data.unstack().dims  # Set unstaked (full) dim list
+    # Get dim names from Xarray
+    if isinstance(data, xr.DataArray):
+        dims = data.dims # Set dim list - this excludes stacked dims
+        dimsUS = data.unstack().dims  # Set unstaked (full) dim list
 
-    stackedDims = list(set(dims) - set(dimsUS))
+        stackedDims = list(set(dims) - set(dimsUS))
 
-    stackedDimsMap = {k:data.indexes[k].names for k in stackedDims}  # Get stacked dim mapping from indexes (Xarray/Pandas)
+        stackedDimsMap = {k:data.indexes[k].names for k in stackedDims}  # Get stacked dim mapping from indexes (Xarray/Pandas)
+
+    # Get BOTH columns and index names & items from Pandas DataFrame
+    if isinstance(data, pd.DataFrame):
+        # Basic version
+        # if isinstance(data.index, pd.MultiIndex):
+        #     print("*** Warning: checkDims doesn't yet support Pandas MultiIndex.")
+        #     # TODO: add full MultiIndex unstack/pull names here. See https://stackoverflow.com/questions/21081042/detect-whether-a-dataframe-has-a-multiindex
+        #     # .index.names should work?  But only for MultiIndex, or returns none? And for cols too?
+        #     # UPDATE: now added more general routine below, but doesn't differentiate between stacked & unstacked dims.
+        #     dims = []
+        #     dimUS = []
+        #
+        # else:
+        #     dims = data.columns.append(data.index.names) # Set dim list, assume this is both columns & rows
+        #     dimUS = []
+
+        # Get names & items from Pandas DataFrame
+        # Assume that dim labels must be strings, skip if not, or if None
+        # This currently gets both stacked & unstacked dims and puts these in a single list.
+        dims = []
+        dimsUS = []
+        for item in ['columns','index']:
+            base = getattr(data, item)  #.to_list()
+
+            if isinstance(base, pd.MultiIndex):
+                print(f"*** Warning: found MultiIndex for DataFrame data.{item} - checkDims doesn't yet support Pandas MultiIndex.")
+
+            # Get data.item and data.item.names
+            for nameList in [base.to_list(), list(getattr(base, 'names'))]:
+                dimsUS.extend((nameList if ((nameList[0] is not None) and (isinstance(nameList[0], str))) else []))
+
+        dims = dimsUS
+
+        stackedDims = [] #list(set(dims) - set(dimsUS))
+
+        stackedDimsMap = {} # {k:data.index[k].names for k in stackedDims}  # Get stacked dim mapping from indexes (Xarray/Pandas)
+
 
     # Check ref vs. full dim list (unstacked dims)
     sharedDims = list(set(dimsUS)&{*refDims})  # Intersection
@@ -254,4 +300,4 @@ def subselectDims(data, refDims = []):
         return {k:v for k,v in refDims.items() if k in dimSets['shared']}
 
     else:
-        return dimsSets['shared']  # Return shared dim list only.
+        return dimSets['shared']  # Return shared dim list only.

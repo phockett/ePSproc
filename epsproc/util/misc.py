@@ -300,4 +300,5 @@ def subselectDims(data, refDims = []):
         return {k:v for k,v in refDims.items() if k in dimSets['shared']}
 
     else:
-        return dimSets['shared']  # Return shared dim list only.
+        # return dimSets['shared']  # Return shared dim list only.
+        return [item for item in refDims if item in dimSets['shared']]   # Return shared items with forced ordering to match inputs.

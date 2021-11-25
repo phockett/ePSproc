@@ -16,6 +16,10 @@ from epsproc import lmPlot as lmPlotCore  # Hack rename here to prevent circular
 from epsproc.plot import hvPlotters
 from epsproc.util.env import isnotebook
 
+# Import HV into local namespace if hvPlotters successful (can't access directly)
+if hvPlotters.hvFlag:
+    hv = hvPlotters.hv
+
 # ************** Plotters
 
 def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', selDims = None, keys = None, backend = 'mpl'):
@@ -415,7 +419,9 @@ def ADMplot(self, dataType = 'ADM', xDim = 't', Etype='t', col = None, **kwargs)
 
 def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             xDim = None, selDims = None, col = 'Labels', row = None,
-            thres = None, keys = None, **kwargs):
+            thres = None, keys = None, verbose = None,
+            backend = 'xr', overlay = None,
+            **kwargs):
     """
     Basic BLM line plots using Xarray plotter.
 
@@ -429,6 +435,9 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 
     TODO: fix dim handling and subselection, see old plotting code.
 
+    24/11/21: quick additions, override printing with "verbose", and added backend option for XR or Holoviews plotters.
+                Note this currently uses hvplot functionality, see https://hvplot.holoviz.org/user_guide/Gridded_Data.html.
+                UPDATE: currently not working due to unhandled dims at Holomap stack - see tmo-dev for method.
     05/06/21: added **kwargs pass to Xarray line plot
     03/02/21: added col, row arguments for flexibility on calling. Still needs automated dim handling.
 
@@ -436,6 +445,9 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     # Set xDim if not passed.
     if xDim is None:
         xDim = Etype
+
+    if verbose is None:
+        verbose = self.verbose
 
     # # Default to all datasets
     # if keys is None:
@@ -448,6 +460,7 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     #     Erange = [self.data[keys[0]][dataType][Etype].min().data, self.data[keys[0]][dataType][Etype].max().data]
 
     # Loop over datasets
+    plotList = {}  # For HV plot stacking
     for key in keys:
 #                 testClass.dataSets[key]['XS'][0].sel(XC='SIGMA', Eke=slice(Erange[0], Erange[1])).plot.line(x='Eke', col='Type')   # This works
 
@@ -481,16 +494,47 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             #     subset.XSrescaled.real.plot(x=Etype, col=colXS, row=rowXS)   # UGH THESE DIMENSION ARE NOT THE SAME OF COURSE SO WILL POTENTIALLY BREAK. SHITTY CODE AGAIN.
             #     # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, XS")
 
-            try:
-                print(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
-            except KeyError:
-                print(f"Dataset: {key}, {dataType}")
+            if verbose:
+                try:
+                    print(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
+                except KeyError:
+                    print(f"Dataset: {key}, {dataType}")
 
-            # TODO: add some logic here, sort or switch on flag or number of dims?
-            # subset.real.plot(x=Etype, col='Labels', row='BLM')  # Nice... should give line plots or surfaces depending on dims
-            # subset.where(subset.l>0).real.plot.line(x=Etype, col=col, row=row)  # Set to line plot here to stack BLMs, also force l>0 - THIS SUCKS, get an empty B00 panel.
-            subset.real.plot.line(x=Etype, col=col, row=row, **kwargs)
-            # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
+            if backend == 'xr':
+                # TODO: add some logic here, sort or switch on flag or number of dims?
+                # subset.real.plot(x=Etype, col='Labels', row='BLM')  # Nice... should give line plots or surfaces depending on dims
+                # subset.where(subset.l>0).real.plot.line(x=Etype, col=col, row=row)  # Set to line plot here to stack BLMs, also force l>0 - THIS SUCKS, get an empty B00 panel.
+                subset.real.plot.line(x=Etype, col=col, row=row, **kwargs)
+                # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
+
+            # VERY ROUGH, based on not great tmo-dev code.
+            # Currently no explicit dim handling, and auto-rename to ensure working Holomap output.
+            elif backend == 'hv':
+                try:
+                    # plotList[key] = (subset.real.hvplot.line(x=Etype, col=col, row=row, **kwargs))
+                    hvDS = hv.Dataset(subset.real.rename(str(key)))  # Convert to hv.Dataset, may need to rename too.
+                    # hvDS = hv.Dataset(subset.real.rename('AFBLM'))
+                    plotList[key] = hvDS.to(hv.Curve, kdims=Etype)   # TODO: add dim handling, will just autostack currently.
+                except NotImplementedError as e:
+                    # if e.msg == "isna is not defined for MultiIndex":
+                    if e.args[0] == "isna is not defined for MultiIndex":   # Message as first arg - may be version specific?
+                        print("Unstacking data for plotting")
+                        # plotList[key] = (subset.real.unstack().hvplot.line(x=Etype, col=col, row=row, **kwargs))   # Should be OK for individual plots, but can't pass to holomap?
+                        hvDS = hv.Dataset(subset.real.unstack().rename(str(key)))  # Convert to hv.Dataset, may need to rename too.
+                        # hvDS = hv.Dataset(subset.real.unstack().rename('AFBLM'))  # Convert to hv.Dataset, may need to rename too.
+                        plotList[key] = hvDS.to(hv.Curve, kdims=Etype)   # TODO: add dim handling, will just autostack currently.
+                    else:
+                        print(f"Caught unhandelable exception {e}")
+
+
+    backend == 'hv':
+        # Code from showPlot()
+        hvMap = hv.HoloMap(plotList)  # May need to handle dims here?
+        if self.__notebook__ and (backend == 'hv'):
+            if overlay is None:
+                display(hvMap)  # If notebook, use display to push plot.
+            else:
+                display(hvMap.overlay(overlay))
 
 
 # # Plot PADs from mat elements (MF) or BLMs

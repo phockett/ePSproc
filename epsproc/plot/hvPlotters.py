@@ -49,6 +49,12 @@ except ImportError as e:
     print('* Holoviews not found, hvPlotters not available. ')
     hvFlag = False
 
+# hvplot for simple Xarray > HV plotters
+try:
+    import hvplot.xarray
+except:
+    print('* Hvplot not found, some hvPlotters may not be available. See https://hvplot.holoviz.org/user_guide/Gridded_Data.html for package details.')
+
 # Set plotters & options.
 def setPlotters(hvBackend = 'bokeh', width = 500, snsStyle = "darkgrid"):
     """

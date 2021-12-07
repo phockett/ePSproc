@@ -527,7 +527,7 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
                         print(f"Caught unhandelable exception {e}")
 
 
-    backend == 'hv':
+    if backend == 'hv':
         # Code from showPlot()
         hvMap = hv.HoloMap(plotList)  # May need to handle dims here?
         if self.__notebook__ and (backend == 'hv'):

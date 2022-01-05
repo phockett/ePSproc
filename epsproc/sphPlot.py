@@ -223,7 +223,12 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
         if all(BLMXin.S == 0):
             # NOTE: Squeeze here to kill S dim, but this will also drop (l,m) if singleton. Needs a fix.
             # TODO: fix this!
-            BLMX = BLMXin.copy().unstack('ADM').rename({'K':'l', 'Q':'m'}).drop('S').stack({'BLM':('l','m')}).squeeze()
+            # UPDATE 05/01/22: in testing with XR v0.15 this is OK without squeeze(). Have left in with additional dim check for now/safety.
+            BLMX = BLMXin.copy().unstack('ADM').rename({'K':'l', 'Q':'m'}).drop('S').stack({'BLM':('l','m')}) #.squeeze()
+
+            if BLMX.l.size > 1:
+                BLMX = BLMX.squeeze()
+
         else:
             print('***ADM set with non-zero S, skipping Ylm routine.')
             BLMX = None

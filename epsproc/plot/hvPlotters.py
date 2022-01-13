@@ -3,6 +3,10 @@ ePSproc plotting functions with Holoviews + Bokeh.
 
 Aim: simple plotters for different datatypes, interactive in Jupyter Notebook + HTML formats.
 
+13/01/21    Added
+                - env check
+                - setPlotDefaults() (from tmo-dev/PEMtk codes)
+                - curvePlot() for general multi-dim Holomap curve plots.
 15/07/20    Debugged, still pretty basic but running.
 05/07/20    v1 in development.
 
@@ -55,8 +59,15 @@ try:
 except:
     print('* Hvplot not found, some hvPlotters may not be available. See https://hvplot.holoviz.org/user_guide/Gridded_Data.html for package details.')
 
+# Env check
+from epsproc.util.env import isnotebook
+__notebook__ = isnotebook()
+
+from .util import showPlot
+
+
 # Set plotters & options.
-def setPlotters(hvBackend = 'bokeh', width = 500, snsStyle = "darkgrid"):
+def setPlotters(hvBackend = 'bokeh', width = 500, height = None, snsStyle = "darkgrid"):
     """
     Set some plot options - Seaborn style + HV defaults.
 
@@ -112,6 +123,7 @@ def setPlotters(hvBackend = 'bokeh', width = 500, snsStyle = "darkgrid"):
         # Set HV extension
         try:
             hv.extension(hvBackend)
+            print(f"* Set Holoviews with {hvBackend}.")
 
         except ImportError as e:
             if e.msg != "None of the backends could be imported":
@@ -121,13 +133,28 @@ def setPlotters(hvBackend = 'bokeh', width = 500, snsStyle = "darkgrid"):
                 print("Possible bokeh version issue, see https://github.com/holoviz/holoviews/issues/2012. (For Holoviews 1.12.5, Bokeh 1.4.0 works, Bokeh 2.0.0 doesn't.)")
 
 
-
         # Set global HV options
         # Setting frame_width here results in offset plots in layout - try setting later?
         # opts.defaults(opts.Curve(frame_width=500, tools=['hover'], show_grid=True, padding=0.01))
-        opts.defaults(opts.Curve(width=width, tools=['hover'], show_grid=True, padding=0.01))
+        # opts.defaults(opts.Curve(width=width, tools=['hover'], show_grid=True, padding=0.01))
+        if height is None:
+            height = width
+
+        setPlotDefaults(fSize = [width, height], imgSize = height)
 
     # return hv.output.info()
+
+
+# Set some default plot options
+def setPlotDefaults(fSize = [800,400], imgSize = 500):
+    """Basic plot defaults"""
+
+    if hvFlag:
+        opts.defaults(opts.Scatter(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
+                      opts.Curve(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
+                      opts.Image(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True),   # Force square format for images (suitable for VMI)
+                      opts.HeatMap(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True),
+                      opts.HexTiles(width=fSize[0], height=fSize[1], tools=['hover'], colorbar=True))
 
 
 # Convert "standard" XS dataarray to dataset format.
@@ -143,6 +170,45 @@ def hvdsConv(dataXS):
     hv_ds = hv.Dataset(ds.unstack().sum('Total')) # OK - reduce Sym dims.
 
     return hv_ds, ds
+
+
+def curvePlot(dataXR, kdims = None, returnPlot = True, renderPlot = True, **kwargs):
+    """
+    Basic routine for curve/Holomap plot from Xarray dataset.
+
+    Currently assumes all plot type selection & cleaning done in calling function.
+
+    11/01/22: basic version from recent OCS work plus TMO-dev & PEMtk codes.
+
+    """
+
+    # Convert to HV dataset
+    hvds = hv.Dataset(dataXR)
+
+    # TODO: set default kdims if not passed? & dim checks.
+
+    # Curves
+    hvPlot = hvds.to(hv.Curve, kdims = kdims)
+
+    # TODO: wrap this
+    # # Code from showPlot()
+    # if self.__notebook__ and (not returnMap):
+    #     if overlay is None:
+    #         display(hmap)  # If notebook, use display to push plot.
+    #     else:
+    #         display(hmap.overlay(overlay))
+    #
+    # # Is this necessary as an option?
+    # if returnMap:
+    #     return hmap  # Otherwise return hv object.
+
+    # Use showPlot() to control render & return, or just return object - might be overkill?
+    if renderPlot:
+        return showPlot(hvPlot, returnPlot = returnPlot, __notebook__ = __notebook__)  # Currently need to pass __notebook__?
+
+    else:
+        return hvPlot
+
 
 
 # HV plotting routine for XS data

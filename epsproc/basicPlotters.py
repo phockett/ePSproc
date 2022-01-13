@@ -39,7 +39,9 @@ except ImportError as e:
         raise
     print('* Seaborn not found, clustermap plots not available. ')
 
-
+# Env check
+from epsproc.util.env import isnotebook
+__notebook__ = isnotebook()
 
 # Arrow3D class from https://stackoverflow.com/questions/22867620/putting-arrowheads-on-vectors-in-matplotlibs-3d-plot
 # Code: https://stackoverflow.com/a/22867877

@@ -24,7 +24,7 @@ import warnings
 
 # THIS works, IPython v7.1.3, Jupyter notebook 6.0.3
 # COULD also use Scooby here, see https://pypi.org/project/scooby/
-def isnotebook(warn = 'once'):
+def isnotebook():   # (warn = 'once'):
     """
     Check if code is running in Jupyter Notebook.
 
@@ -39,7 +39,7 @@ def isnotebook(warn = 'once'):
         shell = get_ipython().__class__.__name__
 
         if shell == 'ZMQInteractiveShell':
-            warnings.filterwarnings(warn)
+            # warnings.filterwarnings(warn)   # Better to use a separate function here to avoid confusion
             return True   # Jupyter notebook or qtconsole
 
         elif shell == 'TerminalInteractiveShell':
@@ -50,3 +50,10 @@ def isnotebook(warn = 'once'):
 
     except NameError:
         return False      # Probably standard Python interpreter
+
+
+def setWarnings(warn = 'once'):
+    """Control warnings output."""
+
+    warnings.filterwarnings(warn)  # set 'once' or 'ignore'
+    warnings.simplefilter(warn)

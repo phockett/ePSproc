@@ -83,7 +83,7 @@ from epsproc.geomFunc import (EPR, MFproj, Wigner3jQNs, afblmGeom, afblmXprod,
                               betaTerm, deltaLMKQS, genKQSterms,
                               genKQStermsFromTensors, genllL, genllLList,
                               genllpMatE, geomCalc, geomUtils, mfblmGeom,
-                              mfblmGeom_Dev, mfblmXprod, mfblmXprod, remapllpL,
+                              mfblmXprod, mfblmXprod, remapllpL,
                               selQNsRow, setPhaseConventions,
                               setPhaseConventions, w3jTable, w3jVecMethods,
                               w3jguVecCPU, w3jprange,)

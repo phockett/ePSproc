@@ -216,9 +216,12 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', selDims = None,
 
     Notes
     -----
+    Updates in issue #27: https://github.com/phockett/ePSproc/issues/27
+    Demo: https://epsproc.readthedocs.io/en/dev/tests/hvPlotters_fn_tests_150720_v250122.html
 
     - Proper dim handling to be implemented. See code elsewhere(?).
         XR plotter currently uses 'cDims' in some places too.
+    - Add XR and HV data return, currently only return objects.
 
     27/01/22: Updated with better selection & basic XR dim handling, but still needs work.
               Added basic HV plotter routines.

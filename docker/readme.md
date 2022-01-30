@@ -7,6 +7,7 @@ Quick build container only:
 
 
 ```
+docker build -t jupyterlab_epsproc .
 docker run -p 8888:8888 jupyterlab_epsproc
 ```
 

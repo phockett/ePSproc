@@ -231,6 +231,8 @@ def densityCalc(da, denDims = 'LM',
 
 
     # Version with renaming of multi-index dims prior to outer-product - avoids linked dims in output array.
+    # TODO: add case where prime dim already exists.
+    # TODO: fix for singleton dim case (currently tries to unstack)
 
     # Set rsMap for singleton dim cases (not set in dimRestack, but maybe should be)
     if not rsMap:

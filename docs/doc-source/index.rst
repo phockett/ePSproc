@@ -66,7 +66,7 @@ Welcome to ePSproc
    tests/ePSproc_frame_rotation_tests_Dec2019
    tests/Low_level_bench_tests_Wigner3j_Feb2020
    tests/basicPlotting_dev_XC_030720
-   tests/hvPlotters_fn_tests_150720
+   tests/hvPlotters_fn_tests_150720_v250122
 
 
 .. toctree::

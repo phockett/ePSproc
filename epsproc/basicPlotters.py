@@ -39,6 +39,23 @@ except ImportError as e:
         raise
     print('* Seaborn not found, clustermap plots not available. ')
 
+# Holoviews backend routines - already has appropriate try/except in code
+# TODO: may want to move more setup routines to .plot?
+import epsproc.plot.hvPlotters as hvPlotters
+from epsproc.plot.util import showPlot
+hvFlag = hvPlotters.hvFlag
+setPlotters = hvPlotters.setPlotters
+
+print('* Setting plotter defaults with epsproc.basicPlotters.setPlotters(). Run directly to modify, or change options in local env.')
+setPlotters()
+
+# if hvFlag:
+#     setPlotters()
+#     print()
+
+# hv = hvPlotters.hv
+
+
 # Env check
 from epsproc.util.env import isnotebook
 __notebook__ = isnotebook()
@@ -140,7 +157,11 @@ def molPlot(molInfo):
 
 #*** BLM surface plots
 
-def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr', **kwargs):
+def BLMplot(BLM, thres = 1e-2, thresType = 'abs', selDims = None,
+            XS = False, xDim = 'Eke', pType = 'r',
+            col = 'Labels', row = None, pStyle = 'line',
+            backend = 'xr', returnPlot = False, renderPlot = True,
+            **kwargs):
     """
     Plotting routines for BLM values from Xarray.
     Plot line or surface plot, with various backends available.
@@ -153,17 +174,57 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr', 
     thres : float, optional, default 1e-2
         Value used for thresholding results, only values > thres will be included in the plot.
         Either abs or relative (%) value, according to thresType setting.
+        Set thres = None to skip.
 
     thresType : str, optional, default = 'abs'
         Set to 'abs' or 'pc' for absolute threshold, or relative value (%age of max value in dataset)
+
+    selDims : dict, optional, default = None
+        Dimensions to select from input Xarray.
+
+    XS : bool, optional, default = False
+        Use absolute XS value for l=0 if true (from BLM.XS); otherwise show current values (usually normalised to =1).
 
     xDim : str, optional, default = 'Eke'
         Dimension to use for x-axis, also used for thresholding. Default plots (Eke, BLM) surfaces with subplots for (Euler).
         Change to 'Euler' to plot (Euler, BLM) with (Eke) subplots.
 
+    col, row : strings, optional, default = 'Labels', None
+        Set for dim handling in plot.
+        For xr backend these define plot layout.
+
+    pType : char, optional, default 'a' (abs values)
+        Set (data) type to plot. See :py:func:`plotTypeSelector`.
+
+    pStyle : string, optional, default = 'line'
+        NOT YET PROPERLY IMPLEMENTED
+        For XR backend can also set 'surf'.
+
     backend : str, optional, default = 'xr'
-        Plotter to use. Default is 'xr' for Xarray internal plotting. May be switched according to plot type in future...
+        Plotter to use. Currently supports 'xr' = Xarray, 'hv' = Holoviews
+        Default is 'xr' for Xarray internal plotting. May be switched according to plot type in future...
         **kwargs are currently passed to the plotter backend.
+
+    returnXR : bool, optional, default = False
+        Return plot data to caller if true.
+
+    returnPlot : bool, optional, default = False
+        For hv backend, return object to caller?
+
+    renderPlot : bool, optional, default = True
+        For hv backend, render plot (if running in a notebook)?
+
+    Notes
+    -----
+    Updates in issue #27: https://github.com/phockett/ePSproc/issues/27
+    Demo: https://epsproc.readthedocs.io/en/dev/tests/hvPlotters_fn_tests_150720_v250122.html
+
+    - Proper dim handling to be implemented. See code elsewhere(?).
+        XR plotter currently uses 'cDims' in some places too.
+    - Add XR and HV data return, currently only return objects.
+
+    27/01/22: Updated with better selection & basic XR dim handling, but still needs work.
+              Added basic HV plotter routines.
 
     """
     # Local/deferred import to avoid circular import issues at module level.
@@ -171,6 +232,7 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr', 
     from epsproc.util import matEleSelector
 
     # Check dims, and set facet dim
+    # TODO: update with newer dim handling routines (dynamic)
     dims = BLMdimList()
     dims.remove(xDim)
     cDims = dims.remove('BLM')
@@ -179,17 +241,58 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', xDim = 'Eke', backend = 'xr', 
     if thresType is 'pc':
         thres = thres * BLM.max()
 
-    # Threshold results. Set to check along Eke dim, but may want to pass this as an option.
-    BLMplot = matEleSelector(BLM, thres=thres, dims = xDim)
+    # Threshold & set data for plotting. Set to check along Eke dim, but may want to pass this as an option.
+    BLMplot = matEleSelector(BLM, thres=thres, inds = selDims, dims = xDim, sq = True)
 
-    # Set BLM index for plotting.
-    # Necessary for Xarray plotter with multi-index categories it seems.
-    BLMplot['BLMind'] = ('BLM', np.arange(0, BLMplot.BLM.size))
+    # Set dataType if missing
+    if 'dataType' not in BLMplot.attrs:
+        BLMplot.attrs['dataType'] = '(No dataType)'
+        # print(f"Set dataType {daPlot.attrs['dataType']}")
+
+    if XS and (BLMplot.attrs['dataType'] is 'BLM'):
+        # daPlot.values = daPlot * daPlot.XS
+        BLMplot = BLMplot.where(BLMplot.l !=0, BLMplot.XS)  # Replace l=0 values with XS
+
+    BLMplot = plotTypeSelector(BLMplot, pType = pType, axisUW = xDim)
+
+    #*** Fix any missing attrs - set this LAST otherwise may be accidentally overwritten above.
+    # Set filename if missing
+    if 'file' not in BLMplot.attrs:
+        BLMplot.attrs['file'] = '(No filename)'
+
+    # For HV plotters need a name!
+    # if hasattr(BLMplot,'name') and not BLMplot.name:
+    if not BLMplot.name:
+        BLMplot.name = 'BLM'
 
     #*** Plot
     if backend is 'xr':
-        BLMplot.real.squeeze().plot(x=xDim, y='BLMind', col=cDims, size = 5, **kwargs)
 
+        # Set BLM index for plotting. TODO: check for updated XR versions.
+        # Necessary for Xarray plotter with multi-index categories it seems.
+        BLMplot['BLMind'] = ('BLM', np.arange(0, BLMplot.BLM.size))
+
+        if pStyle is 'surf':
+            # BLMplot.real.squeeze().plot(x=xDim, y='BLMind', col=cDims, size = 5, **kwargs)
+            BLMplot.plot.line(x=xDim, y='BLMind', col=cDims, row=row, **kwargs)
+            # .real.plot.line(x=Etype, col=col, row=row, **kwargs)
+
+        else:
+            # BLMplot.plot.line(x=xDim, col=cDims, row=row, **kwargs)
+            BLMplot.plot.line(x=xDim, col=col, row=row, **kwargs)
+
+    if backend is 'hv':
+        # Basic HVplotter routine, need to add better dim handling!
+        # hvObj = hvPlotters.curvePlot(BLMplot.unstack('BLM').squeeze().fillna(0), kdims='Eke', renderPlot = False)
+        hvObj = hvPlotters.curvePlot(BLMplot.unstack('BLM'), kdims='Eke', renderPlot = False)  # OK, don't render
+
+        # Use showPlot() to control render & return, or just return object - might be overkill?
+        # Note default .overlay(['l','m'])
+        if renderPlot:
+            return showPlot(hvObj.overlay(['l','m']), returnPlot = returnPlot, __notebook__ = __notebook__)  # Currently need to pass __notebook__?
+
+        else:
+            return hvObj
 
 
 #************************* Routines for matrix element plotting

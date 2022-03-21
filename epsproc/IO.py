@@ -166,7 +166,8 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
                 segments[n].append([n, i, line])    # Store line if part  of defined segment
 
     if verbose:
-        print('Found {0} segments.'.format(n+1))
+        # print('Found {0} segments.'.format(n+1))
+        print(f'*** IO.fileParse() found {n} segments with \n\tStart: {startPhrase}\n\tEnd: {endPhrase}.')
 
     return ([lineStart, lineStop], segments) # [:-1])
 
@@ -947,7 +948,49 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
 # ************* EDCS parsing
 
 # Parse a EDCS segment (roughly)
-def EDCSSegParse(dumpSeg):
+# def EDCSSegParse(dumpSeg):
+#     """
+#     Extract values from EDCS file segments.
+#
+#     Parameters
+#     ----------
+#     dumpSeg : list
+#         One EDCS segment, from dumpSegs[], as returned by :py:func:`epsproc.IO.EDCSFileParse()`
+#
+#     Returns
+#     -------
+#     np.array
+#         EDCS, array of scattering XS, [theta, Cross Section (Angstrom^2)]
+#     list
+#         attribs, list [Label, value, units]
+#
+#     Notes
+#     -----
+#     Currently this is a bit messy, and relies on fixed EDCS format.
+#     No error checking as yet.
+#     Not yet reading all attribs.
+#
+#     Example
+#     -------
+#
+#     >>> EDCS, attribs = EDCSSegParse(dumpSegs[0])
+#
+#     """
+#     # Use lists to collect data, and convert format at the end
+#     attribs = []
+#     EDCS = []
+#
+#     attribs.append(['E', np.float(parseLineDigits(dumpSeg[13][2])[0]), 'eV'])
+#
+#     # For each line convert to float - bit ugly, but works
+#     for testLine in dumpSeg[67:]:
+#         EDCS.append(np.genfromtxt(StringIO(testLine[2])))
+#
+#     return np.asarray(EDCS), attribs
+
+
+# Updated function 07/03/22 - additional line checks to allow for variable-length output & debug output with verbose
+def EDCSSegParse(dumpSeg, verbose = False):
     """
     Extract values from EDCS file segments.
 
@@ -955,6 +998,9 @@ def EDCSSegParse(dumpSeg):
     ----------
     dumpSeg : list
         One EDCS segment, from dumpSegs[], as returned by :py:func:`epsproc.IO.EDCSFileParse()`
+
+    verbose : bool, int, default = False
+        Print additional info during run.
 
     Returns
     -------
@@ -965,6 +1011,8 @@ def EDCSSegParse(dumpSeg):
 
     Notes
     -----
+
+    Only reads (theta,I) information from an "EDCS - differential cross section program" segment.
     Currently this is a bit messy, and relies on fixed EDCS format.
     No error checking as yet.
     Not yet reading all attribs.
@@ -975,17 +1023,51 @@ def EDCSSegParse(dumpSeg):
     >>> EDCS, attribs = EDCSSegParse(dumpSegs[0])
 
     """
+
     # Use lists to collect data, and convert format at the end
     attribs = []
     EDCS = []
 
-    attribs.append(['E', np.float(parseLineDigits(dumpSeg[13][2])[0]), 'eV'])
+    DCSFlag = False  # Use this to turn on output for DCS section of segment only.
 
-    # For each line convert to float - bit ugly, but works
-    for testLine in dumpSeg[67:]:
-        EDCS.append(np.genfromtxt(StringIO(testLine[2])))
+    for testLine in dumpSeg:
+    #     print(line)
+
+        # Get energy, read line "Energy to compute the EDCS at (eV) =      X"
+        # Note there may also be another energy line with other units provided.
+        if testLine[-1].strip().startswith('Energy to compute'):
+            if verbose:
+                print(f"***E line: {testLine}")
+
+            attribs.append(['E', np.float(parseLineDigits(testLine[2])[0]), 'eV'])
+
+        # Use "Ang" or "Differential Cross Section" as keywords to flag beginning of (theta,I) data
+        if testLine[-1].strip().startswith('Differential Cross Section'):
+            if verbose:
+                print(f"*** Seg {testLine[0]}, line {testLine[1]} DCS start")
+
+            DCSFlag = True
+
+
+        if testLine[-1].strip().startswith("Time Now"):
+            if verbose:
+                print(f"Seg {testLine[0]}, line {testLine[1]} DCS end")
+
+            DCSFlag = False
+
+        if DCSFlag:
+            # For each line convert to np - bit ugly, but works
+            testVals = np.genfromtxt(StringIO(testLine[2]))
+
+            # Check non-Nan line, this is the case for any additional header lines
+    #         if ~np.isnan(testVals).all()
+            if ~np.isnan(testVals[0]):
+                EDCS.append(testVals)
+
 
     return np.asarray(EDCS), attribs
+
+
 
 # Functional form for parsing full set of mat elements and putting in xarray
 def EDCSSegsParseX(dumpSegs):

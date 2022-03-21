@@ -76,10 +76,11 @@ def dimRestack(da, stackDims = []):
     #*** Check dims
     dimCheck = checkDims(da, refDims = stackDims)
 
+    # Missing dims case, just return dimCheck, although this might cause errors in calling function.
     if dimCheck['missing']:
         print(f"***Error: Missing specified dimension(s): {dimCheck['missing']}")
 
-        return dimsIn
+        return dimCheck
 
     #*** Restack dims if necessary
     # (1) if there are both stacked and unstacked dims in denDims, unstack then restack
@@ -125,7 +126,7 @@ def dimRestack(da, stackDims = []):
 def densityCalc(da, denDims = 'LM',
                 sumDims = None, keepDims = None,   # May want additional control here, 1/sumDims ?
                 selDims = None, thres = None, squeeze = True,
-                keepNaNs = False):
+                keepNaNs = False, compute = True):
 
     r"""
     General density matrix from Xarray.
@@ -163,6 +164,10 @@ def densityCalc(da, denDims = 'LM',
         Keep NaNs in result if false.
         Otherwise, set to zero. (Note this is currently implemented indirectly via xr.sum(skipna = ~keepNaNs).)
         Note: in some cases this may cause NaNs to propagate and give all-NaN results.
+
+    compute : bool, optional, default = True
+        Compute density matrix as outer product?
+        Otherwise just set from restacked Xarray.
 
 
     Notes
@@ -226,24 +231,29 @@ def densityCalc(da, denDims = 'LM',
 
 
     #*** Compute density from specified dims
-#     daDot = daDen * daDen.conj().rename({denDim:denDim+'_p'})  # Outer product along denDims
-                                                                # This works, but can give issues with shared multi-index dims
+    if compute:
+    #     daDot = daDen * daDen.conj().rename({denDim:denDim+'_p'})  # Outer product along denDims
+                                                                    # This works, but can give issues with shared multi-index dims
 
 
-    # Version with renaming of multi-index dims prior to outer-product - avoids linked dims in output array.
+        # Version with renaming of multi-index dims prior to outer-product - avoids linked dims in output array.
 
-    # Set rsMap for singleton dim cases (not set in dimRestack, but maybe should be)
-    if not rsMap:
-        if dimCheck['shared']:
-            rsMap = {denDim:[denDim]}  # Case for single, unstacked dim set
-        else:
-            rsMap = {denDim:dimCheck['stackedMap'][denDim]}  # For case of single, already stacked dim, dimCheck returns rsMap = {}.
+        # Set rsMap for singleton dim cases (not set in dimRestack, but maybe should be)
+        if not rsMap:
+            if dimCheck['shared']:
+                rsMap = {denDim:[denDim]}  # Case for single, unstacked dim set
+            else:
+                rsMap = {denDim:dimCheck['stackedMap'][denDim]}  # For case of single, already stacked dim, dimCheck returns rsMap = {}.
 
-    newDims = {item:item+'_p' for item in rsMap[denDim]}
-    denDimP = denDim+'_p'
-    denDimPMap = {denDimP:list(newDims.values())}
-    daConj = daDen.conj().unstack(denDim).rename(newDims).stack(denDimPMap)
-    daDot = daDen * daConj
+        newDims = {item:item+'_p' for item in rsMap[denDim]}
+        denDimP = denDim+'_p'
+        denDimPMap = {denDimP:list(newDims.values())}
+        daConj = daDen.conj().unstack(denDim).rename(newDims).stack(denDimPMap)
+        daDot = daDen * daConj
+
+    else:
+        daDot = daDen
+
 
     #*** Propagate attrs & set outputs
     daDot.attrs = attrs
@@ -341,6 +351,11 @@ def matPlot(da, kdims = None, pTypes = ['r','i','a'],
     -------
     Holoviews holomap object
         If 'plot'; otherwise, returns plot + datasets = (hvmap, hvds, daPlotDS)
+
+
+    TODO:
+
+    - update & consolidate dim-handling routines from densityCalc() to provide easier plotting routines here (without manual restack etc. for other data types).
 
 
     """

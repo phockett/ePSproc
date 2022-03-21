@@ -104,9 +104,17 @@ html_static_path = ['_static']
 # See
 # https://github.com/readthedocs/sphinx_rtd_theme/issues/295
 # https://stackoverflow.com/questions/23211695/modifying-content-width-of-the-sphinx-theme-read-the-docs
+
+# Option (1): include .css file with fix. Applied & tested on RTD OK, 01/09/21
 html_css_files = [
     'max_width_fix.css',
 ]
 
-# This might also work:
+# Option (2): set theme option
+# This might also work (no additional CSS required):
+# DOESN'T WORK ON RTD with sphinx_rtd_theme
 # html_theme_options = {'body_max_width': '70%'}
+
+# Option (3): include .css file with patch (similar to (1), but imports theme into the patch CSS file)
+# This might work too - patches existing theme:
+# html_style = 'max_width_patch.css'

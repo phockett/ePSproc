@@ -134,6 +134,8 @@ def dataTypesList():
     - 'source' fields correspond to ePS functions which get or generate the data.
     - 'desc' brief description of the dataType.
     - 'recordType' gives the required segment in ePS files (and associated parser). If the segment is not present in the source file, then the dataType will not be available.
+    - 'def' provides definition function handle (if applicable).
+    - 'dims' lists results from def(sType = 'sDict')
 
     TODO: best choice of data structure here?  Currently nested dictionary.
 
@@ -143,13 +145,15 @@ def dataTypesList():
                     {'source':'epsproc.MFBLM',
                     'desc':'Calcualted MF beta parameters from epsproc.MFBLM(), based on dipole matrix elements from ePS.',
                     'recordType':'DumpIdy',
-                    'dims': BLMdimList(sType = 'sDict')
+                    'dims': BLMdimList(sType = 'sDict'),
+                    'def': BLMdimList
                     },
                 'matE' :
                     {'source':'epsproc.IO.readMatEle',
                     'desc':'Raw photoionization matrix elements from ePS, DumpIdy command and file segments.',
                     'recordType':'DumpIdy',
-                    'dims': matEdimList(sType = 'sDict')
+                    'dims': matEdimList(sType = 'sDict'),
+                    'def': matEdimList
                     },
                 'EDCS' :
                     {'source':'epsproc.IO.readMatEle',
@@ -174,18 +178,21 @@ def dataTypesList():
                 'Euler' :
                     {'source':'epsproc.sphCalc.setPolGeoms()',
                      'desc':'Frame rotation definitions in terms of Euler angles and corresponding Quaternions.',
-                     'dims':eulerDimList(sType = 'sDict')
+                     'dims':eulerDimList(sType = 'sDict'),
+                     'def': eulerDimList
                      },
                  'ADM' :
                      {'source':'epsproc.sphCalc.setADMs()',
                       'desc':'Defines ADMs, A(K,Q,S), for aligned frame distributions.',
-                      'dims':ADMdimList(sType = 'sDict')
+                      'dims':ADMdimList(sType = 'sDict'),
+                      'def':ADMdimList
                       },
                 'phaseCons' :
                      {'source':'epsproc.geomFunc.setPhaseConventions()',
                       'desc':'Defines sets of phase choices for calculations, implemented on in geomFuncs.',
                       'dims': setPhaseConventions(typeList = True),   # Currently supported types, should integrate in fn.
-                      'defns': [setPhaseConventions(item) for item in setPhaseConventions(typeList = True)]
+                      'defns': [setPhaseConventions(item) for item in setPhaseConventions(typeList = True)],
+                      'def': setPhaseConventions
                       }
                 }
 

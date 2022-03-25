@@ -19,4 +19,5 @@ RUN conda install --quiet --yes seaborn=0.9
 RUN conda install --quiet --yes holoviews
 
 # Note optional @branch here
-RUN pip install git+git://github.com/phockett/ePSproc@dev
+# RUN pip install git+git://github.com/phockett/ePSproc@dev
+RUN pip install git+https://github.com/phockett/ePSproc@dev

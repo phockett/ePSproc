@@ -197,7 +197,7 @@ def conv_ev_atm(data, to = 'ev'):
     # H = 27.211386245
     H = scipy.constants.physical_constants['Hartree energy in eV'][0]  # Use scipy value
 
-    if to is 'ev':
+    if to == 'ev':
         dataOut = data*H
     else:
         dataOut = data/H
@@ -324,9 +324,9 @@ def conv_BL_BLM(data, to = 'sph', renorm = True):
         return None
 
     # Set output values
-    if to is 'sph':
+    if to == 'sph':
         dataOut = data/Bconv
-    elif to is 'lg':
+    elif to == 'lg':
         dataOut = data*Bconv
     else:
         print(f"*** Beta conversion error: conversion type {to} not supported.")

@@ -132,7 +132,7 @@ def plotTypeSelector(dataPlot = None, pType = 'a', axisUW = 'Eke', returnDict = 
         return pTypeDict
 
     # Set pType in output plotting data Xarray
-    if pType is 'phaseUW':
+    if pType == 'phaseUW':
         axisNum = dataPlot.get_axis_num(axisUW)  # Special case with axis set
 
     dataPlot.values = pTypeDict[pType]['Exec'](dataPlot)
@@ -219,7 +219,7 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
 
     # For ADMs, can use this plotting routine if S=0 only.
     # NOTE - this should work if other singleton dims are present, but will need to explicitly set facetDims for plots, otherwise will throw an error
-    if (BLMXin.attrs['dataType'] is 'ADM'):
+    if (BLMXin.attrs['dataType'] == 'ADM'):
         if all(BLMXin.S == 0):
             # NOTE: Squeeze here to kill S dim, but this will also drop (l,m) if singleton. Needs a fix.
             # TODO: fix this!
@@ -235,7 +235,7 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
             BLMX = None
 
     # For normal BLMs, no action required.
-    elif BLMXin.attrs['dataType'] is 'BLM':
+    elif BLMXin.attrs['dataType'] == 'BLM':
         BLMX = BLMXin
 
     # Default case - set as BLM case but include dataType warning.
@@ -364,7 +364,7 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
     fig = []
 
     # Matplotlib
-    if backend is 'mpl':
+    if backend == 'mpl':
         # Check dimensionality - loop over facetDim if necessary
         # Return list of fig handles
         if len(dataPlot.dims) > 2:
@@ -387,7 +387,7 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
             fig.append(sphPlotMPL(dataPlot, theta, phi,  convention = convention, tString = titleString))
 
     # Plotly - note that faceting is handled directly by Plotly in this case.
-    if backend is 'pl':
+    if backend == 'pl':
         fig.append(sphPlotPL(dataPlot, theta, phi, facetDim, convention = convention))
 
     return fig
@@ -652,7 +652,7 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
 
                 # Set string for "scene" (axis) object to update - will be labelled scene1, scene2... by Plotly.
                 sceneN = f'scene{n}'
-                if norm is 'global':
+                if norm == 'global':
                     # Try looping... OK with dict unpacking... huzzah!
                     # NOTE Scene indexing starts at 1, so do this after n increments
                     options = dict(xaxis = aRanges, yaxis = aRanges, zaxis = aRanges, aspectmode='cube')

@@ -809,13 +809,13 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
         # TODO: decide MAX 4D. Then reduce > groupby > facet to existing plotter.
         # TODO: general way to handle more dims?
 
-        if pStyle is 'polar':
+        if pStyle == 'polar':
             for groupLabel, item in subset.groupby(facetDimsCheck[0]):
 #                 tString = f"Pol geom: {item.item()}, plotType: {pType}"
                 tString = f"{facetDimsCheck[0]}: {groupLabel}, plotType: {pType}"
                 _ = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
 
-        elif pStyle is 'grid':
+        elif pStyle == 'grid':
             print(f"Grid plot: {subset.attrs['jobLabel']}, dataType: {dataType}, plotType: {pType}")
 
             # Set data

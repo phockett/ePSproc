@@ -29,11 +29,11 @@ def matEdimList(sType = 'stacked'):
     list : set of dimension labels.
 
     """
-    if sType is 'stacked':
+    if sType == 'stacked':
         # stackedDims
         return ['LM', 'Eke', 'Sym', 'mu', 'it', 'Type']
 
-    elif sType is 'sDict':
+    elif sType == 'sDict':
         return {'LM':['l','m'],'Sym':['Cont', 'Targ', 'Total']}
 
     else:
@@ -56,11 +56,11 @@ def BLMdimList(sType = 'stacked'):
     list : set of dimension labels.
 
     """
-    if sType is 'stacked':
+    if sType == 'stacked':
         # stackedDims
         return ['Euler', 'Eke', 'BLM']
 
-    elif sType is 'sDict':
+    elif sType == 'sDict':
         return {'BLM':['l','m'],'Euler':['P','T','C']}
 
     else:
@@ -83,11 +83,11 @@ def eulerDimList(sType = 'stacked'):
     list : set of dimension labels.
 
     """
-    if sType is 'stacked':
+    if sType == 'stacked':
         # stackedDims
         return ['Euler']
 
-    elif sType is 'sDict':
+    elif sType == 'sDict':
         return {'Euler':eulerDimList(sType = 'unstacked')}
 
     else:
@@ -110,11 +110,11 @@ def ADMdimList(sType = 'stacked'):
     list : set of dimension labels.
 
     """
-    if sType is 'stacked':
+    if sType == 'stacked':
         # stackedDims
         return ['ADM','t']
 
-    elif sType is 'sDict':
+    elif sType == 'sDict':
         return {'ADM':['K','Q','S'],'t':'t'}
 
     else:

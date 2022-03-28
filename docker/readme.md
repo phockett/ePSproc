@@ -36,7 +36,22 @@ Use `exec -it <container> bash` to attach to a running container, or `run -it <c
 E.g. for named container as above: `docker exec -it jupyterlab_epsproc bash`
 
 
-### Quick build with Compose (includes some extra options)
+### Build with Compose (includes some extra options)
+
+#### Compose + local install
+
+See `docker-compose.local.yml` for options, including port and storage mapping.
+
+The default case pulls source image, installs dependencies, and mounts local folders for source and notebooks.
+
+```
+docker-compose -f docker-compose.local.yml build
+```
+
+Once up, run `installlocal.sh` in the container to install the local code in editable mode.
+
+
+#### Compose + ePSproc install
 
 See `docker-compose.ePSproc.yml` for options, including port and storage mapping.
 

@@ -77,11 +77,15 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.__init__(self, (0,0), (0,0), *args, **kwargs)
         self._verts3d = xs, ys, zs
 
+        self.do_3d_projection = self.draw  # Patch for Matplotlib >= 3.5, see https://stackoverflow.com/a/22867877
+
     def draw(self, renderer):
         xs3d, ys3d, zs3d = self._verts3d
         xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
         self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
         FancyArrowPatch.draw(self, renderer)
+
+        return 1  # Patch for Matplotlib >= 3.5, see https://stackoverflow.com/a/22867877 - this defines z-stacking?
 
 
 # Basic plotting for molecular structure

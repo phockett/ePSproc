@@ -575,10 +575,22 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
     - More playing around with Plotly.
     - Camera control and linking, e.g. https://community.plotly.com/t/synchronize-camera-across-3d-subplots/22236
 
+    For JupyterLab, need additional extensions - see https://plotly.com/python/getting-started/#jupyterlab-support:
+    - `conda install -c conda-forge -c plotly jupyter-dash`
+    - `jupyter labextension install jupyterlab-plotly`
+
+    In some cases may get partially working installation with, e.g., blank surface plots, or plots via HV only. This usually means JupyterLab needs a restart (and maybe a rebuild).
+    For more see https://plotly.com/python/troubleshooting/
+
     '''
 
     # Set up subplots
-    nData = dataPlot[facetDim].size
+    # 31/03/22 type check to fix issues with padPlot wrapper and None type facetDims.
+    if facetDim is not None:
+        nData = dataPlot[facetDim].size
+    else:
+        # facetDim = 'Eke'
+        nData = 1
 
     if rc is None:
         nCols = 6
@@ -596,7 +608,8 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
     if isinstance(dataPlot, xr.core.dataarray.DataArray):
         # Check max coord limit, to use for all subplot ranges
         # Should rewrite sphToCart for Xarray output?
-        X,Y,Z =sphToCart(dataPlot,dataPlot.Theta,dataPlot.Phi)
+        X,Y,Z =sphToCart(dataPlot,dataPlot.Theta,dataPlot.Phi)  # NOTE - this is NOT used for plotting, just global limits.
+        # X,Y,Z =sphToCart(dataPlot,theta,phi)  # NOTE - (t,p) here predefined 2D arrays!
 
         Cmax = np.max([X.max(), Y.max(), Z.max()])  # Check max & min coord values - may be unequal in some cases.
         Cmin = np.min([X.min(), Y.min(), Z.min()])
@@ -617,6 +630,7 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
     n=0
     for rInd in range(1,rc[0]+1):
         for cInd in range(1,rc[1]+1):
+            print(f"*** Plotting for [{rInd},{cInd},{n}]")
             if n < nData:
 
                 # Set data (NOTE - now repeats above in Xarray case)

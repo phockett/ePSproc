@@ -729,7 +729,7 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     keys = self._keysCheck(keys)
 
     # Default facetDims, (Eulers, Eke)
-    # Should test these?
+    # Should test these? YES - it's done later, per key.
     if facetDims is None:
         facetDims = ['Labels', Etype]
 
@@ -746,6 +746,16 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
 
         # Set data & slice on E
         subset = self.Esubset(key = key, dataType = dataType,  Erange = Erange, Etype = Etype)
+
+        # Handling for Euler or Labels dim - UGLY
+        eDim = 'Euler'
+        if hasattr(subset, 'Labels'):
+#                 if 'Labels' in selDims:
+            if eDim in subset.dims:
+                subset = subset.swap_dims({'Euler':'Labels'})
+
+            eDim = 'Labels'
+
 
         # if selDims is not None:  # Now set as empty dict to avoid issues later.
         # TODO: smarter dim handling here - selDims may not be consistent over all dataSets!
@@ -774,14 +784,14 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
 
 
         #***** Check dims
-        # Handling for Euler or Labels dim - UGLY
-        eDim = 'Euler'
-        if hasattr(subset, 'Labels'):
-#                 if 'Labels' in selDims:
-            if eDim in subset.dims:
-                subset = subset.swap_dims({'Euler':'Labels'})
-
-            eDim = 'Labels'
+#         # Handling for Euler or Labels dim - UGLY... now moved above to allow for selDims in Xarray > 0.15 (treats non-dimensional coords differently)
+#         eDim = 'Euler'
+#         if hasattr(subset, 'Labels'):
+# #                 if 'Labels' in selDims:
+#             if eDim in subset.dims:
+#                 subset = subset.swap_dims({'Euler':'Labels'})
+#
+#             eDim = 'Labels'
 
         #
 #         plotDims = set(subset.dims) - set(facetDims)

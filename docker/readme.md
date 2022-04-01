@@ -53,6 +53,8 @@ Once up, run `installlocal.sh` in the container to install the local code in edi
 
 A one-liner for this (assuming a `github` directory mounted with local code): `docker exec jupyterlab-ePSproc-dev /home/jovyan/github/ePSproc/docker/localinstall.sh`, or run via a terminal in the container, e.g. `docker exec -it jupyterlab-ePSproc-dev bash` to connect.
 
+Note the script defaults to `~/github` for the install, pass a different path if required, e.g. `docker exec jupyterlab-ePSproc-dev /home/jovyan/github/ePSproc/docker/localinstall.sh /path/to/repos`.
+
 
 
 #### Compose + ePSproc install

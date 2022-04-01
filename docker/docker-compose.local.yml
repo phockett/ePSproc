@@ -18,7 +18,7 @@ services:
   jupyterlab:
     build:
       context: .
-      dockerfile: Dockerfile-noinstall
+      dockerfile: Dockerfile-noinstall-latest 
 
     image: jupyterlab_epsproc_dev
     container_name: jupyterlab-ePSproc-dev

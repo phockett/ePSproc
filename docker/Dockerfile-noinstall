@@ -1,0 +1,65 @@
+# Jupyterlab with ePSproc + PEMtk install.
+#
+# 27/03/22 -noinstall version
+# Use this for container for testing local dev code.
+#
+# 25/03/22 -PEMtk version
+# Quick hack from existing ePSproc build.
+# May want to do as a multi-part build (mainly for libmsy): https://docs.docker.com/develop/develop-images/multistage-build/
+#
+# 11/08/21  v1
+# Based on OpenDreamKit JupyterHub distro, https://github.com/defeo/jupyterhub-docker/
+# Uses Jupyter Stacks scipy notebook as base container, https://github.com/jupyter/docker-stacks/tree/master/scipy-notebook
+#
+
+FROM jupyter/scipy-notebook
+
+
+# USER $NB_UID
+
+# RUN whoami
+# Set user to root for installers below.
+USER root
+
+# Add conda env hook
+COPY ./conda-activate.sh /usr/local/bin/before-notebook.d/
+COPY ./libmsym_build.sh .
+
+#*** Libmsym build (for symmetrized harmonics)
+
+# Install Cmake, solution from https://hub.docker.com/r/rikorose/gcc-cmake/dockerfile
+ARG CMAKE_VERSION=3.21.0
+
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+      -q -O /tmp/cmake-install.sh \
+      && chmod u+x /tmp/cmake-install.sh \
+      && mkdir /usr/bin/cmake \
+      && /tmp/cmake-install.sh --skip-license --prefix=/usr/bin/cmake \
+      && rm /tmp/cmake-install.sh
+
+ENV PATH="/usr/bin/cmake/bin:${PATH}"
+
+RUN ./libmsym_build.sh
+
+
+#*** Conda & pip installs
+
+# USER $NB_UID  # Set to notebook user.
+
+#*** Add ePSproc + dependencies
+# Note some may become/are optional, see also requirements.txt
+RUN conda install --quiet --yes -c conda-forge spherical_functions
+RUN conda install --quiet --yes xarray=0.17
+RUN conda install --quiet --yes seaborn=0.9
+RUN conda install --quiet --yes holoviews
+
+# Scooby for reporting
+RUN conda install --quiet --yes -c conda-forge scooby
+
+# Note optional @branch here
+# RUN pip install git+https://github.com/phockett/ePSproc@dev
+
+
+#*** Add PEMtk + dependencies
+RUN conda install --quiet --yes -c conda-forge pyshtools
+# RUN pip install git+https://github.com/phockett/PEMtk

@@ -1673,7 +1673,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
             # Scan the file and parse segments
             #lines, dumpSegs = dumpIdyFileParse(os.path.join(fileBase, file))
 
-            if recordType is 'DumpIdy':
+            if recordType == 'DumpIdy':
                 ekeList = scatEngFileParse(file, verbose = verbose)
                 symSegs = symFileParse(file, verbose = verbose)
 
@@ -1684,7 +1684,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
                 lines, dumpSegs = dumpIdyFileParse(file, verbose = verbose)
                 data, blankSegs = dumpIdySegsParseX(dumpSegs, ekeList, symSegs, verbose = verbose)
 
-            if recordType is 'EDCS':
+            if recordType == 'EDCS':
                 # print('Expecting {0} EDCS segments.'.format(ekeList.size))
                 if verbose > 1:
                     print('Scanning EDCS segments.')
@@ -1692,7 +1692,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
                 lines, dumpSegs = EDCSFileParse(file, verbose = verbose)
                 data, blankSegs = EDCSSegsParseX(dumpSegs) # , ekeList, symSegs)
 
-            if recordType is 'CrossSection':
+            if recordType == 'CrossSection':
                 ekeList = scatEngFileParse(file, verbose = verbose)
                 symSegs = symFileParse(file, verbose = verbose)
 
@@ -2034,7 +2034,7 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf'):
         dataOut = dataOut.drop('SF')
 
     # For netCDF3 can't have multidim attrs, quick fix here for removing them (BLM case)
-    if engine is 'scipy':
+    if engine == 'scipy':
         if 'sumDims' in dataOut.attrs:
             dataOut.attrs['sumDims'] = [] # test.attrs['selDims'][0]
         if 'selDims' in dataOut.attrs:

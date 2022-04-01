@@ -135,10 +135,10 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
         if type(eulerAngs) is not np.ndarray:
             # eulerAngs = np.asarray(eulerAngs)
             eulerAngs = np.array(eulerAngs, ndmin=2)  # 11/05/21 added to force ndmin for single element list case.
-        elif eulerAngs.ndim is 1:
+        elif eulerAngs.ndim == 1:
             eulerAngs = np.expand_dims(eulerAngs, 0)  # 11/05/21 added to force ndmin for single element list case.
 
-        if eulerAngs.shape[1] is 3:
+        if eulerAngs.shape[1] == 3:
             if labels is None:
                 # Set labels if missing, alphabetic or numeric
                 if eulerAngs.shape[0] < 27:
@@ -376,7 +376,7 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
     for l in np.arange(Lmin,Lmax+1):
         for m in np.arange(-l,l+1):
             lm.append([l, m])
-            if fnType is 'sph':
+            if fnType == 'sph':
                 if convention == 'maths':
                     # Ylm.append(sph_harm(m,l,theta,phi))
                     Ylm.append(sph_harm(m,l,TP[0],TP[1]))  # For SciPy.special.sph_harm() 'maths' convention is enforced.
@@ -386,7 +386,7 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
 
                 # Ylm.append(sph_harm(m,l,TP[0],TP[1]))  # Pass arrays by ind to allow for different conventions above.
 
-            elif fnType is 'lg':
+            elif fnType == 'lg':
                 # Ylm.append(lpmv(m,l,np.cos(phi)))
                 if convention == 'maths':
                     Ylm.append(lpmv(m,l,np.cos(TP[1])))  # For SciPy.special.lpmv() 'maths' convention is enforced.
@@ -710,9 +710,9 @@ def TKQarrayRotX(TKQin, RX, form = 2):
     """
 
     # Check dataType and rename if required
-    if TKQin.dataType is 'ADM':
+    if TKQin.dataType == 'ADM':
         TKQ = TKQin.copy()
-    elif TKQin.dataType is 'BLM':
+    elif TKQin.dataType == 'BLM':
         TKQ = TKQin.copy().unstack('BLM').rename({'l':'K','m':'Q'}).stack({'ADM':('K','Q')})
     else:
         print('***TKQ dataType not recognized, skipping frame rotation.')
@@ -800,7 +800,7 @@ def TKQarrayRotX(TKQin, RX, form = 2):
     TKQrot.attrs = TKQ.attrs
 
     # For BLM data, rename vars.
-    if TKQin.dataType is 'BLM':
+    if TKQin.dataType == 'BLM':
         TKQrot = TKQrot.unstack('ADM').rename({'K':'l','Q':'m'}).stack({'BLM':('l','m')})
 
     return TKQrot, wDX, wDXre

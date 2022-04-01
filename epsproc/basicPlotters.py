@@ -77,11 +77,15 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.__init__(self, (0,0), (0,0), *args, **kwargs)
         self._verts3d = xs, ys, zs
 
+        self.do_3d_projection = self.draw  # Patch for Matplotlib >= 3.5, see https://stackoverflow.com/a/22867877
+
     def draw(self, renderer):
         xs3d, ys3d, zs3d = self._verts3d
         xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
         self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
         FancyArrowPatch.draw(self, renderer)
+
+        return 1  # Patch for Matplotlib >= 3.5, see https://stackoverflow.com/a/22867877 - this defines z-stacking?
 
 
 # Basic plotting for molecular structure
@@ -238,7 +242,7 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', selDims = None,
     cDims = dims.remove('BLM')
 
     # For %age case
-    if thresType is 'pc':
+    if thresType == 'pc':
         thres = thres * BLM.max()
 
     # Threshold & set data for plotting. Set to check along Eke dim, but may want to pass this as an option.
@@ -249,7 +253,7 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', selDims = None,
         BLMplot.attrs['dataType'] = '(No dataType)'
         # print(f"Set dataType {daPlot.attrs['dataType']}")
 
-    if XS and (BLMplot.attrs['dataType'] is 'BLM'):
+    if XS and (BLMplot.attrs['dataType'] == 'BLM'):
         # daPlot.values = daPlot * daPlot.XS
         BLMplot = BLMplot.where(BLMplot.l !=0, BLMplot.XS)  # Replace l=0 values with XS
 
@@ -266,13 +270,13 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', selDims = None,
         BLMplot.name = 'BLM'
 
     #*** Plot
-    if backend is 'xr':
+    if backend == 'xr':
 
         # Set BLM index for plotting. TODO: check for updated XR versions.
         # Necessary for Xarray plotter with multi-index categories it seems.
         BLMplot['BLMind'] = ('BLM', np.arange(0, BLMplot.BLM.size))
 
-        if pStyle is 'surf':
+        if pStyle == 'surf':
             # BLMplot.real.squeeze().plot(x=xDim, y='BLMind', col=cDims, size = 5, **kwargs)
             BLMplot.plot.line(x=xDim, y='BLMind', col=cDims, row=row, **kwargs)
             # .real.plot.line(x=Etype, col=col, row=row, **kwargs)
@@ -281,7 +285,7 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', selDims = None,
             # BLMplot.plot.line(x=xDim, col=cDims, row=row, **kwargs)
             BLMplot.plot.line(x=xDim, col=col, row=row, **kwargs)
 
-    if backend is 'hv':
+    if backend == 'hv':
         # Basic HVplotter routine, need to add better dim handling!
         # hvObj = hvPlotters.curvePlot(BLMplot.unstack('BLM').squeeze().fillna(0), kdims='Eke', renderPlot = False)
         hvObj = hvPlotters.curvePlot(BLMplot.unstack('BLM'), kdims='Eke', renderPlot = False)  # OK, don't render
@@ -479,14 +483,14 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
     # Use SF (scale factor)
     # Write to data.values to make sure attribs are maintained.
-    if SFflag and (daPlot.attrs['dataType'] is 'matE'):
+    if SFflag and (daPlot.attrs['dataType'] == 'matE'):
         daPlot.values = daPlot * daPlot.SF
 
-    if SFflag and (daPlot.attrs['dataType'] is 'BLM'):
+    if SFflag and (daPlot.attrs['dataType'] == 'BLM'):
         daPlot.values = daPlot * daPlot.XS
 
     # For %age case
-    if thresType is 'pc':
+    if thresType == 'pc':
         thres = thres * np.abs(daPlot.max()).values  # Take abs here to ensure thres remains real (float)
                                               # However, does work without this for xr.where() - supports complex comparison.
 
@@ -576,7 +580,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
 #*** Plotting routines
     # Rough code for xr plotter.
-    if backend is 'xr':
+    if backend == 'xr':
         # Set index for plotting
         daPlot['LMind'] = ('LM',np.arange(0, daPlot.LM.size))
 
@@ -585,7 +589,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         daPlot.plot(x='Eke', y='LMind', col='Sym', row='Type', robust = True)
 
 
-    if backend is 'sns':
+    if backend == 'sns':
 
         print(f"Plotting data {daPlot.attrs['file']}, pType={pType}, thres={thres}, with Seaborn")
 

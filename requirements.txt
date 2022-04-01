@@ -8,7 +8,8 @@
 numpy_quaternion
 numpy
 scipy
-xarray==0.15.0
+xarray
+#==0.15.0
 pandas
 matplotlib
 seaborn==0.9.0
@@ -21,3 +22,4 @@ pyvista
 cclib
 holoviews
 plotly
+jupyter-dash    # For Plotly Jupyter Lab rendering

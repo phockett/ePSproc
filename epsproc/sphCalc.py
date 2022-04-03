@@ -291,6 +291,100 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False, name = N
 
     return ADMX
 
+# General BLM setter for using with custom values.
+# 04/04/22: hacking in as per existing setADMs() and cf. also blmXarray().
+# TODO: implement dim remapping, see PEMtk.toePSproc()
+def setBLMs(BLMs = [0,0,1], LMLabels = None, t = None, name = None, tUnits = 'ps',
+            conformDims = False):
+    """
+    Create Xarray from BLMs, or create default case BLM = [0,0,1].
+
+    Parameters
+    ----------
+    BLMs : list or np.array, default = [0,0,1]
+        Set of BLMs = [L, M, BLM].
+        If multiple BLMs are provided per (L,M) index, they are set to the E or t axis (if provided), or indexed numerically.
+
+    LMLabels : list or np.array, optional, default = None
+        If passed, assume BLMs are unabelled, and use (L,M) indicies provided here.
+
+    t : list or np.array, optional, default = None
+        If passed, use for dimension defining BLM sets (usually time or energy).
+        Defaults to numerical label if not passed, t = np.arange(0,ADMs.shape[1])
+
+    name : str, optional, default = None
+        Set a name for the array.
+        If None, will be set to 'ADM' (same as dataType attrib)
+
+    tUnits : str, optional, default = 'ps'
+        Units for t axis, if set.
+
+    conformDims : bool, optional, default = False
+        Add any missing dims to match ep.listFuncs.BLMdimList.
+        NOT YET IMPLEMENTED - see PEMtk.toePSproc() for method.
+
+
+    Returns
+    -------
+    BLMX : Xarray
+        BLMs in Xarray format, dims as per :py:func:`epsproc.utils.BLMdimList()`
+
+    TODO:
+
+    - Implemnt conformDims, see PEMtk.toePSproc() for method.
+    - General handling for additional dims, currently only 't' supported. Should change to dict mapping.
+
+    Examples
+    ---------
+    >>> # Default case
+    >>> BLMX = setBLMs()
+    >>> BLMX
+
+    >>> # Set with ranges (as an array [L,M, t(0), t(1)...]), with values per t
+    >>> tPoints = 10
+    >>> BLMX = setBLMs(ADMs = [[0,0, *np.ones(10)], [2,0, *np.linspace(0,1,tPoints)], [4,0, *np.linspace(0,0.5,tPoints)]])
+
+    """
+
+    # Check size of passed set of ADMs
+    # For ease of manipulation, just change to np.array if necessary!
+    if isinstance(BLMs, list):
+        BLMs = np.array(BLMs, ndmin = 2)
+
+    # Set lables explicitly if not passed, and resize ADMs
+    if LMLabels is None:
+        LMLabels = BLMs[:,0:2]
+        BLMs = BLMs[:,2:]
+
+
+    # Set indexing, default to numerical
+    if t is None:
+        t = np.arange(0,BLMs.shape[1])
+        tUnits = 'Index'
+
+    # Set up Xarray
+    QNs = pd.MultiIndex.from_arrays(LMLabels.real.T.astype('int8'), names = ['l','m'])  # Set lables, enforce type
+    BLMX = xr.DataArray(BLMs, coords={'BLM':QNs,'t':t}, dims = ['BLM','t'])
+
+    # Metadata
+    if name is None:
+        BLMX.name = 'BLM'
+    else:
+        BLMX.name = name
+
+    BLMX.attrs['dataType'] = 'BLM'
+    BLMX.attrs['long_name'] = 'Beta parameters'
+
+    # Set units
+    BLMX.attrs['units'] = 'arb'
+    BLMX.t.attrs['units'] = tUnits
+
+    if conformDims:
+        print("*** ConformDims NOT YET IMPLEMENTED - see PEMtk.toePSproc() for method.")
+
+
+    return BLMX
+
 
 # Calculate a set of sph function
 def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph', convention = 'phys', conj = False):

@@ -4,6 +4,8 @@
 ePSproc Readme
 ==============
 
+|docs|
+
 Post-processing suite for ePolyScat calculations.
 
 ePSproc scripts are designed for photoionization studies. The scripts were originally written for Matlab (2009 - 2016); a Python version is currently under (heavy) development (2019 to date), and is now the main/preferred version.
@@ -182,3 +184,8 @@ Special thanks to R.R. Lucchese and coworkers for `ePolyScat <https://epolyscat.
 Thanks to the multiple collaborators and co-authors who encouraged and suggested the cavilier use of ePS "out of the box", for many different problems incorporating electron scattering and photoionization. This spirit of "shoot first, ask questions later" indeed raised many questions which, eventually, necessitated proper use of ePS and careful post-processing of the results, and sharpened related foundational expertise - efforts well worth making.
 
 Thanks, finally, and of course, to those supporting scientific software development and infrastructure (and making it easy!), including Github, Read the Docs, Pypi, SciPy etc. etc. In particular the python version of this project makes use of `Xarray <http://xarray.pydata.org/en/stable/index.html>`_, and `Moble's spherical functions (& quaternion) <https://github.com/moble/spherical_functions>`_.
+
+.. |docs| image:: https://readthedocs.org/projects/epsproc/badge/?version=latest
+    :alt: Documentation Status
+    :scale: 100%
+    :target: https://epsproc.readthedocs.io/en/latest/?badge=latest

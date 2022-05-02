@@ -288,7 +288,7 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', selDims = None,
     if backend == 'hv':
         # Basic HVplotter routine, need to add better dim handling!
         # hvObj = hvPlotters.curvePlot(BLMplot.unstack('BLM').squeeze().fillna(0), kdims='Eke', renderPlot = False)
-        hvObj = hvPlotters.curvePlot(BLMplot.unstack('BLM'), kdims='Eke', renderPlot = False)  # OK, don't render
+        hvObj = hvPlotters.curvePlot(BLMplot.unstack('BLM'), kdims=xDim, renderPlot = False)  # OK, don't render
 
         # Use showPlot() to control render & return, or just return object - might be overkill?
         # Note default .overlay(['l','m'])

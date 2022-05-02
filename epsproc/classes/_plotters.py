@@ -509,12 +509,16 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 
             # VERY ROUGH, based on not great tmo-dev code.
             # Currently no explicit dim handling, and auto-rename to ensure working Holomap output.
+            # TODO: update/replace with routines in basicPlotters.BLMplot(), see also hvPlotters.curvePlot()
             elif backend == 'hv':
                 try:
                     # plotList[key] = (subset.real.hvplot.line(x=Etype, col=col, row=row, **kwargs))
                     hvDS = hv.Dataset(subset.real.rename(str(key)))  # Convert to hv.Dataset, may need to rename too.
                     # hvDS = hv.Dataset(subset.real.rename('AFBLM'))
                     plotList[key] = hvDS.to(hv.Curve, kdims=Etype)   # TODO: add dim handling, will just autostack currently.
+
+                    # plotList[key] = hvPlotters.curvePlot(dataXR, kdims = Etype, returnPlot = True, renderPlot = False, **kwargs) # Curve plot version - needs better dim handling too!
+
                 except NotImplementedError as e:
                     # if e.msg == "isna is not defined for MultiIndex":
                     if e.args[0] == "isna is not defined for MultiIndex":   # Message as first arg - may be version specific?
@@ -708,7 +712,7 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 # This has better dim handling, and simpler logic, but still needs some work.
 def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = 'Eke',
                 keys = None, dataType = 'TX', facetDims = None, squeeze = False, reducePhi = None,
-                pType = 'a', pStyle = 'polar', returnFlag = False,
+                pType = 'a', pStyle = 'polar', returnFlag = False, plotDict = 'plots',
                 backend = 'mpl'):
 
     """
@@ -721,6 +725,8 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
 
 
     TODO: fix dim handling for pl case, need to pass facetDim != None.
+    TODO: return plot objects. Probably to self.data[key][pStyle], or as dictionary of plots per run with data? (Cf. PEMtk plotters.)
+        23/04/22: added plot data and object returns to self.data[key][plotDict][pStyle]
 
     """
 
@@ -823,22 +829,44 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
             for groupLabel, item in subset.groupby(facetDimsCheck[0]):
 #                 tString = f"Pol geom: {item.item()}, plotType: {pType}"
                 tString = f"{facetDimsCheck[0]}: {groupLabel}, plotType: {pType}"
-                _ = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
+                pltObj = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
+                # _ = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
 
         elif pStyle == 'grid':
-            print(f"Grid plot: {subset.attrs['jobLabel']}, dataType: {dataType}, plotType: {pType}")
+            if 'jobLabel' in subset.attrs.keys():
+                label = subset.attrs['jobLabel']
+            else:
+                label = (key,dataType)
+
+            print(f"Grid plot: {label}, dataType: {dataType}, plotType: {pType}")
 
             # Set data
             subset = plotTypeSelector(subset, pType = pType, axisUW = Etype)
 
-            if reducePhi:
-                # subset.plot(x='Theta', y=Etype, col=eDim, robust=True)
-                # subset.plot(x='Theta', y=facetDimsCheck[0], col=facetDimsCheck[1], robust=True)  # This might fail for only one facetDim
-                                                                                                    # This did work initially, but not later - dim ordering always goes to alphabetical with set selection above
-                subset.plot(x='Theta', y=Etype, col=list({*facetDimsCheck}-{Etype})[0], robust=True)  # Force E dim to y
-            else:
-                subset.plot(y='Theta',x='Phi', row=facetDimsCheck[1], col=facetDimsCheck[0], robust=True)  # This might fail for only one facetDim. DIM ORDERING NOT PRESERVED
+            try:
+                if reducePhi:
+                    # subset.plot(x='Theta', y=Etype, col=eDim, robust=True)
+                    # subset.plot(x='Theta', y=facetDimsCheck[0], col=facetDimsCheck[1], robust=True)  # This might fail for only one facetDim
+                                                                                                        # This did work initially, but not later - dim ordering always goes to alphabetical with set selection above
+                    pltObj = subset.plot(x='Theta', y=Etype, col=list({*facetDimsCheck}-{Etype})[0], robust=True)  # Force E dim to y
+                else:
+                    pltObj = subset.plot(y='Theta',x='Phi', row=facetDimsCheck[1], col=facetDimsCheck[0], robust=True)  # This might fail for only one facetDim. DIM ORDERING NOT PRESERVED
 
-    # Return data? Note this is only set for final key value at the moment.
-    if returnFlag:
-        return subset
+            except ValueError as e:
+                print(f"*** Error {e} for grid plotter with facetDims={facetDimsCheck}: try passing selDims, sumDims or facetDims manually.")  # Gives "ValueError: IndexVariable objects must be 1-dimensional" for singleton facet dim case (gets squeezed out here?)
+
+
+        # Return data?
+        if returnFlag:
+            if not plotDict in self.data[key].keys():
+                self.data[key][plotDict] = {}
+
+            self.data[key][plotDict][dataType] = {'pData':subset,
+                                                   pStyle:pltObj}
+
+            if self.verbose:
+                print(f"Set plot to self.data['{key}']['{plotDict}']['{dataType}']['{pStyle}']")
+
+    # # Return data? Note this is only set for final key value at the moment.
+    # if returnFlag:
+    #     return subset

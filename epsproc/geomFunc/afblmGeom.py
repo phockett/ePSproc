@@ -22,7 +22,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
                 degenDrop = True, SFflag = False, SFflagRenorm = False,
                 BLMRenorm = 1,
                 squeeze = False, phaseConvention = 'E',  #  , phaseCons = None
-                basisReturn = "BLM", verbose = 0):
+                basisReturn = "BLM", verbose = 0, **kwargs):
     r"""
     Implement :math:`\beta_{LM}^{AF}` calculation as product of tensors.
 
@@ -33,6 +33,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
 
     Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
+
+    04/05/22 Added **kwargs, unused but allows for arb basis dict unpack and passing from other functions. May want to pipe back to Full basis return however.
 
     06/08/21 Added basic handling for degenerate states, including `degenDrop` option.
              Updated docs, but still rather messy!

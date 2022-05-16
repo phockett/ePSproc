@@ -161,11 +161,14 @@ class ePSmultiJob(ePSbase):
             Default = enumerate(self.jobs['jobDirs'])
 
 
-        outputKeyType : str, optional, default = 'orb'
+        outputKeyType : str, optional, default = 'dir'
             Types as supported by super().scanFiles()
             'orb': Use orbital labels as dataset keys
             'int': Use integer labels as dataset keys (will be ordered by file read)
+            'dir': Use for cases where all files from a directory should be stacked, e.g. multiple files for various energies.
+
             Any other setting will result in key = keyType, which can be used to explicitly pass a key (e.g. in multijob wrapper case). This should be tidied up.
+            Note that setting 'dir' for cases with multiple *different* jobs in a dir will result in some outputs being overwritten.
 
 
 
@@ -358,8 +361,9 @@ class ePSmultiJob(ePSbase):
         # self.dsXS = dsXS
         # self.dsMatE = dsMatE
 
-        if self.verbose['main']:
-            self.jobsSummary()
+        # This is already called in super().scanFiles
+        # if self.verbose['main']:
+        #     self.jobsSummary()
 
     def jobLabel(self, key = None, lString = None, append=True):
         """

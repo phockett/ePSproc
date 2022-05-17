@@ -7,6 +7,8 @@
 Welcome to ePSproc
 ==================
 
+A post-processing suite for ePolyScat calculations, and general tool for photoionzation calculations.
+
 .. toctree::
    :maxdepth: 2
    :caption: Intro:

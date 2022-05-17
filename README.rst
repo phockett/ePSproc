@@ -6,7 +6,7 @@ ePSproc Readme
 
 |docs|
 
-Post-processing suite for ePolyScat calculations.
+A post-processing suite for ePolyScat calculations, and general tool for photoionzation calculations.
 
 ePSproc scripts are designed for photoionization studies. The scripts were originally written for Matlab (2009 - 2016); a Python version is currently under (heavy) development (2019 to date), and is now the main/preferred version.
 
@@ -14,7 +14,7 @@ Source code is `available on Github <https://github.com/phockett/ePSproc>`_.
 
 Ongoing documentation is on `Read the Docs <https://epsproc.readthedocs.io>`_.
 
-For more background, and details on the Matlab version, see the software metapaper for ePSproc (Aug. 2016), *ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations*, on `Authorea <https://www.authorea.com/users/71114/articles/122402/_show_article>`_ or `arXiv 1611.04043 <https://arxiv.org/abs/1611.04043>`_.
+For more background, and details on the Matlab version, see the software metapaper for ePSproc (Aug. 2016), *ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations*, on `Authorea <https://www.authorea.com/users/71114/articles/122402/_show_article>`_ or `arXiv 1611.04043 <https://arxiv.org/abs/1611.04043>`_. For data platform and related experimental tools, see `the Photoelectron Metrolgy toolkit <https://pemtk.readthedocs.io/en/latest/about.html>`__.
 
 .. image:: https://epsproc.readthedocs.io/en/latest/_images/output_12_2.png
 

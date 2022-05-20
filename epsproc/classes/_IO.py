@@ -284,7 +284,10 @@ def molSummary(self, dataKey = None, tolConv = 1e-2):
     orbPD = molInfo['orbTable'].to_pandas()
 
     # Add symmery labels
-    orbPD.insert(1, "Sym", molInfo['orbTable'].Sym)
+    # 20/05/22 updated for changed return type.
+    # orbPD.insert(1, "Sym", molInfo['orbTable'].Sym) # THIS now adds xarray data types
+    orbPD.insert(1, "Sym", molInfo['orbTable'].Sym.values)  # OK
+    # orbPD.insert(1, "Sym", molInfo['orbTable'].Sym.to_pandas())  # also OK
 
     # Tidy a bit...
     orbPD.drop(columns=["N","Type"], inplace=True)

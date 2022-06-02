@@ -2051,7 +2051,8 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', f
                 dataOut = dataOut.drop(item)
 
     else:
-        dataOut = dataIn.to_dataset()   # Set to dataset explicitly prior to save - may also need/want to set name here if missing.
+        # dataOut = dataIn.to_dataset()   # Set to dataset explicitly prior to save - may also need/want to set name here if missing.
+        dataOut = dataIn   # Without additional conversion.
 
     # For netCDF3 can't have multidim attrs, quick fix here for removing them (BLM case)
     if engine == 'scipy':
@@ -2064,9 +2065,16 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', f
         dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine, invalid_netcdf=forceComplex)
         saveMsg = [f'Written to {engine} format']
 
-    except:
-        dataOut, attrs, log = sanitizeAttrsNetCDF(dataOut)
-        dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine, invalid_netcdf=forceComplex)
+    except Exception as e:
+
+        print(f'Caught exception: {e}')
+        print(f'Trying file write with sanitized attrs.')
+
+        # THIS IS WORKING IN TESTING, but not here?
+        # Does work for invalid_netcdf = True case, for h5netcdf backend at least.
+        # Seems to be an issue with sanitizeAttrsNetCDF() and/or backend to fix?
+        dataOutS, attrs, log = sanitizeAttrsNetCDF(dataOut)
+        dataOutS.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine, invalid_netcdf=forceComplex)
         saveMsg = [f'Written to {engine} format, with sanitized attribs (may be lossy)']
 
     saveMsg.append(os.path.join(filePath, fileName + '.nc'))

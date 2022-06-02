@@ -2030,7 +2030,7 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', f
         # Safe version with re/im split save type only.
         # Works for scipy and h5netcdf OK, latter will save complex type too, but is strictly not valid.
         dataOut = xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag})
-        dataOut.attrs = dataIn.attrs
+        # dataOut.attrs = dataIn.attrs
 
         # Allow for SF & XS coords which may also be complex
         # if 'XS' in dataOut.coords:
@@ -2062,19 +2062,32 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', f
             dataOut.attrs['selDims'] = []
 
     try:
-        dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine, invalid_netcdf=forceComplex)
+        if engine != 'h5netcdf':
+            dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine)
+        else:
+            dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine, invalid_netcdf=forceComplex)
+
         saveMsg = [f'Written to {engine} format']
 
     except Exception as e:
 
-        print(f'Caught exception: {e}')
+        print(f'writeXarray caught exception: {e}')
         print(f'Trying file write with sanitized attrs.')
 
         # THIS IS WORKING IN TESTING, but not here?
         # Does work for invalid_netcdf = True case, for h5netcdf backend at least.
         # Seems to be an issue with sanitizeAttrsNetCDF() and/or backend to fix?
-        dataOutS, attrs, log = sanitizeAttrsNetCDF(dataOut)
-        dataOutS.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine, invalid_netcdf=forceComplex)
+        # AH - issue is DataSet vs. DataArray. In former case may need to fix attrs per data variable too.
+        dataOut, attrs, log = sanitizeAttrsNetCDF(dataOut)
+        if isinstance(dataOut, xr.core.dataset.Dataset):
+            for item in dataOut.data_vars:
+                dataOut[item], attrs, log = sanitizeAttrsNetCDF(dataOut[item])
+
+        if engine != 'h5netcdf':
+            dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine)
+        else:
+            dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine, invalid_netcdf=forceComplex)
+
         saveMsg = [f'Written to {engine} format, with sanitized attribs (may be lossy)']
 
     saveMsg.append(os.path.join(filePath, fileName + '.nc'))

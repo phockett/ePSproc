@@ -247,7 +247,8 @@ def checkDims(data, refDims = []):
             base = getattr(data, item)  #.to_list()
 
             if isinstance(base, pd.MultiIndex):
-                print(f"*** Warning: found MultiIndex for DataFrame data.{item} - checkDims doesn't yet support Pandas MultiIndex.")
+                # print(f"*** Warning: found MultiIndex for DataFrame data.{item} - checkDims doesn't yet support Pandas MultiIndex.")
+                print(f"*** Warning: found MultiIndex for DataFrame data.{item} - checkDims may have issues with Pandas MultiIndex, but will try anyway.")
 
             # Get data.item and data.item.names
             for nameList in [base.to_list(), list(getattr(base, 'names'))]:

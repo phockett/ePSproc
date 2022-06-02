@@ -1949,7 +1949,7 @@ def writeOrb3Dvtk(dataSet):
 #**************** Wrappers for Xarray load/save netCDF
 
 # File write wrapper.
-def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf'):
+def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', forceComplex = False):
     """
     Write file to netCDF format via Xarray method.
 
@@ -1968,6 +1968,13 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf'):
 
     engine : str, optional, default = 'h5netcdf'
         netCDF engine for Xarray to_netcdf method. Some libraries may not support multidim data formats.
+        See https://docs.xarray.dev/en/latest/user-guide/io.html
+
+    forceComplex : bool, optional, default = False
+        For h5netcdf engine only, set `invalid_netcdf` option = forceComplex.
+        If True, complex data will be written directly to file.
+        Note this also needs to be read back with the same engine & settings.
+        For more details see https://github.com/h5netcdf/h5netcdf#invalid-netcdf-files
 
     Returns
     -------
@@ -1981,6 +1988,8 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf'):
     TODO: implement try/except to handle various cases here, and test other netCDF writers (see http://xarray.pydata.org/en/stable/io.html#netcdf).
 
     Multi-level indexing is also not supported, and must be serialized first. Ugh.
+
+    02/06/22: added improved complex number handling & attibutes sanitizer (lossy).
 
     """
 
@@ -2017,21 +2026,32 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf'):
     # return 'File not written.'
 
 
-    # Safe version with re/im split save type only.
-    # Works for scipy and h5netcdf OK, latter will save complex type too, but is strictly not valid.
-    dataOut = xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag})
-    dataOut.attrs = dataIn.attrs
+    if (engine != 'h5netcdf') or (not forceComplex):
+        # Safe version with re/im split save type only.
+        # Works for scipy and h5netcdf OK, latter will save complex type too, but is strictly not valid.
+        dataOut = xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag})
+        dataOut.attrs = dataIn.attrs
 
-    # Allow for SF & XS coords which may also be complex
-    if 'XS' in dataOut.coords:
-        dataOut['XSr'] = dataOut.XS.real
-        dataOut['XSi'] = dataOut.XS.imag
-        dataOut = dataOut.drop('XS')
+        # Allow for SF & XS coords which may also be complex
+        # if 'XS' in dataOut.coords:
+        #     dataOut['XSr'] = dataOut.XS.real
+        #     dataOut['XSi'] = dataOut.XS.imag
+        #     dataOut = dataOut.drop('XS')
+        #
+        # if 'SF' in dataOut.coords:
+        #     dataOut['SFr'] = dataOut.SF.real
+        #     dataOut['SFi'] = dataOut.SF.imag
+        #     dataOut = dataOut.drop('SF')
 
-    if 'SF' in dataOut.coords:
-        dataOut['SFr'] = dataOut.SF.real
-        dataOut['SFi'] = dataOut.SF.imag
-        dataOut = dataOut.drop('SF')
+        # Allow for arb complex coords.
+        # May also want to add attr checker here? Or set in 'sanitizeAttrsNetCDF'
+        for item in dataOut.coords.keys():
+            if dataOut.coords[item].dtype == 'complex128':
+                dataOut.coords[item + 'r'], dataOut.coords[item + 'i'] = splitComplex(dataOut.coords[item])
+                dataOut = dataOut.drop(item)
+
+    else:
+        dataOut = dataIn.to_dataset()   # Set to dataset explicitly prior to save - may also need/want to set name here if missing.
 
     # For netCDF3 can't have multidim attrs, quick fix here for removing them (BLM case)
     if engine == 'scipy':
@@ -2040,16 +2060,101 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf'):
         if 'selDims' in dataOut.attrs:
             dataOut.attrs['selDims'] = []
 
-    dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine)
-    saveMsg = [f'Written to {engine} format']
+    try:
+        dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine, invalid_netcdf=forceComplex)
+        saveMsg = [f'Written to {engine} format']
+
+    except:
+        dataOut, attrs, log = sanitizeAttrsNetCDF(dataOut)
+        dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine, invalid_netcdf=forceComplex)
+        saveMsg = [f'Written to {engine} format, with sanitized attribs (may be lossy)']
+
     saveMsg.append(os.path.join(filePath, fileName + '.nc'))
     print(saveMsg)
 
     return saveMsg
 
 
+# Split complex to R + I
+def splitComplex(data):
+    """Split complex data into R+I floats."""
+
+    dataR = np.real(data)
+    dataI = np.imag(data)
+
+    return dataR, dataI
+
+# Comibine R + I to complex
+def combineComplex(dataR, dataI):
+    """Combine R+I floats into complex form."""
+
+    data = dataR + 1j*dataI
+
+    return data
+
+
+# Sanitize attributes & dicts for Xarray NetCDF IO
+def sanitizeAttrsNetCDF(data):
+    """
+    Sanitize Xarray DataArray attributes for file IO.
+
+    Note this may be lossy:
+
+    - Empty data > string.
+    - Dictionaries removed (nested dicts not supported in attrs for most (all?) file writers)
+    - Remove all items not of types [str, np.ndarray, int, float, list, tuple]
+
+
+    Todo:
+
+    - try conversion to string for all attrs?
+    - try dict conversions & JSON side-car file IO to avoid lossy saves.
+
+    """
+
+    dataOut = data.copy()
+
+    # Remove None and other empty types, ugh - now integrated below
+    # xrTest.attrs = {k:(v if v else str(v)) for k,v in xrTest.attrs.items()}
+    log = {}
+    for k,v in dataOut.attrs.items():
+        if not v:
+            dataOut.attrs[k] = str(v)
+            log[k] = 'str'
+
+        if isinstance(dataOut.attrs[k], dict):
+    #         xrTest.attrs[k] = [[k2,v2] for k2,v2 in xrTest.attrs[k].items()]  # Nest dict items also not supported, dump to nested lists? Seems to be acceptable. Ugh.
+                                                                                # Still causing issues in some cases?
+            dataOut.attrs[k] = 'Removed dict'
+            log[k] = 'Removed dict'
+
+        if type(dataOut.attrs[k]) not in [str, np.ndarray, int, float, list, tuple]:
+            typeIn = type(dataOut.attrs[k])
+            dataOut.attrs[k] = 'NA'
+            log[k] = f'Removed item type {typeIn}'
+
+    # TO TRY - full str conversion, e.g. from https://stackoverflow.com/a/42676094 (for JSON example case)
+    # save: convert each tuple key to a string before saving as json object
+    # s = json.dumps({str(k): str(v) for k, v in eulerDict.items()})
+    #
+    # THEN RECON with ast:
+    # # load in two stages:
+    # # (i) load json object
+    # obj = json.loads(s)
+    #
+    # # (ii) convert loaded keys from string back to tuple
+    # from ast import literal_eval
+    # # d = {literal_eval(k): literal_eval(v) for k, v in obj.items()}  # FAILS: ValueError: malformed node or string: <ast.Name object at 0x7f4464e67550>
+    # d = {k: (literal_eval(v) if v != 'Euler' else v) for k, v in obj.items()}  # ok - WORKS FOR ALL CASES EXCEPT NON-EXECUTABLE STRS
+    #
+    # This should also work here, but maybe add type checking too?
+
+
+    return dataOut, data.attrs, log
+
+
 # File read wrapper.
-def readXarray(fileName, filePath = None, engine = 'scipy'):
+def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = False):
     """
     Read file from netCDF format via Xarray method.
 
@@ -2061,6 +2166,17 @@ def readXarray(fileName, filePath = None, engine = 'scipy'):
     filePath : str, optional, default = None
         Full path to file.
         If set to None (default) the file will be written in the current working directory (as returned by `os.getcwd()`).
+
+
+    engine : str, optional, default = 'h5netcdf'
+        netCDF engine for Xarray to_netcdf method. Some libraries may not support multidim data formats.
+        See https://docs.xarray.dev/en/latest/user-guide/io.html
+
+    forceComplex : bool, optional, default = False
+        For h5netcdf engine only, set `invalid_netcdf` option = forceComplex.
+        If True, complex data will be written directly to file.
+        Note this also needs to be read back with the same engine & settings.
+        For more details see https://github.com/h5netcdf/h5netcdf#invalid-netcdf-files
 
 
     Returns
@@ -2078,30 +2194,37 @@ def readXarray(fileName, filePath = None, engine = 'scipy'):
 
     """
     # Read file
-    dataIn = xr.open_dataset(fileName, engine = engine)
+    dataIn = xr.open_dataset(fileName, engine = engine, invalid_netcdf = forceComplex)
 
-    # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!
-    dataOut = dataIn.Re + dataIn.Im*1j
-    dataOut.attrs = dataIn.attrs
+    if (engine != 'h5netcdf') or (not forceComplex):
+        # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!
+        dataOut = dataIn.Re + dataIn.Im*1j
+        dataOut.attrs = dataIn.attrs
 
-    # Rest SF & XS coords which may also be complex
-    # Note: need to check vs. dataIn here, since dataOut already has dropped vars
-    if 'XSr' in dataIn.data_vars:
-        dataOut['XS'] = dataIn.XSr + dataIn.XSi*1j
-    #     dataOut = dataOut.drop('XSr').drop('XSi')
+        # Rest SF & XS coords which may also be complex
+        # Note: need to check vs. dataIn here, since dataOut already has dropped vars
+        if 'XSr' in dataIn.data_vars:
+            dataOut['XS'] = dataIn.XSr + dataIn.XSi*1j
+        #     dataOut = dataOut.drop('XSr').drop('XSi')
 
-    if 'SFr' in dataIn.data_vars:
-        dataOut['SF'] = dataIn.SFr + dataIn.SFi
-    #     dataOut = dataOut.drop('SFr').drop('SFi')
+        if 'SFr' in dataIn.data_vars:
+            dataOut['SF'] = dataIn.SFr + dataIn.SFi
+        #     dataOut = dataOut.drop('SFr').drop('SFi')
 
     # Recreate MultiIndex from serialized version  - testing here for BLM case.
     # if 'BLM' in dataIn.dims:
     #     dataIn = dataIn.set_index({'BLM':['l','m'],'Euler':['P','T','C']})
 
     # Recreate MultiIndex from serialized version according to array type.
-    if dataIn.dataType == 'BLM':
-        dataOut = dataOut.stack(BLMdimList(sType = 'sDict'))
-    elif dataIn.dataType == 'matE':
-        dataOut = dataOut.stack(matEdimList(sType = 'sDict'))
+    # 01/06/22: added try/except for lazy dim handling.
+    try:
+        if dataIn.dataType == 'BLM':
+            dataOut = dataOut.stack(BLMdimList(sType = 'sDict'))
+        elif dataIn.dataType == 'matE':
+            dataOut = dataOut.stack(matEdimList(sType = 'sDict'))
+
+    except:
+        print(f"Failed to restack input dataset for dataType {dataIn.dataType}, dims may be missing. Check ep.dataTypesList['{dataIn.dataType}'] for details.")
+
 
     return dataOut

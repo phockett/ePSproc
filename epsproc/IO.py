@@ -2213,9 +2213,14 @@ def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = Fa
 
     TODO: generalize multi-level indexing here.
 
+    02/06/22: improved engine & complex number handling (as per writeXarray)
+
     """
     # Read file
-    dataIn = xr.open_dataset(fileName, engine = engine, invalid_netcdf = forceComplex)
+    if engine != 'h5netcdf':
+        dataIn = xr.open_dataset(fileName, engine = engine)
+    else:
+        dataIn = xr.open_dataset(fileName, engine = engine, invalid_netcdf = forceComplex)
 
     if (engine != 'h5netcdf') or (not forceComplex):
         # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!
@@ -2224,13 +2229,24 @@ def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = Fa
 
         # Rest SF & XS coords which may also be complex
         # Note: need to check vs. dataIn here, since dataOut already has dropped vars
-        if 'XSr' in dataIn.data_vars:
-            dataOut['XS'] = dataIn.XSr + dataIn.XSi*1j
-        #     dataOut = dataOut.drop('XSr').drop('XSi')
+        # if 'XSr' in dataIn.data_vars:
+        #     dataOut['XS'] = dataIn.XSr + dataIn.XSi*1j
+        # #     dataOut = dataOut.drop('XSr').drop('XSi')
+        #
+        # if 'SFr' in dataIn.data_vars:
+        #     dataOut['SF'] = dataIn.SFr + dataIn.SFi
+        # #     dataOut = dataOut.drop('SFr').drop('SFi')
 
-        if 'SFr' in dataIn.data_vars:
-            dataOut['SF'] = dataIn.SFr + dataIn.SFi
-        #     dataOut = dataOut.drop('SFr').drop('SFi')
+        # General version
+        for item in dataOut.coords.keys():
+            # Check for r+i pairs - note labelling assumed to match writeXarray conventions here.
+            if item.endswith == 'r':
+                itemi = item[:-1] + 'i'
+
+                # If imag partner found, restack and remove split components.
+                if itemi in dataOut.coords.keys():
+                    dataOut.coords[item[:-1]] = combineComplex(dataOut.coords[item], dataOut.coords[itemi])
+                    dataOut = dataOut.drop([item,itemi])
 
     # Recreate MultiIndex from serialized version  - testing here for BLM case.
     # if 'BLM' in dataIn.dims:

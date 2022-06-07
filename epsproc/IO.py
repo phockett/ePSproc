@@ -15,6 +15,9 @@ Main function: :py:func:`epsproc.IO.readMatEle`:
 
 History
 -------
+07/06/22        Added various improvements to writeXarray and readXarray functionality.
+                See https://github.com/phockett/ePSproc/issues/8 for ongoing notes.
+
 13/10/20        Adapted main function readMatEle() to use grouped lists for multi-file jobs, should be back-compatible if stackE = False set.
 
 06/11/19        Added jobInfo and molInfo data structures, from ePS file via :py:func:`epsproc.IO.headerFileParse()` and :py:func:`epsproc.IO.molInfoParse()`.
@@ -71,7 +74,7 @@ except ImportError as e:
 
 # Package fns.
 from epsproc.util import matEleSelector, dataGroupSel, matEdimList, BLMdimList, stringRepMap, conv_ev_atm, orb3DCoordConv
-from epsproc.util.misc import fileListSort
+from epsproc.util.misc import fileListSort, restack
 from epsproc.util.env import isnotebook
 
 # Set HTML output style for Xarray in notebooks (optional), may also depend on version of Jupyter notebook or lab, or Xr
@@ -1951,7 +1954,7 @@ def writeOrb3Dvtk(dataSet):
 # File write wrapper.
 def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', forceComplex = False):
     """
-    Write file to netCDF format via Xarray method.
+    Write file to netCDF format via Xarray .to_netcdf() method.
 
     Parameters
     -----------
@@ -1984,6 +1987,8 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', f
     Notes
     -----
     The default option for Xarray is to use Scipy netCDF writer, which does not support complex datatypes. In this case, the data array is written as a dataset with a real and imag component.
+
+    This routine assumes a DataArray as input, although the Xarray file writer pushes this to a DataSet.
 
     TODO: implement try/except to handle various cases here, and test other netCDF writers (see http://xarray.pydata.org/en/stable/io.html#netcdf).
 
@@ -2030,7 +2035,8 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', f
         # Safe version with re/im split save type only.
         # Works for scipy and h5netcdf OK, latter will save complex type too, but is strictly not valid.
         dataOut = xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag})
-        # dataOut.attrs = dataIn.attrs
+        # dataOut.attrs = dataIn.attrs   # This will push dataarray attrs to dataset attrs, otherwise they're nested
+                                        # May not always want this?
 
         # Allow for SF & XS coords which may also be complex
         # if 'XS' in dataOut.coords:
@@ -2175,7 +2181,7 @@ def sanitizeAttrsNetCDF(data):
 
 
 # File read wrapper.
-def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = False):
+def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = False, forceArray = True):
     """
     Read file from netCDF format via Xarray method.
 
@@ -2199,6 +2205,12 @@ def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = Fa
         Note this also needs to be read back with the same engine & settings.
         For more details see https://github.com/h5netcdf/h5netcdf#invalid-netcdf-files
 
+    forceArray : bool, optional, default = False
+        Force file reader to use xr.open_dataarray if True.
+        Otherwise use xr.open_dataset.
+        The latter case may need additional post-processing, but works with cases with split Re & Im dataarrays.
+        If forceComplex = False this setting is ignored.
+
 
     Returns
     -------
@@ -2213,19 +2225,39 @@ def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = Fa
 
     TODO: generalize multi-level indexing here.
 
+
+    07/06/22: improved dim restacking with :py:func:`epsproc.util.misc.restack` routine.
     02/06/22: improved engine & complex number handling (as per writeXarray)
 
     """
+
+    # TODO - file and path checks
+    # See writeXarray() above, and PEMtk.fit._io() functions - should unify method here!
+    # See also ep.IO.getFiles?
+    # if dataPath is None:
+    #     # dataPath = os.getcwd()  # OR
+    #     dataPath = Path().absolute()
+    # if not Path(fileIn).exists():
+    #     fileIn = Path(dataPath,fileIn)  # Assume full path missing if file doesn't exist?
+
+    # Set reader - can try and force to array too.
+    # If forceComplex = False, need to use xr.open_dataset for Re+Im dataset format.
+    if forceArray and forceComplex:
+        freader = xr.open_dataarray
+    else:
+        freader = xr.open_dataset
+
     # Read file
     if engine != 'h5netcdf':
-        dataIn = xr.open_dataset(fileName, engine = engine)
+        dataIn = freader(fileName, engine = engine)
     else:
-        dataIn = xr.open_dataset(fileName, engine = engine, invalid_netcdf = forceComplex)
+        dataIn = freader(fileName, engine = engine, invalid_netcdf = forceComplex)
 
     if (engine != 'h5netcdf') or (not forceComplex):
         # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!
+        # UPDATE 07/06/22: additional attrs handling below. Note in this case dataOut is a DataArray here.
         dataOut = dataIn.Re + dataIn.Im*1j
-        dataOut.attrs = dataIn.attrs
+        # dataOut.attrs = dataIn.attrs
 
         # Rest SF & XS coords which may also be complex
         # Note: need to check vs. dataIn here, since dataOut already has dropped vars
@@ -2240,13 +2272,20 @@ def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = Fa
         # General version
         for item in dataOut.coords.keys():
             # Check for r+i pairs - note labelling assumed to match writeXarray conventions here.
-            if item.endswith == 'r':
+            if item.endswith('r'):
                 itemi = item[:-1] + 'i'
 
                 # If imag partner found, restack and remove split components.
                 if itemi in dataOut.coords.keys():
                     dataOut.coords[item[:-1]] = combineComplex(dataOut.coords[item], dataOut.coords[itemi])
                     dataOut = dataOut.drop([item,itemi])
+
+    else:
+        dataOut = dataIn
+
+    # For dataset case, try some generic handling. May need more sophisticated methods here, maybe just assume DataArray and convert?
+    if (not dataOut.attrs) and isinstance(dataIn, xr.core.dataset.Dataset):
+        dataOut.attrs = dataIn[list(dataIn.data_vars)[0]].attrs
 
     # Recreate MultiIndex from serialized version  - testing here for BLM case.
     # if 'BLM' in dataIn.dims:
@@ -2255,10 +2294,12 @@ def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = Fa
     # Recreate MultiIndex from serialized version according to array type.
     # 01/06/22: added try/except for lazy dim handling.
     try:
-        if dataIn.dataType == 'BLM':
-            dataOut = dataOut.stack(BLMdimList(sType = 'sDict'))
-        elif dataIn.dataType == 'matE':
-            dataOut = dataOut.stack(matEdimList(sType = 'sDict'))
+        # if dataIn.dataType == 'BLM':
+        #     dataOut = dataOut.stack(BLMdimList(sType = 'sDict'))
+        # elif dataIn.dataType == 'matE':
+        #     dataOut = dataOut.stack(matEdimList(sType = 'sDict'))
+
+        dataOut, dims = restack(dataOut)  # General restacking routine, may want to pass args here for more flexibility.
 
     except:
         print(f"Failed to restack input dataset for dataType {dataIn.dataType}, dims may be missing. Check ep.dataTypesList['{dataIn.dataType}'] for details.")

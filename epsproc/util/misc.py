@@ -335,9 +335,13 @@ def checkDims(data, refDims = []):
     # Better (?) - only check missing stacked dims
     for k in invalidDimsStacked:
         # if k in refDims.keys():
-        safeStack[k] = [item for item in refDims[k] if item not in invalidDimsUS]
+         stackList = [item for item in refDims[k] if item not in invalidDimsUS]
 
-    return {'dataDims':dims, 'dataDimsUS':dimsUS, 'refDims':refDims,
+         if stackList:
+             safeStack[k] = stackList   # Only assign if list NOT empty!
+
+
+    return {'dataDims':dims, 'dataDimsUS':dimsUS, 'refDims':refDims, 'refDimsUS':refDimsUS,
             'shared':sharedDims, 'extra':extraDims, 'extraUS':extraDimsUS,
             'invalid':invalidDims, 'invalidUS':invalidDimsUS,
             'stacked':stackedDims, 'stackedMap':stackedDimsMap,

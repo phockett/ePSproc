@@ -35,7 +35,7 @@ A post-processing suite for ePolyScat calculations, and general tool for photoio
    demos/ePSproc_BLM_calc_demo_Sept2019
    demos/ePSproc_demo_CrossSections_Oct2019
    demos/ePSproc_demo_matE_plotting_Feb2020
-   demos/ePSproc_dataStructures_demo_070622
+   dataStructures/ePSproc_dataStructures_demo_070622
 
 .. toctree::
    :maxdepth: 2

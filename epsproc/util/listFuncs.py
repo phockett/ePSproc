@@ -198,6 +198,43 @@ def dataTypesList():
 
     return dataDict
 
+# Get ref dims for self
+def getRefDims(data = None, refType = None, sType = 'sDict'):
+    """
+    Get ref dims from dataTypesList() using data or refType.
+
+    Convenience wrapper for dataTypesList()[dataType]['def'](sType=sType).
+
+    Parameters
+    ----------
+
+    data : optional, Xarray
+        Data to use for dataType = data.attrs['dataType']
+
+    refDims : optional, str, list or dict. Default = None.
+        Reference dimensions
+        - If None, use data.attrs['dataType']
+        - If string, use dataTypesList()[refDims]['def'](sType='sDict')
+        - Other types will be ignored and returned.
+
+    """
+
+    if refType is None:
+        try:
+            return dataTypesList()[data.attrs['dataType']]['def'](sType=sType)
+        except:
+            print("*** Input Xarray missing self.attrs['dataType'], can't get reference dimensions. To fix set missing attr, or pass refDims as string, list or dict.")
+            return 0
+
+    if isinstance(refType, str):
+        return dataTypesList()[refType]['def'](sType=sType)
+
+    # For other refTypes just return.
+    # This allows for ignoring dictionary or list refDim cases.
+    else:
+        return refType
+
+
 #****** QN lists
 
 # Generate LM index from 0:Lmax

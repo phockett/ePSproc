@@ -12,6 +12,10 @@ import re
 import itertools
 import os
 from datetime import datetime
+
+# import itertools   # For itertools.chain.from_iterable
+from collections.abc import Iterable   # For iterable checking
+
 # import scipy.constants
 #
 # # Package fns.
@@ -20,6 +24,9 @@ from datetime import datetime
 # Used for data type checking later, but may not be required if this can be done per data object?
 import xarray as xr
 import pandas as pd
+
+from epsproc.util.listFuncs import getRefDims
+
 
 try:
     from natsort import natsorted  # For natural sorting
@@ -172,6 +179,7 @@ def timeStamp():
     return dt.strftime("%d-%m-%y_%H-%M-%S")
 
 
+
 def checkDims(data, refDims = []):
     """
     Check dimensions for a data array (Xarray) vs. a reference list (or dict).
@@ -184,6 +192,7 @@ def checkDims(data, refDims = []):
     refDims : str, list, dict, optional, default = []
         Dims to check vs. input data array.
         If dict is passed only keys (==stacked dims) are tested.
+        Update 06/06/22: now also checks unstacked case & returns safe ref mapping.
 
     Returns
     -------
@@ -194,9 +203,24 @@ def checkDims(data, refDims = []):
         - stacked and unstacked dims
         - stacked dim mappings
         - intersection and differences vs. refDims
+        - safeStack for use with restack() function even if dims are missing.
+
+    Examples
+    --------
+
+    >>> # Return dim lists
+    >>> ep.util.misc.checkDims(dataTest)
+
+    >>> # Return dim lists
+    >>> ep.util.misc.checkDims(dataTest)
 
 
     TODO: check and order dims by size? Otherwise set return is alphebetical
+
+    06/06/22 Added better support for stacked refDims & remapping with refDims.
+             Now also tests refDims items (unstacked dims), as well as keys (stacked dims).
+             Added outputs 'extraUS', 'invalidUS', 'remap'
+             May now be some repetition here, but didn't touch existing items to ensure back compatibility!
 
     28/09/21 Added basic support for Pandas DataFrames, still needs some work.
              See https://stackoverflow.com/questions/21081042/detect-whether-a-dataframe-has-a-multiindex for some thoughts.
@@ -210,9 +234,28 @@ def checkDims(data, refDims = []):
 
     """
 
+    # refDimsUS = []
+
     # Force to list to avoid breaking *unpacking later
     if not isinstance(refDims, (list, dict)):
         refDims = [refDims]
+        # refDimsUS = []
+
+    # For stacked case, also get unstacked dims.
+    if isinstance(refDims, dict):
+        # refDimsUS = list(itertools.chain.from_iterable(refDims.values()))  # This can fail for mixed types with non-iterables
+
+        # More robust flattening for all types - probably there is a cleaner way to do this however?
+        refDimsUS = []
+        for v in refDims.values():
+            if isinstance(v, Iterable):
+                refDimsUS.extend(v)
+            else:
+                refDimsUS.append(v)
+
+    else:
+        refDimsUS = refDims  # Case for unstacked refDims
+
 
     # Get dim names from Xarray
     if isinstance(data, xr.DataArray):
@@ -266,6 +309,10 @@ def checkDims(data, refDims = []):
     extraDims = list(set(dimsUS) - {*refDims})  # Difference
     invalidDims = list({*refDims} - set(dimsUS))  # Missing
 
+    # Check also unstacked dims - this is useful in remapping cases
+    extraDimsUS = list(set(dimsUS) - {*refDimsUS})  # Difference Unstacked
+    invalidDimsUS = list({*refDimsUS} - set(dimsUS))  # Missing
+
     # 26/08/21 - added additional tests for stacked dims vs. ref, but may want to amalgamate with above?
     # TODO: tidy output too - separate dicts for stacked and unstacked dims?
     # Check ref vs. full dim list (stacked dims), note also unstacked dims subtracted to avoid duplicated dims.
@@ -273,14 +320,164 @@ def checkDims(data, refDims = []):
     extraDimsStacked = list(set(dims) - {*refDims} - set(dimsUS))  # Difference
     invalidDimsStacked = list({*refDims} - set(dims) - set(dimsUS))  # Missing
 
-    # Test also missing dims overally
+    # Test also missing dims overall
     missingDims = list({*refDims} - set(dimsUS) - set(dims))  # Missing
 
+    # Set remapping dict for safe dims only
+    # safeRemap = list({*refDims} - {*invalidDimsStacked})
+    safeStack = {}
+
+    # This works
+    # for k,v in refDims.items():
+    #     if k in invalidDimsStacked:
+    #         safeRemap[k] = [item for item in v if item not in invalidDimsUS]
+
+    # Better (?) - only check missing stacked dims
+    for k in invalidDimsStacked:
+        # if k in refDims.keys():
+        safeStack[k] = [item for item in refDims[k] if item not in invalidDimsUS]
+
     return {'dataDims':dims, 'dataDimsUS':dimsUS, 'refDims':refDims,
-            'shared':sharedDims, 'extra':extraDims, 'invalid':invalidDims,
+            'shared':sharedDims, 'extra':extraDims, 'extraUS':extraDimsUS,
+            'invalid':invalidDims, 'invalidUS':invalidDimsUS,
             'stacked':stackedDims, 'stackedMap':stackedDimsMap,
             'stackedShared':sharedDimsStacked, 'stackedExtra':extraDimsStacked, 'stackedInvalid':invalidDimsStacked,
-            'missing':missingDims}
+            'missing':missingDims, 'safeStack':safeStack}
+
+
+
+# Restack Xarray from refDims
+# def restack(data, refDims):
+#     """
+#     Restack Xarray to conform to refDims.
+#
+#     Wraps checkDims() and data.stack() for "safe" restacking even with missing dims.
+#
+#     """
+#
+#     dimsDict = checkDims(data,refDims)
+#
+#     data = data.stack(dimsDict['safeStack'])
+#
+#     return data
+
+# Restack Xarray from refDims - IN PROGRESS!!!
+def restack(data, refDims = None, conformDims = False,
+             forceUnstack = True, addMissing = False, unstackExtra = False,
+             dimMap = None, strDims = ['Cont','Targ','Total','Type'],
+             verbose = True):
+    """
+    Restack Xarray to conform to refDims.
+
+    Wraps checkDims() and data.stack() for "safe" restacking even with missing dims.
+
+    Parameters
+    ----------
+
+    data : Xarray
+        Data to restack.
+
+    refDims : optional, str, list or dict. Default = None.
+        Reference dimensions
+        - If None, use self.attrs['dataType']
+        - If string, use epsproc.util.listFuncs.dataTypesList()[refDims]['def'](sType='sDict')
+        - If list, treat as unstacked ref dims (will do dim check and missing dims only).
+        - If dict, treat as stacked dim mappings.
+
+    conformDims : bool, default = False
+        If True, conform stacked dims to ref as closely as possible, including adding missing dims and unstacking extra dims.
+        This sets forceUnstack = True, addMissing = True and unstackExtra = True.
+        Note that extra dims will not be deleted.
+
+    forceUnstack : bool, default = True
+        Unstack input DataArray before further manipulation if True.
+
+    addMissing : bool, default = False
+        Add missing (unstacked) dims if True.
+        Note these are added as string or numerical coords, as defined by strDims.
+        (Setting incorrect coord type can affect some selection functions, specifically lmplot())
+
+    unstackExtra : bool, default = False
+        Unstack any extra stacked dims.
+        Note that the dims are not removed, just unstacked.
+
+    dimMap : dict, optional, default = None
+        NOT YET IMPLEMENTED
+        Map for dim renaming.
+
+    strDims : list, default = ['Cont','Targ','Total','Type']
+        Settings for addMissing for string coord dims.
+
+    verbose : bool, default = True
+        Show extra output if True.
+
+
+    Returns
+    -------
+    Xarray : with restacked dims.
+
+    Dict : output from checkDims() used to define the restacking.
+
+
+    TODO:
+
+    - Fix coord type issues, maybe define in dataTypesList?
+    - Logging for before & after dims?
+
+    """
+
+    daTest = data.copy()  # Might be overkill
+
+    # Set options to conform dims
+    if conformDims:
+        forceUnstack = True
+        addMissing = True
+        unstackExtra = True
+
+    # if refDims is None:
+    #     try:
+    #         refDims = dataTypesList()[daTest.attrs['dataType']]['def'](sType='sDict')
+    #     except:
+    #         print("Input Xarray missing self.attrs['dataType']. Please set or pass refDims as string, list or dict to fix.")
+    #
+    # if isinstance(refDims, str):
+    #     refDims = dataTypesList()[refDims]['def'](sType='sDict')
+
+    # Above now in function
+    refDims = getRefDims(daTest, refType = refDims, sType='sDict')
+
+    # dimsDict = checkDims(daTest,refDims)
+
+    if forceUnstack:    # and dimsDict:  # TODO - check existing dims first, and only proceed if restacking required?
+        daTest = daTest.unstack()  # May not be necessary? But will allow for more complex cases.
+
+    dimsDict = checkDims(daTest,refDims)
+
+    # Add missing dims (uses UNSTACKED dim ref)
+    if addMissing:
+        for dim in dimsDict['invalidUS']:
+            # Set for int vs. str labelled dims.
+            # This works with existing lmplot routine OK
+            if dim in strDims:
+                daTest = daTest.expand_dims({dim: ['U']})
+            else:
+                daTest = daTest.expand_dims({dim: [0]})
+        #         daTest = daTest.expand_dims({dim: [0]})
+
+            if verbose:
+                print(f'Added dim {dim}')
+
+        dimsDict = checkDims(daTest,refDims)  # Update dimsDict in case new dims are stacked
+
+    # Unstack extra dims?
+    if dimsDict['stackedExtra'] and unstackExtra:
+        daTest = daTest.unstack(dimsDict['stackedExtra'])
+
+    # Safe stack to match ref.
+    if dimsDict['safeStack']:
+        daTest = daTest.stack(dimsDict['safeStack'])
+
+    return daTest, dimsDict
 
 
 # Subselect from sharedDims

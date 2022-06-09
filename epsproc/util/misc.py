@@ -192,7 +192,7 @@ def checkDims(data, refDims = []):
     refDims : str, list, dict, optional, default = []
         Dims to check vs. input data array.
         If dict is passed only keys (==stacked dims) are tested.
-        Update 06/06/22: now also checks unstacked case & returns safe ref mapping.
+        Update 06/06/22: now also checks unstacked refDims case & returns safe ref mapping.
 
     Returns
     -------
@@ -253,8 +253,11 @@ def checkDims(data, refDims = []):
             else:
                 refDimsUS.append(v)
 
+        stacked = True
+
     else:
         refDimsUS = refDims  # Case for unstacked refDims
+        stacked = False
 
 
     # Get dim names from Xarray
@@ -309,44 +312,67 @@ def checkDims(data, refDims = []):
     extraDims = list(set(dimsUS) - {*refDims})  # Difference
     invalidDims = list({*refDims} - set(dimsUS))  # Missing
 
-    # Check also unstacked dims - this is useful in remapping cases
-    extraDimsUS = list(set(dimsUS) - {*refDimsUS})  # Difference Unstacked
-    invalidDimsUS = list({*refDimsUS} - set(dimsUS))  # Missing
+    # 09/06/22 - added stacked flag here, and return empty otherwise.
+    # Not sure if this may break old behviour in some cases?
+    safeStack = {}
 
-    # 26/08/21 - added additional tests for stacked dims vs. ref, but may want to amalgamate with above?
-    # TODO: tidy output too - separate dicts for stacked and unstacked dims?
-    # Check ref vs. full dim list (stacked dims), note also unstacked dims subtracted to avoid duplicated dims.
-    sharedDimsStacked = list(set(dims)&{*refDims} - set(dimsUS))  # Intersection
-    extraDimsStacked = list(set(dims) - {*refDims} - set(dimsUS))  # Difference
-    invalidDimsStacked = list({*refDims} - set(dims) - set(dimsUS))  # Missing
+    if stacked:
+        # Check also unstacked dims - this is useful in remapping cases
+        extraDimsUS = list(set(dimsUS) - {*refDimsUS})  # Difference Unstacked
+        invalidDimsUS = list({*refDimsUS} - set(dimsUS))  # Missing
+
+        # 26/08/21 - added additional tests for stacked dims vs. ref, but may want to amalgamate with above?
+        # TODO: tidy output too - separate dicts for stacked and unstacked dims?
+        # Check ref vs. full dim list (stacked dims), note also unstacked dims subtracted to avoid duplicated dims.
+        sharedDimsStacked = list(set(dims)&{*refDims} - set(dimsUS))  # Intersection
+        extraDimsStacked = list(set(dims) - {*refDims} - set(dimsUS))  # Difference
+        invalidDimsStacked = list({*refDims} - set(dims) - set(dimsUS))  # Missing
+
+        # Set remapping dict for safe dims only
+        for k in invalidDimsStacked:
+        # if k in refDims.keys():
+            stackList = [item for item in refDims[k] if item not in invalidDimsUS]
+
+            if stackList:
+                safeStack[k] = stackList   # Only assign if list NOT empty!
+
+    else:
+        extraDimsUS = []
+        invalidDimsUS = []
+        sharedDimsStacked = []
+        extraDimsStacked = []
+        invalidDimsStacked = []
+
 
     # Test also missing dims overall
     missingDims = list({*refDims} - set(dimsUS) - set(dims))  # Missing
 
+    # UDPATE: safeStack now set above.
     # Set remapping dict for safe dims only
     # safeRemap = list({*refDims} - {*invalidDimsStacked})
-    safeStack = {}
+    # safeStack = {}
 
     # This works
     # for k,v in refDims.items():
     #     if k in invalidDimsStacked:
     #         safeRemap[k] = [item for item in v if item not in invalidDimsUS]
 
-    # Better (?) - only check missing stacked dims
-    for k in invalidDimsStacked:
-        # if k in refDims.keys():
-         stackList = [item for item in refDims[k] if item not in invalidDimsUS]
+    # # Better (?) - only check missing stacked dims
+    # if isinstance(refDims,dict):   # This requires dict, otherwise stack not defined.
+    #     for k in invalidDimsStacked:
+    #     # if k in refDims.keys():
+    #         stackList = [item for item in refDims[k] if item not in invalidDimsUS]
+    #
+    #     if stackList:
+    #         safeStack[k] = stackList   # Only assign if list NOT empty!
 
-         if stackList:
-             safeStack[k] = stackList   # Only assign if list NOT empty!
-
-
+    # Return dict of lists and settings
     return {'dataDims':dims, 'dataDimsUS':dimsUS, 'refDims':refDims, 'refDimsUS':refDimsUS,
             'shared':sharedDims, 'extra':extraDims, 'extraUS':extraDimsUS,
             'invalid':invalidDims, 'invalidUS':invalidDimsUS,
             'stacked':stackedDims, 'stackedMap':stackedDimsMap,
             'stackedShared':sharedDimsStacked, 'stackedExtra':extraDimsStacked, 'stackedInvalid':invalidDimsStacked,
-            'missing':missingDims, 'safeStack':safeStack}
+            'missing':missingDims, 'safeStack':safeStack, 'stacked': stacked}
 
 
 

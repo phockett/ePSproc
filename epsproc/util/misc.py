@@ -217,6 +217,9 @@ def checkDims(data, refDims = []):
 
     TODO: check and order dims by size? Otherwise set return is alphebetical
 
+    23/06/22 Added support for non-dimensional coords.
+             These are treated separately from dimensional coords, and mappings pushed to dict (for MultiIndex) or list (for Index).
+
     06/06/22 Added better support for stacked refDims & remapping with refDims.
              Now also tests refDims items (unstacked dims), as well as keys (stacked dims).
              Added outputs 'extraUS', 'invalidUS', 'remap'
@@ -267,7 +270,33 @@ def checkDims(data, refDims = []):
 
         stackedDims = list(set(dims) - set(dimsUS))
 
-        stackedDimsMap = {k:data.indexes[k].names for k in stackedDims}  # Get stacked dim mapping from indexes (Xarray/Pandas)
+        stackedDimsMap = {k: list(data.indexes[k].names) for k in stackedDims}  # Get stacked dim mapping from indexes (Xarray/Pandas)
+                                                                                # Note list() wrapper to avoid pandas.core.indexes.frozen.FrozenList type.
+
+        # Update 10/06/22
+        # Additional tests for non-dimensional coords & mappings.
+        # These may be stacked, are not listed in self.dims, and are not addressed by .unstack()
+        idxKeys = list(data.indexes.keys())
+        coordsKeys = list(data.coords.keys())
+        nonDimCoords = list(set(coordsKeys) - set(idxKeys))
+
+        # Update 23/06/22
+        # Add non-dim maps too, and push to native types for dict/HDF5 IO
+
+        # Get non-dim indexes
+        #     nddimIndexes = {k:data.coords[k].to_index() for k,v in data.coords.items() if k in nonDimCoords}  # Note this returns Pandas Indexes, so may fail on IO.
+        nonDimMap = {k:list(data.coords[k].to_index().names) for k,v in data.coords.items() if k in nonDimCoords}
+        #     nddimStacked = {k:type(data.coords[k].to_index()) for k,v in data.coords.items() if k in nonDimCoords}
+        nonDimStacked = [k for k,v in data.coords.items() if (k in nonDimCoords) and isinstance(data.coords[k].to_index(),pd.core.indexes.multi.MultiIndex)]
+
+        # Get dict maps - to_dict per non-dim coord
+        #  nddimDicts = {k:data.coords[k].reset_index(k).to_dict() for k,v in data.coords.items() if k in nonDimCoords}
+        # Use Pandas - this allows direct dump of PD multiindex to dicts
+        nonDimDicts = {k:data.coords[k].to_index().to_frame().to_dict() for k,v in data.coords.items() if (k in nonDimCoords) and (k in nonDimStacked)}
+        nonDimDicts.update({k:data.coords[k].to_index().to_list() for k,v in data.coords.items() if (k in nonDimCoords) and (k not in nonDimStacked)})
+        # Get coords correlated to non-dim coords, need these to recreate original links & stacking (?)
+        nonDimDims = {k:data.coords[k].dims for k,v in data.coords.items() if k in nonDimCoords}
+
 
     # Get BOTH columns and index names & items from Pandas DataFrame
     if isinstance(data, pd.DataFrame):
@@ -347,6 +376,7 @@ def checkDims(data, refDims = []):
     # Test also missing dims overall
     missingDims = list({*refDims} - set(dimsUS) - set(dims))  # Missing
 
+
     # UDPATE: safeStack now set above.
     # Set remapping dict for safe dims only
     # safeRemap = list({*refDims} - {*invalidDimsStacked})
@@ -367,12 +397,15 @@ def checkDims(data, refDims = []):
     #         safeStack[k] = stackList   # Only assign if list NOT empty!
 
     # Return dict of lists and settings
+    # return {k:v for k,v in locals().items() if k !='data'}   # May have issues with some legacy names!
+
     return {'dataDims':dims, 'dataDimsUS':dimsUS, 'refDims':refDims, 'refDimsUS':refDimsUS,
             'shared':sharedDims, 'extra':extraDims, 'extraUS':extraDimsUS,
             'invalid':invalidDims, 'invalidUS':invalidDimsUS,
             'stacked':stackedDims, 'stackedMap':stackedDimsMap,
             'stackedShared':sharedDimsStacked, 'stackedExtra':extraDimsStacked, 'stackedInvalid':invalidDimsStacked,
-            'missing':missingDims, 'safeStack':safeStack, 'stacked': stacked}
+            'missing':missingDims, 'safeStack':safeStack, 'stackedRef': stacked,
+            'nonDimCoords':nonDimCoords, 'nonDimMap':nonDimMap, 'nonDimStacked':nonDimStacked, 'nonDimDicts':nonDimDicts, 'nonDimDims':nonDimDims}
 
 
 

@@ -543,6 +543,85 @@ def restack(data, refDims = None, conformDims = False,
     return daTest, dimsDict
 
 
+# Deconstruct stacked Xarray
+def deconstructDims(data):
+    """
+    Deconstruction (unstack) for Xarray, including non-dimensional dims.
+
+    Existing dim map is set to data.attrs['dimMaps'].
+    """
+
+    xrDecon = data.copy()
+
+    # Map dims
+    xrDecon.attrs['dimMaps'] = checkDims(data)
+
+    # Unstack all coords
+    xrDecon = xrDecon.unstack()
+
+    # Remove non-dim coords
+    # for nddim in xrDecon.attrs['dimMaps']['nonDimCoords']:
+    # Remove only stacked non-dim coords
+    # Should be OK as xr.to_dict() works for non-MultiIndex coords, although possible issues with links to stacked dims?
+    for nddim in xrDecon.attrs['dimMaps']['nonDimStacked']:
+        xrDecon = xrDecon.drop(nddim)
+
+    return xrDecon
+
+
+def reconstructDims(data, dropna = True):
+    """
+    Reconstruction (stack) for Xarray, including non-dimensional dims.
+
+    Uses dim map as set in data.attrs['dimMaps'].
+
+    See also :py:func:`epsproc.util.misc.restack()`__ for restacking to specific data types without a dimMap.
+
+    """
+
+    xrRecon = data.copy()
+
+    # Restack coords
+#     for stacked in xrRecon.attrs['dimMaps']['stackedDims']:
+#         xrRecon = xrRecon.stack({stacked:xrRecon.attrs['dimMaps']['stackedDimsMap'][stacked]})
+
+#         # May need this after stacking?
+#         if dropna:
+#             xrRecon = xrRecon.dropna(stacked,how='all')
+
+    if 'dimMaps' not in xrRecon.attrs.keys():
+        print("*** Can't reconstruct array, missing self.attrs['dimMaps']. For general restacking, try epsproc.util.misc.restack().")
+        return data
+
+    # Rebuild stacked dims.
+    if xrRecon.attrs['dimMaps']['stackedDims']:
+        xrRecon = xrRecon.stack(xrRecon.attrs['dimMaps']['stackedDimsMap'])
+
+        # May need this after stacking?
+        if dropna:
+            for dim in xrRecon.attrs['dimMaps']['stackedDims']:
+                xrRecon = xrRecon.dropna(dim,how='all')
+
+    # General non-dim coord rebuild
+    # TODO: also need to handle non-stacked NDDIMs here, currently not flagged, but should check by type in mapping fn.
+    # UPDATE: added this, but only works if DROPNA used above? Not sure if this is general.
+    for nddim in xrRecon.attrs['dimMaps']['nonDimCoords']:
+        # Add nddim back into main XR array
+        if nddim in xrRecon.attrs['dimMaps']['nonDimStacked']:
+            xrRecon.coords[nddim] = (xrRecon.attrs['dimMaps']['nonDimDims'][nddim],pd.MultiIndex.from_frame(pd.DataFrame.from_dict(xrRecon.attrs['dimMaps']['nonDimDicts'][nddim])))  # OK
+        else:
+            # Set dim explicitly?
+#             xrRecon.coords[nddim] = (xrRecon.attrs['dimMaps']['nddimDims'][nddim],xrRecon.attrs['dimMaps']['nddimDicts'][nddim])  # OK
+#             print(nddim)
+#             print(xrRecon.attrs['dimMaps']['nddimDims'][nddim],xrRecon.attrs['dimMaps']['nddimDicts'][nddim])  # OK
+
+            # Assume handled OK by xr?
+            pass
+
+
+    return xrRecon
+
+
 # Subselect from sharedDims
 def subselectDims(data, refDims = []):
     """

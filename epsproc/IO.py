@@ -2078,12 +2078,13 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', f
     except Exception as e:
 
         print(f'writeXarray caught exception: {e}')
-        print(f'Trying file write with sanitized attrs.')
+        print(f'Retrying file write with sanitized attrs.')
 
         # THIS IS WORKING IN TESTING, but not here?
         # Does work for invalid_netcdf = True case, for h5netcdf backend at least.
         # Seems to be an issue with sanitizeAttrsNetCDF() and/or backend to fix?
         # AH - issue is DataSet vs. DataArray. In former case may need to fix attrs per data variable too.
+        # TODO: make use of sanitizeAttrsNetCDF log return. Write to sidecar file?
         dataOut, attrs, log = sanitizeAttrsNetCDF(dataOut)
         if isinstance(dataOut, xr.core.dataset.Dataset):
             for item in dataOut.data_vars:
@@ -2121,14 +2122,15 @@ def combineComplex(dataR, dataI):
 
 
 # Sanitize attributes & dicts for Xarray NetCDF IO
-def sanitizeAttrsNetCDF(data):
+def sanitizeAttrsNetCDF(data, dictHandling = 'wrap'):
     """
     Sanitize Xarray DataArray attributes for file IO.
 
     Note this may be lossy:
 
     - Empty data > string.
-    - Dictionaries removed (nested dicts not supported in attrs for most (all?) file writers)
+    - Dictionaries removed, wrapped to string, or left alone (nested dicts not supported in attrs for most (all?) file writers).
+      Set dictHandling = 'del', 'wrap' or anything else to leave as is.
     - Remove all items not of types [str, np.ndarray, int, float, list, tuple]
 
 
@@ -2152,8 +2154,16 @@ def sanitizeAttrsNetCDF(data):
         if isinstance(dataOut.attrs[k], dict):
     #         xrTest.attrs[k] = [[k2,v2] for k2,v2 in xrTest.attrs[k].items()]  # Nest dict items also not supported, dump to nested lists? Seems to be acceptable. Ugh.
                                                                                 # Still causing issues in some cases?
-            dataOut.attrs[k] = 'Removed dict'
-            log[k] = 'Removed dict'
+            if dictHandling == 'del':
+                dataOut.attrs[k] = 'Removed dict'
+                log[k] = 'Removed dict'
+
+            elif dictHandling == 'wrap':
+                dataOut.attrs[k] = str(v)
+                log[k] = 'Wrapped dict to string'
+
+            else:
+                pass
 
         if type(dataOut.attrs[k]) not in [str, np.ndarray, int, float, list, tuple]:
             typeIn = type(dataOut.attrs[k])

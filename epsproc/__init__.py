@@ -1,5 +1,5 @@
 
-__version__ = '1.3.1-dev'
+__version__ = '1.3.2-dev'
 
 
 # Import shared packages - actually, should be at module (file) level?

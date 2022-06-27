@@ -180,7 +180,7 @@ def timeStamp():
 
 
 
-def checkDims(data, refDims = []):
+def checkDims(data, refDims = [], method = 'fast'):
     """
     Check dimensions for a data array (Xarray) vs. a reference list (or dict).
 
@@ -193,6 +193,11 @@ def checkDims(data, refDims = []):
         Dims to check vs. input data array.
         If dict is passed only keys (==stacked dims) are tested.
         Update 06/06/22: now also checks unstacked refDims case & returns safe ref mapping.
+
+    method : str, optional, default = 'fast'
+        Set which properties to check.
+        - 'fast' basic stacked/unstacked dim checks, suitable for selectors.
+        - 'full' includes ND dim checks for dictionary conversion/unwrapping. This may be brittle.
 
     Returns
     -------
@@ -282,21 +287,30 @@ def checkDims(data, refDims = []):
 
         # Update 23/06/22
         # Add non-dim maps too, and push to native types for dict/HDF5 IO
+        # Needs work for robustness - currently throwing errors on basic ePS file IO, looks like "2D" singleton SF coord is the issue here, at `data.coords[k].to_index()`?
+        # NOW set with flag, can skip this in most cases.
+        if method == 'full':
+            # Get non-dim indexes
+            #     nddimIndexes = {k:data.coords[k].to_index() for k,v in data.coords.items() if k in nonDimCoords}  # Note this returns Pandas Indexes, so may fail on IO.
+            # [print(k, data.coords[k].to_index()) for k,v in data.coords.items() if k in nonDimCoords]
+            # [print(k, data.coords[k]) for k,v in data.coords.items() if k in nonDimCoords]
+            nonDimMap = {k:list(data.coords[k].to_index().names) for k,v in data.coords.items() if k in nonDimCoords}
+            #     nddimStacked = {k:type(data.coords[k].to_index()) for k,v in data.coords.items() if k in nonDimCoords}
+            nonDimStacked = [k for k,v in data.coords.items() if (k in nonDimCoords) and isinstance(data.coords[k].to_index(),pd.core.indexes.multi.MultiIndex)]
 
-        # Get non-dim indexes
-        #     nddimIndexes = {k:data.coords[k].to_index() for k,v in data.coords.items() if k in nonDimCoords}  # Note this returns Pandas Indexes, so may fail on IO.
-        nonDimMap = {k:list(data.coords[k].to_index().names) for k,v in data.coords.items() if k in nonDimCoords}
-        #     nddimStacked = {k:type(data.coords[k].to_index()) for k,v in data.coords.items() if k in nonDimCoords}
-        nonDimStacked = [k for k,v in data.coords.items() if (k in nonDimCoords) and isinstance(data.coords[k].to_index(),pd.core.indexes.multi.MultiIndex)]
+            # Get dict maps - to_dict per non-dim coord
+            #  nddimDicts = {k:data.coords[k].reset_index(k).to_dict() for k,v in data.coords.items() if k in nonDimCoords}
+            # Use Pandas - this allows direct dump of PD multiindex to dicts
+            nonDimDicts = {k:data.coords[k].to_index().to_frame().to_dict() for k,v in data.coords.items() if (k in nonDimCoords) and (k in nonDimStacked)}
+            nonDimDicts.update({k:data.coords[k].to_index().to_list() for k,v in data.coords.items() if (k in nonDimCoords) and (k not in nonDimStacked)})
+            # Get coords correlated to non-dim coords, need these to recreate original links & stacking (?)
+            nonDimDims = {k:data.coords[k].dims for k,v in data.coords.items() if k in nonDimCoords}
 
-        # Get dict maps - to_dict per non-dim coord
-        #  nddimDicts = {k:data.coords[k].reset_index(k).to_dict() for k,v in data.coords.items() if k in nonDimCoords}
-        # Use Pandas - this allows direct dump of PD multiindex to dicts
-        nonDimDicts = {k:data.coords[k].to_index().to_frame().to_dict() for k,v in data.coords.items() if (k in nonDimCoords) and (k in nonDimStacked)}
-        nonDimDicts.update({k:data.coords[k].to_index().to_list() for k,v in data.coords.items() if (k in nonDimCoords) and (k not in nonDimStacked)})
-        # Get coords correlated to non-dim coords, need these to recreate original links & stacking (?)
-        nonDimDims = {k:data.coords[k].dims for k,v in data.coords.items() if k in nonDimCoords}
-
+        else:
+            nonDimMap = {}
+            nonDimStacked = {}
+            nonDimDicts = {}
+            nonDimDims = {}
 
     # Get BOTH columns and index names & items from Pandas DataFrame
     if isinstance(data, pd.DataFrame):

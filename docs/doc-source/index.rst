@@ -7,20 +7,21 @@
 Welcome to ePSproc
 ==================
 
+A post-processing suite for ePolyScat calculations, and general tool for photoionzation calculations.
+
 .. toctree::
    :maxdepth: 2
    :caption: Intro:
 
    about
    etc/installation_notes_051120
-
+   demos/ePSproc_class_demo_161020
 
 
 .. toctree::
    :maxdepth: 2
    :caption: Class demos:
 
-   demos/ePSproc_class_demo_161020
    demos/ePSdata_download_demo_300720
    demos/ePSproc_wfPlot_tests_150720_tidy
    demos/ePSproc_wfPlot_tests_150720-110820-CH3I-tidy_Stimpy
@@ -34,6 +35,7 @@ Welcome to ePSproc
    demos/ePSproc_BLM_calc_demo_Sept2019
    demos/ePSproc_demo_CrossSections_Oct2019
    demos/ePSproc_demo_matE_plotting_Feb2020
+   dataStructures/ePSproc_dataStructures_demo_070622
 
 .. toctree::
    :maxdepth: 2
@@ -48,6 +50,7 @@ Welcome to ePSproc
 
    ePS_ePSproc_tutorial/ePS_tutorial_080520.ipynb
    ePS_ePSproc_tutorial/ePS_adv_tutorial_080520.ipynb
+   methods/ePSproc_geom_methods_summary_190821-v1-tidy
 
 
 .. toctree::
@@ -66,7 +69,7 @@ Welcome to ePSproc
    tests/ePSproc_frame_rotation_tests_Dec2019
    tests/Low_level_bench_tests_Wigner3j_Feb2020
    tests/basicPlotting_dev_XC_030720
-   tests/hvPlotters_fn_tests_150720
+   tests/hvPlotters_fn_tests_150720_v250122
 
 
 .. toctree::
@@ -78,6 +81,8 @@ Welcome to ePSproc
    methods/geometric_method_dev_pt3_AFBLM_090620_010920_dev_bk100920
    methods/LF_AF_verification_tests_060720_tidy_100920
    methods/ePSproc_orbPlot_tests_130520
+   methods/density_mat_notes_demo_300821
+..   ../../notebooks/in_progress/density_mat_notes_demo_300821   NEED TO USE INDLUCED HERE, or set in conf.py, see https://stackoverflow.com/questions/10199233/can-sphinx-link-to-documents-that-are-not-located-in-directories-below-the-root
 
 
 .. toctree::

@@ -22,7 +22,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
                 degenDrop = True, SFflag = False, SFflagRenorm = False,
                 BLMRenorm = 1,
                 squeeze = False, phaseConvention = 'E',  #  , phaseCons = None
-                basisReturn = "BLM", verbose = 0):
+                basisReturn = "BLM", verbose = 0, **kwargs):
     r"""
     Implement :math:`\beta_{LM}^{AF}` calculation as product of tensors.
 
@@ -33,6 +33,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
 
     Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
+
+    04/05/22 Added **kwargs, unused but allows for arb basis dict unpack and passing from other functions. May want to pipe back to Full basis return however.
 
     06/08/21 Added basic handling for degenerate states, including `degenDrop` option.
              Updated docs, but still rather messy!
@@ -128,6 +130,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
     p : list or array, optional, default = [0]
         Specify polarization terms p.
+        Possibly currently only valid for p=0, TBC
+        See https://epsproc.readthedocs.io/en/latest/methods/geometric_method_dev_260220_090420_tidy.html#E_{P,R}-tensor
 
     BLMtable, BLMtableResort : Xarrays, optional, default = None
         Beta calculation parameters, as defined by :py:func:`geomCalc.betaTerm`.
@@ -229,7 +233,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
 #         EPRX = geomCalc.EPR(form = 'xarray', p = p).unstack().sum(['p','R-p'])  # Set for general sum over (p,R-p) terms - STILL need to fix in e-field mult term!
 #         EPRX = geomCalc.EPR(form = 'xarray', p = p).unstack().sum('R-p')  # Set for general sum over (p,R-p) terms - STILL need to fix in e-field mult term!
-        EPRX = geomCalc.EPR(form = 'xarray', p = p).unstack().sel({'R-p':0}).drop('R-p')
+# TODO: check and fix if necessary for p!=0 case
+        EPRX = geomCalc.EPR(form = 'xarray', p = p, phaseConvention = phaseConvention).unstack().sel({'R-p':0}).drop('R-p')  # Working case as of v1.3.0-dev, but valid for p=0 only?
         EPRXresort = EPRX.squeeze(['l','lp']).drop(['l','lp'])  # Safe squeeze & drop of selected singleton dims only.
 
         if phaseCons['mfblmCons']['negRcoordSwap']:

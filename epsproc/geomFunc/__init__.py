@@ -36,7 +36,7 @@ from epsproc.geomFunc.geomUtils import (genKQSterms, genKQStermsFromTensors,
                                         genllL, genllLList, genllpMatE,
                                         selQNsRow,)
 from epsproc.geomFunc.mfblmGeom import (mfblmXprod,)
-from epsproc.geomFunc.mfblmGeom_Dev import (mfblmXprod,)
+# from epsproc.geomFunc.mfblmGeom_Dev import (mfblmXprod,)  # Dev version only.
 # from epsproc.geomFunc.phaseCons-verified_130420 import (setPhaseConventions,)
 from epsproc.geomFunc.w3jVecMethods import (Wigner3jQNs, w3jguVecCPU,
                                             w3jprange,)

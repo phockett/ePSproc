@@ -239,13 +239,18 @@ def jobsSummary(self):
     for key in self.data:
         print(f"\n*** Job {key} details")
         print(f"Key: {key}")
-        print(f"Dir {self.data[key]['job']['dir']}, {self.data[key]['job']['fN']} file(s).")
-        pp.pprint(self.data[key]['jobNotes'])
-#             print(f"Directory: {self.jobs['files'][key]['dir']}")
-#             print(f"{self.job['files']['fN']} files")
 
-        if self.verbose['main'] > 1:
-            print("File list: ", *self.data[key]['job']['files'], sep='\n   ')
+        if 'job' in self.data[key].keys():
+            print(f"Dir {self.data[key]['job']['dir']}, {self.data[key]['job']['fN']} file(s).")
+            pp.pprint(self.data[key]['jobNotes'])
+    #             print(f"Directory: {self.jobs['files'][key]['dir']}")
+    #             print(f"{self.job['files']['fN']} files")
+
+            if self.verbose['main'] > 1:
+                print("File list: ", *self.data[key]['job']['files'], sep='\n   ')
+
+        else:
+            print(f"No 'job' info set for self.data[{key}].")
 
 #             for m, item in enumerate(self.data[key]['XS']):
             # [print(line.strip('#')) for line in self.dataSets[key]['XS'][m].jobInfo['comments'][0:4]]
@@ -279,7 +284,10 @@ def molSummary(self, dataKey = None, tolConv = 1e-2):
     orbPD = molInfo['orbTable'].to_pandas()
 
     # Add symmery labels
-    orbPD.insert(1, "Sym", molInfo['orbTable'].Sym)
+    # 20/05/22 updated for changed return type.
+    # orbPD.insert(1, "Sym", molInfo['orbTable'].Sym) # THIS now adds xarray data types
+    orbPD.insert(1, "Sym", molInfo['orbTable'].Sym.values)  # OK
+    # orbPD.insert(1, "Sym", molInfo['orbTable'].Sym.to_pandas())  # also OK
 
     # Tidy a bit...
     orbPD.drop(columns=["N","Type"], inplace=True)
@@ -351,7 +359,7 @@ def matEtoPD(self, keys = None, xDim = 'Eke', Erange = None, dataType = 'matE', 
             daSub = plotTypeSelector(daSub, pType = pType, axisUW = xDim)
 
         #*** Convert to PD
-        daPD, daSub = multiDimXrToPD(daSub, colDims = xDim, thres = thres, dropna = True, fillna = fillna, squeeze = squeeze)
+        daPD, daSub = multiDimXrToPD(daSub, colDims = xDim, thres = thres, dropna = drop, fillna = fillna, squeeze = squeeze)
 
         # pdConv.append(daPD)
 

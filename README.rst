@@ -4,7 +4,9 @@
 ePSproc Readme
 ==============
 
-Post-processing suite for ePolyScat calculations.
+|docs|
+
+A post-processing suite for ePolyScat calculations, and general tool for photoionzation calculations.
 
 ePSproc scripts are designed for photoionization studies. The scripts were originally written for Matlab (2009 - 2016); a Python version is currently under (heavy) development (2019 to date), and is now the main/preferred version.
 
@@ -12,7 +14,7 @@ Source code is `available on Github <https://github.com/phockett/ePSproc>`_.
 
 Ongoing documentation is on `Read the Docs <https://epsproc.readthedocs.io>`_.
 
-For more background, and details on the Matlab version, see the software metapaper for ePSproc (Aug. 2016), *ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations*, on `Authorea <https://www.authorea.com/users/71114/articles/122402/_show_article>`_ or `arXiv 1611.04043 <https://arxiv.org/abs/1611.04043>`_.
+For more background, and details on the Matlab version, see the software metapaper for ePSproc (Aug. 2016), *ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations*, on `Authorea <https://www.authorea.com/users/71114/articles/122402/_show_article>`_ or `arXiv 1611.04043 <https://arxiv.org/abs/1611.04043>`_. For data platform and related experimental tools, see `the Photoelectron Metrolgy toolkit <https://pemtk.readthedocs.io/en/latest/about.html>`__.
 
 .. image:: https://epsproc.readthedocs.io/en/latest/_images/output_12_2.png
 
@@ -189,3 +191,8 @@ Special thanks to R.R. Lucchese and coworkers for `ePolyScat <https://epolyscat.
 Thanks to the multiple collaborators and co-authors who encouraged and suggested the cavilier use of ePS "out of the box", for many different problems incorporating electron scattering and photoionization. This spirit of "shoot first, ask questions later" indeed raised many questions which, eventually, necessitated proper use of ePS and careful post-processing of the results, and sharpened related foundational expertise - efforts well worth making.
 
 Thanks, finally, and of course, to those supporting scientific software development and infrastructure (and making it easy!), including Github, Read the Docs, Pypi, SciPy etc. etc. In particular the python version of this project makes use of `Xarray <http://xarray.pydata.org/en/stable/index.html>`_, and `Moble's spherical functions (& quaternion) <https://github.com/moble/spherical_functions>`_.
+
+.. |docs| image:: https://readthedocs.org/projects/epsproc/badge/?version=latest
+    :alt: Documentation Status
+    :scale: 100%
+    :target: https://epsproc.readthedocs.io/en/latest/?badge=latest

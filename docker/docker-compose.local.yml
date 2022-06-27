@@ -1,0 +1,50 @@
+# Quick compose config for testing local dev code
+# 27/03/22
+#
+# - Build with `docker-compose -f docker-compose.local.yml build`
+# - Uses Dockerfile-noinstall, which pulls requirements but DOESN'T install ePSproc or PEMtk.
+# - Mount local dir, e.g. /mnt/d/code/github, for local source code access.
+# - Mount local dir, e.g. /mnt/d/temp/docker_stimpy_builds/notebooks, for local files.
+#
+# Modified for Syno env + some local settings + ePS version of lab
+# 10/08/21
+# Original: https://github.com/defeo/jupyterhub-docker
+# For more options, see https://docs.docker.com/compose/reference/
+
+version: '3.7'
+
+services:
+
+  jupyterlab:
+    build:
+      context: .
+      dockerfile: Dockerfile-noinstall-latest 
+
+    image: jupyterlab_epsproc_dev
+    container_name: jupyterlab-ePSproc-dev
+    # network_mode: none
+    # command: echo
+    ports:
+      - 8966:8888
+    volumes:
+      - /mnt/d/code/github:/home/jovyan/github
+      - /mnt/d/temp/docker_stimpy_builds/notebooks:/home/jovyan/work
+
+# Set persistent volume with default Docker settings.
+# volumes:
+#   jupyter_data:
+
+
+# Fix for OVPN network sharign issue, https://stackoverflow.com/a/56136591
+# NOTE may want to change subnet here!
+# Without this, defulat network creation fails with
+#   Creating network "app_default" with the default driver
+#   ERROR: could not find an available, non-overlapping IPv4 address pool among the defaults to assign to the network
+
+
+# networks:
+#   default:
+#     driver: bridge
+#     ipam:
+#       config:
+#         - subnet: 172.21.0.1/24

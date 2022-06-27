@@ -37,3 +37,8 @@ ipython
 
 # Added 10/09/20, new jupyter_pygments code in RTD build which throws version error with pygments 2.3.1, which seems to be default. See https://readthedocs.org/api/v2/build/11853448.txt
 pygments >= 2.4.1
+
+# 07/04/22 Testing RTD theme versions to fix plotly display
+# Currently automatically runs: [rtd-command-info] start-time: 2022-04-03T17:20:25.294163Z, end-time: 2022-04-03T17:20:32.588347Z, duration: 7, exit-code: 0
+# /home/docs/checkouts/readthedocs.org/user_builds/epsproc/envs/dev/bin/python -m pip install --upgrade --no-cache-dir mock==1.0.1 pillow==5.4.1 alabaster>=0.7,<0.8,!=0.7.5 commonmark==0.8.1 recommonmark==0.5.0 sphinx<2 sphinx-rtd-theme<0.5 readthedocs-sphinx-ext<2.2 jinja2<3.1.0
+sphinx-rtd-theme >= 1.0.0

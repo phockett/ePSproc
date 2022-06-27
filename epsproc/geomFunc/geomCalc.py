@@ -1084,14 +1084,14 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
 
     # Set for (-Rp, -R) phase convention
     if phaseCons['lambdaCons']['phaseNegR']:
-        QNwD[:,1:] *= -1
-        QNun[:,1:] *= -1
+        QNwD[:,1:] = -1 * QNwD[:,1:]
+        QNun[:,1:] = -1 * QNun[:,1:]
 
     # Correct for case where -Rp is already set in 3j
     # ONLY want to do this is setting phase convention explicitly here?
     if phaseCons['lambdaCons']['negRp']:
-        QNwD[:,1] *= -1
-        QNun[:,1] *= -1
+        QNwD[:,1] = -1 * QNwD[:,1]
+        QNun[:,1] = -1 * QNun[:,1]
 
     if form == '2d':
         # Cal for all values - in cases with duplicate QNs this may lead to indexing issues later in Xarray case.
@@ -1116,7 +1116,9 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
                              conjFlag = phaseCons['lambdaCons']['conjFlag'])
 
             # lambdaD['Labels']=('Euler', RX.Labels.values)  # Propagate labels, currently wDcalc only takes RX.data
-            lambdaD['Labels']=('Euler', RX.Labels)  # Propagate labels, currently wDcalc only takes RX.data
+            # lambdaD['Labels']=('Euler', RX.Labels)  # Propagate labels, currently wDcalc only takes RX.data
+            lambdaD['Labels']=('Euler', RX.Labels.data)  # 09/06/22 reinstated this during testing, in XR v2022.3.0 the above line gives "TypeError: Using a DataArray object to construct a variable is ambiguous, please extract the data using the .data property."
+                                                         # Should be back-compatible? Or change to .values as previously?
 
         lambdaD = lambdaD.swap_dims({'Euler':'Labels'})  # Swap dims to labels.
         lambdaD.attrs['dataType'] = 'WignerD'
@@ -1130,8 +1132,8 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
 
         # Reset phase choices here to allow for correct multiplication of +Rp and D(P,-Rp,-R) terms in Xarray
         if phaseCons['lambdaCons']['phaseNegR']:
-            lDun['R'] *= -1
-            lDun['Rp'] *= -1
+            lDun['R'] = -1 * lDun['R']
+            lDun['Rp'] = -1 * lDun['Rp']
 
         # Additional phase term (-1)^(-Rp)
         if phaseCons['lambdaCons']['RpPhase']:

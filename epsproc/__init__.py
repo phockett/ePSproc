@@ -1,5 +1,5 @@
 
-__version__ = '1.3.0'
+__version__ = '1.3.1-dev'
 
 
 # Import shared packages - actually, should be at module (file) level?
@@ -83,7 +83,7 @@ from epsproc.geomFunc import (EPR, MFproj, Wigner3jQNs, afblmGeom, afblmXprod,
                               betaTerm, deltaLMKQS, genKQSterms,
                               genKQStermsFromTensors, genllL, genllLList,
                               genllpMatE, geomCalc, geomUtils, mfblmGeom,
-                              mfblmGeom_Dev, mfblmXprod, mfblmXprod, remapllpL,
+                              mfblmXprod, mfblmXprod, remapllpL,
                               selQNsRow, setPhaseConventions,
                               setPhaseConventions, w3jTable, w3jVecMethods,
                               w3jguVecCPU, w3jprange,)

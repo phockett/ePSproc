@@ -3,26 +3,72 @@
 Dockerfiles for ePSproc, based on [Jupyter Docker Stacks images](https://jupyter-docker-stacks.readthedocs.io/en/latest/index.html), are in `/docker`.
 
 
-Quick build container only:
+## Quick build container only
 
+### Basic container + ePSproc install.
 
 ```
+docker build -t jupyterlab_epsproc .
 docker run -p 8888:8888 jupyterlab_epsproc
 ```
 
 where the port mapping is `host:container`.
 
 
+### Basic container + ePSproc + PEMtk install.
 
-Quick build with Compose (includes some extra options):
+Includes PEMtk install, with libmsym build for symmetrized harmonics support.
 
+```
+docker build -t jupyterlab_epsproc_pemtk -f Dockerfile-PEMtk .
+docker run -p 8888:8888 jupyterlab_epsproc_pemtk
+```
+
+where the port mapping is `host:container`.
+
+
+## Other options
+
+### Terminal in container
+
+Use `exec -it <container> bash` to attach to a running container, or `run -it <container> bash` to spin one up, and connect to the terminal.
+
+E.g. for named container as above: `docker exec -it jupyterlab_epsproc bash`
+
+
+### Build with Compose (includes some extra options)
+
+#### Compose + local install (for development)
+
+See `docker-compose.local.yml` for options, including port and storage mapping.
+
+The default case pulls source image, installs dependencies, and mounts local folders for source code and notebooks - see the compose file to set the mount paths.
+
+```
+docker-compose -f docker-compose.local.yml build
+docker-compose -f docker-compose.local.yml up
+```
+
+Once up, run `installlocal.sh` in the container to install the local code in editable mode.
+
+A one-liner for this (assuming a `github` directory mounted with local code): `docker exec jupyterlab-ePSproc-dev /home/jovyan/github/ePSproc/docker/localinstall.sh`, or run via a terminal in the container, e.g. `docker exec -it jupyterlab-ePSproc-dev bash` to connect.
+
+Note the script defaults to `~/github` for the install, pass a different path if required, e.g. `docker exec jupyterlab-ePSproc-dev /home/jovyan/github/ePSproc/docker/localinstall.sh /path/to/repos`.
+
+
+
+#### Compose + ePSproc install
+
+See `docker-compose.ePSproc.yml` for options, including port and storage mapping.
 
 ```
 docker-compose -f docker-compose.ePSproc.yml build
 ```
 
-NOTE: the compose version is currently not working.
+NOTE: this compose version is currently not working.
 
+
+## Notes
 
 For more details & options, see:
 

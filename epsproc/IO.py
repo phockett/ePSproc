@@ -15,6 +15,9 @@ Main function: :py:func:`epsproc.IO.readMatEle`:
 
 History
 -------
+07/06/22        Added various improvements to writeXarray and readXarray functionality.
+                See https://github.com/phockett/ePSproc/issues/8 for ongoing notes.
+
 13/10/20        Adapted main function readMatEle() to use grouped lists for multi-file jobs, should be back-compatible if stackE = False set.
 
 06/11/19        Added jobInfo and molInfo data structures, from ePS file via :py:func:`epsproc.IO.headerFileParse()` and :py:func:`epsproc.IO.molInfoParse()`.
@@ -71,7 +74,7 @@ except ImportError as e:
 
 # Package fns.
 from epsproc.util import matEleSelector, dataGroupSel, matEdimList, BLMdimList, stringRepMap, conv_ev_atm, orb3DCoordConv
-from epsproc.util.misc import fileListSort
+from epsproc.util.misc import fileListSort, restack
 from epsproc.util.env import isnotebook
 
 # Set HTML output style for Xarray in notebooks (optional), may also depend on version of Jupyter notebook or lab, or Xr
@@ -166,7 +169,8 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
                 segments[n].append([n, i, line])    # Store line if part  of defined segment
 
     if verbose:
-        print('Found {0} segments.'.format(n+1))
+        # print('Found {0} segments.'.format(n+1))
+        print(f'*** IO.fileParse() found {n} segments with \n\tStart: {startPhrase}\n\tEnd: {endPhrase}.')
 
     return ([lineStart, lineStop], segments) # [:-1])
 
@@ -947,7 +951,49 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
 # ************* EDCS parsing
 
 # Parse a EDCS segment (roughly)
-def EDCSSegParse(dumpSeg):
+# def EDCSSegParse(dumpSeg):
+#     """
+#     Extract values from EDCS file segments.
+#
+#     Parameters
+#     ----------
+#     dumpSeg : list
+#         One EDCS segment, from dumpSegs[], as returned by :py:func:`epsproc.IO.EDCSFileParse()`
+#
+#     Returns
+#     -------
+#     np.array
+#         EDCS, array of scattering XS, [theta, Cross Section (Angstrom^2)]
+#     list
+#         attribs, list [Label, value, units]
+#
+#     Notes
+#     -----
+#     Currently this is a bit messy, and relies on fixed EDCS format.
+#     No error checking as yet.
+#     Not yet reading all attribs.
+#
+#     Example
+#     -------
+#
+#     >>> EDCS, attribs = EDCSSegParse(dumpSegs[0])
+#
+#     """
+#     # Use lists to collect data, and convert format at the end
+#     attribs = []
+#     EDCS = []
+#
+#     attribs.append(['E', np.float(parseLineDigits(dumpSeg[13][2])[0]), 'eV'])
+#
+#     # For each line convert to float - bit ugly, but works
+#     for testLine in dumpSeg[67:]:
+#         EDCS.append(np.genfromtxt(StringIO(testLine[2])))
+#
+#     return np.asarray(EDCS), attribs
+
+
+# Updated function 07/03/22 - additional line checks to allow for variable-length output & debug output with verbose
+def EDCSSegParse(dumpSeg, verbose = False):
     """
     Extract values from EDCS file segments.
 
@@ -955,6 +1001,9 @@ def EDCSSegParse(dumpSeg):
     ----------
     dumpSeg : list
         One EDCS segment, from dumpSegs[], as returned by :py:func:`epsproc.IO.EDCSFileParse()`
+
+    verbose : bool, int, default = False
+        Print additional info during run.
 
     Returns
     -------
@@ -965,6 +1014,8 @@ def EDCSSegParse(dumpSeg):
 
     Notes
     -----
+
+    Only reads (theta,I) information from an "EDCS - differential cross section program" segment.
     Currently this is a bit messy, and relies on fixed EDCS format.
     No error checking as yet.
     Not yet reading all attribs.
@@ -975,17 +1026,51 @@ def EDCSSegParse(dumpSeg):
     >>> EDCS, attribs = EDCSSegParse(dumpSegs[0])
 
     """
+
     # Use lists to collect data, and convert format at the end
     attribs = []
     EDCS = []
 
-    attribs.append(['E', np.float(parseLineDigits(dumpSeg[13][2])[0]), 'eV'])
+    DCSFlag = False  # Use this to turn on output for DCS section of segment only.
 
-    # For each line convert to float - bit ugly, but works
-    for testLine in dumpSeg[67:]:
-        EDCS.append(np.genfromtxt(StringIO(testLine[2])))
+    for testLine in dumpSeg:
+    #     print(line)
+
+        # Get energy, read line "Energy to compute the EDCS at (eV) =      X"
+        # Note there may also be another energy line with other units provided.
+        if testLine[-1].strip().startswith('Energy to compute'):
+            if verbose:
+                print(f"***E line: {testLine}")
+
+            attribs.append(['E', np.float(parseLineDigits(testLine[2])[0]), 'eV'])
+
+        # Use "Ang" or "Differential Cross Section" as keywords to flag beginning of (theta,I) data
+        if testLine[-1].strip().startswith('Differential Cross Section'):
+            if verbose:
+                print(f"*** Seg {testLine[0]}, line {testLine[1]} DCS start")
+
+            DCSFlag = True
+
+
+        if testLine[-1].strip().startswith("Time Now"):
+            if verbose:
+                print(f"Seg {testLine[0]}, line {testLine[1]} DCS end")
+
+            DCSFlag = False
+
+        if DCSFlag:
+            # For each line convert to np - bit ugly, but works
+            testVals = np.genfromtxt(StringIO(testLine[2]))
+
+            # Check non-Nan line, this is the case for any additional header lines
+    #         if ~np.isnan(testVals).all()
+            if ~np.isnan(testVals[0]):
+                EDCS.append(testVals)
+
 
     return np.asarray(EDCS), attribs
+
+
 
 # Functional form for parsing full set of mat elements and putting in xarray
 def EDCSSegsParseX(dumpSegs):
@@ -1591,7 +1676,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
             # Scan the file and parse segments
             #lines, dumpSegs = dumpIdyFileParse(os.path.join(fileBase, file))
 
-            if recordType is 'DumpIdy':
+            if recordType == 'DumpIdy':
                 ekeList = scatEngFileParse(file, verbose = verbose)
                 symSegs = symFileParse(file, verbose = verbose)
 
@@ -1602,7 +1687,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
                 lines, dumpSegs = dumpIdyFileParse(file, verbose = verbose)
                 data, blankSegs = dumpIdySegsParseX(dumpSegs, ekeList, symSegs, verbose = verbose)
 
-            if recordType is 'EDCS':
+            if recordType == 'EDCS':
                 # print('Expecting {0} EDCS segments.'.format(ekeList.size))
                 if verbose > 1:
                     print('Scanning EDCS segments.')
@@ -1610,7 +1695,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
                 lines, dumpSegs = EDCSFileParse(file, verbose = verbose)
                 data, blankSegs = EDCSSegsParseX(dumpSegs) # , ekeList, symSegs)
 
-            if recordType is 'CrossSection':
+            if recordType == 'CrossSection':
                 ekeList = scatEngFileParse(file, verbose = verbose)
                 symSegs = symFileParse(file, verbose = verbose)
 
@@ -1867,9 +1952,9 @@ def writeOrb3Dvtk(dataSet):
 #**************** Wrappers for Xarray load/save netCDF
 
 # File write wrapper.
-def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf'):
+def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', forceComplex = False):
     """
-    Write file to netCDF format via Xarray method.
+    Write file to netCDF format via Xarray .to_netcdf() method.
 
     Parameters
     -----------
@@ -1886,6 +1971,13 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf'):
 
     engine : str, optional, default = 'h5netcdf'
         netCDF engine for Xarray to_netcdf method. Some libraries may not support multidim data formats.
+        See https://docs.xarray.dev/en/latest/user-guide/io.html
+
+    forceComplex : bool, optional, default = False
+        For h5netcdf engine only, set `invalid_netcdf` option = forceComplex.
+        If True, complex data will be written directly to file.
+        Note this also needs to be read back with the same engine & settings.
+        For more details see https://github.com/h5netcdf/h5netcdf#invalid-netcdf-files
 
     Returns
     -------
@@ -1896,9 +1988,13 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf'):
     -----
     The default option for Xarray is to use Scipy netCDF writer, which does not support complex datatypes. In this case, the data array is written as a dataset with a real and imag component.
 
+    This routine assumes a DataArray as input, although the Xarray file writer pushes this to a DataSet.
+
     TODO: implement try/except to handle various cases here, and test other netCDF writers (see http://xarray.pydata.org/en/stable/io.html#netcdf).
 
     Multi-level indexing is also not supported, and must be serialized first. Ugh.
+
+    02/06/22: added improved complex number handling & attibutes sanitizer (lossy).
 
     """
 
@@ -1935,39 +2031,167 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf'):
     # return 'File not written.'
 
 
-    # Safe version with re/im split save type only.
-    # Works for scipy and h5netcdf OK, latter will save complex type too, but is strictly not valid.
-    dataOut = xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag})
-    dataOut.attrs = dataIn.attrs
+    if (engine != 'h5netcdf') or (not forceComplex):
+        # Safe version with re/im split save type only.
+        # Works for scipy and h5netcdf OK, latter will save complex type too, but is strictly not valid.
+        dataOut = xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag})
+        # dataOut.attrs = dataIn.attrs   # This will push dataarray attrs to dataset attrs, otherwise they're nested
+                                        # May not always want this?
 
-    # Allow for SF & XS coords which may also be complex
-    if 'XS' in dataOut.coords:
-        dataOut['XSr'] = dataOut.XS.real
-        dataOut['XSi'] = dataOut.XS.imag
-        dataOut = dataOut.drop('XS')
+        # Allow for SF & XS coords which may also be complex
+        # if 'XS' in dataOut.coords:
+        #     dataOut['XSr'] = dataOut.XS.real
+        #     dataOut['XSi'] = dataOut.XS.imag
+        #     dataOut = dataOut.drop('XS')
+        #
+        # if 'SF' in dataOut.coords:
+        #     dataOut['SFr'] = dataOut.SF.real
+        #     dataOut['SFi'] = dataOut.SF.imag
+        #     dataOut = dataOut.drop('SF')
 
-    if 'SF' in dataOut.coords:
-        dataOut['SFr'] = dataOut.SF.real
-        dataOut['SFi'] = dataOut.SF.imag
-        dataOut = dataOut.drop('SF')
+        # Allow for arb complex coords.
+        # May also want to add attr checker here? Or set in 'sanitizeAttrsNetCDF'
+        for item in dataOut.coords.keys():
+            if dataOut.coords[item].dtype == 'complex128':
+                dataOut.coords[item + 'r'], dataOut.coords[item + 'i'] = splitComplex(dataOut.coords[item])
+                dataOut = dataOut.drop(item)
+
+    else:
+        # dataOut = dataIn.to_dataset()   # Set to dataset explicitly prior to save - may also need/want to set name here if missing.
+        dataOut = dataIn   # Without additional conversion.
 
     # For netCDF3 can't have multidim attrs, quick fix here for removing them (BLM case)
-    if engine is 'scipy':
+    if engine == 'scipy':
         if 'sumDims' in dataOut.attrs:
             dataOut.attrs['sumDims'] = [] # test.attrs['selDims'][0]
         if 'selDims' in dataOut.attrs:
             dataOut.attrs['selDims'] = []
 
-    dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine)
-    saveMsg = [f'Written to {engine} format']
+    try:
+        if engine != 'h5netcdf':
+            dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine)
+        else:
+            dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine, invalid_netcdf=forceComplex)
+
+        saveMsg = [f'Written to {engine} format']
+
+    except Exception as e:
+
+        print(f'writeXarray caught exception: {e}')
+        print(f'Retrying file write with sanitized attrs.')
+
+        # THIS IS WORKING IN TESTING, but not here?
+        # Does work for invalid_netcdf = True case, for h5netcdf backend at least.
+        # Seems to be an issue with sanitizeAttrsNetCDF() and/or backend to fix?
+        # AH - issue is DataSet vs. DataArray. In former case may need to fix attrs per data variable too.
+        # TODO: make use of sanitizeAttrsNetCDF log return. Write to sidecar file?
+        dataOut, attrs, log = sanitizeAttrsNetCDF(dataOut)
+        if isinstance(dataOut, xr.core.dataset.Dataset):
+            for item in dataOut.data_vars:
+                dataOut[item], attrs, log = sanitizeAttrsNetCDF(dataOut[item])
+
+        if engine != 'h5netcdf':
+            dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine)
+        else:
+            dataOut.to_netcdf(os.path.join(filePath, fileName + '.nc'), engine=engine, invalid_netcdf=forceComplex)
+
+        saveMsg = [f'Written to {engine} format, with sanitized attribs (may be lossy)']
+
     saveMsg.append(os.path.join(filePath, fileName + '.nc'))
     print(saveMsg)
 
     return saveMsg
 
 
+# Split complex to R + I
+def splitComplex(data):
+    """Split complex data into R+I floats."""
+
+    dataR = np.real(data)
+    dataI = np.imag(data)
+
+    return dataR, dataI
+
+# Comibine R + I to complex
+def combineComplex(dataR, dataI):
+    """Combine R+I floats into complex form."""
+
+    data = dataR + 1j*dataI
+
+    return data
+
+
+# Sanitize attributes & dicts for Xarray NetCDF IO
+def sanitizeAttrsNetCDF(data, dictHandling = 'wrap'):
+    """
+    Sanitize Xarray DataArray attributes for file IO.
+
+    Note this may be lossy:
+
+    - Empty data > string.
+    - Dictionaries removed, wrapped to string, or left alone (nested dicts not supported in attrs for most (all?) file writers).
+      Set dictHandling = 'del', 'wrap' or anything else to leave as is.
+    - Remove all items not of types [str, np.ndarray, int, float, list, tuple]
+
+
+    Todo:
+
+    - try conversion to string for all attrs?
+    - try dict conversions & JSON side-car file IO to avoid lossy saves.
+
+    """
+
+    dataOut = data.copy()
+
+    # Remove None and other empty types, ugh - now integrated below
+    # xrTest.attrs = {k:(v if v else str(v)) for k,v in xrTest.attrs.items()}
+    log = {}
+    for k,v in dataOut.attrs.items():
+        if not v:
+            dataOut.attrs[k] = str(v)
+            log[k] = 'str'
+
+        if isinstance(dataOut.attrs[k], dict):
+    #         xrTest.attrs[k] = [[k2,v2] for k2,v2 in xrTest.attrs[k].items()]  # Nest dict items also not supported, dump to nested lists? Seems to be acceptable. Ugh.
+                                                                                # Still causing issues in some cases?
+            if dictHandling == 'del':
+                dataOut.attrs[k] = 'Removed dict'
+                log[k] = 'Removed dict'
+
+            elif dictHandling == 'wrap':
+                dataOut.attrs[k] = str(v)
+                log[k] = 'Wrapped dict to string'
+
+            else:
+                pass
+
+        if type(dataOut.attrs[k]) not in [str, np.ndarray, int, float, list, tuple]:
+            typeIn = type(dataOut.attrs[k])
+            dataOut.attrs[k] = 'NA'
+            log[k] = f'Removed item type {typeIn}'
+
+    # TO TRY - full str conversion, e.g. from https://stackoverflow.com/a/42676094 (for JSON example case)
+    # save: convert each tuple key to a string before saving as json object
+    # s = json.dumps({str(k): str(v) for k, v in eulerDict.items()})
+    #
+    # THEN RECON with ast:
+    # # load in two stages:
+    # # (i) load json object
+    # obj = json.loads(s)
+    #
+    # # (ii) convert loaded keys from string back to tuple
+    # from ast import literal_eval
+    # # d = {literal_eval(k): literal_eval(v) for k, v in obj.items()}  # FAILS: ValueError: malformed node or string: <ast.Name object at 0x7f4464e67550>
+    # d = {k: (literal_eval(v) if v != 'Euler' else v) for k, v in obj.items()}  # ok - WORKS FOR ALL CASES EXCEPT NON-EXECUTABLE STRS
+    #
+    # This should also work here, but maybe add type checking too?
+
+
+    return dataOut, data.attrs, log
+
+
 # File read wrapper.
-def readXarray(fileName, filePath = None, engine = 'scipy'):
+def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = False, forceArray = True):
     """
     Read file from netCDF format via Xarray method.
 
@@ -1979,6 +2203,23 @@ def readXarray(fileName, filePath = None, engine = 'scipy'):
     filePath : str, optional, default = None
         Full path to file.
         If set to None (default) the file will be written in the current working directory (as returned by `os.getcwd()`).
+
+
+    engine : str, optional, default = 'h5netcdf'
+        netCDF engine for Xarray to_netcdf method. Some libraries may not support multidim data formats.
+        See https://docs.xarray.dev/en/latest/user-guide/io.html
+
+    forceComplex : bool, optional, default = False
+        For h5netcdf engine only, set `invalid_netcdf` option = forceComplex.
+        If True, complex data will be written directly to file.
+        Note this also needs to be read back with the same engine & settings.
+        For more details see https://github.com/h5netcdf/h5netcdf#invalid-netcdf-files
+
+    forceArray : bool, optional, default = False
+        Force file reader to use xr.open_dataarray if True.
+        Otherwise use xr.open_dataset.
+        The latter case may need additional post-processing, but works with cases with split Re & Im dataarrays.
+        If forceComplex = False this setting is ignored.
 
 
     Returns
@@ -1994,32 +2235,84 @@ def readXarray(fileName, filePath = None, engine = 'scipy'):
 
     TODO: generalize multi-level indexing here.
 
+
+    07/06/22: improved dim restacking with :py:func:`epsproc.util.misc.restack` routine.
+    02/06/22: improved engine & complex number handling (as per writeXarray)
+
     """
+
+    # TODO - file and path checks
+    # See writeXarray() above, and PEMtk.fit._io() functions - should unify method here!
+    # See also ep.IO.getFiles?
+    # if dataPath is None:
+    #     # dataPath = os.getcwd()  # OR
+    #     dataPath = Path().absolute()
+    # if not Path(fileIn).exists():
+    #     fileIn = Path(dataPath,fileIn)  # Assume full path missing if file doesn't exist?
+
+    # Set reader - can try and force to array too.
+    # If forceComplex = False, need to use xr.open_dataset for Re+Im dataset format.
+    if forceArray and forceComplex:
+        freader = xr.open_dataarray
+    else:
+        freader = xr.open_dataset
+
     # Read file
-    dataIn = xr.open_dataset(fileName, engine = engine)
+    if engine != 'h5netcdf':
+        dataIn = freader(fileName, engine = engine)
+    else:
+        dataIn = freader(fileName, engine = engine, invalid_netcdf = forceComplex)
 
-    # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!
-    dataOut = dataIn.Re + dataIn.Im*1j
-    dataOut.attrs = dataIn.attrs
+    if (engine != 'h5netcdf') or (not forceComplex):
+        # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!
+        # UPDATE 07/06/22: additional attrs handling below. Note in this case dataOut is a DataArray here.
+        dataOut = dataIn.Re + dataIn.Im*1j
+        # dataOut.attrs = dataIn.attrs
 
-    # Rest SF & XS coords which may also be complex
-    # Note: need to check vs. dataIn here, since dataOut already has dropped vars
-    if 'XSr' in dataIn.data_vars:
-        dataOut['XS'] = dataIn.XSr + dataIn.XSi*1j
-    #     dataOut = dataOut.drop('XSr').drop('XSi')
+        # Rest SF & XS coords which may also be complex
+        # Note: need to check vs. dataIn here, since dataOut already has dropped vars
+        # if 'XSr' in dataIn.data_vars:
+        #     dataOut['XS'] = dataIn.XSr + dataIn.XSi*1j
+        # #     dataOut = dataOut.drop('XSr').drop('XSi')
+        #
+        # if 'SFr' in dataIn.data_vars:
+        #     dataOut['SF'] = dataIn.SFr + dataIn.SFi
+        # #     dataOut = dataOut.drop('SFr').drop('SFi')
 
-    if 'SFr' in dataIn.data_vars:
-        dataOut['SF'] = dataIn.SFr + dataIn.SFi
-    #     dataOut = dataOut.drop('SFr').drop('SFi')
+        # General version
+        for item in dataOut.coords.keys():
+            # Check for r+i pairs - note labelling assumed to match writeXarray conventions here.
+            if item.endswith('r'):
+                itemi = item[:-1] + 'i'
+
+                # If imag partner found, restack and remove split components.
+                if itemi in dataOut.coords.keys():
+                    dataOut.coords[item[:-1]] = combineComplex(dataOut.coords[item], dataOut.coords[itemi])
+                    dataOut = dataOut.drop([item,itemi])
+
+    else:
+        dataOut = dataIn
+
+    # For dataset case, try some generic handling. May need more sophisticated methods here, maybe just assume DataArray and convert?
+    if (not dataOut.attrs) and isinstance(dataIn, xr.core.dataset.Dataset):
+        dataOut.attrs = dataIn[list(dataIn.data_vars)[0]].attrs
 
     # Recreate MultiIndex from serialized version  - testing here for BLM case.
     # if 'BLM' in dataIn.dims:
     #     dataIn = dataIn.set_index({'BLM':['l','m'],'Euler':['P','T','C']})
 
     # Recreate MultiIndex from serialized version according to array type.
-    if dataIn.dataType == 'BLM':
-        dataOut = dataOut.stack(BLMdimList(sType = 'sDict'))
-    elif dataIn.dataType == 'matE':
-        dataOut = dataOut.stack(matEdimList(sType = 'sDict'))
+    # 01/06/22: added try/except for lazy dim handling.
+    try:
+        # if dataIn.dataType == 'BLM':
+        #     dataOut = dataOut.stack(BLMdimList(sType = 'sDict'))
+        # elif dataIn.dataType == 'matE':
+        #     dataOut = dataOut.stack(matEdimList(sType = 'sDict'))
+
+        dataOut, dims = restack(dataOut)  # General restacking routine, may want to pass args here for more flexibility.
+
+    except:
+        print(f"Failed to restack input dataset for dataType {dataIn.dataType}, dims may be missing. Check ep.dataTypesList['{dataIn.dataType}'] for details.")
+
 
     return dataOut

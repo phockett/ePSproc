@@ -16,6 +16,10 @@ from epsproc import lmPlot as lmPlotCore  # Hack rename here to prevent circular
 from epsproc.plot import hvPlotters
 from epsproc.util.env import isnotebook
 
+# Import HV into local namespace if hvPlotters successful (can't access directly)
+if hvPlotters.hvFlag:
+    hv = hvPlotters.hv
+
 # ************** Plotters
 
 def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', selDims = None, keys = None, backend = 'mpl'):
@@ -415,7 +419,9 @@ def ADMplot(self, dataType = 'ADM', xDim = 't', Etype='t', col = None, **kwargs)
 
 def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             xDim = None, selDims = None, col = 'Labels', row = None,
-            thres = None, keys = None, **kwargs):
+            thres = None, keys = None, verbose = None,
+            backend = 'xr', overlay = None,
+            **kwargs):
     """
     Basic BLM line plots using Xarray plotter.
 
@@ -429,6 +435,9 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 
     TODO: fix dim handling and subselection, see old plotting code.
 
+    24/11/21: quick additions, override printing with "verbose", and added backend option for XR or Holoviews plotters.
+                Note this currently uses hvplot functionality, see https://hvplot.holoviz.org/user_guide/Gridded_Data.html.
+                UPDATE: currently not working due to unhandled dims at Holomap stack - see tmo-dev for method.
     05/06/21: added **kwargs pass to Xarray line plot
     03/02/21: added col, row arguments for flexibility on calling. Still needs automated dim handling.
 
@@ -436,6 +445,9 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     # Set xDim if not passed.
     if xDim is None:
         xDim = Etype
+
+    if verbose is None:
+        verbose = self.verbose
 
     # # Default to all datasets
     # if keys is None:
@@ -448,6 +460,7 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     #     Erange = [self.data[keys[0]][dataType][Etype].min().data, self.data[keys[0]][dataType][Etype].max().data]
 
     # Loop over datasets
+    plotList = {}  # For HV plot stacking
     for key in keys:
 #                 testClass.dataSets[key]['XS'][0].sel(XC='SIGMA', Eke=slice(Erange[0], Erange[1])).plot.line(x='Eke', col='Type')   # This works
 
@@ -481,16 +494,51 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             #     subset.XSrescaled.real.plot(x=Etype, col=colXS, row=rowXS)   # UGH THESE DIMENSION ARE NOT THE SAME OF COURSE SO WILL POTENTIALLY BREAK. SHITTY CODE AGAIN.
             #     # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, XS")
 
-            try:
-                print(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
-            except KeyError:
-                print(f"Dataset: {key}, {dataType}")
+            if verbose:
+                try:
+                    print(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
+                except KeyError:
+                    print(f"Dataset: {key}, {dataType}")
 
-            # TODO: add some logic here, sort or switch on flag or number of dims?
-            # subset.real.plot(x=Etype, col='Labels', row='BLM')  # Nice... should give line plots or surfaces depending on dims
-            # subset.where(subset.l>0).real.plot.line(x=Etype, col=col, row=row)  # Set to line plot here to stack BLMs, also force l>0 - THIS SUCKS, get an empty B00 panel.
-            subset.real.plot.line(x=Etype, col=col, row=row, **kwargs)
-            # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
+            if backend == 'xr':
+                # TODO: add some logic here, sort or switch on flag or number of dims?
+                # subset.real.plot(x=Etype, col='Labels', row='BLM')  # Nice... should give line plots or surfaces depending on dims
+                # subset.where(subset.l>0).real.plot.line(x=Etype, col=col, row=row)  # Set to line plot here to stack BLMs, also force l>0 - THIS SUCKS, get an empty B00 panel.
+                subset.real.plot.line(x=Etype, col=col, row=row, **kwargs)
+                # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
+
+            # VERY ROUGH, based on not great tmo-dev code.
+            # Currently no explicit dim handling, and auto-rename to ensure working Holomap output.
+            # TODO: update/replace with routines in basicPlotters.BLMplot(), see also hvPlotters.curvePlot()
+            elif backend == 'hv':
+                try:
+                    # plotList[key] = (subset.real.hvplot.line(x=Etype, col=col, row=row, **kwargs))
+                    hvDS = hv.Dataset(subset.real.rename(str(key)))  # Convert to hv.Dataset, may need to rename too.
+                    # hvDS = hv.Dataset(subset.real.rename('AFBLM'))
+                    plotList[key] = hvDS.to(hv.Curve, kdims=Etype)   # TODO: add dim handling, will just autostack currently.
+
+                    # plotList[key] = hvPlotters.curvePlot(dataXR, kdims = Etype, returnPlot = True, renderPlot = False, **kwargs) # Curve plot version - needs better dim handling too!
+
+                except NotImplementedError as e:
+                    # if e.msg == "isna is not defined for MultiIndex":
+                    if e.args[0] == "isna is not defined for MultiIndex":   # Message as first arg - may be version specific?
+                        print("Unstacking data for plotting")
+                        # plotList[key] = (subset.real.unstack().hvplot.line(x=Etype, col=col, row=row, **kwargs))   # Should be OK for individual plots, but can't pass to holomap?
+                        hvDS = hv.Dataset(subset.real.unstack().rename(str(key)))  # Convert to hv.Dataset, may need to rename too.
+                        # hvDS = hv.Dataset(subset.real.unstack().rename('AFBLM'))  # Convert to hv.Dataset, may need to rename too.
+                        plotList[key] = hvDS.to(hv.Curve, kdims=Etype)   # TODO: add dim handling, will just autostack currently.
+                    else:
+                        print(f"Caught unhandelable exception {e}")
+
+
+    if backend == 'hv':
+        # Code from showPlot()
+        hvMap = hv.HoloMap(plotList)  # May need to handle dims here?
+        if self.__notebook__ and (backend == 'hv'):
+            if overlay is None:
+                display(hvMap)  # If notebook, use display to push plot.
+            else:
+                display(hvMap.overlay(overlay))
 
 
 # # Plot PADs from mat elements (MF) or BLMs
@@ -664,7 +712,7 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 # This has better dim handling, and simpler logic, but still needs some work.
 def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = 'Eke',
                 keys = None, dataType = 'TX', facetDims = None, squeeze = False, reducePhi = None,
-                pType = 'a', pStyle = 'polar', returnFlag = False,
+                pType = 'a', pStyle = 'polar', returnFlag = False, plotDict = 'plots',
                 backend = 'mpl'):
 
     """
@@ -677,6 +725,8 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
 
 
     TODO: fix dim handling for pl case, need to pass facetDim != None.
+    TODO: return plot objects. Probably to self.data[key][pStyle], or as dictionary of plots per run with data? (Cf. PEMtk plotters.)
+        23/04/22: added plot data and object returns to self.data[key][plotDict][pStyle]
 
     """
 
@@ -685,7 +735,7 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     keys = self._keysCheck(keys)
 
     # Default facetDims, (Eulers, Eke)
-    # Should test these?
+    # Should test these? YES - it's done later, per key.
     if facetDims is None:
         facetDims = ['Labels', Etype]
 
@@ -702,6 +752,16 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
 
         # Set data & slice on E
         subset = self.Esubset(key = key, dataType = dataType,  Erange = Erange, Etype = Etype)
+
+        # Handling for Euler or Labels dim - UGLY
+        eDim = 'Euler'
+        if hasattr(subset, 'Labels'):
+#                 if 'Labels' in selDims:
+            if eDim in subset.dims:
+                subset = subset.swap_dims({'Euler':'Labels'})
+
+            eDim = 'Labels'
+
 
         # if selDims is not None:  # Now set as empty dict to avoid issues later.
         # TODO: smarter dim handling here - selDims may not be consistent over all dataSets!
@@ -730,14 +790,14 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
 
 
         #***** Check dims
-        # Handling for Euler or Labels dim - UGLY
-        eDim = 'Euler'
-        if hasattr(subset, 'Labels'):
-#                 if 'Labels' in selDims:
-            if eDim in subset.dims:
-                subset = subset.swap_dims({'Euler':'Labels'})
-
-            eDim = 'Labels'
+#         # Handling for Euler or Labels dim - UGLY... now moved above to allow for selDims in Xarray > 0.15 (treats non-dimensional coords differently)
+#         eDim = 'Euler'
+#         if hasattr(subset, 'Labels'):
+# #                 if 'Labels' in selDims:
+#             if eDim in subset.dims:
+#                 subset = subset.swap_dims({'Euler':'Labels'})
+#
+#             eDim = 'Labels'
 
         #
 #         plotDims = set(subset.dims) - set(facetDims)
@@ -765,26 +825,48 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
         # TODO: decide MAX 4D. Then reduce > groupby > facet to existing plotter.
         # TODO: general way to handle more dims?
 
-        if pStyle is 'polar':
+        if pStyle == 'polar':
             for groupLabel, item in subset.groupby(facetDimsCheck[0]):
 #                 tString = f"Pol geom: {item.item()}, plotType: {pType}"
                 tString = f"{facetDimsCheck[0]}: {groupLabel}, plotType: {pType}"
-                _ = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
+                pltObj = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
+                # _ = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
 
-        elif pStyle is 'grid':
-            print(f"Grid plot: {subset.attrs['jobLabel']}, dataType: {dataType}, plotType: {pType}")
+        elif pStyle == 'grid':
+            if 'jobLabel' in subset.attrs.keys():
+                label = subset.attrs['jobLabel']
+            else:
+                label = (key,dataType)
+
+            print(f"Grid plot: {label}, dataType: {dataType}, plotType: {pType}")
 
             # Set data
             subset = plotTypeSelector(subset, pType = pType, axisUW = Etype)
 
-            if reducePhi:
-                # subset.plot(x='Theta', y=Etype, col=eDim, robust=True)
-                # subset.plot(x='Theta', y=facetDimsCheck[0], col=facetDimsCheck[1], robust=True)  # This might fail for only one facetDim
-                                                                                                    # This did work initially, but not later - dim ordering always goes to alphabetical with set selection above
-                subset.plot(x='Theta', y=Etype, col=list({*facetDimsCheck}-{Etype})[0], robust=True)  # Force E dim to y
-            else:
-                subset.plot(y='Theta',x='Phi', row=facetDimsCheck[1], col=facetDimsCheck[0], robust=True)  # This might fail for only one facetDim. DIM ORDERING NOT PRESERVED
+            try:
+                if reducePhi:
+                    # subset.plot(x='Theta', y=Etype, col=eDim, robust=True)
+                    # subset.plot(x='Theta', y=facetDimsCheck[0], col=facetDimsCheck[1], robust=True)  # This might fail for only one facetDim
+                                                                                                        # This did work initially, but not later - dim ordering always goes to alphabetical with set selection above
+                    pltObj = subset.plot(x='Theta', y=Etype, col=list({*facetDimsCheck}-{Etype})[0], robust=True)  # Force E dim to y
+                else:
+                    pltObj = subset.plot(y='Theta',x='Phi', row=facetDimsCheck[1], col=facetDimsCheck[0], robust=True)  # This might fail for only one facetDim. DIM ORDERING NOT PRESERVED
 
-    # Return data? Note this is only set for final key value at the moment.
-    if returnFlag:
-        return subset
+            except ValueError as e:
+                print(f"*** Error {e} for grid plotter with facetDims={facetDimsCheck}: try passing selDims, sumDims or facetDims manually.")  # Gives "ValueError: IndexVariable objects must be 1-dimensional" for singleton facet dim case (gets squeezed out here?)
+
+
+        # Return data?
+        if returnFlag:
+            if not plotDict in self.data[key].keys():
+                self.data[key][plotDict] = {}
+
+            self.data[key][plotDict][dataType] = {'pData':subset,
+                                                   pStyle:pltObj}
+
+            if self.verbose:
+                print(f"Set plot to self.data['{key}']['{plotDict}']['{dataType}']['{pStyle}']")
+
+    # # Return data? Note this is only set for final key value at the moment.
+    # if returnFlag:
+    #     return subset

@@ -1,0 +1,10 @@
+/*
+Fix RTD standard template (sphinx_rtd_theme) max width.
+See
+https://github.com/readthedocs/sphinx_rtd_theme/issues/295
+https://stackoverflow.com/questions/23211695/modifying-content-width-of-the-sphinx-theme-read-the-docs
+*/
+
+.wy-nav-content {
+   max-width: 90%  !important;;
+}

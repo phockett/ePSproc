@@ -264,7 +264,7 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
                         refValue = self.Edef['Freq'][key]
                         # print(refValue)
 
-                if refKey is 'w':
+                if refKey == 'w':
                     refValue *= self.Edef['Units']['f']['value']/2*np.pi
 
 # TODO: set for Ehv case.
@@ -280,7 +280,7 @@ f0={self.Edef['Freq']['f']:.3f} (df={self.Edef['Pulse']['dw']:.3f}) {self.Edef['
 #                         self.Edef['Freq'][key] = (scipy_constants.c/refValue)/self.Edef['Units'][key]['value']  # Convert between wavelength and freq., and set to working units
                         self.Edef['Freq'][key] = self.Edef['Units']['c']['value']/refValue  # With c in working units
 
-                if refKey is not 'w':  # Set w0 in working units (rad/[unit t])
+                if refKey != 'w':  # Set w0 in working units (rad/[unit t])
 #                     self.Edef['Freq']['w'] = 2*np.pi * self.Edef['Freq']['f'] * self.Edef['Units']['f']['value'] * self.Edef['Units']['t']['value']
                     self.Edef['Freq']['w'] = 2*np.pi * self.Edef['Freq']['f']
 

@@ -638,7 +638,13 @@ def degenChecks(matEin, selDims, sumDims, degenDrop, verbose):
     """
 
     # Check for degeneracies
-    degenN = matEin.it.max().data
+    if hasattr(matEin, 'it'):  # Check if exists first - may have been dropped in some cases.
+        degenN = matEin.it.max().data
+        itX = matEin.it
+    else:
+        degenN = 1
+        itX = None
+
     degenFlag = False
     if (degenN > 1):
 
@@ -665,6 +671,6 @@ def degenChecks(matEin, selDims, sumDims, degenDrop, verbose):
 
                 selDims['it']=1
 
-    degenDict = {'it':matEin.it, 'degenN':degenN, 'degenFlag':degenFlag, 'degenDrop':degenDrop, 'selDims':selDims}
+    degenDict = {'it':itX, 'degenN':degenN, 'degenFlag':degenFlag, 'degenDrop':degenDrop, 'selDims':selDims}
 
     return degenDict

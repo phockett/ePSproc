@@ -39,7 +39,7 @@ A post-processing suite for ePolyScat calculations, and general tool for photoio
 
 .. toctree::
    :maxdepth: 2
-   :caption: Matlab demos:
+   :caption: Matlab:
 
    demos/ePSproc_Matlab_demo_notebook_090821
 

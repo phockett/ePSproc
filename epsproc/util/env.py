@@ -32,6 +32,14 @@ def isnotebook():   # (warn = 'once'):
     Might be a better/more robust way to do this?
 
     Also added optional "warn = 'once'", set 'once' or 'ignore' to control warnings in notebook env., see https://stackoverflow.com/a/9031848
+    NOTE: this is currently not working globally (at import), need to look at scope here, see https://docs.python.org/3/library/warnings.html
+
+    To set manually in a notebook:
+
+        ```
+        import warnings
+        warnings.filterwarnings('ignore')
+        ```
 
     """
 

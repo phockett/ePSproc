@@ -568,7 +568,7 @@ def deconstructDims(data):
     xrDecon = data.copy()
 
     # Map dims
-    xrDecon.attrs['dimMaps'] = checkDims(data)
+    xrDecon.attrs['dimMaps'] = checkDims(data, method = 'full')
 
     # Unstack all coords
     xrDecon = xrDecon.unstack()

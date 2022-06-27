@@ -12,6 +12,9 @@ import scipy.constants
 import numpy as np
 import xarray as xr
 
+from epsproc.util.misc import deconstructDims, reconstructDims, restack
+
+#************* Xarray handling (to Pandas, to flat, to dict)
 def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = True, dropna = True, fillna = False,
                     colRound = 2, verbose = False):
     """
@@ -169,6 +172,35 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
         daRestackpd = daRestackpd.fillna(0.0)
 
     return daRestackpd, daRestack
+
+
+def multiDimXrToDict(da):
+    """Convert multiDim Xarray to native dictionary format"""
+
+    daFlat = deconstructDims(da)
+
+    daDict = daFlat.to_dict()
+
+    return daFlat, daDict
+
+
+def multiDimXrFromDict(daDict):
+    """Convert multiDim Xarray to native dictionary format"""
+
+    daFlat = xr.DataArray.from_dict(daDict)
+
+    if 'dimMaps' not in daFlat.attrs.keys():
+
+        # Try and restack according to dataType if set
+        if 'dataType' in daFlat.attrs.keys():
+            da = restack(daFlat)
+        else:
+            print("*** Can't restack array, missing self.attrs['dimMaps'] and self.attrs['dataType']. For general restacking, try epsproc.util.misc.restack().")
+            da = None
+    else:
+        da = reconstructDims(daFlat)
+
+    return daFlat, daDict
 
 
 #********************** Calculations

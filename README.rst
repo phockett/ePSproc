@@ -19,6 +19,18 @@ For more background, and details on the Matlab version, see the software metapap
 .. image:: https://epsproc.readthedocs.io/en/latest/_images/output_12_2.png
 
 
+Getting Started
+---------------
+
+To get started, see the demo Jupyter notebooks for example usage:
+
+* `Base class usage demo <https://epsproc.readthedocs.io/en/latest/demos/ePSproc_class_demo_161020.html>`__ (note this wraps most functionality as of Oct. 2020).
+* `Basic functional demo <https://epsproc.readthedocs.io/en/latest/ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html>`__ .
+* `MF $\beta_{LM}$ parameters demo <https://epsproc.readthedocs.io/en/latest/demos/ePSproc_BLM_calc_demo_Sept2019.html>`__ .
+* `ePSproc Matlab demo notebook <https://epsproc.readthedocs.io/en/latest/demos/ePSproc_Matlab_demo_notebook_090821.html>`__ (legacy Matlab code)
+
+
+
 Installation (Python)
 ---------------------
 
@@ -45,16 +57,10 @@ Functionality:
   * Calculate MF, LF and AF $\beta_{LM}$ from the matrix elements.
   * Plot $\beta_{LM}$ & PADs.
 
-* `Distirbution via PyPi (latest stable version) <https://pypi.org/project/ePSproc/>`__ .`
+* `Distirbution via PyPi (latest stable version) <https://pypi.org/project/ePSproc/>`__ .
 * `Docs on Read the Docs <https://epsproc.readthedocs.io>`__ .
 
 .. This doesn't work for PyPi: See the demo :doc:`Jupyter notebook <ePSproc_demo_Aug2019/ePSproc_demo_Aug2019>` for example usage.
-
-To get started, see the demo Jupyter notebooks for example usage:
-
-* `Base class usage demo <https://epsproc.readthedocs.io/en/latest/demos/ePSproc_class_demo_161020.html>`__ (note this wraps most functionality as of Oct. 2020).
-* `Basic functional demo <https://epsproc.readthedocs.io/en/latest/ePSproc_demo_Aug2019/ePSproc_demo_Aug2019.html>`__ .
-* `MF $\beta_{LM}$ parameters demo <https://epsproc.readthedocs.io/en/latest/ePSproc_BLM_calc_demo_Sept2019_rst/ePSproc_BLM_calc_demo_Sept2019.html>`__ .
 
 
 
@@ -69,8 +75,8 @@ Source:
 `Full function documentation <https://epsproc.readthedocs.io/en/latest/modules/epsproc.html>`_.
 
 
-Matlab
-------
+Matlab (legacy code)
+--------------------
 
 Functionality:
 
@@ -80,6 +86,11 @@ Functionality:
 * Plot X-sects
 * (Beta testing): Calculate MF-BLMs from matrix elements, see ePSproc_MFBLM.m
 * (Under development): Calculate AF-BLMs from matrix elements.
+
+For more details see
+
+* `ePSproc Matlab demo notebook <https://epsproc.readthedocs.io/en/latest/demos/ePSproc_Matlab_demo_notebook_090821.html>`_ .
+* `ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations <https://www.authorea.com/users/71114/articles/122402/_show_article>`_ .
 
 
 Source:
@@ -95,10 +106,6 @@ Source:
   * the benchmark results from these calculations, ePSproc_NO2_testing_summary_250915.pdf
   * additional notes on ePS photoionization matrix elements, ePSproc_scattering_theory_ePS_notes_011015.pdf.
 
-For more details see
-
-* `ePSproc Matlab demo notebook <https://epsproc.readthedocs.io/en/latest/demos/ePSproc_Matlab_demo_notebook_090821.html>`_ .
-* `ePSproc: Post-processing suite for ePolyScat electron-molecule scattering calculations <https://www.authorea.com/users/71114/articles/122402/_show_article>`_ .
 
 
 Resources

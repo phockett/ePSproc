@@ -1116,7 +1116,9 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
                              conjFlag = phaseCons['lambdaCons']['conjFlag'])
 
             # lambdaD['Labels']=('Euler', RX.Labels.values)  # Propagate labels, currently wDcalc only takes RX.data
-            lambdaD['Labels']=('Euler', RX.Labels)  # Propagate labels, currently wDcalc only takes RX.data
+            # lambdaD['Labels']=('Euler', RX.Labels)  # Propagate labels, currently wDcalc only takes RX.data
+            lambdaD['Labels']=('Euler', RX.Labels.data)  # 09/06/22 reinstated this during testing, in XR v2022.3.0 the above line gives "TypeError: Using a DataArray object to construct a variable is ambiguous, please extract the data using the .data property."
+                                                         # Should be back-compatible? Or change to .values as previously?
 
         lambdaD = lambdaD.swap_dims({'Euler':'Labels'})  # Swap dims to labels.
         lambdaD.attrs['dataType'] = 'WignerD'

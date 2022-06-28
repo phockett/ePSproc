@@ -20,10 +20,11 @@ import numpy as np
 # import pandas as pd
 # from io import StringIO
 import xarray as xr
-from datetime import datetime as dt # Import datetime.datetime for now() function
+
 
 from epsproc.util.misc import fileListSort, restack
 from epsproc.util.xrIO import splitComplex, combineComplex, sanitizeAttrsNetCDF
+from epsproc.util.io import setTimeStampedFileName
 
 #**************** Wrappers for Xarray load/save netCDF
 
@@ -75,8 +76,9 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', f
     """
 
     if fileName is None:
-        timeString = dt.now()
-        fileName = 'ep_' + timeString.strftime('%Y-%m-%d_%H-%M-%S')
+        # timeString = dt.now()
+        # fileName = 'ep_' + timeString.strftime('%Y-%m-%d_%H-%M-%S')
+        fileName = setTimeStampedFileName()
 
     if filePath is None:
         filePath = os.getcwd()

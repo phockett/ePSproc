@@ -1,5 +1,5 @@
 """
-ePSproc io util functions
+ePSproc Xarray IO util functions
 
 Various tools for use in Xarray file IO.
 
@@ -7,6 +7,8 @@ Various tools for use in Xarray file IO.
             Now additionally wrapped therein for flexible handling of multiple backends.
 
 """
+
+import numpy as np
 
 #*********** Complex data handling
 

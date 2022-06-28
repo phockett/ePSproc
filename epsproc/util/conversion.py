@@ -177,8 +177,10 @@ def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = T
 def multiDimXrToDict(da):
     """Convert multiDim Xarray to native dictionary format"""
 
+    # Flatten dims
     daFlat = deconstructDims(da)
 
+    # Convert to dict with native method
     daDict = daFlat.to_dict()
 
     return daFlat, daDict
@@ -187,8 +189,10 @@ def multiDimXrToDict(da):
 def multiDimXrFromDict(daDict):
     """Convert multiDim Xarray to native dictionary format"""
 
+    # Create Xarray
     daFlat = xr.DataArray.from_dict(daDict)
 
+    # Try and rebuild stacked dims either from dataType or dimMap.
     if 'dimMaps' not in daFlat.attrs.keys():
 
         # Try and restack according to dataType if set

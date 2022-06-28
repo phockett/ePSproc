@@ -558,11 +558,42 @@ def restack(data, refDims = None, conformDims = False,
 
 
 # Deconstruct stacked Xarray
-def deconstructDims(data):
+def deconstructDims(data, returnType = 'xr'):
     """
     Deconstruction (unstack) for Xarray, including non-dimensional dims.
 
     Existing dim map is set to data.attrs['dimMaps'].
+
+    Parameters
+    ----------
+    data : Xarray
+        Object to deconstruct (flatten)
+
+    returnType : str, optional, default = 'xr'
+        Set return object type.
+        - 'xr' Xarray object.
+        - 'dict' return as dictionary.
+        - 'all' return both types.
+
+    Returns
+    -------
+    Xarray and/or dictionary object according to returnType
+
+    Examples
+    --------
+
+    >>> # Decon to dict
+    >>> safeDict = deconstructDims(array2).to_dict()
+
+    >>> # Rebuild
+    >>> xrFromDict = reconstructDims(xr.DataArray.from_dict(safeDict))
+
+
+    Notes
+    -----
+
+    See discussion at https://github.com/pydata/xarray/issues/4073
+
     """
 
     xrDecon = data.copy()
@@ -580,20 +611,51 @@ def deconstructDims(data):
     for nddim in xrDecon.attrs['dimMaps']['nonDimStacked']:
         xrDecon = xrDecon.drop(nddim)
 
-    return xrDecon
+    if returnType == 'xr':
+        return xrDecon
+
+    elif returnType == 'dict':
+        return xrDecon.to_dict()
+
+    else:
+        return xrDecon, xrDecon.to_dict()
 
 
 def reconstructDims(data, dropna = True):
     """
-    Reconstruction (stack) for Xarray, including non-dimensional dims.
+    Reconstruction (stack) for Xarray or dictonary, including non-dimensional dims.
 
-    Uses dim map as set in data.attrs['dimMaps'].
+    Uses dim map as set in data.attrs['dimMaps'], e.g. from array.attrs['dimMaps'] = checkDims(array, method = 'full').
+    This is also set by the :py:func:`epsproc.util.misc.deconstructDims()`__ routine.
 
     See also :py:func:`epsproc.util.misc.restack()`__ for restacking to specific data types without a dimMap.
 
+    Parameters
+    ----------
+    data : Xarray or dict
+        Object to reconstruct (stack)
+
+
+    Returns
+    -------
+    Xarray
+
+
+    Examples
+    --------
+
+    >>> # Decon to dict, including dim unstacking
+    >>> safeDict = deconstructDims(array, returnType='dict')
+
+    >>> # Rebuild
+    >>> xrFromDict = reconstructDims(safeDict)
+
     """
 
-    xrRecon = data.copy()
+    if isinstance(data, dict):
+        xrRecon = xr.DataArray.from_dict(data)
+    else:
+        xrRecon = data.copy()
 
     # Restack coords
 #     for stacked in xrRecon.attrs['dimMaps']['stackedDims']:
@@ -605,15 +667,15 @@ def reconstructDims(data, dropna = True):
 
     if 'dimMaps' not in xrRecon.attrs.keys():
         print("*** Can't reconstruct array, missing self.attrs['dimMaps']. For general restacking, try epsproc.util.misc.restack().")
-        return data
+        return xrRecon
 
     # Rebuild stacked dims.
-    if xrRecon.attrs['dimMaps']['stackedDims']:
-        xrRecon = xrRecon.stack(xrRecon.attrs['dimMaps']['stackedDimsMap'])
+    if xrRecon.attrs['dimMaps']['stacked']:
+        xrRecon = xrRecon.stack(xrRecon.attrs['dimMaps']['stackedMap'])
 
         # May need this after stacking?
         if dropna:
-            for dim in xrRecon.attrs['dimMaps']['stackedDims']:
+            for dim in xrRecon.attrs['dimMaps']['stacked']:
                 xrRecon = xrRecon.dropna(dim,how='all')
 
     # General non-dim coord rebuild

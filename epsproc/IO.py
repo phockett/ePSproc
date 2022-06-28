@@ -81,7 +81,7 @@ from epsproc.util.misc import fileListSort, restack
 from epsproc.util.env import isnotebook
 
 # IO backends
-from epsproc.ioBackends import xrIO
+from epsproc.ioBackends import xrIO, hdf5IO
 
 # Set HTML output style for Xarray in notebooks (optional), may also depend on version of Jupyter notebook or lab, or Xr
 # See http://xarray.pydata.org/en/stable/generated/xarray.set_options.html
@@ -1962,24 +1962,28 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', f
 
     # Use Xarray native routines with some additional wrapping
     if engine not in ['hdf5','dict','json']:
-        saveMsg = xrIO.writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', forceComplex = False)
+        saveMsg = xrIO.writeXarray(dataIn, fileName = fileName, filePath = filePath, engine = engine, forceComplex = forceComplex)
         return saveMsg
 
     if engine == 'hdf5':
-        print('HDF5 not yet implemented')
-        return 0
+        # print('HDF5 not yet implemented')
+        # return 0
+        saveMsg = hdf5IO.writeXarrayToHDF5(dataIn, fileName = fileName, filePath = filePath)
+        return saveMsg
 
     # if engine == 'dict':
 
 
-def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = False, forceArray = True):
+def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = False, forceArray = True, **kwargs):
     """Wrapper for backend Xarray file readers."""
 
     # Use Xarray native routines with some additional wrapping
     if engine not in ['hdf5','dict','json']:
-        saveMsg = xrIO.readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = False, forceArray = True)
+        saveMsg = xrIO.readXarray(fileName, filePath = filePath, engine = engine, forceComplex = forceComplex, forceArray = forceArray)
         return saveMsg
 
     if engine == 'hdf5':
-        print('HDF5 not yet implemented')
-        return 0
+        # print('HDF5 not yet implemented')
+        # return 0
+        saveMsg = hdf5IO.readXarrayFromHDF5(fileName, filePath = filePath, **kwargs)
+        return saveMsg

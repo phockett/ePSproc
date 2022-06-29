@@ -1957,7 +1957,7 @@ def writeOrb3Dvtk(dataSet):
 #**************** Wrappers for Xarray load/save netCDF
 # 27/06/22 - moved to ioBackends.xrIO, added more flexible wrappers here
 
-def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', forceComplex = False):
+def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', forceComplex = False, **kwargs):
     """Wrapper for backend Xarray file writers."""
 
     # Use Xarray native routines with some additional wrapping
@@ -1968,7 +1968,7 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', f
     if engine == 'hdf5':
         # print('HDF5 not yet implemented')
         # return 0
-        saveMsg = hdf5IO.writeXarrayToHDF5(dataIn, fileName = fileName, filePath = filePath)
+        saveMsg = hdf5IO.writeXarrayToHDF5(dataIn, fileName = fileName, filePath = filePath, **kwargs)
         return saveMsg
 
     # if engine == 'dict':

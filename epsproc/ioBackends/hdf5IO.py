@@ -49,7 +49,10 @@ def writeXarrayToHDF5(data, fileName = None, filePath = None, dataName = None, a
     # Name group
     # TODO: try and get this from input data structure
     if dataName is None:
-        dataName = 'xr'
+        if hasattr(data,'dataType'):
+            dataName = data.dataType
+        else:
+            dataName = 'xr'
 
     # Open file, append if existing
     fOut = Path(filePath,fileName)
@@ -64,6 +67,7 @@ def writeXarrayToHDF5(data, fileName = None, filePath = None, dataName = None, a
 
     # Convert Xarray to safe dictionary format
     # TODO: test with DataSets
+    # TODO: generalise this and use ep.util.xrIO.sanitizeAttrsNetCDF()
     if isinstance(data, xr.core.dataarray.DataArray):   # or isinstance(data, xr.core.dataarray.DataSet):
         dataDict = deconstructDims(data, returnType = 'dict')
 
@@ -97,11 +101,13 @@ def writeXarrayToHDF5(data, fileName = None, filePath = None, dataName = None, a
     return fOut
 
 
-def readXarrayFromHDF5(fileName, filePath = None, dataName = None, evalStrings = True):
+def readXarrayFromHDF5(fileName, filePath = None, dataName = None, evalStrings = True, verbose = True):
     """
     Read Xarray or dictionary to HDF5
 
     TODO: better handling of coords & attrs. Currently only works with string eval, which is hacky.
+
+    Note: only reads and reconstructs a single node from the file. Defaults to list(hf.keys())[0], or pass dataName = 'string' to read a specific group.
 
     """
 
@@ -113,15 +119,23 @@ def readXarrayFromHDF5(fileName, filePath = None, dataName = None, evalStrings =
         # dataPath = os.getcwd()  # OR
         filePath = Path().absolute()
 
-    # Name group
-    # TODO: try and get this from input data structure
-    # TODO: default to reading all?
-    if dataName is None:
-        dataName = 'xr'
-
     # Open file
     fIn = Path(filePath,fileName)
     hf = h5py.File(fIn.as_posix(), 'r')
+
+    # Name group
+    # TODO: try and get this from input data structure
+    # DONE: now defaults to first item
+    # TODO: default to reading all? Likely want this in a higher-level wrapper, and keep this to single items with XR rebuild.
+    if dataName is None:
+        dataName = list(hf.keys())[0]
+        # dataName = 'xr'
+
+    # File info?
+    if verbose:
+        print(f'*** Opened file {fIn}')
+        print(f'Found top-level group(s) {list(hf.keys())}')
+        print(f'Reading group {dataName}')
 
     # Load data - currently assumes single object
     dict_new = {}
@@ -134,8 +148,6 @@ def readXarrayFromHDF5(fileName, filePath = None, dataName = None, evalStrings =
     #     print(v)
 
         # Try converting items if necessary
-        # ok - WORKS FOR ALL CASES EXCEPT NON-EXECUTABLE STRS
-        # Note this assumes items are safe to eval!
         try:
 
             if isinstance(v,bytes):
@@ -143,12 +155,19 @@ def readXarrayFromHDF5(fileName, filePath = None, dataName = None, evalStrings =
             else:
                 dict_new[k] = v
 
-            if evalStrings:
-                dict_new[k] = literal_eval(dict_new[k])
-
         # Push to output directly
         except:
             dict_new[k] = v
+
+        # Try eval if necessary
+        # ok - WORKS FOR ALL CASES EXCEPT NON-EXECUTABLE STRS
+        # Note this assumes items are safe to eval - ACTUALLY should be safe, see https://docs.python.org/3.8/library/ast.html#ast.literal_eval
+        # Separate try/except from above to make sure string decoding is accomplished if possible.
+        if evalStrings:
+            try:
+                dict_new[k] = literal_eval(dict_new[k])
+            except:
+                pass
 
     hf.close()
 

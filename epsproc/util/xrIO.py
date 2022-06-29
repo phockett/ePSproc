@@ -9,6 +9,7 @@ Various tools for use in Xarray file IO.
 """
 
 import numpy as np
+import xarray as xr
 
 #*********** Complex data handling
 
@@ -28,6 +29,87 @@ def combineComplex(dataR, dataI):
     data = dataR + 1j*dataI
 
     return data
+
+
+def splitComplexXR(dataIn):
+    """
+    Split complex-valued Xarray data & coords to Re + Im components
+
+    Splits input Xarray into Xarray Dataset with 'Re' and 'Im' components.
+
+    """
+
+    # Safe version with re/im split save type only.
+    # Works for scipy and h5netcdf OK, latter will save complex type too, but is strictly not valid.
+    dataOut = xr.Dataset({'Re':dataIn.real, 'Im':dataIn.imag})
+    # dataOut.attrs = dataIn.attrs   # This will push dataarray attrs to dataset attrs, otherwise they're nested
+                                    # May not always want this?
+
+    # Allow for SF & XS coords which may also be complex
+    # if 'XS' in dataOut.coords:
+    #     dataOut['XSr'] = dataOut.XS.real
+    #     dataOut['XSi'] = dataOut.XS.imag
+    #     dataOut = dataOut.drop('XS')
+    #
+    # if 'SF' in dataOut.coords:
+    #     dataOut['SFr'] = dataOut.SF.real
+    #     dataOut['SFi'] = dataOut.SF.imag
+    #     dataOut = dataOut.drop('SF')
+
+    # Allow for arb complex coords.
+    # May also want to add attr checker here? Or set in 'sanitizeAttrsNetCDF'
+    for item in dataOut.coords.keys():
+        if dataOut.coords[item].dtype == 'complex128':
+            dataOut.coords[item + 'r'], dataOut.coords[item + 'i'] = splitComplex(dataOut.coords[item])
+            dataOut = dataOut.drop(item)
+
+    # Force top-level attrs
+    dataOut.attrs = dataOut[list(dataOut.data_vars)[0]].attrs
+    dataOut.attrs['complex'] = 'split'
+
+    return dataOut
+
+
+def combineComplexXR(dataIn):
+    """
+    Combine Re + Im Xarray Dataset and coordinates to complex values
+
+    Note: not general, assumes formatting as defined by splitComplexXR()
+
+    """
+
+    # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!
+    # UPDATE 07/06/22: additional attrs handling below. Note in this case dataOut is a DataArray here.
+    dataOut = dataIn.Re + dataIn.Im*1j
+    # dataOut.attrs = dataIn.attrs
+
+    # Rest SF & XS coords which may also be complex
+    # Note: need to check vs. dataIn here, since dataOut already has dropped vars
+    # if 'XSr' in dataIn.data_vars:
+    #     dataOut['XS'] = dataIn.XSr + dataIn.XSi*1j
+    # #     dataOut = dataOut.drop('XSr').drop('XSi')
+    #
+    # if 'SFr' in dataIn.data_vars:
+    #     dataOut['SF'] = dataIn.SFr + dataIn.SFi
+    # #     dataOut = dataOut.drop('SFr').drop('SFi')
+
+    # General version
+    for item in dataOut.coords.keys():
+        # Check for r+i pairs - note labelling assumed to match writeXarray conventions here.
+        if item.endswith('r'):
+            itemi = item[:-1] + 'i'
+
+            # If imag partner found, restack and remove split components.
+            if itemi in dataOut.coords.keys():
+                dataOut.coords[item[:-1]] = combineComplex(dataOut.coords[item], dataOut.coords[itemi])
+                dataOut = dataOut.drop([item,itemi])
+
+    # For dataset case, try some generic handling. May need more sophisticated methods here, maybe just assume DataArray and convert?
+    if (not dataOut.attrs) and isinstance(dataIn, xr.core.dataset.Dataset):
+        dataOut.attrs = dataIn[list(dataIn.data_vars)[0]].attrs
+    # dataOut.attrs = dataIn[list(dataIn.data_vars)[0]].attrs
+
+    return dataOut
 
 
 #*********** Attribs handling

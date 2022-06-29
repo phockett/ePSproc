@@ -26,6 +26,7 @@ import xarray as xr
 import pandas as pd
 
 from epsproc.util.listFuncs import getRefDims
+from epsproc.util.xrIO import splitComplexXR, combineComplexXR, sanitizeAttrsNetCDF
 
 
 try:
@@ -269,9 +270,13 @@ def checkDims(data, refDims = [], method = 'fast'):
 
 
     # Get dim names from Xarray
-    if isinstance(data, xr.DataArray):
-        dims = data.dims # Set dim list - this excludes stacked dims
-        dimsUS = data.unstack().dims  # Set unstaked (full) dim list
+    if isinstance(data, xr.DataArray) or isinstance(data, xr.Dataset):
+        # dims = data.dims # Set dim list - this excludes stacked dims
+        # dimsUS = data.unstack().dims  # Set unstaked (full) dim list
+
+        # As above, but wrap to tuple - this should work for Dataset case which otherwise returns full frozen maps, and leave dataArray methods unaffected
+        dims = tuple(data.dims) # Set dim list - this excludes stacked dims
+        dimsUS = tuple(data.unstack().dims)  # Set unstaked (full) dim list
 
         stackedDims = list(set(dims) - set(dimsUS))
 
@@ -313,7 +318,7 @@ def checkDims(data, refDims = [], method = 'fast'):
             nonDimDims = {}
 
     # Get BOTH columns and index names & items from Pandas DataFrame
-    if isinstance(data, pd.DataFrame):
+    elif isinstance(data, pd.DataFrame):
         # Basic version
         # if isinstance(data.index, pd.MultiIndex):
         #     print("*** Warning: checkDims doesn't yet support Pandas MultiIndex.")
@@ -349,6 +354,9 @@ def checkDims(data, refDims = [], method = 'fast'):
 
         stackedDimsMap = {} # {k:data.index[k].names for k in stackedDims}  # Get stacked dim mapping from indexes (Xarray/Pandas)
 
+    else:
+        print(f'*** checkDims only supports xr.DataArray, xr.Dataset and pd.DataFrame, not passed data type: {type(data)}')
+        return None
 
     # Check ref vs. full dim list (unstacked dims)
     sharedDims = list(set(dimsUS)&{*refDims})  # Intersection
@@ -558,7 +566,7 @@ def restack(data, refDims = None, conformDims = False,
 
 
 # Deconstruct stacked Xarray
-def deconstructDims(data, returnType = 'xr'):
+def deconstructDims(data, returnType = 'xr', splitComplex = False):
     """
     Deconstruction (unstack) for Xarray, including non-dimensional dims.
 
@@ -598,8 +606,15 @@ def deconstructDims(data, returnType = 'xr'):
 
     xrDecon = data.copy()
 
+    # Additional decon for complex valued terms
+    # Note this always returns a dataset
+    # Note need to run first, otherwise complex coords may persist in dimMap!
+    if splitComplex:
+        xrDecon = splitComplexXR(xrDecon)
+        # xrDecon.attrs['dimMapsSplit'] = checkDims(xrDecon, method = 'full')
+
     # Map dims
-    xrDecon.attrs['dimMaps'] = checkDims(data, method = 'full')
+    xrDecon.attrs['dimMaps'] = checkDims(xrDecon, method = 'full')
 
     # Unstack all coords
     xrDecon = xrDecon.unstack()

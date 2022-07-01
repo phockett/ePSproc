@@ -1496,7 +1496,7 @@ def matEleGroupDim(data, dimGroups = [3, 4, 2]):
 # Note raw string for docstring as one method of keeping raw string in example.
 def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
     r"""
-    Read ePS file(s) and return results as Xarray data structures.
+    Scan dir for ePS (or other) file(s) and return results as a list.
     File endings specified by fType, default .out.
 
     Parameters
@@ -1524,6 +1524,9 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
     list
         List of Xarray data arrays, containing matrix elements etc. from each file scanned.
 
+
+    Note: scans only a single dir, no subdirs, using os.listdir.
+    See also classes.multiJob.ePSmultiJob.scanDirs() for alternative with Glob & subdir checks.
 
     """
 

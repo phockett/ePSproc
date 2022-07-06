@@ -1498,12 +1498,15 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
     r"""
     Scan dir for ePS (or other) file(s) and return results as a list.
     File endings specified by fType, default .out.
+    Files are checked for existence with
 
     Parameters
     ----------
-    fileIn : str, list of strs, optional.
+    fileIn : str, list of strs, optional, default = None
         File(s) to read (file in working dir, or full path).
         Defaults to current working dir if only a file name is supplied.
+        If None, fileBase dir will be scanned for files.
+        If a list, items will be tested for validity.
         For consistent results, pass raw strings, e.g.
         ``fileIn = r"C:\share\code\ePSproc\python_dev\no2_demo_ePS.out"``
 
@@ -1546,9 +1549,19 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
             # Check file & path are valid
             fTest = os.path.split(file)
             if not fTest[0]:
-                fList.append(os.path.join(currDir, file))
+                # fList.append(os.path.join(currDir, file))
+                fTest = os.path.join(fileBase, file)
             else:
-                fList.append(file)
+                # fList.append(file)
+                fTest = file
+
+            # Add file to list if exists - this allows for fList test functionality.
+            if os.path.exists(fTest):
+                fList.append(fTest)
+            else:
+                if verbose:
+                    print(f'\n* File {fTest} not found.')
+
 
         # Display message
         if verbose:

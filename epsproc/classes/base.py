@@ -298,7 +298,7 @@ class ePSbase():
 
 
 
-    def wignerDelay(self, keys = None, pType = 'phaseUW', **kwargs):
+    def wignerDelay(self, keys = None, pType = 'phaseUW', selDims={'Type':'L','it':1}, **kwargs):
         """
         Wigner delay computation as phase derivative of TX grid.
 
@@ -332,7 +332,8 @@ class ePSbase():
 
             # Set full wavefn expansion if not present.
             if 'TX' not in self.data[key].keys():
-                self.mfpadNumeric(selDims = selDims, keys = key, **kwargs)
+                # self.mfpadNumeric(selDims = selDims, keys = key, **kwargs)
+                self.mfpadNumeric(keys = key, inds = selDims, **kwargs)   # 07/07/22 - need to rationalise selDims here! Now matched basic MFPAD.mfpad() routine
 
             # self.data[key]['wigner'] = self.data[key]['TX'].copy() # Init array with copy (may not be necessary)
             #

@@ -301,13 +301,20 @@ def checkDims(data, refDims = [], method = 'fast'):
         # Update 23/06/22
         # Add non-dim maps too, and push to native types for dict/HDF5 IO
         # Needs work for robustness - currently throwing errors on basic ePS file IO, looks like "2D" singleton SF coord is the issue here, at `data.coords[k].to_index()`?
+        # Similar issues for AFBLM data types, with XSraw non-dim coord.
         # NOW set with flag, can skip this in most cases.
         if method == 'full':
             # Get non-dim indexes
             #     nddimIndexes = {k:data.coords[k].to_index() for k,v in data.coords.items() if k in nonDimCoords}  # Note this returns Pandas Indexes, so may fail on IO.
             # [print(k, data.coords[k].to_index()) for k,v in data.coords.items() if k in nonDimCoords]
             # [print(k, data.coords[k]) for k,v in data.coords.items() if k in nonDimCoords]
-            nonDimMap = {k:list(data.coords[k].to_index().names) for k,v in data.coords.items() if k in nonDimCoords}
+            try:
+                nonDimMap = {k:list(data.coords[k].to_index().names) for k,v in data.coords.items() if k in nonDimCoords}
+            except:
+                # 13/07/22 Added for testing - should be equivalent and also always work?
+                # May need to replicate this fix for other cases below...
+                nonDimMap = {k:list(data.coords[k].indexes.keys()) for k,v in data.coords.items() if k in nonDimCoords}
+
             #     nddimStacked = {k:type(data.coords[k].to_index()) for k,v in data.coords.items() if k in nonDimCoords}
             nonDimStacked = [k for k,v in data.coords.items() if (k in nonDimCoords) and isinstance(data.coords[k].to_index(),pd.core.indexes.multi.MultiIndex)]
 

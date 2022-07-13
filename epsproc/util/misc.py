@@ -269,6 +269,14 @@ def checkDims(data, refDims = [], method = 'fast'):
         stacked = False
 
 
+    # Set some empty defaults to allow PD return OK
+    # TODO: tidy this up with better return!
+    nonDimCoords = {}
+    nonDimMap = {}
+    nonDimStacked = {}
+    nonDimDicts = {}
+    nonDimDims = {}
+
     # Get dim names from Xarray
     if isinstance(data, xr.DataArray) or isinstance(data, xr.Dataset):
         # dims = data.dims # Set dim list - this excludes stacked dims
@@ -311,11 +319,11 @@ def checkDims(data, refDims = [], method = 'fast'):
             # Get coords correlated to non-dim coords, need these to recreate original links & stacking (?)
             nonDimDims = {k:data.coords[k].dims for k,v in data.coords.items() if k in nonDimCoords}
 
-        else:
-            nonDimMap = {}
-            nonDimStacked = {}
-            nonDimDicts = {}
-            nonDimDims = {}
+        # else:
+        #     nonDimMap = {}
+        #     nonDimStacked = {}
+        #     nonDimDicts = {}
+        #     nonDimDims = {}
 
     # Get BOTH columns and index names & items from Pandas DataFrame
     elif isinstance(data, pd.DataFrame):

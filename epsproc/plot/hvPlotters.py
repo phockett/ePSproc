@@ -56,6 +56,7 @@ except ImportError as e:
 # hvplot for simple Xarray > HV plotters
 try:
     import hvplot.xarray
+    import hvplot.pandas
 except:
     print('* Hvplot not found, some hvPlotters may not be available. See https://hvplot.holoviz.org/user_guide/Gridded_Data.html for package details.')
 

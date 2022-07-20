@@ -713,7 +713,7 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = 'Eke',
                 keys = None, dataType = 'TX', facetDims = None, squeeze = False, reducePhi = None,
                 pType = 'a', pStyle = 'polar', returnFlag = False, plotDict = 'plots',
-                backend = 'mpl'):
+                backend = 'mpl', plotFlag = True):
 
     """
     Plot I(theta,phi) data from BLMs or gridded datasets.
@@ -723,6 +723,9 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
         Pass 'sum' to sum over phi before plotting.
         Pass a value to select.
 
+
+    plotFlag : bool, optional, default = True
+        Set plotFlag=False bypass for plotter object return only.
 
     TODO: fix dim handling for pl case, need to pass facetDim != None.
     TODO: return plot objects. Probably to self.data[key][pStyle], or as dictionary of plots per run with data? (Cf. PEMtk plotters.)
@@ -748,7 +751,7 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     # Loop over datasets
     for key in keys:
         # for m, item in enumerate(self.dataSets[key]['TX']):
-        plotFlag = True
+        # plotFlag = True
 
         # Set data & slice on E
         subset = self.Esubset(key = key, dataType = dataType,  Erange = Erange, Etype = Etype)
@@ -821,6 +824,8 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
         # Ensure attrs propagated
         subset.attrs = self.data[key][dataType].attrs
 
+        print(f"Plotting from self.data[{key}][{dataType}], facetDims={facetDims}, pType={pType} with backend={backend}.")
+
         # GROUPBY AND PLOT?  NOT SURE HOW BEST TO HANDLE MULTIPLE DIMS HERE? Can pass 1 facet dim to SPH plotter already.
         # TODO: decide MAX 4D. Then reduce > groupby > facet to existing plotter.
         # TODO: general way to handle more dims?
@@ -829,7 +834,7 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
             for groupLabel, item in subset.groupby(facetDimsCheck[0]):
 #                 tString = f"Pol geom: {item.item()}, plotType: {pType}"
                 tString = f"{facetDimsCheck[0]}: {groupLabel}, plotType: {pType}"
-                pltObj = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
+                pltObj = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString, plotFlag=plotFlag, verbose = self.verbose['sub'])
                 # _ = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
 
         elif pStyle == 'grid':

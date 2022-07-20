@@ -277,7 +277,7 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
 # TODO: This currently assumes matplotlib cm is already loaded.
 # TODO: More plot types.
 # TODO: More careful testing - not totally sure if summation & axes consistent here.
-def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convention = 'phys', titleString = None):
+def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convention = 'phys', titleString = None, plotFlag = True, verbose = True):
     '''
     Plot sum of spherical harmonics from an Xarray.
 
@@ -315,6 +315,9 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
 
     titleString : str, optional, default = None
         Additional info to use for plot title.
+
+    plotFlag : bool, optional, default = True
+        Set plotFlag=False bypass for plotter object return only. (Required for Plotly backend only.)
 
     Returns
     -------
@@ -355,11 +358,11 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
         else:
             titleString = ""
 
-    print(f"Sph plots: {titleString}")  # Throw out titlestring here for ease.
+    if verbose:
+        print(f"Sph plots: {titleString}")  # Throw out titlestring here for ease.
 
-
-    # Switch plot function based on backend
-    print('Plotting with {0}'.format(backend))
+        # Switch plot function based on backend
+        print('Plotting with {0}'.format(backend))
 
     fig = []
 
@@ -368,7 +371,9 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
         # Check dimensionality - loop over facetDim if necessary
         # Return list of fig handles
         if len(dataPlot.dims) > 2:
-            print('Data dims: {0}, subplots on {1}'.format(dataPlot.dims, facetDim))
+
+            if verbose:
+                print('Data dims: {0}, subplots on {1}'.format(dataPlot.dims, facetDim))
 
             # Basic loop over facetDim
             # Fails for dims with multi-index, or repeated values for sub-indexes if used as selector.
@@ -388,7 +393,7 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
 
     # Plotly - note that faceting is handled directly by Plotly in this case.
     if backend == 'pl':
-        fig.append(sphPlotPL(dataPlot, theta, phi, facetDim, convention = convention))
+        fig.append(sphPlotPL(dataPlot, theta, phi, facetDim, convention = convention, plotFlag = plotFlag, verbose = verbose))
 
     return fig
 
@@ -528,7 +533,7 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None):
 
 # Plot as Plotly subplots, as function of selected dim.
 # Currently set for subplotting over facetDim, but assumes other dims (theta,phi)
-def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global', convention = 'phys'):
+def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global', convention = 'phys', plotFlag = True, verbose = False):
     '''
     Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Plotly.
 
@@ -554,6 +559,9 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
 
     convention : str, optional, default = 'phys'
         Spherical polar coord convention, see :py:func:`epsproc.sphToCart`
+
+    plotFlag : bool, optional, default = True
+        Set plotFlag=False bypass for plotter object return only.
 
 
     Returns
@@ -630,7 +638,10 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
     n=0
     for rInd in range(1,rc[0]+1):
         for cInd in range(1,rc[1]+1):
-            print(f"*** Plotting for [{rInd},{cInd},{n}]")
+
+            if verbose:
+                print(f"*** Plotting for [{rInd},{cInd},{n}]")
+
             if n < nData:
 
                 # Set data (NOTE - now repeats above in Xarray case)
@@ -682,10 +693,11 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
 
     # fig.show()
     # Check if notebook and output
-    if isnotebook():
+    # Allow for plotFlag=False bypass for object return only.
+    if isnotebook() and plotFlag:
         display(fig) # Use IPython display(), works nicely for notebook output
         # Q: is display() always loaded automatically? I think so.
-    else:
+    elif plotFlag:
         fig.show()  # Try fig.show(), although may not work in all cases.
 
     return fig

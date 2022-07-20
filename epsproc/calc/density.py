@@ -20,7 +20,7 @@ from epsproc.util.misc import checkDims
 # matEdimList, BLMdimList, dataTypesList, multiDimXrToPD
 # checkDims = ep.util.misc.checkDims
 
-def dimRestack(da, stackDims = []):
+def dimRestack(da, stackDims = [], forceStacked = True):
     """
     General Xarray restacker including multi-indexes.
 
@@ -34,6 +34,9 @@ def dimRestack(da, stackDims = []):
     stackDims : str, list, dict, optional, default = []
         Dimensions to check in da, and restack along if not already stacked.
         Note that this can mix stacked and unstacked dims, and will restack if necessary
+
+    forceStacked : bool, optional, default = True
+        Force checkDims to use stacked/mixed dim behaviour (pre-2022 style output).
 
     Returns
     -------
@@ -74,7 +77,7 @@ def dimRestack(da, stackDims = []):
 
 
     #*** Check dims
-    dimCheck = checkDims(da, refDims = stackDims)
+    dimCheck = checkDims(da, refDims = stackDims, forceStacked = forceStacked)
 
     # Missing dims case, just return dimCheck, although this might cause errors in calling function.
     if dimCheck['missing']:

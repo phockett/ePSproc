@@ -181,7 +181,7 @@ def timeStamp():
 
 
 
-def checkDims(data, refDims = [], method = 'fast'):
+def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
     """
     Check dimensions for a data array (Xarray) vs. a reference list (or dict).
 
@@ -199,6 +199,12 @@ def checkDims(data, refDims = [], method = 'fast'):
         Set which properties to check.
         - 'fast' basic stacked/unstacked dim checks, suitable for selectors.
         - 'full' includes ND dim checks for dictionary conversion/unwrapping. This may be brittle.
+
+    forceStacked : bool, optional, default = False
+        Force stacked/mixed dim behaviour (pre-2022 style output) from list refDims input.
+        Required for some routines (e.g. density.dimRestack()) to function.
+        May break others (e.g. paramPlot())!
+
 
     Returns
     -------
@@ -222,6 +228,11 @@ def checkDims(data, refDims = [], method = 'fast'):
 
 
     TODO: check and order dims by size? Otherwise set return is alphebetical
+    TODO: tidy up mixed stacked/unstacked dim handling with refDims passed as list.
+
+    20/07/22: added forceStacked as optional flag to preserve old behaviour (pre-2022) for mixed cases.
+              Otherwise missing sharedDimsStacked
+              However forceStacked=True also breaks some other cases (e.g. paramPlot) - so may need to more carefully rework this.
 
     23/06/22 Added support for non-dimensional coords.
              These are treated separately from dimensional coords, and mappings pushed to dict (for MultiIndex) or list (for Index).
@@ -256,17 +267,32 @@ def checkDims(data, refDims = [], method = 'fast'):
 
         # More robust flattening for all types - probably there is a cleaner way to do this however?
         refDimsUS = []
-        for v in refDims.values():
+        # v1
+        # for v in refDims.values():
+        #     if isinstance(v, Iterable):
+        #         refDimsUS.extend(v)
+        #     else:
+        #         refDimsUS.append(v)
+
+        # v2 - includes wrapping for non-iterables in refDims. Fixes issues with, e.g., refDims={'it':1}
+        for k,v in refDims.items():
             if isinstance(v, Iterable):
                 refDimsUS.extend(v)
             else:
                 refDimsUS.append(v)
+                refDims[k] = [v]  # Also force to iterable for refDim, can cause issues later otherwise
 
         stacked = True
 
     else:
         refDimsUS = refDims  # Case for unstacked refDims
         stacked = False
+
+        if forceStacked:
+            stacked = True  # 20/07/22: added stacked=True here to preserve old behviour for mixed cases.
+                            # Otherwise missing sharedDimsStacked
+                            # May want to convert this to a passed flag to force?
+                            # However this also breaks some other cases - may need to more carefully rework this.
 
 
     # Set some empty defaults to allow PD return OK

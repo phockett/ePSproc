@@ -231,7 +231,8 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
     TODO: tidy up mixed stacked/unstacked dim handling with refDims passed as list.
 
     21/07/22  Removed `refDims[k] = [v]` to force ref dims to list - this breaks original IO code due to xr.sel() for singleton MultiIndex case.
-    
+              UPDATE: now reinstated, fixed issue with .copy() instead.
+
     20/07/22  added forceStacked as optional flag to preserve old behaviour (pre-2022) for mixed cases.
               Otherwise missing sharedDimsStacked
               However forceStacked=True also breaks some other cases (e.g. paramPlot) - so may need to more carefully rework this.
@@ -257,6 +258,7 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
     """
 
     # refDimsUS = []
+    refDims = refDims.copy()
 
     # Force to list to avoid breaking *unpacking later
     if not isinstance(refDims, (list, dict)):
@@ -285,7 +287,8 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
 
                 # 21/07/22 - actually this breaks main file IO for singleton items to xr.sel() for MultiIndex cases (see subselectDims() below).
                 #            May need to add a flag for this, or additional checks?
-                # refDims[k] = [v]  # Also force to iterable for refDim, can cause issues later otherwise
+                #           UPDATE: reinstated, but set explicit .copy() at input, which was the issue!
+                refDims[k] = [v]  # Also force to iterable for refDim, can cause issues later otherwise
 
         stacked = True
 

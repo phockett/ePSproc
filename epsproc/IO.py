@@ -1634,6 +1634,9 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
     - Change to pathlib paths.
     - Implement outputType options...?
 
+    20/07/22    Added dict return for dumpIdy methods for troubleshooting if getCroSegsParseX fails.
+                Note this only returns if stackE = False is also set.
+
     13/10/20    Adapted to use grouped lists for multi-file jobs, should be back-compatible if stackE = False set.
 
     Examples
@@ -1707,7 +1710,14 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
                     print('Expecting {0} DumpIdy segments.'.format(ekeList.size * len(symSegs)))
 
                 lines, dumpSegs = dumpIdyFileParse(file, verbose = verbose)
-                data, blankSegs = dumpIdySegsParseX(dumpSegs, ekeList, symSegs, verbose = verbose)
+
+                # 20/07/22 - added try/except for annoying debugging here...
+                try:
+                    data, blankSegs = dumpIdySegsParseX(dumpSegs, ekeList, symSegs, verbose = verbose)
+                except:
+                    data = {'dumpSegs':dumpSegs, 'ekeList':ekeList, 'symSegs':symSegs}
+                    blankSegs = []
+                    print(f'*** File {file} failed at dumpIdySegsParseX, returning dict items to test')
 
             if recordType == 'EDCS':
                 # print('Expecting {0} EDCS segments.'.format(ekeList.size))
@@ -1731,10 +1741,16 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
 
 
             # Add some additional properties to the output
+            # 20/07/22 added dict case for debugging
             fName = os.path.split(file)
-            data.name = fName[1]
-            data.attrs['file'] = fName[1]
-            data.attrs['fileBase'] = fName[0]
+            if isinstance(data,dict):
+                data['name'] = fName[1]
+                data['file'] = fName[1]
+                data['fileBase'] = fName[0]
+            else:
+                data.name = fName[1]
+                data.attrs['file'] = fName[1]
+                data.attrs['fileBase'] = fName[0]
 
             if verbose:
                 print('Processed {0} sets of {1} file segments, ({2} blank)'.format(len(dumpSegs),recordType,blankSegs))
@@ -1746,18 +1762,25 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
                 dataSet.append(data)
 
         # Stack by Eke
-        if stackFlag:
-            dataSet.append(xr.combine_nested(dataStack, concat_dim = ['Eke']).sortby('Eke'))
+        # 20/07/22 added dict case for debugging
 
-            # Propagate attribs for stacked case
-            dataSet[-1].attrs = dataStack[0].attrs
-            dataSet[-1].attrs['fileList'] = fList
-
-            if verbose:
-                print(f"\n*** Stacked {len(fList)} files, prefix {prefixStr}, by Eke ({dataSet[-1].Eke.size} points).")
+        if isinstance(data,dict):
+            # dataSet[-1].attrs['fileList'] = dataSet[-1].attrs['file']  # Set also for single file case
+            pass
 
         else:
-            dataSet[-1].attrs['fileList'] = dataSet[-1].attrs['file']  # Set also for single file case
+            if stackFlag:
+                dataSet.append(xr.combine_nested(dataStack, concat_dim = ['Eke']).sortby('Eke'))
+
+                # Propagate attribs for stacked case
+                dataSet[-1].attrs = dataStack[0].attrs
+                dataSet[-1].attrs['fileList'] = fList
+
+                if verbose:
+                    print(f"\n*** Stacked {len(fList)} files, prefix {prefixStr}, by Eke ({dataSet[-1].Eke.size} points).")
+
+            else:
+                dataSet[-1].attrs['fileList'] = dataSet[-1].attrs['file']  # Set also for single file case
 
         # if outputType == 'list':
         # Put in a list for now, might want to use Xarray dataset here, and/or combine results from multiple files.

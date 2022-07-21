@@ -230,7 +230,9 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
     TODO: check and order dims by size? Otherwise set return is alphebetical
     TODO: tidy up mixed stacked/unstacked dim handling with refDims passed as list.
 
-    20/07/22: added forceStacked as optional flag to preserve old behaviour (pre-2022) for mixed cases.
+    21/07/22  Removed `refDims[k] = [v]` to force ref dims to list - this breaks original IO code due to xr.sel() for singleton MultiIndex case.
+    
+    20/07/22  added forceStacked as optional flag to preserve old behaviour (pre-2022) for mixed cases.
               Otherwise missing sharedDimsStacked
               However forceStacked=True also breaks some other cases (e.g. paramPlot) - so may need to more carefully rework this.
 
@@ -280,7 +282,10 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
                 refDimsUS.extend(v)
             else:
                 refDimsUS.append(v)
-                refDims[k] = [v]  # Also force to iterable for refDim, can cause issues later otherwise
+
+                # 21/07/22 - actually this breaks main file IO for singleton items to xr.sel() for MultiIndex cases (see subselectDims() below).
+                #            May need to add a flag for this, or additional checks?
+                # refDims[k] = [v]  # Also force to iterable for refDim, can cause issues later otherwise
 
         stacked = True
 
@@ -316,6 +321,8 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
 
         stackedDimsMap = {k: list(data.indexes[k].names) for k in stackedDims}  # Get stacked dim mapping from indexes (Xarray/Pandas)
                                                                                 # Note list() wrapper to avoid pandas.core.indexes.frozen.FrozenList type.
+        stackedComponents = sorted({x for v in stackedDimsMap.values() for x in v})   # Flat list of stacked dims only (not a map)
+                                                                                    # Could also do as sets below, e.g. set(dataDimsUS) - set(dataDims)
 
         # Update 10/06/22
         # Additional tests for non-dimensional coords & mappings.
@@ -466,7 +473,8 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
             'shared':sharedDims, 'extra':extraDims, 'extraUS':extraDimsUS,
             'invalid':invalidDims, 'invalidUS':invalidDimsUS,
             'stacked':stackedDims, 'stackedMap':stackedDimsMap,
-            'stackedShared':sharedDimsStacked, 'stackedExtra':extraDimsStacked, 'stackedInvalid':invalidDimsStacked,
+            'stackedShared':sharedDimsStacked, 'stackedExtra':extraDimsStacked,
+            'stackedComponents':stackedComponents, 'stackedInvalid':invalidDimsStacked,
             'missing':missingDims, 'safeStack':safeStack, 'stackedRef': stacked,
             'nonDimCoords':nonDimCoords, 'nonDimMap':nonDimMap, 'nonDimStacked':nonDimStacked, 'nonDimDicts':nonDimDicts, 'nonDimDims':nonDimDims}
 
@@ -496,6 +504,8 @@ def restack(data, refDims = None, conformDims = False,
     Restack Xarray to conform to refDims.
 
     Wraps checkDims() and data.stack() for "safe" restacking even with missing dims.
+
+    See also :py:func:`epsproc.density.dimRestack`, which handles remapping stacked dims.
 
     Parameters
     ----------

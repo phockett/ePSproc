@@ -230,6 +230,9 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
     TODO: check and order dims by size? Otherwise set return is alphebetical
     TODO: tidy up mixed stacked/unstacked dim handling with refDims passed as list.
 
+    25/07/22 - additional checking on dims and to_index added - this previously failed for "0-dimensional" cases, which can appear after xr.squeeze(drop=False), AND for MultiIndex coords.
+               This may be XR/PD version dependent too, tested in XR 0.19, Pandas 1.2.4 only. See notes in code for more details.
+
     21/07/22  Removed `refDims[k] = [v]` to force ref dims to list - this breaks original IO code due to xr.sel() for singleton MultiIndex case.
               Update now reinstated, fixed issue with .copy() instead.
 
@@ -352,7 +355,7 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
                 nonDimMap = {k:list(data.coords[k].indexes.keys()) for k,v in data.coords.items() if k in nonDimCoords}
 
 
-            # 25/07/22 - additional checking on dims and to_index - this fails for "0-dimensional" cases, which can appear after xr.squeeze(drop=False)
+            # 25/07/22 - additional checking on dims and to_index - this fails for "0-dimensional" cases, which can appear after xr.squeeze(drop=False), AND for MultiIndex coords.
             #            This may be XR/PD version dependent too.
             #
             # TODO: Integrate all items into same loop for speed?
@@ -370,21 +373,21 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
 
                     except Exception as e:
                         # print(f'Error {k}')
-                        if isinstance(e, ValueError) and  (e.args[0] == 'IndexVariable objects must be 1-dimensional'):  # Not sure if this is robust? Basic e.message doesn't exist in ValueError case?:
+                        if isinstance(e, ValueError) and  (e.args[0] == 'IndexVariable objects must be 1-dimensional'):  # Not sure if this is robust? Basic e.message doesn't exist in ValueError case?
 
                             # Zero dimensional cases, to_index fails on these generally
                             if data.coords[k].ndim == 0:
                                 unsafeDims.append([k, data.coords[k].ndim])
                                 safeIndex[k] = data.coords[k].expand_dims(dim=k).to_index()  # Fix index to 1D
 
-                            # >1 dimensional cases, data.coords[k].to_index fails on these generally (maybe XR version issue)
+                            # >1 dimensional cases, data.coords[k].to_index fails on these generally, but data[k].coords.to_index() works? (Maybe XR version issue.)
                             elif data.coords[k].ndim > 1:
                                 safeIndex[k] = data[k].coords.to_index()   # For N>1 cases (Multiindex nested case, e.g. XSraw coords) this should work, although may not give expected return type?
                                                                            # E.g. In testing for AFBLM values
                                                                            #        dataTest.coords['XSraw'].to_index()  # Fails
                                                                            #        dataTest['XSraw'].coords.to_index()  # OK - returns PD MultiIndex
 
-                        else:                    
+                        else:
                             raise(e)
 
 

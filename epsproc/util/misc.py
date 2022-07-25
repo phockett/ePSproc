@@ -384,8 +384,8 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
                                                                            #        dataTest.coords['XSraw'].to_index()  # Fails
                                                                            #        dataTest['XSraw'].coords.to_index()  # OK - returns PD MultiIndex
 
-                         else:
-                             raise(e)
+                        else:                    
+                            raise(e)
 
 
             nonDimStacked = [k for k,v in data.coords.items() if (k in nonDimCoords) and isinstance(safeIndex[k],pd.core.indexes.multi.MultiIndex)]

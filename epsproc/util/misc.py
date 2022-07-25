@@ -231,7 +231,7 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
     TODO: tidy up mixed stacked/unstacked dim handling with refDims passed as list.
 
     21/07/22  Removed `refDims[k] = [v]` to force ref dims to list - this breaks original IO code due to xr.sel() for singleton MultiIndex case.
-              UPDATE: now reinstated, fixed issue with .copy() instead.
+              Update now reinstated, fixed issue with .copy() instead.
 
     20/07/22  added forceStacked as optional flag to preserve old behaviour (pre-2022) for mixed cases.
               Otherwise missing sharedDimsStacked
@@ -351,16 +351,48 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
                 # May need to replicate this fix for other cases below...
                 nonDimMap = {k:list(data.coords[k].indexes.keys()) for k,v in data.coords.items() if k in nonDimCoords}
 
-            #     nddimStacked = {k:type(data.coords[k].to_index()) for k,v in data.coords.items() if k in nonDimCoords}
-            nonDimStacked = [k for k,v in data.coords.items() if (k in nonDimCoords) and isinstance(data.coords[k].to_index(),pd.core.indexes.multi.MultiIndex)]
+
+            # 25/07/22 - additional checking on dims and to_index - this fails for "0-dimensional" cases, which can appear after xr.squeeze(drop=False)
+            #            This may be XR/PD version dependent too.
+            #
+            # TODO: Integrate all items into same loop for speed?
+
+            safeIndex = {}
+            zeroDim = []
+            for k,v in data.coords.items():
+            #     print(k)
+                if k in nonDimCoords:
+                    try:
+                        safeIndex[k] = data.coords[k].to_index()
+                #         if (k in nonDimCoords) and isinstance(dataTestSq.coords[k].to_index(),pd.core.indexes.multi.MultiIndex):
+                #             nonDimStacked.append(k)
+                    except:
+            #             print(f'Error {k}')
+                        zeroDim.append(k)  # Zero dimensional cases, to_index fails on these generally
+                        safeIndex[k] = data.coords[k].expand_dims(dim=k).to_index()  # Fix index to 1D
+
+
+            nonDimStacked = [k for k,v in data.coords.items() if (k in nonDimCoords) and isinstance(safeIndex[k],pd.core.indexes.multi.MultiIndex)]
 
             # Get dict maps - to_dict per non-dim coord
             #  nddimDicts = {k:data.coords[k].reset_index(k).to_dict() for k,v in data.coords.items() if k in nonDimCoords}
             # Use Pandas - this allows direct dump of PD multiindex to dicts
-            nonDimDicts = {k:data.coords[k].to_index().to_frame().to_dict() for k,v in data.coords.items() if (k in nonDimCoords) and (k in nonDimStacked)}
-            nonDimDicts.update({k:data.coords[k].to_index().to_list() for k,v in data.coords.items() if (k in nonDimCoords) and (k not in nonDimStacked)})
+            nonDimDicts = {k:safeIndex[k].to_frame().to_dict() for k,v in data.coords.items() if (k in nonDimCoords) and (k in nonDimStacked)}
+            nonDimDicts.update({k:safeIndex[k].to_list() for k,v in data.coords.items() if (k in nonDimCoords) and (k not in nonDimStacked)})
             # Get coords correlated to non-dim coords, need these to recreate original links & stacking (?)
             nonDimDims = {k:data.coords[k].dims for k,v in data.coords.items() if k in nonDimCoords}
+
+            #*** Code pre-25/07/22 without dim check
+            # #     nddimStacked = {k:type(data.coords[k].to_index()) for k,v in data.coords.items() if k in nonDimCoords}
+            # nonDimStacked = [k for k,v in data.coords.items() if (k in nonDimCoords) and isinstance(data.coords[k].to_index(),pd.core.indexes.multi.MultiIndex)]
+            #
+            # # Get dict maps - to_dict per non-dim coord
+            # #  nddimDicts = {k:data.coords[k].reset_index(k).to_dict() for k,v in data.coords.items() if k in nonDimCoords}
+            # # Use Pandas - this allows direct dump of PD multiindex to dicts
+            # nonDimDicts = {k:data.coords[k].to_index().to_frame().to_dict() for k,v in data.coords.items() if (k in nonDimCoords) and (k in nonDimStacked)}
+            # nonDimDicts.update({k:data.coords[k].to_index().to_list() for k,v in data.coords.items() if (k in nonDimCoords) and (k not in nonDimStacked)})
+            # # Get coords correlated to non-dim coords, need these to recreate original links & stacking (?)
+            # nonDimDims = {k:data.coords[k].dims for k,v in data.coords.items() if k in nonDimCoords}
 
         # else:
         #     nonDimMap = {}

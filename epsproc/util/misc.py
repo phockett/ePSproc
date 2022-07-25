@@ -356,9 +356,10 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
             #            This may be XR/PD version dependent too.
             #
             # TODO: Integrate all items into same loop for speed?
+            # TODO: More testing, tested in XR 0.19, Pandas 1.2.4 only
 
             safeIndex = {}
-            zeroDim = []
+            unsafeDims = []
             for k,v in data.coords.items():
             #     print(k)
                 if k in nonDimCoords:
@@ -366,10 +367,25 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
                         safeIndex[k] = data.coords[k].to_index()
                 #         if (k in nonDimCoords) and isinstance(dataTestSq.coords[k].to_index(),pd.core.indexes.multi.MultiIndex):
                 #             nonDimStacked.append(k)
-                    except:
-            #             print(f'Error {k}')
-                        zeroDim.append(k)  # Zero dimensional cases, to_index fails on these generally
-                        safeIndex[k] = data.coords[k].expand_dims(dim=k).to_index()  # Fix index to 1D
+
+                    except Exception as e:
+                        # print(f'Error {k}')
+                        if isinstance(e, ValueError) and  (e.args[0] == 'IndexVariable objects must be 1-dimensional'):  # Not sure if this is robust? Basic e.message doesn't exist in ValueError case?:
+
+                            # Zero dimensional cases, to_index fails on these generally
+                            if data.coords[k].ndim == 0:
+                                unsafeDims.append([k, data.coords[k].ndim])
+                                safeIndex[k] = data.coords[k].expand_dims(dim=k).to_index()  # Fix index to 1D
+
+                            # >1 dimensional cases, data.coords[k].to_index fails on these generally (maybe XR version issue)
+                            elif data.coords[k].ndim > 1:
+                                safeIndex[k] = data[k].coords.to_index()   # For N>1 cases (Multiindex nested case, e.g. XSraw coords) this should work, although may not give expected return type?
+                                                                           # E.g. In testing for AFBLM values
+                                                                           #        dataTest.coords['XSraw'].to_index()  # Fails
+                                                                           #        dataTest['XSraw'].coords.to_index()  # OK - returns PD MultiIndex
+
+                         else:
+                             raise(e)
 
 
             nonDimStacked = [k for k,v in data.coords.items() if (k in nonDimCoords) and isinstance(safeIndex[k],pd.core.indexes.multi.MultiIndex)]

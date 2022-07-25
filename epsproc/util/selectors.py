@@ -80,8 +80,9 @@ def matEleSelector(da, thres = None, inds = None, dims = None, sq = False, drop=
     if (dims is not None) and (thres is not None):
         daOut = daOut.where(np.abs(da).max(dim = dims) > thres, drop = drop)
 
+    # 25/07/22 - added drop here too, otherwise keeps squeezed dims by default (may depend on XR version, tested in v0.19)
     if sq:
-        daOut = daOut.squeeze()  # Squeeze dims.
+        daOut = daOut.squeeze(drop = drop)  # Squeeze dims.
 
     return daOut
 

@@ -41,7 +41,7 @@ Markdown==3.3.4
 MarkupSafe==1.1.1
 matplotlib==3.3.4
 meshio==4.3.8
-mistune==0.8.4
+mistune==2.0.3
 mpmath==1.2.1
 nbclient==0.5.3
 nbconvert==6.0.7

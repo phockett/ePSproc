@@ -261,7 +261,9 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
     """
 
     # refDimsUS = []
-    refDims = refDims.copy()
+    # In most cases copy to avoid possible passed object overwrite, except for string.
+    if not isinstance(refDims,str):
+        refDims = refDims.copy()
 
     # Force to list to avoid breaking *unpacking later
     if not isinstance(refDims, (list, dict)):
@@ -455,6 +457,8 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
         stackedDims = [] #list(set(dims) - set(dimsUS))
 
         stackedDimsMap = {} # {k:data.index[k].names for k in stackedDims}  # Get stacked dim mapping from indexes (Xarray/Pandas)
+
+        stackedComponents = {}
 
     else:
         print(f'*** checkDims only supports xr.DataArray, xr.Dataset and pd.DataFrame, not passed data type: {type(data)}')

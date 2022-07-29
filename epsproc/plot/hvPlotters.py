@@ -153,6 +153,9 @@ def setPlotDefaults(fSize = [800,400], imgSize = 500):
     if hvFlag:
         opts.defaults(opts.Scatter(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
                       opts.Curve(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
+                      opts.Bars(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
+                      # opts.Histogram(width=fSize[0], height=fSize[1], tools=['hover'], show_grid=True),
+                      opts.Histogram(tools=['hover'], show_grid=True),    # For hist set just tools, otherwise get size issues for .hist() sidebar layout defaults.
                       opts.Image(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True),   # Force square format for images (suitable for VMI)
                       opts.HeatMap(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True),
                       opts.HexTiles(width=fSize[0], height=fSize[1], tools=['hover'], colorbar=True))

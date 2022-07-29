@@ -26,6 +26,8 @@ def dimRestack(da, stackDims = [], forceStacked = True):
 
     Check dims in da, and restack according to refDims if necessary
 
+    See also :py:func:`epsproc.util.misc.restack`, which handles general flat > stacked cases.
+
     Parameters
     ----------
     da : xarray
@@ -136,6 +138,8 @@ def densityCalc(da, denDims = 'LM',
 
     Compute density matrix as (outer product) da[denDims]*da[denDims].conj(), where dim specifies the dimension(s) to use.
     This is, essentially, the density matrix :math:\row = |denDims\rangle \langle denDims|:math:
+
+    For more see https://epsproc.readthedocs.io/en/dev/methods/density_mat_notes_demo_300821.html
 
     Parameters
     ----------
@@ -320,6 +324,7 @@ opts.defaults(opts.HeatMap(width=imgSize, frame_width=imgSize, aspect='square', 
 
 
 def matPlot(da, kdims = None, pTypes = ['r','i','a'],
+            pLabels = {'r':'Real','i':'Imag','a':'Abs'}, pName = 'pType',
             negQs = True, thres = None,
             returnType = 'plot', verbose = 1):
     """
@@ -341,6 +346,14 @@ def matPlot(da, kdims = None, pTypes = ['r','i','a'],
     pTypes : list, optional, default = ['r','i','a']
         List of plot types to set (via :py:func:`epsproc.plotTypeSelector`_
         These will be available via the HV plot widgets.
+
+    pLabels : dict, optional, default = {'r':'Real','i':'Imag','a':'Abs'}
+        Mapping for pTypes > plot labels.
+        Set to empty to skip.
+
+    pName : str, optional, default = 'pType'
+        Label/name for dataset.
+        This appears in plot titles in Holomap, formatted as 'pName: pLabel'
 
     negQs : NOT YET IMPLEMENTED
         Include -ve valued QNs in plot?
@@ -366,6 +379,10 @@ def matPlot(da, kdims = None, pTypes = ['r','i','a'],
 
     - update & consolidate dim-handling routines from densityCalc() to provide easier plotting routines here (without manual restack etc. for other data types).
 
+    26/07/22    Added some additional plot handling options for titles and labels.
+                For additional control use .relabel(), .redim() and .opts() on outputs, see https://holoviews.org/user_guide/Customizing_Plots.html
+                E.g. daPlot2.opts(show_title=False).layout('pType').opts(show_title=True).relabel('Recon')  # Turns off titles per plot, then titles layout
+                     daPlot.redim(pType='Type').layout('Type').relabel('Original density matrix (unsigned phases)')  # Rename groups and relabel.
 
     """
 
@@ -422,8 +439,12 @@ def matPlot(da, kdims = None, pTypes = ['r','i','a'],
 
     # Stack to xr.Dataset for pTypes...
     # NOTE .copy() here, otherwise end up with null valued output (overwrites/sums?)
-    daPlotDS = xr.Dataset({pType:plotTypeSelector(daPlot.copy(), pType = pType) for pType in pTypes}) #['r','i','a']})
-    daPlot = daPlotDS.to_array().rename({'variable':'pType'})  # Restack pType to array
+    if pLabels:
+        daPlotDS = xr.Dataset({pLabels[pType]:plotTypeSelector(daPlot.copy(), pType = pType) for pType in pTypes}) #['r','i','a']})
+    else:
+        daPlotDS = xr.Dataset({pType:plotTypeSelector(daPlot.copy(), pType = pType) for pType in pTypes}) #['r','i','a']})
+
+    daPlot = daPlotDS.to_array().rename({'variable':pName})  # Restack pType to array
     daPlot.attrs = attrs  # Propagate attrs
     daPlot.name = da.name
     hvds = hv.Dataset(daPlot)

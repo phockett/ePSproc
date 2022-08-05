@@ -40,7 +40,7 @@ Basics:
 
 * From Pypi ``pip install ePSproc``
 
-See the `extended installation notes for more details & options <etc/installation_notes_051120.html>`_.
+See the `extended installation notes for more details & options <https://epsproc.readthedocs.io/en/latest/etc/installation_notes_051120.html>`_.
 
 
 Python

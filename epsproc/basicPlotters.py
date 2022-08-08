@@ -312,7 +312,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         selDims = None, sumDims = None, plotDims = None, squeeze = False, fillna = False,
         xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10,
         titleString = None, titleDetails = True,
-        labelRound = 3, labelCols = [2,2], dimMaps = {}):
+        labelRound = 3, labelCols = [2,2], dimMaps = {}, catLegend = True):
     """
     Plotting routine for ePS matrix elements & BLMs.
 
@@ -412,6 +412,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             lDims = list(set(['l', 'K', 'lp', 'L'])-set(xDim))
             mDims = ['m', 'mp', 'mu', 'mup', 'Q', 'S', 'mu0', 'Lambda', 'M']
         TODO: Should update to allow for arb arg passing to function + general unpacking?
+
+    catLegend : bool, optional, default = True
+        Include 2nd "Categories" legend entries?
+        08/08/22 Added option, but should also do this automatically for empty cases - needs dim handling consolidation first!
 
     Returns
     -------
@@ -950,10 +954,14 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                     pass
 
                 # 2nd legend for other dims.
+                # 08/08/22 Added option to skip this, but should do this for empty cases - needs dim handling consolidation first!
                 else:
                     # g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)  # Label with value only
                     # g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=f"{item[0].name}: {label}", linewidth=0)  # Label with category too.
-                    g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=f"{item[0].name}: {labelR}", linewidth=0)  # Label with category too.
+                    if catLegend:
+                        g.ax_row_dendrogram.bar(0, 0, color=item[1][label],label=f"{item[0].name}: {labelR}", linewidth=0)  # Label with category too.
+                    else:
+                        pass
 
         # Add symmetry labels separately from master list to avoid repetition
         if symFlag:

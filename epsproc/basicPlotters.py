@@ -311,7 +311,7 @@ def symListGen(data):
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
         selDims = None, sumDims = None, plotDims = None, squeeze = False, fillna = False,
         xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10, titleString = None,
-        labelRound = 3):
+        labelRound = 3, labelCols = [2,2]):
     """
     Plotting routine for ePS matrix elements & BLMs.
 
@@ -398,6 +398,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     labelRound : int, optional, default = 3
         Round to N d.p. for plot labels (legend text).
         This is also passed to :py:func:`epsproc.multiDimXrToPD()` for column labels (for E, t or Euler dims only)
+
+    labelCols : list, optional, default = [2,2]
+        Number of columns for 1st and 2nd key maps in SNS Clustermap.
 
     Returns
     -------
@@ -933,14 +936,15 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 #             g.ax_col_dendrogram.legend(title=n, loc="center") #, ncol=n+1) # , bbox_to_anchor=(0.47, 0.8), bbox_transform=plt.gcf().transFigure)
 
         # Add legends for the bar plots
-        ncol = 2  #np.unique(daPlot.LM.l).size
+        # ncol = 2  #np.unique(daPlot.LM.l).size   # UPDATE 08/08/22 - added passed arg for column formatting.
+
         if 'ADM' in daPlot.dims:
             QNlabels = 'K,(Q,S)'
         else:
             QNlabels = 'l,(m,mu)'
 
-        g.ax_col_dendrogram.legend(title=QNlabels, loc="center", ncol = ncol, bbox_to_anchor=(0.1, 0.6), bbox_transform=plt.gcf().transFigure)
-        g.ax_row_dendrogram.legend(title='Categories', loc="center", ncol = 2, bbox_to_anchor=(0.1, 0.4), bbox_transform=plt.gcf().transFigure)
+        g.ax_col_dendrogram.legend(title=QNlabels, loc="center", ncol = labelCols[0], bbox_to_anchor=(0.1, 0.6), bbox_transform=plt.gcf().transFigure)
+        g.ax_row_dendrogram.legend(title='Categories', loc="center", ncol = labelCols[1], bbox_to_anchor=(0.1, 0.4), bbox_transform=plt.gcf().transFigure)
 
         # Additional anootations etc.
         # Plot titles: https://stackoverflow.com/questions/49254337/how-do-i-add-a-title-to-a-seaborn-clustermap

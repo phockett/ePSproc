@@ -402,6 +402,13 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     labelCols : list, optional, default = [2,2]
         Number of columns for 1st and 2nd key maps in SNS Clustermap.
 
+    dimMaps : dict, optional, default = {}
+        Pass to override default dim mappings lDims and mDims.
+        Default cases:
+            lDims = list(set(['l', 'K', 'lp', 'L'])-set(xDim))
+            mDims = ['m', 'mp', 'mu', 'mup', 'Q', 'S', 'mu0', 'Lambda', 'M']
+        TODO: Should update to allow for arb arg passing to function + general unpacking?
+
     Returns
     -------
     daPlot : Xarray
@@ -438,10 +445,12 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         - Consider consolidating mapping styles further, and keeping a global list of parent and child dims? Or otherwise pulling from stacked Xarray?
     - Improved handling of sets of polarization geometries (angles).
     - CONSOLIDATE stacked/unstacked dim handling.  At the moment some functions use stacked, some unstacked, which is leading to annoying bugs.
+    - Should update to allow for arb arg passing to function + general unpacking? 08/08/22: added optional dimMaps, fully manual at the moment, only for lDims and mDims currently.
 
     History
     -------
 
+    * 08/08/22 - Added some additional optional args dimMaps and labelCols for plot formatting.
     * 14/01/21 - Fixed bug in handling nested dims for unknown datatypes (hopefully), specifically for Sym dims.
     * 27/02/20 - handling for MultiIndex cases for Wigner 3j type data (function of (l,lp,L,m,mp,M))
         * Fixed issue with conversion to Pandas table - should now handle dims better.
@@ -609,8 +618,22 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
         # 14/01/20 Set catch-all defaults for dims with shared cmaps - UGLY, partially implemented below, but still have lots of special cases
         # 01/02/21 Added set check with xDim to ensure this works for mixed (l,K) cases, with one as xDim (otherwise can miss labels).
-        lDims = list(set(['l', 'K', 'lp', 'L'])-set(xDim))
-        mDims = ['m', 'mp', 'mu', 'Q', 'S', 'mu0', 'Lambda', 'M']
+        # 08/08/22 Added option to pass these directly for forcing specific dim mappings.
+        # TODO: should update to allow for arb arg passing to function + general unpacking? May have issues using local() however, so should change to dicts/namespaces?
+        if lDims in dimMaps.keys():
+            lDims = dimMaps['lDims']
+        else:
+            lDims = list(set(['l', 'K', 'lp', 'L'])-set(xDim))
+
+        if mDims in dimMaps.keys():
+            mDims = dimMaps['mDims']
+        else:
+            mDims = ['m', 'mp', 'mu', 'mup', 'Q', 'S', 'mu0', 'Lambda', 'M']
+
+        # if dimMaps:
+            # for item in dimMaps.keys():
+            # locals().update(dimMaps)   # Replace existing with passed.
+
 
         # Set unified cmap for (m,mu)
         # Switch for matE or BLM data type.

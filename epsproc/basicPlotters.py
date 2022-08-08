@@ -310,7 +310,8 @@ def symListGen(data):
 
 def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, logFlag = False, eulerGroup = True,
         selDims = None, sumDims = None, plotDims = None, squeeze = False, fillna = False,
-        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10, titleString = None,
+        xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10,
+        titleString = None, titleDetails = True,
         labelRound = 3, labelCols = [2,2]):
     """
     Plotting routine for ePS matrix elements & BLMs.
@@ -394,6 +395,9 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
     titleString : str, optional, default = None
         Set main title for plot. If not set, filename or data.attr['jobLabel'] will be used if present.
         Some plot settings labels will also be appended to this.
+
+    titleDetails: bool, optional, default = True
+        If True add plot details to title string.
 
     labelRound : int, optional, default = 3
         Round to N d.p. for plot labels (legend text).
@@ -620,12 +624,12 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # 01/02/21 Added set check with xDim to ensure this works for mixed (l,K) cases, with one as xDim (otherwise can miss labels).
         # 08/08/22 Added option to pass these directly for forcing specific dim mappings.
         # TODO: should update to allow for arb arg passing to function + general unpacking? May have issues using local() however, so should change to dicts/namespaces?
-        if lDims in dimMaps.keys():
+        if 'lDims' in dimMaps.keys():
             lDims = dimMaps['lDims']
         else:
             lDims = list(set(['l', 'K', 'lp', 'L'])-set(xDim))
 
-        if mDims in dimMaps.keys():
+        if 'mDims' in dimMaps.keys():
             mDims = dimMaps['mDims']
         else:
             mDims = ['m', 'mp', 'mu', 'mup', 'Q', 'S', 'mu0', 'Lambda', 'M']
@@ -984,7 +988,11 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             else:
                 titleString = daPlot.attrs['file']
 
-        g.ax_heatmap.set_title(f"{titleString}\n Plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {thresStr}\n Inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
+        if titleDetails:
+            g.ax_heatmap.set_title(f"{titleString}\n Plot type = {daPlot.attrs['pTypeDetails']['Type']}, threshold = {thresStr}\n Inc. cross-section {SFflag}, log10 {logFlag}")  # Title heatmap subplot
+
+        else:
+            g.ax_heatmap.set_title(f"{titleString}")   # Passed/default string only.
 
         # sns.reset_orig()  # Reset gloabl plot params - leaves rc settings, also triggers Matplotlib errors
         sns.reset_defaults()

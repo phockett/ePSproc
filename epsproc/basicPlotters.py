@@ -312,7 +312,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         selDims = None, sumDims = None, plotDims = None, squeeze = False, fillna = False,
         xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10,
         titleString = None, titleDetails = True,
-        labelRound = 3, labelCols = [2,2]):
+        labelRound = 3, labelCols = [2,2], dimMaps = {}):
     """
     Plotting routine for ePS matrix elements & BLMs.
 

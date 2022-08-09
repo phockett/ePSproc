@@ -970,7 +970,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                 # 08/08/22: added selector/override for lDims too, and 'all' option to keep old behviour.
                 #           NOTE - this gives ordering as per dims, not items within dims. Should switch to previously-set variables here instead.
                 if item[0].name in lDims:
-                    if lDimLabel is None:  # Set first found lDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
+                    if lDimLabel == [None]:  # Set first found lDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
                         lDimLabel = item[0].name
                     if (item[0].name in lDimLabel) or (lDimLabel == 'all'):
                         g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
@@ -978,7 +978,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                     # g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=labelR, linewidth=0)
 
                 elif item[0].name in mDims:
-                    if mDimLabel is None:  # Set first found mDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
+                    if mDimLabel == [None]:  # Set first found mDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
                         mDimLabel = item[0].name
                     if (item[0].name in mDimLabel) or (mDimLabel == 'all'):
                         g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=f"({label})", linewidth=0)

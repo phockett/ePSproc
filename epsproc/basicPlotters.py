@@ -972,7 +972,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                 if item[0].name in lDims:
                     if lDimLabel == [None]:  # Set first found lDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
                         lDimLabel = item[0].name
-                    if (item[0].name in lDimLabel) or (lDimLabel == 'all'):
+                    if (item[0].name in lDimLabel) or ('all' in lDimLabel):
                         g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
 
                     # g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=labelR, linewidth=0)
@@ -980,7 +980,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                 elif item[0].name in mDims:
                     if mDimLabel == [None]:  # Set first found mDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
                         mDimLabel = item[0].name
-                    if (item[0].name in mDimLabel) or (mDimLabel == 'all'):
+                    if (item[0].name in mDimLabel) or ('all' in mDimLabel):
                         g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=f"({label})", linewidth=0)
                         # g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=f"({labelR})", linewidth=0)
                     # elif :

@@ -413,14 +413,14 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             mDims = ['m', 'mp', 'mu', 'mup', 'Q', 'S', 'mu0', 'Lambda', 'M']
         TODO: Should update to allow for arb arg passing to function + general unpacking?
 
-    lDimLabel : str, optional, default = None
-        Dim to use for l-dimension labels.
+    lDimLabel : str or list, optional, default = None
+        Dim(s) to use for l-dimension labels.
         - Set dim name to use specific dim.
         - Set 'all' to use all dims (old behaviour)
         - First found dim from lDims will be used if None.
 
-    mDimLabel : str, optional, default = None
-        Dim to use for m-dimension labels.
+    mDimLabel : str or list, optional, default = None
+        Dim(s) to use for m-dimension labels.
         - Set dim name to use specific dim.
         - Set 'all' to use all dims (old behaviour)
         - First found dim from mDims will be used if None.
@@ -653,6 +653,14 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         # if dimMaps:
             # for item in dimMaps.keys():
             # locals().update(dimMaps)   # Replace existing with passed.
+
+        # 08/08/22 Options for l,m dim labels. Force to list to allow multiple items.
+        if not isinstance(lDimLabel,list):
+            lDimLabel = [lDimLabel]
+
+        if not isinstance(mDimLabel,list):
+            mDimLabel = [mDimLabel]
+
 
 
         # Set unified cmap for (m,mu)
@@ -896,6 +904,18 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                   figsize = figsize, cmap = cmap)
 
 
+        # TODO: cbar format control?
+        # Modify cbar, example from https://stackoverflow.com/questions/67909597/seaborn-clustermap-colorbar-adjustment
+        # NOT WORKING WITH CURRENT SNS VERSION (0.9) - AttributeError: 'ClusterGrid' object has no attribute 'cbar_pos'
+        # x0, _y0, _w, _h = g.cbar_pos
+        # g.ax_cbar.set_position([x0, 0.9, g.ax_row_dendrogram.get_position().width, 0.02])
+        # g.ax_cbar.set_title('colorbar title')
+        # g.ax_cbar.tick_params(axis='x', length=10)
+        # for spine in g.ax_cbar.spines:
+        #     g.ax_cbar.spines[spine].set_color('crimson')
+        #     g.ax_cbar.spines[spine].set_linewidth(2)
+
+
         # Add keys for each label - loop over all sets of variables assigned previously as (labels, lut) pairs and set as (invisible) bar plots
         # Using this method it's only possible to set two sets of legends, split these based on n here.
         # Method from https://stackoverflow.com/questions/27988846/how-to-express-classes-on-the-axis-of-a-heatmap-in-seaborn
@@ -948,10 +968,11 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 
                 # 14/01/21: testing with preset dims & conditionals
                 # 08/08/22: added selector/override for lDims too, and 'all' option to keep old behviour.
+                #           NOTE - this gives ordering as per dims, not items within dims. Should switch to previously-set variables here instead.
                 if item[0].name in lDims:
                     if lDimLabel is None:  # Set first found lDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
                         lDimLabel = item[0].name
-                    if (item[0].name == lDimLabel) or (lDimLabel == 'all'):
+                    if (item[0].name in lDimLabel) or (lDimLabel == 'all'):
                         g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
 
                     # g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=labelR, linewidth=0)
@@ -959,7 +980,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
                 elif item[0].name in mDims:
                     if mDimLabel is None:  # Set first found mDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
                         mDimLabel = item[0].name
-                    if (item[0].name == mDimLabel) or (mDimLabel == 'all'):
+                    if (item[0].name in mDimLabel) or (mDimLabel == 'all'):
                         g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=f"({label})", linewidth=0)
                         # g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=f"({labelR})", linewidth=0)
                     # elif :

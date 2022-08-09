@@ -312,7 +312,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         selDims = None, sumDims = None, plotDims = None, squeeze = False, fillna = False,
         xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10,
         titleString = None, titleDetails = True,
-        labelRound = 3, labelCols = [2,2], dimMaps = {}, mDimLabel = None, catLegend = True):
+        labelRound = 3, labelCols = [2,2], dimMaps = {}, lDimLabel = None, mDimLabel = None, catLegend = True):
     """
     Plotting routine for ePS matrix elements & BLMs.
 
@@ -413,9 +413,17 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             mDims = ['m', 'mp', 'mu', 'mup', 'Q', 'S', 'mu0', 'Lambda', 'M']
         TODO: Should update to allow for arb arg passing to function + general unpacking?
 
+    lDimLabel : str, optional, default = None
+        Dim to use for l-dimension labels.
+        - Set dim name to use specific dim.
+        - Set 'all' to use all dims (old behaviour)
+        - First found dim from lDims will be used if None.
+
     mDimLabel : str, optional, default = None
         Dim to use for m-dimension labels.
-        First found dim from mDims will be used if None.
+        - Set dim name to use specific dim.
+        - Set 'all' to use all dims (old behaviour)
+        - First found dim from mDims will be used if None.
 
     catLegend : bool, optional, default = True
         Include 2nd "Categories" legend entries?
@@ -939,15 +947,23 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
 #                     pass
 
                 # 14/01/21: testing with preset dims & conditionals
+                # 08/08/22: added selector/override for lDims too, and 'all' option to keep old behviour.
                 if item[0].name in lDims:
-                    g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
+                    if lDimLabel is None:  # Set first found lDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
+                        lDimLabel = item[0].name
+                    if (item[0].name == lDimLabel) or (lDimLabel == 'all'):
+                        g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=label, linewidth=0)
+
                     # g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=labelR, linewidth=0)
+
                 elif item[0].name in mDims:
                     if mDimLabel is None:  # Set first found mDim as source of labels - may cause issues in some cases? Should be able to just use lutM list?
                         mDimLabel = item[0].name
-                    if item[0].name == mDimLabel:
+                    if (item[0].name == mDimLabel) or (mDimLabel == 'all'):
                         g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=f"({label})", linewidth=0)
                         # g.ax_col_dendrogram.bar(0, 0, color=item[1][label],label=f"({labelR})", linewidth=0)
+                    # elif :
+
 
                 # elif item[0].name in ['mu','S','mu0']:  # Skip to avoid repetition, assuming m or Q already plotted on same colour scale. TODO: add conditionals here?
                 #     pass

@@ -312,7 +312,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         selDims = None, sumDims = None, plotDims = None, squeeze = False, fillna = False,
         xDim = 'Eke', backend = 'sns', cmap = None, figsize = None, verbose = False, mMax = 10,
         titleString = None, titleDetails = True,
-        labelRound = 3, labelCols = [2,2], dimMaps = {}, catLegend = True):
+        labelRound = 3, labelCols = [2,2], dimMaps = {}, mDimLabel = None, catLegend = True):
     """
     Plotting routine for ePS matrix elements & BLMs.
 
@@ -412,6 +412,10 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             lDims = list(set(['l', 'K', 'lp', 'L'])-set(xDim))
             mDims = ['m', 'mp', 'mu', 'mup', 'Q', 'S', 'mu0', 'Lambda', 'M']
         TODO: Should update to allow for arb arg passing to function + general unpacking?
+
+    mDimLabel : str, optional, default = None
+        Dim to use for m-dimension labels.
+        First found dim from mDims will be used if None.
 
     catLegend : bool, optional, default = True
         Include 2nd "Categories" legend entries?
@@ -895,7 +899,7 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
         #           NOW FORCED WITH enumerate(), but it's still pretty UGLY.  Seems OK in testing, working for legend labels only.
         # TODO: fix with Pandas methods? Should be able to fix for ledgend & axis labels?
         # NOTE: this is set for column labels with multiDimXrToPD() above, should also add index rounding there?
-        mDimLabel = None
+        # mDimLabel = None
         for n, item in enumerate(legendList):
             # To avoid issues with long floats, round to 3dp
             # TODO: fix this, currently fails for Euler angles case?
@@ -979,7 +983,11 @@ def lmPlot(data, pType = 'a', thres = 1e-2, thresType = 'abs', SFflag = True, lo
             QNlabels = 'l,(m,mu)'
 
         g.ax_col_dendrogram.legend(title=QNlabels, loc="center", ncol = labelCols[0], bbox_to_anchor=(0.1, 0.6), bbox_transform=plt.gcf().transFigure)
-        g.ax_row_dendrogram.legend(title='Categories', loc="center", ncol = labelCols[1], bbox_to_anchor=(0.1, 0.4), bbox_transform=plt.gcf().transFigure)
+
+        if catLegend:
+            g.ax_row_dendrogram.legend(title='Categories', loc="center", ncol = labelCols[1], bbox_to_anchor=(0.1, 0.4), bbox_transform=plt.gcf().transFigure)
+        else:
+            pass
 
         # Additional anootations etc.
         # Plot titles: https://stackoverflow.com/questions/49254337/how-do-i-add-a-title-to-a-seaborn-clustermap

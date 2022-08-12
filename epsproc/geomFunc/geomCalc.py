@@ -955,7 +955,8 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
 
 
 # Define lambdaTerm, MF projection.
-def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'P', 'mu', 'mup', 'Rp', 'R'], phaseConvention = 'S'):
+def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l', 'lp', 'P', 'mu', 'mup', 'Rp', 'R'],
+            eNames = ['Ph','Th','Ch'], phaseConvention = 'S'):
     r"""
     Define MF projection term, :math:`\Lambda_{R',R}(R_{\hat{n}})`:
 
@@ -986,9 +987,19 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
         - 'E' : ePolyScat, conjugate Wigner D.
         See :py:func:`setPhaseConventions` for more details.
 
+    eNames : optional, list, default = ['Ph','Th','Ch']
+        Set names for Euler angles in output.
+        Note:
+
+        - eNames = ['P','T','C'] matches defaults in :py:func:`epsproc.sphCalcs.setPolGeoms()` and :py:func:`epsproc.sphCalcs.wDcalc()`, but conflicts with QNs 'P'.
+        - eNames = ['Phi','Theta','Chi'] may give issues elsewhere, e.g. when multiplying by Ylms with same dim names.
+
+
     Notes
     -----
     This is very similar to :math:`E_{PR}` term.
+
+    12/08/22    Added option for Euler angle dim names to avoid conflicts elsewhere.
 
     Examples
     --------
@@ -1097,7 +1108,7 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
         # Cal for all values - in cases with duplicate QNs this may lead to indexing issues later in Xarray case.
         # Should be OK for 2d case however, will provide table matching full QN list.
         # NOTE in 2d case, wDcalc() also outputs R, QNs - skip these since they're already set in this case
-        lambdaD, *RQN = wDcalc(QNs = QNwD, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'],
+        lambdaD, *RQN = wDcalc(QNs = QNwD, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = eNames,
                                 conjFlag = phaseCons['lambdaCons']['conjFlag'])
         lambdaD = np.asarray(lambdaD)
 
@@ -1106,13 +1117,13 @@ def MFproj(QNs = None, RX = None, nonzeroFlag = True, form = '2d', dlist = ['l',
 
         # Special case for single pol geom, otherwise passes 0D array with a single value and causes issues later.
         if RX.size == 1:
-            lambdaD = wDcalc(QNs = QNun, R = RX.data.item(), XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'],
+            lambdaD = wDcalc(QNs = QNun, R = RX.data.item(), XFlag = XFlag, dlist = dRed, eNames = eNames,
                              conjFlag = phaseCons['lambdaCons']['conjFlag'])
 
             lambdaD['Labels']=('Euler', [RX.Labels.item()])  # Propagate labels, currently wDcalc only takes RX.data
 
         else:
-            lambdaD = wDcalc(QNs = QNun, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = ['Phi','Theta','Chi'],
+            lambdaD = wDcalc(QNs = QNun, R = RX.data, XFlag = XFlag, dlist = dRed, eNames = eNames,
                              conjFlag = phaseCons['lambdaCons']['conjFlag'])
 
             # lambdaD['Labels']=('Euler', RX.Labels.values)  # Propagate labels, currently wDcalc only takes RX.data

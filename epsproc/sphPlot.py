@@ -594,10 +594,12 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
 
     # Set up subplots
     # 31/03/22 type check to fix issues with padPlot wrapper and None type facetDims.
+    # 12/08/22 also fixed plot titles & X,Y,Z clac for None case below.
     if facetDim is not None:
         nData = dataPlot[facetDim].size
     else:
         # facetDim = 'Eke'
+        # nData = dataPlot[facetDim].size
         nData = 1
 
     if rc is None:
@@ -626,7 +628,11 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
         aRanges = dict(range=[-(Rmax + padding), Rmax+padding])
 
         # Set subplot titles, see https://stackoverflow.com/questions/53991810/how-to-add-subplot-title-to-3d-subplot-in-plotly
-        titles = [f"{facetDim}: {item.item()}" for item in dataPlot[facetDim]]
+        if facetDim is not None:
+            titles = [f"{facetDim}: {item.item()}" for item in dataPlot[facetDim]]
+        else:
+            # titles = [f"{facetDim}: {item.item()}" for item in dataPlot[facetDim]]
+            titles = ['']  # Singleton case.
 
     # Set up subplots
     fig = make_subplots(rows=rc[0], cols=rc[1], specs=specs, subplot_titles=titles)
@@ -645,7 +651,10 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
             if n < nData:
 
                 # Set data (NOTE - now repeats above in Xarray case)
-                X,Y,Z = sphToCart(dataPlot.sel({facetDim:dataPlot[facetDim][n]}),theta,phi)  # Bit ugly, probably a better way to select here.
+                if facetDim is not None:
+                    X,Y,Z = sphToCart(dataPlot.sel({facetDim:dataPlot[facetDim][n]}),theta,phi)  # Bit ugly, probably a better way to select here.
+                else:
+                    X,Y,Z = sphToCart(dataPlot,theta,phi)  # Singleton case
 
                 # Set plot object
                 showscale = False

@@ -824,7 +824,7 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
         # Ensure attrs propagated
         subset.attrs = self.data[key][dataType].attrs
 
-        print(f"Plotting from self.data[{key}][{dataType}], facetDims={facetDims}, pType={pType} with backend={backend}.")
+        print(f"Plotting from self.data[{key}][{dataType}], facetDims={facetDimsCheck}, pType={pType} with backend={backend}.")
 
         # GROUPBY AND PLOT?  NOT SURE HOW BEST TO HANDLE MULTIPLE DIMS HERE? Can pass 1 facet dim to SPH plotter already.
         # TODO: decide MAX 4D. Then reduce > groupby > facet to existing plotter.

@@ -712,7 +712,7 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 # This has better dim handling, and simpler logic, but still needs some work.
 def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = 'Eke',
                 keys = None, dataType = 'TX', facetDims = None, squeeze = False, reducePhi = None,
-                pType = 'a', pStyle = 'polar', returnFlag = False, plotDict = 'plots',
+                pType = None, pStyle = 'polar', returnFlag = False, plotDict = 'plots',
                 backend = 'mpl', plotFlag = True):
 
     """
@@ -727,6 +727,10 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     plotFlag : bool, optional, default = True
         Set plotFlag=False bypass for plotter object return only.
 
+    pType : str, optional, default = None
+        Plot type, defaults to 'a' (abs) except for dataType = 'TX', 'a2'.
+        See :py:func:`epsproc.sphPlot.plotTypeSelector` for options.
+
     TODO: fix dim handling for pl case, need to pass facetDim != None.
     TODO: return plot objects. Probably to self.data[key][pStyle], or as dictionary of plots per run with data? (Cf. PEMtk plotters.)
         23/04/22: added plot data and object returns to self.data[key][plotDict][pStyle]
@@ -736,6 +740,12 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
 
     # Default to all datasets
     keys = self._keysCheck(keys)
+
+    if pType is None:
+        pType = 'a'
+
+        if dataType == 'TX':
+            pType = 'a2'
 
     # Default facetDims, (Eulers, Eke)
     # Should test these? YES - it's done later, per key.
@@ -808,9 +818,11 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
         # Check facetDims exist, otherwise may get groupby errors (may be cleaner to use try/except here?)
         # NOTE this will still produce errors in some cases (0 dims matched)
         facetDimsCheck = list(set(subset.dims)&{*facetDims})
+        groupFlag = True
         if len(facetDimsCheck) == 0:
             print(f'***Error: missing dims {facetDims}.')
         elif len(facetDimsCheck) == 1:
+            groupFlag = False
             facetDimsCheck.append(None)
 
         extraDims = set(subset.dims) - {*facetDimsCheck,*sumDims} - {'Theta','Phi'}  # Check for outstanding dims, this will return an empty set if all dims accounted for here
@@ -829,13 +841,22 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
         # GROUPBY AND PLOT?  NOT SURE HOW BEST TO HANDLE MULTIPLE DIMS HERE? Can pass 1 facet dim to SPH plotter already.
         # TODO: decide MAX 4D. Then reduce > groupby > facet to existing plotter.
         # TODO: general way to handle more dims?
+        #
+        # 12/08/22: added group by-pass for single facet dim case.
+        #           Seems to be OK for Plotly case, but NOT WORKING CORRECTLY FOR MPL CASE HOWEVER, still get single fig per item?
 
         if pStyle == 'polar':
-            for groupLabel, item in subset.groupby(facetDimsCheck[0]):
-#                 tString = f"Pol geom: {item.item()}, plotType: {pType}"
-                tString = f"{facetDimsCheck[0]}: {groupLabel}, plotType: {pType}"
-                pltObj = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString, plotFlag=plotFlag, verbose = self.verbose['sub'])
-                # _ = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
+            if groupFlag:
+                for groupLabel, item in subset.groupby(facetDimsCheck[0]):
+    #                 tString = f"Pol geom: {item.item()}, plotType: {pType}"
+                    tString = f"{facetDimsCheck[0]}: {groupLabel}, plotType: {pType}"
+                    pltObj = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString, plotFlag=plotFlag, verbose = self.verbose['sub'])
+                    # _ = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
+            else:
+                # For single dim case just pass to existing plotter for subplots,
+                tString = f"plotType: {pType}"
+                pltObj = sphSumPlotX(subset, pType = pType, backend = backend, facetDim = facetDimsCheck[0], titleString = tString, plotFlag=plotFlag, verbose = self.verbose['sub'])
+
 
         elif pStyle == 'grid':
             if 'jobLabel' in subset.attrs.keys():

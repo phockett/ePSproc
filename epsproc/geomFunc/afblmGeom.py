@@ -156,6 +156,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
         - 'Product', as full, but minimal basis set with products only.
         - 'Results' or 'Legacy' direct return of various calc. results Xarrays.
 
+    **kwargs, unused but allows for arb basis dict unpack and passing from other functions.
+
     Returns
     -------
     Xarray

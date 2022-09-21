@@ -212,6 +212,10 @@ def dataTypesList():
                     'desc':'MF continuum wavefunction (E,theta,phi), expanded or summed over (l,m). Abs(TX)^2 gives the MFPAD.',
                     'recordType':'DumpIdy'
                     },
+                'Itp' :
+                    {'source':'epsproc.sphPlot.sphFromBLMPlot',
+                    'desc':'Expansion of a set of parameters in spherical harmonics on a grid, usually defined as BLM(...) * YLM(theta,phi,...).',
+                    },
                 'Wigner' :
                     {'source':'epsproc.MFPAD.mfWignerDelay',
                     'desc':'Phase derivative of the MF continuum wavefunction (E,theta,phi), expanded or summed over (l,m), converted to temporal units.',

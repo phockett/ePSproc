@@ -27,6 +27,7 @@ Todo
 import xarray as xr
 # from matplotlib import pyplot as plt  # For addtional plotting functionality - also need to import here for Seaborn styles to function.
 # import holoviews as hv
+import matplotlib as mpl
 
 # Optionals
 # Additional plotters
@@ -68,7 +69,7 @@ from .util import showPlot
 
 
 # Set plotters & options.
-def setPlotters(hvBackend = 'bokeh', width = 500, height = None, snsStyle = "darkgrid"):
+def setPlotters(hvBackend = 'bokeh', width = 500, height = None, useSeaborn = True, snsStyle = "darkgrid", **kwargs):
     """
     Set some plot options - Seaborn style + HV defaults.
 
@@ -85,24 +86,22 @@ def setPlotters(hvBackend = 'bokeh', width = 500, height = None, snsStyle = "dar
     width : int, optional, default = 500
         Setting for plot width, in pixels.
 
+    useSeaborn : bool, optional, default = True
+        Use Seaborn and styles?
+
     snsStyle : str, optional, default = "darkgrid"
         If using Seaborn styles, use snsStyle.
         See https://seaborn.pydata.org/tutorial/aesthetics.html
+
+    **kwargs : optional
+        Passed to setPlotDefaults().
 
     """
 
     # Plotting libs
     # Optional - set seaborn for plot styling
-    if snsFlag:
+    if snsFlag and useSeaborn:
         import seaborn as sns
-
-        # For > v0.8 need to run .set_theme, see https://seaborn.pydata.org/tutorial/aesthetics.html
-        try:
-            sns.set_theme(style = snsStyle)  # Set style
-        except AttributeError:
-            pass
-
-        sns.set_style(snsStyle)  # May be unnecessary if set_theme already used?
 
         sns.set_context("paper")  # "paper", "talk", "poster", sets relative scale of elements
                                 # https://seaborn.pydata.org/tutorial/aesthetics.html
@@ -112,6 +111,14 @@ def setPlotters(hvBackend = 'bokeh', width = 500, height = None, snsStyle = "dar
         sns.set(rc={'figure.dpi':(120)})
 
 
+        # Set theme/style last, otherwise may conflict with above?
+        # For > v0.8 need to run .set_theme, see https://seaborn.pydata.org/tutorial/aesthetics.html
+        try:
+            sns.set_theme(style = snsStyle)  # Set style
+        except AttributeError:
+            pass
+
+        sns.set_style(snsStyle)  # May be unnecessary if set_theme already used?
 
 
 
@@ -141,13 +148,13 @@ def setPlotters(hvBackend = 'bokeh', width = 500, height = None, snsStyle = "dar
         if height is None:
             height = width
 
-        setPlotDefaults(fSize = [width, height], imgSize = height)
+        setPlotDefaults(fSize = [width, height], imgSize = height, **kwargs)
 
     # return hv.output.info()
 
 
 # Set some default plot options
-def setPlotDefaults(fSize = [800,400], imgSize = 500):
+def setPlotDefaults(fSize = [800,400], imgSize = 500, resetMpl = False, resetSns = False):
     """Basic plot defaults"""
 
     if hvFlag:
@@ -159,6 +166,14 @@ def setPlotDefaults(fSize = [800,400], imgSize = 500):
                       opts.Image(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True),   # Force square format for images (suitable for VMI)
                       opts.HeatMap(width=imgSize, frame_width=imgSize, aspect='square', tools=['hover'], colorbar=True),
                       opts.HexTiles(width=fSize[0], height=fSize[1], tools=['hover'], colorbar=True))
+
+    # Reset Matplotlib to defaults
+    if resetMpl:
+        mpl.rcParams.update(mpl.rcParamsDefault)
+
+    # Reset SNS to defaults
+    if snsFlag and resetSns:
+        sns.set_theme()
 
 
 # Convert "standard" XS dataarray to dataset format.

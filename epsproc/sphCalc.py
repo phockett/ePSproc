@@ -36,6 +36,11 @@ except ImportError as e:
     print('* Sympy not found, some (legacy) sph functions may not be available. ')
 
 
+# Pkg functions
+from epsproc.util import listFuncs
+# from .util.listFuncs import YLMtype
+
+
 
 # Master function for setting geometries/frame rotations
 def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
@@ -294,8 +299,9 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False, name = N
 # General BLM setter for using with custom values.
 # 04/04/22: hacking in as per existing setADMs() and cf. also blmXarray().
 # TODO: implement dim remapping, see PEMtk.toePSproc()
-def setBLMs(BLMs = [0,0,1], LMLabels = None, t = None, name = None, tUnits = 'ps',
-            conformDims = False):
+def setBLMs(BLMs = [0,0,1], LMLabels = None,   # keyDims = {},
+            t = None, name = None, tUnits = 'ps',
+            conformDims = False, **kwargs):
     """
     Create Xarray from BLMs, or create default case BLM = [0,0,1].
 
@@ -383,6 +389,9 @@ def setBLMs(BLMs = [0,0,1], LMLabels = None, t = None, name = None, tUnits = 'ps
     # Set units
     BLMX.attrs['units'] = 'arb'
     BLMX.t.attrs['units'] = tUnits
+
+    # Set defaults for harmonics
+    BLMX.attrs['harmonics'] = listFuncs.YLMtype(**kwargs)
 
     if conformDims:
         print("*** ConformDims NOT YET IMPLEMENTED - see PEMtk.toePSproc() for method.")
@@ -528,12 +537,13 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
             YlmX.name = 'YLM'
             YlmX.attrs['dataType'] = 'YLM'
             YlmX.attrs['long_name'] = 'Spherical harmonics'
-            YlmX.attrs['harmonics'] = {'dtype':'Complex harmonics',
-                                        'kind':'complex',
-                                        'normType': 'ortho',
-                                        'csPhase': True
-                                        }
-
+            # YlmX.attrs['harmonics'] = {'dtype':'Complex harmonics',
+            #                             'kind':'complex',
+            #                             'normType': 'ortho',
+            #                             'csPhase': True
+            #                             }
+            # YlmX.attrs['harmonics'] = epsproc.util.listFuncs.YLMtype()
+            YlmX.attrs['harmonics'] = listFuncs.YLMtype()
 
         if fnType == 'lg':
             # Define meta data
@@ -544,11 +554,13 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
             YlmX.name = 'PL'
             YlmX.attrs['dataType'] = 'PL'
             YlmX.attrs['long_name'] = 'Legendre polynomials'
-            YlmX.attrs['harmonics'] = {'dtype':'Legendre polynomials',
-                                        'kind':'complex',
-                                        'normType': None,
-                                        'csPhase': True
-                                        }
+            # YlmX.attrs['harmonics'] = {'dtype':'Legendre polynomials',
+            #                             'kind':'complex',
+            #                             'normType': None,
+            #                             'csPhase': True
+            #                             }
+            # YlmX.attrs['harmonics'] = epsproc.util.listFuncs.YLMtype(dtype='Legendre polynomials', normType= None)
+            YlmX.attrs['harmonics'] = listFuncs.YLMtype(dtype='Legendre polynomials', normType= None)
 
         # Set units
         YlmX.attrs['units'] = 'arb'

@@ -351,6 +351,11 @@ def setBLMs(BLMs = [0,0,1], LMLabels = None, t = None, name = None, tUnits = 'ps
     if isinstance(BLMs, list):
         BLMs = np.array(BLMs, ndmin = 2)
 
+    # Force additional dim for 1D case
+    elif isinstance(BLMs, np.ndarray):
+        if BLMs.ndim < 2:
+            BLMs = BLMs[:,np.newaxis]
+
     # Set lables explicitly if not passed, and resize ADMs
     if LMLabels is None:
         LMLabels = BLMs[:,0:2]
@@ -465,6 +470,7 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
         return False
 
     # Loop over lm and calculate
+    # TODO: rewrite loop with fn handles set.
     lm = []
     Ylm = []
     for l in np.arange(Lmin,Lmax+1):
@@ -497,6 +503,49 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
         # YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta',theta[0,:]), ('Phi',phi[:,0])])
         # YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Theta', TP[0][0,:]), ('Phi', TP[1][:,0])])
         YlmX = xr.DataArray(np.asarray(Ylm), coords=[('LM',QNs), ('Phi', TP[1][:,0]), ('Theta', TP[0][0,:])])  # Fixed dim ordering for SciPy maths convention.
+
+
+        # Metadata
+        if fnType == 'sph':
+            # Define meta data
+            fnName = 'scipy.special.sph_harm'  # Should generalise to fn.__name__ - although may be less informative.
+
+            # Set attrs
+            YlmX.name = 'YLM'
+            YlmX.attrs['dataType'] = 'YLM'
+            YlmX.attrs['long_name'] = 'Spherical harmonics'
+            YlmX.attrs['harmonics'] = {'dtype':'Complex harmonics',
+                                        'kind':'complex',
+                                        'normType': 'ortho',
+                                        'csPhase': True
+                                        }
+
+
+        if fnType == 'lg':
+            # Define meta data
+            fnName = 'scipy.special.lpmv'
+            normType = None
+            csPhase = True
+
+            YlmX.name = 'PL'
+            YlmX.attrs['dataType'] = 'PL'
+            YlmX.attrs['long_name'] = 'Legendre polynomials'
+            YlmX.attrs['harmonics'] = {'dtype':'Legendre polynomials',
+                                        'kind':'complex',
+                                        'normType': None,
+                                        'csPhase': True
+                                        }
+
+        # Set units
+        YlmX.attrs['units'] = 'arb'
+
+        # Set other attribs
+        YlmX.attrs['harmonics'].update({'method': {fnType:fnName},
+                                        'conj':conj,
+                                        'keyDims':{'LM':['l','m']},
+                                        'Lrange':[Lmin,Lmax],
+                                        'res':res,
+                                        'convention':convention})
 
         if conj:
             return YlmX.conj()

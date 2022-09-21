@@ -392,8 +392,8 @@ def setBLMs(BLMs = [0,0,1], LMLabels = None, t = None, name = None, tUnits = 'ps
 
 
 # Calculate a set of sph function
-def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph', convention = 'phys', conj = False):
-    '''
+def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph', convention = 'phys', conj = False):
+    r'''
     Calculate set of spherical harmonics Ylm(theta,phi) on a grid.
 
     Parameters
@@ -435,9 +435,23 @@ def sphCalc(Lmax, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph
     Currently set for scipy.special.sph_harm as calculation routine. Note (theta, phi) definition, and normalisation.
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.sph_harm.html
 
+    .. math::
+        \begin{equation}
+        Y_{l,m}(\theta,\phi) = (-1)^m\sqrt{\frac{2l+1}{4\pi} \frac{(l-m)!}{(l+m)!}}e^{i m \phi} P^m_l(\cos(\theta))
+        \end{equation}
+
     Example
     -------
     >>> YlmX = sphCalc(2, res = 50)
+
+
+    Notes
+    -----
+    TODO:
+
+    - additional backends.
+    - remove hard-coded dim names for flexibility (or set from ref YLMdimList())
+
 
     '''
 

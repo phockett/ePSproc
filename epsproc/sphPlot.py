@@ -165,7 +165,7 @@ def sphPlotHV(dataIn):
 
 
 # Plot MFPADs from a set of BLM
-def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = None, backend = 'mpl', fnType = None, conj = False):
+def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = None, backend = 'mpl', fnType = None, conj = False):
     r'''
     Calculate spherical harmonic expansions from BLM parameters and plot.
 
@@ -262,7 +262,15 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
         # Calculate MFPADs (theta,phi)
         dataPlot = BLMX*YLMX
         dataPlot = dataPlot.rename({'BLM':'LM'})    # Switch naming back for plotting function
-        dataPlot.attrs = BLMX.attrs # Ensure attrs propagated
+        # dataPlot.attrs = BLMX.attrs # Ensure attrs propagated
+        # dataPlot.attrs.update(YLMX.attrs)  # Add YLMX attrs - may overwrite
+        dataPlot.attrs = YLMX.attrs # Ensure attrs propagated
+        dataPlot.attrs.update(BLMX.attrs)  # Add BLMX attrs - may overwrite
+        if 'harmonics' in dataPlot.attrs.keys():
+            dataPlot.attrs['harmonics'].update(YLMX.attrs['harmonics'])  # Ensure YLM settings propagated correctly.
+
+        dataPlot.attrs['dataType'] = 'Itp'
+        dataPlot.attrs['long_name'] = r'I(\theta,\phi)'
         dataPlot.attrs['normType'] = fnType
 
         # Pass data to plotting function
@@ -277,6 +285,7 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'r', plotFlag = False, facetDim = N
 # TODO: This currently assumes matplotlib cm is already loaded.
 # TODO: More plot types.
 # TODO: More careful testing - not totally sure if summation & axes consistent here.
+# TODO: add dim checks, see classes._plotters.padPlot for some existing implementations.
 def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convention = 'phys', titleString = None, plotFlag = True, verbose = True):
     '''
     Plot sum of spherical harmonics from an Xarray.
@@ -333,6 +342,8 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
     ----
     Pretty basic functionality here, should add more colour mapping options and multiple plots, alternative back-ends, support for more dimensions etc.
 
+    More sophisticated dim handling is implemented in padPlot(), but for class only.
+
 
     '''
 
@@ -362,7 +373,8 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
         print(f"Sph plots: {titleString}")  # Throw out titlestring here for ease.
 
         # Switch plot function based on backend
-        print('Plotting with {0}'.format(backend))
+        # print('Plotting with {0}'.format(backend))
+        print(f"Plotting with facetDims={facetDim}, pType={pType} with backend={backend}.")
 
     fig = []
 

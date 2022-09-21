@@ -95,7 +95,7 @@ from epsproc.util import (ADMdimList, BLMdimList, arraySort2D, conv_ev_atm,
                           conv_ev_nm, conversion, dataGroupSel, dataTypesList,
                           eulerDimList, genLM, jobSummary, listFuncs,
                           lmSymSummary, matEdimList, matEleSelector, misc,
-                          multiDimXrToPD, selectors, stringRepMap, summary,)
+                          multiDimXrToPD, selectors, stringRepMap, summary,YLMtype)
 
 __all__ = ['ADMdimList', 'AFBLM', 'AFBLMCalcLoop', 'Arrow3D', 'BLMdimList',
            'BLMplot', 'EDCSFileParse', 'EDCSSegParse', 'EDCSSegsParseX', 'EPR',

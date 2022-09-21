@@ -34,7 +34,7 @@ from epsproc.util import summary
 
 from epsproc.util.conversion import (conv_ev_atm, conv_ev_nm, multiDimXrToPD,orb3DCoordConv)
 from epsproc.util.listFuncs import (ADMdimList, BLMdimList, dataTypesList,
-                                    eulerDimList, genLM, matEdimList,)
+                                    eulerDimList, genLM, matEdimList,YLMtype)
 from epsproc.util.misc import (arraySort2D, stringRepMap,)
 from epsproc.util.selectors import (dataGroupSel, matEleSelector,)
 from epsproc.util.summary import (jobSummary, lmSymSummary,)

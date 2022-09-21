@@ -312,7 +312,7 @@ def renormL0(data):
 
 # Convert expansion parameters from Legendre Polynomial to Spherical Harmonic form (and back)
 def conv_BL_BLM(data, to = 'sph', renorm = True):
-    """
+    r"""
     Convert BL (Legendre Polynomial) <> BLM (Spherical Harmonic), plus parameter renomalisation.
 
 .. math::

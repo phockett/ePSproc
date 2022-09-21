@@ -151,6 +151,19 @@ def ADMdimList(sType = 'stacked'):
         return ['K','Q','S','t']
 
 
+def YLMtype(dtype='Complex harmonics',kind='complex',
+            normType= 'ortho', csPhase= True, **kwargs):
+    """
+    Return dict of specified YLM parameters.
+    """
+
+    # return locals()
+
+    # Allow for kwargs and unpack to base dict.
+    out = {k:v for k,v in locals().items() if k != 'kwargs'}
+    out.update(kwargs)
+
+    return out
 
 #**************** Master list fn.
 # Return a dict of allowed dataTypes, corresponding to ePS commands/file segments, or epsproc processed data.
@@ -275,9 +288,11 @@ def getRefDims(data = None, refType = None, sType = 'sDict'):
 
 # Generate LM index from 0:Lmax
 # Should be able to use sf.LM_range here, but throwing type errors for some reason.
-def genLM(Lmax):
+def genLM(Lmax, allM = True):
     """
     Return array of (L,M) up to supplied Lmax
+
+    If allM=False only M=0 terms will be set.
 
     TODO: add return type options, include conversion to SHtools types.
     """
@@ -293,7 +308,10 @@ def genLM(Lmax):
     # List version
     LM = []
     for L in np.arange(Lmax+1):
-        LM.extend(np.c_[np.tile(L,2*L+1), np.arange(-L,L+1)])
-#        LM.append([np.tile(L,2*L+1), np.arange(-L,L+1)])
+        if allM:
+            LM.extend(np.c_[np.tile(L,2*L+1), np.arange(-L,L+1)])
+            #        LM.append([np.tile(L,2*L+1), np.arange(-L,L+1)])
+        else:
+            LM.extend(np.c_[L, 0])
 
     return np.asarray(LM)

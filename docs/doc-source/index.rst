@@ -65,7 +65,9 @@ A post-processing suite for ePolyScat calculations, and general tool for photoio
    :maxdepth: 2
    :caption: Advanced/Special Topics:
 
-   special_topics/ePS_ePSproc_degenerate_states_demo_030821-v4-tidy.ipynb
+   special_topics/ePSproc_docs_working_with_spherical_harmonics_200922
+   special_topics/ePS_ePSproc_degenerate_states_demo_030821-v4-tidy
+
 
 
 

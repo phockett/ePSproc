@@ -67,6 +67,35 @@ def BLMdimList(sType = 'stacked'):
         # unstackedDims
         return ['Eke', 'l', 'm', 'P', 'T', 'C']
 
+
+# Return list of standard dataArray dims for BLM values
+def YLMdimList(sType = 'stacked'):
+    """
+    Return standard list of dimensions for calculated YLMs (spherical harmonics).
+
+    Parameters
+    ----------
+    sType : string, optional, default = 'stacked'
+        Selected 'stacked' or 'unstacked' dimensions.
+        Set 'sDict' to return a dictionary of unstacked <> stacked dims mappings for use with xr.stack({dim mapping}).
+
+    Returns
+    -------
+    list : set of dimension labels.
+
+    """
+    if sType == 'stacked':
+        # stackedDims
+        return ['LM','Theta','Phi']
+
+    elif sType == 'sDict':
+        return {'LM':['l','m']}
+
+    else:
+        # unstackedDims
+        return ['l', 'm', 'Theta','Phi']
+
+
 # Return list of standard dataArray dims for Euer angles
 def eulerDimList(sType = 'stacked'):
     """
@@ -187,13 +216,20 @@ def dataTypesList():
                       'dims':ADMdimList(sType = 'sDict'),
                       'def':ADMdimList
                       },
+                'YLM' :
+                    {'source':'epsproc.sphCalc',
+                    'desc':'Spherical harmonics from epsproc.sphCalc(), with various options.',
+                    'dims': YLMdimList(sType = 'sDict'),
+                    'def': YLMdimList
+                    },
                 'phaseCons' :
                      {'source':'epsproc.geomFunc.setPhaseConventions()',
                       'desc':'Defines sets of phase choices for calculations, implemented on in geomFuncs.',
                       'dims': setPhaseConventions(typeList = True),   # Currently supported types, should integrate in fn.
                       'defns': [setPhaseConventions(item) for item in setPhaseConventions(typeList = True)],
                       'def': setPhaseConventions
-                      }
+                      },
+
                 }
 
     return dataDict

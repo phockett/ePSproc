@@ -29,7 +29,7 @@ except ImportError as e:
 # npTab = dfLong.to_numpy()
 # clm = pysh.SHCoeffs.from_zeros(lmax = 6)   # Defaults to kind = 'real'
 
-def SHcoeffsFromXR(dataIn, kind = None):
+def SHcoeffsFromXR(dataIn, kind = None, keyDims = None):
     """
     Xarray Spherical Harmonic coeffs to SHtools
 
@@ -51,11 +51,17 @@ def SHcoeffsFromXR(dataIn, kind = None):
         kind = 'complex'
 
 
+    # Dim handling
+    # TODO: may want to copy here? Should always be OK though.
+    dataIn = checkSphDims(dataIn, keyDims)
+    mDim = dataIn.attrs['harmonics']['mDim']  # For brevity below.
+    lDim = dataIn.attrs['harmonics']['lDim']  # For brevity below.
+
 #     else:
 #         kind = kind
 
-    clm = pysh.SHCoeffs.from_zeros(lmax = dataIn.l.max().values, kind = kind)
-    clm.set_coeffs(dataIn.values, dataIn.l.astype(int), dataIn.m.astype(int))  # NEEDS (values, ls, ms)
+    clm = pysh.SHCoeffs.from_zeros(lmax = dataIn['lDim'].max().values, kind = kind)
+    clm.set_coeffs(dataIn.values, dataIn['lDim'].astype(int), dataIn['mDim'].astype(int))  # NEEDS (values, ls, ms)
 
     return clm
 
@@ -138,6 +144,7 @@ def XRcoeffsFromSH(dataIn, keepSH = True, keyDims = None):
                                                 'convention':None})
 
     return lmXRTestClean
+
 
 
 def checkSphDims(dataIn, keyDims = None):
@@ -489,6 +496,7 @@ def sphConj(dataIn, cleanOutput = True):
     # Always run? This avoids issues with passed attrs in some cases (e.g. if set on a different dataIn style)
     # TODO: overwrite option?
     dataCalc = checkSphDims(dataCalc)   # Just run with default keyDims - needs rationalisation.
+    dataCalc = unstackSphDims(dataCalc)   # Not sure if required here? But might simplify restacking logic later.
 
     mDim = dataCalc.attrs['harmonics']['mDim']  # For brevity below.
 

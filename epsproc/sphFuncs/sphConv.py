@@ -2,7 +2,7 @@
 ePSproc routines for Spherical Harmonic function conversions
 
 - Convert Real > Complex spherical harmonics with sphRealConvert()
-- Calculate conjugates with sphMswap()
+- Calculate conjugates with sphConj()
 - Convert to and from SHtools objects with SHcoeffsFromXR() and XRcoeffsFromSH()
 
 v1  20/09/22
@@ -12,7 +12,7 @@ v1  20/09/22
 import numpy as np
 import xarray as xr
 
-from epsproc.util.listFuncs import genLM
+from epsproc.util.listFuncs import genLM, YLMtype, YLMdimList
 
 try:
     import pyshtools as pysh
@@ -29,7 +29,7 @@ except ImportError as e:
 # npTab = dfLong.to_numpy()
 # clm = pysh.SHCoeffs.from_zeros(lmax = 6)   # Defaults to kind = 'real'
 
-def SHcoeffsFromXR(dataIn, kind = 'real'):
+def SHcoeffsFromXR(dataIn, kind = None):
     """
     Xarray Spherical Harmonic coeffs to SHtools
 
@@ -40,11 +40,16 @@ def SHcoeffsFromXR(dataIn, kind = 'real'):
     TODO: update with general l,m dim names and handling, see checkSphDims()
     """
 
-    if ('kind' in dataIn.attrs.keys()):
+    # Use settings on input array, or passed kind if set
+    if ('kind' in dataIn.attrs.keys()) and (kind is None):
         kind = dataIn.attrs['kind']
 
-    if ('harmonics' in dataIn.attrs.keys()):
+    elif ('harmonics' in dataIn.attrs.keys()) and (kind is None):
         kind = dataIn.attrs['harmonics']['kind']
+
+    elif kind is None:
+        kind = 'complex'
+
 
 #     else:
 #         kind = kind
@@ -57,14 +62,26 @@ def SHcoeffsFromXR(dataIn, kind = 'real'):
 
 
 
-def XRcoeffsFromSH(dataIn):
+def XRcoeffsFromSH(dataIn, keepSH = True, keyDims = None):
     """
     Convert SHtools coeffs object to Xarray
 
     NOTE: see ep.genLM and relate utils.
     ep.sphCalc.setBLMs  is similar too, although from list not SHtools object.
 
+    Parameters
+    -----------
+
+    dataIn : SHtools object
+        Data to be converted to Xarray.
+
+    keepSH : bool, optional, default = True
+        Set SHtools object to xr.attrs['SH'] if true.
+
     """
+
+    # if keyDims is None:
+    #     keyDims = YLMdimList(sType = 'sDict')   # Set to default dim names.
 
     # Set from inds
 #     # Generate indexes
@@ -106,12 +123,24 @@ def XRcoeffsFromSH(dataIn):
     lmXRTestClean = lmXRTestClean.where(np.abs(lmXRTestClean)>1e-4).dropna(dim='LM')
 
     lmXRTestClean.attrs['SH'] = dataIn
-    lmXRTestClean.attrs['kind'] = dataIn.kind
+
+    # Set harmonic attrs
+    # lmXRTestClean.attrs['kind'] = dataIn.kind
+    lmXRTestClean.attrs['harmonics'] = YLMtype(dtype = 'Harmonics from SHtools', kind = dataIn.kind, normType = dataIn.normalization,
+                                                csPhase=dataIn.csphase, header = dataIn.header)
+
+    # Set other attribs
+    lmXRTestClean.attrs['harmonics'].update({'method': {'SHtools':'XRcoeffsFromSH'},
+                                                'conj':None,
+                                                'keyDims':keyDims,
+                                                'Lrange':[0, dataIn.lmax],
+                                                'res':None,
+                                                'convention':None})
 
     return lmXRTestClean
 
 
-def checkSphDims(dataIn, keyDims = {'LM':['l','m']}):
+def checkSphDims(dataIn, keyDims = None):
     """
     Very basic dim handling/checking for spherical harmonic Xarrays.
 
@@ -134,8 +163,12 @@ def checkSphDims(dataIn, keyDims = {'LM':['l','m']}):
 
     TODO: should use ep.util.misc.checkDims here?
     TODO: check other dim handling functionality, may be reinventing things here.
+    TODO: flag or separate func for unstack? May be confusing otherwise.
 
     """
+
+    if keyDims is None:
+        keyDims = YLMdimList(sType = 'sDict')   # Set to default dim names.
 
     LMStackFlag = False
     stackDim = list(keyDims.keys())[0]
@@ -144,7 +177,7 @@ def checkSphDims(dataIn, keyDims = {'LM':['l','m']}):
     mDim = keyDims[stackDim][1]
 
     if stackDim in dataIn.dims:
-        dataIn =  dataIn.unstack(stackDim)
+        # dataIn =  dataIn.unstack(stackDim)
         LMStackFlag = True
 
     if 'harmonics' not in dataIn.attrs.keys():
@@ -155,8 +188,24 @@ def checkSphDims(dataIn, keyDims = {'LM':['l','m']}):
     return dataIn
 
 
+def unstackSphDims(dataIn, keyDims = None):
+    """
+    Check and unstack spherical harmonic (key) dims.
 
-def sphRealConvert(dataIn, method = 'std', keyDims = {'LM':['l','m']}, incConj = True, rotPhase = None):
+    TODO: handle stacking also?
+    """
+
+    if ('harmonics' not in dataIn.attrs.keys()) or ('stackDim' not in dataIn.attrs['harmonics'].keys()):
+        dataIn = checkSphDims(dataIn, keyDims)
+
+    if dataIn.attrs['harmonics']['stackDim'] in dataIn.dims:
+        dataIn =  dataIn.unstack(dataIn.attrs['harmonics']['stackDim'])
+        dataIn.attrs['harmonics']['LMStackFlag'] = True
+
+    return dataIn
+
+
+def sphRealConvert(dataIn, method = 'std', keyDims = None, incConj = True, rotPhase = None):
     """
     Convert real harmonics to complex form.
 
@@ -178,8 +227,9 @@ def sphRealConvert(dataIn, method = 'std', keyDims = {'LM':['l','m']}, incConj =
         - 'sh': Set terms as per SHtools definitions, https://shtools.github.io/SHTOOLS/complex-spherical-harmonics.html
                 Note this form has purely real or purely imaginary terms.
 
-    keyDims : dict, optional, default = {'LM':['l','m']}
+    keyDims : dict, optional, default = None
         Defines dim names for harmonic rank and order, and stacked dim name.
+        If None, get standard names from YLMdimList() (=={'LM':['l','m']}).
 
     incConj : bool, optional, default = True
         Set opposite sign M term as conjugate in conversion.
@@ -188,6 +238,7 @@ def sphRealConvert(dataIn, method = 'std', keyDims = {'LM':['l','m']}, incConj =
     rotPhase : float, optional, default = None
         If not None, apply additional phase rotation by exp(-i*rotPhase), i.e. rotate phase about Z-axis.
         To match SHtools defn. set rotPhase = -np.pi/2 which will flip (x,y) axes.
+        NOTE: CURRENTLY NOT CORRECT IN GENERAL
 
     Returns
     -------
@@ -221,8 +272,12 @@ def sphRealConvert(dataIn, method = 'std', keyDims = {'LM':['l','m']}, incConj =
     #     dataCalc =  dataCalc.unstack(stackDim)
     #     LMStackFlag = True
 
+    if keyDims is None:
+        keyDims = YLMdimList(sType = 'sDict')   # Set to default dim names.
+
     # Functional version - returns above params to dataCalc.attrs['harmonics']
-    dataCalc = checkSphDims(dataCalc, keyDims)
+    # dataCalc = checkSphDims(dataCalc, keyDims)  # 22/09/22 - use separate check and unstack funs now
+    dataCalc = unstackSphDims(dataCalc, keyDims)
     mDim = dataCalc.attrs['harmonics']['mDim']  # For brevity below.
 
     #*** METHODS
@@ -241,7 +296,7 @@ def sphRealConvert(dataIn, method = 'std', keyDims = {'LM':['l','m']}, incConj =
 
         # Set conjugate pairs?
         if incConj:
-            dataC = xr.concat([dataCalc.sel({mDim:0}), nonZeroM, sphMswap(nonZeroM)], dim=mDim)
+            dataC = xr.concat([dataCalc.sel({mDim:0}), nonZeroM, sphConj(nonZeroM)], dim=mDim)
         else:
             dataC = xr.concat([dataCalc.sel({mDim:0}), nonZeroM], dim=mDim)
 
@@ -260,7 +315,7 @@ def sphRealConvert(dataIn, method = 'std', keyDims = {'LM':['l','m']}, incConj =
 
         # Set conjugate pairs?
         if incConj:
-            dataC = xr.concat([dataCalc.sel({mDim:0}), nonZeroM, sphMswap(nonZeroM)], dim=mDim)
+            dataC = xr.concat([dataCalc.sel({mDim:0}), nonZeroM, sphConj(nonZeroM)], dim=mDim)
         else:
             dataC = xr.concat([dataCalc.sel({mDim:0}), nonZeroM], dim=mDim)
 
@@ -276,7 +331,7 @@ def sphRealConvert(dataIn, method = 'std', keyDims = {'LM':['l','m']}, incConj =
 
         if incConj:
             # Generate +/-m pairs from above
-            dataC = xr.concat([dataC, sphMswap(dataC.where(dataC[mDim]!=0))], dim=mDim)  #, coords='minimal')
+            dataC = xr.concat([dataC, sphConj(dataC.where(dataC[mDim]!=0))], dim=mDim)  #, coords='minimal')
             # dataCp = dataCp.sortby(keyDims[stackDim]).stack(keyDims).dropna(dim=stackDim,how='all')
 
     else:
@@ -293,11 +348,17 @@ def sphRealConvert(dataIn, method = 'std', keyDims = {'LM':['l','m']}, incConj =
     # dataC = dataC.sortby(keyDims[stackDim]).stack(keyDims).dropna(dim=stackDim,how='all')  # Sort dims, stack and clean up.
     dataC = dataC.sortby(dataCalc.attrs['harmonics']['dimList']).stack(keyDims).dropna(dim=dataCalc.attrs['harmonics']['stackDim'],how='all')  # Sort dims, stack and clean up.
 
-    dataC.attrs['harmonics'] = {'dtype':'Complex harmonics',
-                                'kind':'complex',
-                                'method': method,
-                                'incConj':incConj,
-                                'keyDims':keyDims}
+
+    # Propagate attrs
+    dataC.attrs.update(dataCalc.attrs)
+    # dataC = checkSphDims(dataC, keyDims)  # Will also unstack!
+    dataC.attrs['harmonics'].update(YLMtype(method={'sphRealConvert':method},incConj=incConj,keyDims=keyDims))
+
+    # dataC.attrs['harmonics'] = {'dtype':'Complex harmonics',
+    #                             'kind':'complex',
+    #                             'method': method,
+    #                             'incConj':incConj,
+    #                             'keyDims':keyDims}
 
     return dataC
 
@@ -403,11 +464,11 @@ def sphRealConvert(dataIn, method = 'std', keyDims = {'LM':['l','m']}, incConj =
 
 
 
-def sphMswap(dataIn, cleanOutput = True):
+def sphConj(dataIn, cleanOutput = True):
     """
-    Compute +/-m sign switch as conjugate harmonics from Xarray.
+    Compute conjugate harmonics from Xarray (includes +/-m sign switch).
 
-    Ylm = conj((-1)^m * Yl,-m)
+    Yl,m = conj((-1)^m * Yl,-m)
 
     Basic dim handling with checkSphDims(dataIn) implemented, but should generalise.
 

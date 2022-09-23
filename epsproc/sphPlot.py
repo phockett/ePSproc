@@ -286,7 +286,7 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = N
 # TODO: More plot types.
 # TODO: More careful testing - not totally sure if summation & axes consistent here.
 # TODO: add dim checks, see classes._plotters.padPlot for some existing implementations.
-def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convention = 'phys', titleString = None, plotFlag = True, verbose = True):
+def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convention = 'phys', titleString = None, plotFlag = True, verbose = True, axisUW = None):
     '''
     Plot sum of spherical harmonics from an Xarray.
 
@@ -328,6 +328,9 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
     plotFlag : bool, optional, default = True
         Set plotFlag=False bypass for plotter object return only. (Required for Plotly backend only.)
 
+    axisUW : str, optional, default = None
+        Unwrap axis for phase maps, only used if pType = 'phaseUW'
+
     Returns
     -------
     fig
@@ -357,8 +360,11 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
     # (theta,phi) grid from Xarray coords
     theta, phi = np.meshgrid(dataPlot.Theta, dataPlot.Phi)
 
+    if dataPlot.min() < 0:
+        print(f"*** WARNING: plot dataset has min value < 0, min = {dataPlot.min()}. This may be unphysical and/or result in plotting issues.")
+
     # Set data according to type of plot selected
-    dataPlot = plotTypeSelector(dataPlot, pType = pType)
+    dataPlot = plotTypeSelector(dataPlot, pType = pType, axisUW = axisUW)
 
     # Set main plot title if not passed.
     if titleString is None:

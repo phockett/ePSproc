@@ -249,6 +249,9 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = N
         if hasattr(BLMX,'normType') and (fnType is None):
             fnType = BLMX.attrs['normType']
             print(f'Using {fnType} betas (from BLMX array).')
+        elif hasattr(BLMX,'harmonics') and (fnType is None):
+            fnType = BLMX.attrs['harmonics']['kind']
+            print(f'Using {fnType} betas (from BLMX array).')
         elif fnType is not None:
             print(f'Using {fnType} betas (as passed).')
         else:
@@ -361,7 +364,7 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
     theta, phi = np.meshgrid(dataPlot.Theta, dataPlot.Phi)
 
     if dataPlot.min() < 0:
-        print(f"*** WARNING: plot dataset has min value < 0, min = {dataPlot.min()}. This may be unphysical and/or result in plotting issues.")
+        print(f"*** WARNING: plot dataset has min value < 0, min = {dataPlot.min().values}. This may be unphysical and/or result in plotting issues.")
 
     # Set data according to type of plot selected
     dataPlot = plotTypeSelector(dataPlot, pType = pType, axisUW = axisUW)

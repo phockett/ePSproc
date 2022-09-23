@@ -151,13 +151,22 @@ def ADMdimList(sType = 'stacked'):
         return ['K','Q','S','t']
 
 
-def YLMtype(dtype='Complex harmonics',kind='complex',
+def YLMtype(dtype=None,kind='complex',
             normType= 'ortho', csPhase= True, **kwargs):
     """
     Return dict of specified YLM parameters.
     """
 
     # return locals()
+
+    # Set long name if required - bit redundant
+    if dtype is None:
+        if kind == 'complex':
+            dtype = 'Complex harmonics'
+        elif kind == 'real':
+            dtype = 'Real harmonics'
+        else:
+            dtype = 'NA'
 
     # Allow for kwargs and unpack to base dict.
     out = {k:v for k,v in locals().items() if k != 'kwargs'}

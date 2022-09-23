@@ -420,6 +420,7 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
         Flag for output. If true, output is Xarray. If false, np.arrays
     fnType : str, optional, default = 'sph'
         Currently can set to 'sph' for SciPy spherical harmonics, or 'lg' for SciPy Legendre polynomials.
+        23/09/22 - hacked in 'complex' and 'real' here too, but TODO: split by kind and backend.
         More backends to follow.
     convention : str, optional, default = 'phys'
         Set to 'phys' (theta from z-axis) or 'maths' (phi from z-axis) spherical polar conventions.
@@ -500,7 +501,7 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
     for l in np.arange(Lmin,Lmax+1):
         for m in np.arange(-l,l+1):
             lm.append([l, m])
-            if fnType == 'sph':
+            if (fnType == 'sph') or (fnType == 'complex'):  # 23/09/22 - hacked in 'complex' here too, but TODO: split by kind and backend
                 if convention == 'maths':
                     # Ylm.append(sph_harm(m,l,theta,phi))
                     Ylm.append(sph_harm(m,l,TP[0],TP[1]))  # For SciPy.special.sph_harm() 'maths' convention is enforced.
@@ -550,7 +551,7 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
 
 
         # Metadata
-        if (fnType == 'sph') or (fnType == 'real'):
+        if (fnType == 'sph') or (fnType == 'real') or (fnType == 'complex'):
             # Define meta data
             fnName = 'scipy.special.sph_harm'  # Should generalise to fn.__name__ - although may be less informative.
 
@@ -587,8 +588,6 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
             #                             }
             # YlmX.attrs['harmonics'] = epsproc.util.listFuncs.YLMtype(dtype='Legendre polynomials', normType= None)
             YlmX.attrs['harmonics'] = listFuncs.YLMtype(dtype='Legendre polynomials', normType= None)
-
-
 
 
         # Set units

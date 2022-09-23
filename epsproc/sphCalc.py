@@ -460,6 +460,7 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
 
     - additional backends.
     - remove hard-coded dim names for flexibility (or set from ref YLMdimList())
+    - remove 'fnType' and/or use 'kind' instead (SHtool notation)
 
 
     '''
@@ -516,6 +517,26 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
                 elif convention == 'phys':
                     Ylm.append(lpmv(m,l,np.cos(TP[0])))
 
+            # Generate REAL harmonics as linear combinations of re + im parts.
+            elif fnType == 'real':
+                if convention == 'maths':
+                    # Ylm.append(sph_harm(m,l,theta,phi))
+                    # Ylm.append(sph_harm(m,l,TP[0],TP[1]))  # For SciPy.special.sph_harm() 'maths' convention is enforced.
+                    spC = sph_harm(np.abs(m),l,TP[0],TP[1])
+                elif convention == 'phys':
+                    # Ylm.append(sph_harm(m,l,phi,theta))
+                    # Ylm.append(sph_harm(m,l,TP[1],TP[0]))
+                    spC = sph_harm(np.abs(m),l,TP[1],TP[0])
+
+                # Method adapted from https://scipython.com/blog/visualizing-the-real-forms-of-the-spherical-harmonics/
+                # See also https://en.wikipedia.org/wiki/Spherical_harmonics#Real_form
+                if m < 0:
+                    Ylm.append(np.sqrt(2) * (-1)**np.abs(m) * spC.imag)
+                elif m > 0:
+                    Ylm.append(np.sqrt(2) * (-1)**np.abs(m) * spC.real)
+                else:
+                    Ylm.append(spC.real)   # Force real for m=0
+
             else:
                 print(f"fnType {fnType} not supported.")
 
@@ -529,7 +550,7 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
 
 
         # Metadata
-        if fnType == 'sph':
+        if (fnType == 'sph') or (fnType == 'real'):
             # Define meta data
             fnName = 'scipy.special.sph_harm'  # Should generalise to fn.__name__ - although may be less informative.
 
@@ -544,6 +565,11 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
             #                             }
             # YlmX.attrs['harmonics'] = epsproc.util.listFuncs.YLMtype()
             YlmX.attrs['harmonics'] = listFuncs.YLMtype()
+
+        # Update attrs for real type only
+        if fnType == 'real':
+            YlmX.attrs['harmonics'] = listFuncs.YLMtype(dtype='Real harmonics',kind='real')
+
 
         if fnType == 'lg':
             # Define meta data
@@ -561,6 +587,9 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
             #                             }
             # YlmX.attrs['harmonics'] = epsproc.util.listFuncs.YLMtype(dtype='Legendre polynomials', normType= None)
             YlmX.attrs['harmonics'] = listFuncs.YLMtype(dtype='Legendre polynomials', normType= None)
+
+
+
 
         # Set units
         YlmX.attrs['units'] = 'arb'

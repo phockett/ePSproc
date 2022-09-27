@@ -39,6 +39,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm, colors
 
+import copy    # For attrs deepcopy.
+
 # Plotly (optional)
 try:
     import plotly.graph_objects as go
@@ -216,32 +218,44 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = N
     '''
 
     #*** Check dataType
+    BLMX = BLMXin.copy()  # Default case
 
-    # For ADMs, can use this plotting routine if S=0 only.
-    # NOTE - this should work if other singleton dims are present, but will need to explicitly set facetDims for plots, otherwise will throw an error
-    if (BLMXin.attrs['dataType'] == 'ADM'):
-        if all(BLMXin.S == 0):
-            # NOTE: Squeeze here to kill S dim, but this will also drop (l,m) if singleton. Needs a fix.
-            # TODO: fix this!
-            # UPDATE 05/01/22: in testing with XR v0.15 this is OK without squeeze(). Have left in with additional dim check for now/safety.
-            #                   EDIT: actually better with .squeeze('S') to be explict and ensure OK for arb dims.
-            BLMX = BLMXin.copy().unstack('ADM').rename({'K':'l', 'Q':'m'}).drop('S').stack({'BLM':('l','m')}).squeeze('S')
+    if 'dataType' in BLMXin.attrs.keys():
+        # For ADMs, can use this plotting routine if S=0 only.
+        # NOTE - this should work if other singleton dims are present, but will need to explicitly set facetDims for plots, otherwise will throw an error
+        if (BLMXin.attrs['dataType'] == 'ADM'):
+            if all(BLMXin.S == 0):
+                # NOTE: Squeeze here to kill S dim, but this will also drop (l,m) if singleton. Needs a fix.
+                # TODO: fix this!
+                # UPDATE 05/01/22: in testing with XR v0.15 this is OK without squeeze(). Have left in with additional dim check for now/safety.
+                #                   EDIT: actually better with .squeeze('S') to be explict and ensure OK for arb dims.
+                BLMX = BLMXin.copy().unstack('ADM').rename({'K':'l', 'Q':'m'}).drop('S').stack({'BLM':('l','m')}).squeeze('S')
 
-            # if BLMX.l.size > 1:
-            #     BLMX = BLMX.squeeze()
+                # if BLMX.l.size > 1:
+                #     BLMX = BLMX.squeeze()
 
+            else:
+                print('***ADM set with non-zero S, skipping Ylm routine.')
+                BLMX = None
+
+        # For normal BLMs, no action required.
+        elif BLMXin.attrs['dataType'] == 'BLM':
+            # BLMX = BLMXin
+            pass
+
+        # Default case - set as BLM case but include dataType warning.
         else:
-            print('***ADM set with non-zero S, skipping Ylm routine.')
-            BLMX = None
+            print(f"*** sphPlot dataType = {BLMXin.attrs['dataType']} not recognised, trying anyway.")
+            # BLMX = BLMXin
 
-    # For normal BLMs, no action required.
-    elif BLMXin.attrs['dataType'] == 'BLM':
-        BLMX = BLMXin
-
-    # Default case - set as BLM case but include dataType warning.
     else:
-        print(f"*** sphPlot dataType = {BLMXin.attrs['dataType']} not recognised, trying anyway.")
-        BLMX = BLMXin
+        print("*** sphPlot no dataType set. Trying anyway. Set data.attrs['dataType'] for more control.")
+        # BLMX = BLMXin
+
+    # Ensure attrs are deepcopied
+    BLMX.attrs = copy.deepcopy(BLMXin.attrs)  # THIS WORKS ALSO FOR NESTED DICT CASE
+                                            # Definitely required in XR2022.3, 2022.6, but should be fixed in later versions, see https://github.com/pydata/xarray/issues/2835
+
 
     fig = None
     if BLMX is not None:
@@ -260,11 +274,17 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = N
 
 
         YLMX = sphCalc(BLMX.l.max(), res=res, fnType=fnType, conj = conj)
-        YLMX = YLMX.rename({'LM':'BLM'})    # Switch naming for multiplication & plotting
+
+        if 'BLM' in BLMX.dims:
+            YLMX = YLMX.rename({'LM':'BLM'})    # Switch naming for multiplication & plotting
 
         # Calculate MFPADs (theta,phi)
         dataPlot = BLMX*YLMX
-        dataPlot = dataPlot.rename({'BLM':'LM'})    # Switch naming back for plotting function
+
+        # 27/09/22 VERY basic dim name handling added here, but should generalise.
+        if 'BLM' in dataPlot.dims:
+            dataPlot = dataPlot.rename({'BLM':'LM'})    # Switch naming back for plotting function
+
         # dataPlot.attrs = BLMX.attrs # Ensure attrs propagated
         # dataPlot.attrs.update(YLMX.attrs)  # Add YLMX attrs - may overwrite
         dataPlot.attrs = YLMX.attrs # Ensure attrs propagated

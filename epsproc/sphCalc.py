@@ -531,10 +531,14 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
 
                 # Method adapted from https://scipython.com/blog/visualizing-the-real-forms-of-the-spherical-harmonics/
                 # See also https://en.wikipedia.org/wiki/Spherical_harmonics#Real_form
+                # NOTE: Condon-Shortley phase (-1)**np.abs(m) removed here, since it's in the Ylm defn. already.
                 if m < 0:
-                    Ylm.append(np.sqrt(2) * (-1)**np.abs(m) * spC.imag)
+                    # Ylm.append(np.sqrt(2) * (-1)**np.abs(m) * spC.imag)
+                    Ylm.append(np.sqrt(2) * spC.imag)
                 elif m > 0:
-                    Ylm.append(np.sqrt(2) * (-1)**np.abs(m) * spC.real)
+                    # Ylm.append(np.sqrt(2) * (-1)**np.abs(m) * spC.real)
+                    Ylm.append(np.sqrt(2) * spC.real)
+
                 else:
                     Ylm.append(spC.real)   # Force real for m=0
 

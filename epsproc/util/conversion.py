@@ -383,6 +383,9 @@ def conv_BL_BLM(data, to = 'sph', renorm = True):
     dataOut.attrs = data.attrs
     dataOut.attrs['normType'] = to
 
+    if 'harmonics' in dataOut.attrs.keys():
+        dataOut.attrs['harmonics']['dtype'] = to
+
     return dataOut
 
 #

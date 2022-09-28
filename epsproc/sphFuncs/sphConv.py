@@ -14,6 +14,7 @@ import xarray as xr
 import copy    # For attrs deepcopy.
 
 from epsproc.util.listFuncs import genLM, YLMtype, YLMdimList
+from epsproc.util.conversion import multiDimXrToPD
 
 try:
     import pyshtools as pysh
@@ -173,11 +174,17 @@ def checkSphDims(dataIn, keyDims = None):
     TODO: should use ep.util.misc.checkDims here?
     TODO: check other dim handling functionality, may be reinventing things here.
     TODO: flag or separate func for unstack? May be confusing otherwise.
+    TODO: check .attrs['harmonics']? This is currently implemented in unstackSphDims(), but not here.
 
     """
 
     if keyDims is None:
         keyDims = YLMdimList(sType = 'sDict')   # Set to default dim names.
+
+        if 'BLM' in dataIn.dims:
+            # dataIn = dataIn.rename({'BLM':'LM'})    # Switch naming to match defaults - UGLY.
+            keyDims['BLM'] = keyDims.pop('LM')
+
 
     LMStackFlag = False
     stackDim = list(keyDims.keys())[0]
@@ -214,7 +221,30 @@ def unstackSphDims(dataIn, keyDims = None):
     return dataIn
 
 
-def sphRealConvert(dataIn, method = 'std', keyDims = None, incConj = True, rotPhase = None):
+def tabulateLM(data, fillna = True):
+    """
+    Display set of B(L,M) values using Pandas.
+
+    Thin wrapper for :py:func:`epsproc.multiDimXrToPD` for BLM data types or SHtools object.
+
+    NOTE: currently returns pdTab, may want to switch to display.
+    """
+
+    if isinstance(data,pysh.shclasses.SHCoeffs):
+        dataIn = XRcoeffsFromSH(data)
+    else:
+        dataIn = data.copy()
+
+    dataIn = unstackSphDims(dataIn)
+
+    pdTab, _ = multiDimXrToPD(dataIn.squeeze(drop=True).sortby(dataIn.attrs['harmonics']['dimList']), rowDims=dataIn.attrs['harmonics']['lDim'], fillna=fillna)
+
+    return pdTab
+
+
+
+
+def sphRealConvert(dataIn, method = 'sh', keyDims = None, incConj = True, rotPhase = None, addCSphase = False):
     """
     Convert real harmonics to complex form.
 
@@ -229,12 +259,13 @@ def sphRealConvert(dataIn, method = 'std', keyDims = None, incConj = True, rotPh
         Must contain keyDims (stacked or unstacked).
         TODO: generalise this, should get from :py:func:`epsproc.util.listFuncs.getRefDims()`.
 
-    method : str, optional, default = 'std'
+    method : str, optional, default = 'sh'
+        - 'sh': Set terms as per SHtools definitions, https://shtools.github.io/SHTOOLS/complex-spherical-harmonics.html
+                Note this form has purely real or purely imaginary terms.
         - 'std': Set +/-m terms from |m| real harmonics as per wikipedia defn, https://en.wikipedia.org/wiki/Spherical_harmonics#Real_form
                 Note: this form currently assumes only +M or -M for any given term, and also sets conjugates upon conversion if incConj=True.
                 This may be phase-rotated relative to SHtools convention.
-        - 'sh': Set terms as per SHtools definitions, https://shtools.github.io/SHTOOLS/complex-spherical-harmonics.html
-                Note this form has purely real or purely imaginary terms.
+                NOTE: THIS METHOD CURRENTLY FAILS - phase issues somewhere, produces incorrect expansions in complex harmonics.
 
     keyDims : dict, optional, default = None
         Defines dim names for harmonic rank and order, and stacked dim name.
@@ -248,6 +279,12 @@ def sphRealConvert(dataIn, method = 'std', keyDims = None, incConj = True, rotPh
         If not None, apply additional phase rotation by exp(-i*rotPhase), i.e. rotate phase about Z-axis.
         To match SHtools defn. set rotPhase = -np.pi/2 which will flip (x,y) axes.
         NOTE: CURRENTLY NOT CORRECT IN GENERAL
+
+    addCSphase : bool, optional, default = False
+        Apply additional Condon-Shortley (-1)^m term to swap phase/rotation direction?
+        In general don't need this for consistency with Scipy derived harmonics, which already include CS phase.
+        May need in some cases for consistency in (x,y) orientation of expanded distribution.
+
 
     Returns
     -------
@@ -271,6 +308,7 @@ def sphRealConvert(dataIn, method = 'std', keyDims = None, incConj = True, rotPh
     dataCalc = dataIn.copy()
     # dataCalc.attrs = dataIn.attrs.copy()   # XR issue with attrs copy? Works for base dict, but not nested dicts.
     dataCalc.attrs = copy.deepcopy(dataIn.attrs)  # THIS WORKS ALSO FOR NESTED DICT CASE
+                                                  # Definitely required in XR2022.3, 2022.6, but should be fixed in later versions, see https://github.com/pydata/xarray/issues/2835
 
     #*** Basic dim handling
     # TODO: should use checkDims here
@@ -283,8 +321,8 @@ def sphRealConvert(dataIn, method = 'std', keyDims = None, incConj = True, rotPh
     #     dataCalc =  dataCalc.unstack(stackDim)
     #     LMStackFlag = True
 
-    if keyDims is None:
-        keyDims = YLMdimList(sType = 'sDict')   # Set to default dim names.
+    # if keyDims is None:
+    #     keyDims = YLMdimList(sType = 'sDict')   # Set to default dim names.
 
     # Functional version - returns above params to dataCalc.attrs['harmonics']
     # dataCalc = checkSphDims(dataCalc, keyDims)  # 22/09/22 - use separate check and unstack funs now
@@ -299,8 +337,10 @@ def sphRealConvert(dataIn, method = 'std', keyDims = None, incConj = True, rotPh
         # Compute for all m, subselect +/- later.
         # plusMcase = ((-1)**np.abs(dataCalc.m))/np.sqrt(2)*(dataCalc + 1j*dataCalc)
         # plusMcase = ((-1)**np.abs(dataIn.m))/np.sqrt(2)*(dataIn + 1j*dataIn)  # For -ve m may need abs(m) here
-        negMcase = (1/np.sqrt(2))*(dataCalc - 1j*dataCalc)
-        plusMcase = ((-1)**np.abs(dataCalc[mDim]))/np.sqrt(2)*(dataCalc + 1j*dataCalc)
+        negMcase = ((-1)**np.abs(dataCalc[mDim]))/np.sqrt(2)*(dataCalc - 1j*dataCalc)
+        # negMcase = (1/np.sqrt(2))*(dataCalc - 1j*dataCalc)
+        # plusMcase = ((-1)**np.abs(dataCalc[mDim]))/np.sqrt(2)*(dataCalc + 1j*dataCalc)
+        plusMcase = (1/np.sqrt(2))*(dataCalc + 1j*dataCalc)   # WITHOUT CS phase
 
         # Concat from various parts - OK.
         nonZeroM = xr.concat([plusMcase.where(plusMcase[mDim]>0, drop=True),  negMcase.where(negMcase[mDim]<0, drop=True)], dim=mDim)  # Keep all m in both cases
@@ -343,8 +383,10 @@ def sphRealConvert(dataIn, method = 'std', keyDims = None, incConj = True, rotPh
 
         if incConj:
             # Generate +/-m pairs from above
-            dataC = xr.concat([dataC, sphConj(dataC.where(dataC[mDim]!=0))], dim=mDim)  #, coords='minimal')
+            # 27/09/22: added `stackOutput = False` to force dims to match input in updated sphConj() function.
+            dataC = xr.concat([dataC, sphConj(dataC.where(dataC[mDim]!=0), stackOutput = False)], dim=mDim)  #, coords='minimal')
             # dataCp = dataCp.sortby(keyDims[stackDim]).stack(keyDims).dropna(dim=stackDim,how='all')
+
 
     else:
         print(f"*** sphRealConvert(method = {method}) not recognised.")
@@ -353,19 +395,28 @@ def sphRealConvert(dataIn, method = 'std', keyDims = None, incConj = True, rotPh
 
 
     #*** Tidy up
+
+    # Swap phase/rotation direction - need this for consistency with (x,y) orientation in current case.
+    # May indicate inconsistently applied Condon-Shortley phase elsewhere?
+    # UPDATE: yes, matches case for SHtools csphase = -1, which should be correct since this is included in Ylm definitions herein.
+    # UPDATE2: Now fixed in real Ylm definitions.
+    if addCSphase:
+        dataC = (-1)**np.abs(dataC.m) * dataC
+
+    # ADDITIONAL PHASE ROTATION
     if rotPhase is not None:
         # To match SHtools defn. set rotPhase = -np.pi/2 which will flip (x,y) axes.
         dataC = dataC * np.exp(-1j*rotPhase)
 
     # dataC = dataC.sortby(keyDims[stackDim]).stack(keyDims).dropna(dim=stackDim,how='all')  # Sort dims, stack and clean up.
-    dataC = dataC.sortby(dataCalc.attrs['harmonics']['dimList']).stack(keyDims).dropna(dim=dataCalc.attrs['harmonics']['stackDim'],how='all')  # Sort dims, stack and clean up.
+    dataC = dataC.sortby(dataCalc.attrs['harmonics']['dimList']).stack(dataCalc.attrs['harmonics']['keyDims']).dropna(dim=dataCalc.attrs['harmonics']['stackDim'],how='all')  # Sort dims, stack and clean up.
 
 
     # Propagate attrs
     dataC.attrs.update(dataCalc.attrs)
     # dataC.attrs = dataCalc.attrs.copy()
     # # dataC = checkSphDims(dataC, keyDims)  # Will also unstack!
-    dataC.attrs['harmonics'].update(YLMtype(method={'sphRealConvert':method},incConj=incConj,keyDims=keyDims))
+    dataC.attrs['harmonics'].update(YLMtype(method={'sphRealConvert':method},incConj=incConj))  #,keyDims=keyDims))
 
     # dataC.attrs['harmonics'] = {'dtype':'Complex harmonics',
     #                             'kind':'complex',
@@ -477,7 +528,7 @@ def sphRealConvert(dataIn, method = 'std', keyDims = None, incConj = True, rotPh
 
 
 
-def sphConj(dataIn, cleanOutput = True):
+def sphConj(dataIn, stackOutput = True, cleanOutput = True):
     """
     Compute conjugate harmonics from Xarray (includes +/-m sign switch).
 
@@ -488,6 +539,8 @@ def sphConj(dataIn, cleanOutput = True):
     """
 
     dataCalc = dataIn.copy()
+    dataCalc.attrs = copy.deepcopy(dataIn.attrs)  # THIS WORKS ALSO FOR NESTED DICT CASE
+                                                  # Definitely required in XR2022.3, 2022.6, but should be fixed in later versions, see https://github.com/pydata/xarray/issues/2835
 
     # LMStackFlag = False
     # if 'LM' in dataCalc.dims:
@@ -501,8 +554,9 @@ def sphConj(dataIn, cleanOutput = True):
 
     # Always run? This avoids issues with passed attrs in some cases (e.g. if set on a different dataIn style)
     # TODO: overwrite option?
-    dataCalc = checkSphDims(dataCalc)   # Just run with default keyDims - needs rationalisation.
+    # dataCalc = checkSphDims(dataCalc)   # Just run with default keyDims - needs rationalisation.
     dataCalc = unstackSphDims(dataCalc)   # Not sure if required here? But might simplify restacking logic later.
+                                          # UPDATE: now also runs checkSphDims if required.
 
     mDim = dataCalc.attrs['harmonics']['mDim']  # For brevity below.
 
@@ -513,7 +567,7 @@ def sphConj(dataIn, cleanOutput = True):
     if cleanOutput:
         dataOut = dataOut.dropna(dim=mDim,how='all')
 
-    if dataCalc.attrs['harmonics']['LMStackFlag']:
+    if stackOutput and dataCalc.attrs['harmonics']['LMStackFlag']:
         dataOut = dataOut.stack(dataCalc.attrs['harmonics']['keyDims'])
 
         # Tidy again?

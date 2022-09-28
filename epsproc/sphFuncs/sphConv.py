@@ -568,13 +568,15 @@ def sphRealConvert(dataIn, method = 'sh', keyDims = None, incConj = True, rotPha
 
 
 
-def sphConj(dataIn, stackOutput = True, cleanOutput = True):
+def sphConj(dataIn, stackOutput = True, cleanOutput = True, keepAttrs = True):
     """
     Compute conjugate harmonics from Xarray (includes +/-m sign switch).
 
     Yl,m = conj((-1)^m * Yl,-m)
 
     Basic dim handling with checkSphDims(dataIn) implemented, but should generalise.
+
+    TODO: add switch for (-1)^m term - should drop for csphase=False case?
 
     """
 
@@ -613,5 +615,8 @@ def sphConj(dataIn, stackOutput = True, cleanOutput = True):
         # Tidy again?
         if cleanOutput:
             dataOut = dataOut.dropna(dim=dataCalc.attrs['harmonics']['stackDim'],how='all')
+
+    if keepAttrs:
+        dataOut.attrs = dataCalc.attrs
 
     return dataOut

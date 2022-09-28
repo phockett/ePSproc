@@ -180,6 +180,62 @@ def timeStamp():
     return dt.strftime("%d-%m-%y_%H-%M-%S")
 
 
+def setDefaultArgs(defaults={}, presetDict = {}, method = 'defaultKeys', **kwargs):
+    """
+    Set default function arguments from dictionaries.
+
+    Set and update defaults dict from presetDict and any other passed kwargs.
+
+
+    Parameters
+    ----------
+    defaults : dict, optional, default = {}
+        Default values for function (which must be set).
+
+    presetDict : dict, optional, default = {}
+        Preset values, e.g. from another function or object.
+
+    method : str, optional, default = 'defaultKeys'
+        - defaultKeys: set outputs according to keys found in defaults.keys() only.
+        - presetDictKeys: set outputs including *all* keys found in presetDict.keys().
+
+    Returns
+    -------
+    defaults : dict
+        Updated according to method.
+        Note this is modified in-place unless a copy is explicitly passed to the function.
+
+
+    """
+    # print(defaults)
+    # print(kwargs)
+
+    # Update defaults - could also use .update() if not None testing? See alt method below.
+    if method == 'defaultKeys':
+        for k in defaults.keys():
+            # Set from setDict if specified
+            if (k in presetDict.keys()):
+                defaults[k] = presetDict[k]
+
+            # Set from kwargs if specified, except if None - allows for propagation of setDict setting.
+            if (k in kwargs.keys()):   # and (defaults[k] is None):
+                if kwargs[k] is not None:
+                    defaults[k] = kwargs[k]
+
+    # This will add ALL values to defaults - may be problematic in some cases.
+    elif method == 'presetDictKeys':
+        defaults.update(presetDict)
+
+        {defaults[k]:v for k,v in defaults.items() if (k in kwargs.keys()) and (kwargs[k] is not None)}
+        # for k in defaults.keys():
+        #     # Set from kwargs if specified, except if None - allows for propagation of setDict setting.
+        #     if (k in kwargs.keys()):   # and (defaults[k] is None):
+        #         if kwargs[k] is not None:
+        #             defaults[k] = kwargs[k]
+
+    # print(defaults)
+    return defaults
+
 
 def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
     """

@@ -15,6 +15,7 @@ import copy    # For attrs deepcopy.
 
 from epsproc.util.listFuncs import genLM, YLMtype, YLMdimList
 from epsproc.util.conversion import multiDimXrToPD
+from epsproc.util.misc import setDefaultArgs
 
 try:
     import pyshtools as pysh
@@ -31,26 +32,62 @@ except ImportError as e:
 # npTab = dfLong.to_numpy()
 # clm = pysh.SHCoeffs.from_zeros(lmax = 6)   # Defaults to kind = 'real'
 
-def SHcoeffsFromXR(dataIn, kind = None, keyDims = None):
+# def SHcoeffsFromXR(dataIn, kind = None, keyDims = None):
+def SHcoeffsFromXR(dataIn, keyDims = None, **kwargs):
     """
     Xarray Spherical Harmonic coeffs to SHtools
+
+    Parameters
+    ----------
+    dataIn : Xarray
+        Data to convert.
+
+    keyDims : dict, optional, default = None
+        Passed to checkSphDims(dataIn, keyDims).
+        If None use defaults.
+
+    **kwargs : optional conversion args.
+        Any valid args for conversion.
+        If not specified dataIn.atts['harmonics'] settings will be used present, otherwise defaults will be used.
+        Note names may not match SHtools naming.
+        Defaults set as:
+        defaults = {'kind':'complex','normType':'ortho','csPhase':True,}
+
+
+    Notes
+    ------
 
     MAY HAVE BETTER VERSION ELSEWHERE?
 
     This will only work for 1D array -- will need to slice/group for more general handling.
 
     TODO: update with general l,m dim names and handling, see checkSphDims()
+
     """
 
-    # Use settings on input array, or passed kind if set
-    if ('kind' in dataIn.attrs.keys()) and (kind is None):
-        kind = dataIn.attrs['kind']
+    # # Use settings on input array, or passed kind if set
+    # if ('kind' in dataIn.attrs.keys()) and (kind is None):
+    #     kind = dataIn.attrs['kind']
+    #
+    # elif ('harmonics' in dataIn.attrs.keys()) and (kind is None):
+    #     kind = dataIn.attrs['harmonics']['kind']
+    #
+    # elif kind is None:
+    #     kind = 'complex'
 
-    elif ('harmonics' in dataIn.attrs.keys()) and (kind is None):
-        kind = dataIn.attrs['harmonics']['kind']
+    # UPDATE 28/09/22 - use flexible setDefaultArgs function.
+    defaults = {'kind':'complex',
+                # 'keyDims':ep.listFuncs.YLMdimList(sType = 'sDict'),     # Set to default dim names.}
+                'normType':'ortho',
+                'csPhase':True,
+               }
 
-    elif kind is None:
-        kind = 'complex'
+    if 'harmonics' in dataIn.attrs.keys():
+        presetDict = dataIn.attrs['harmonics']
+
+    setDefaultArgs(**locals(), **kwargs)  # Use setDefaults to check defaults vs. presetDict and any other locals()
+                                          # NEED **kwargs to prevent nested dicts in locals()? Must be a better way?
+                                          # Note this updated defaults dict in place.
 
 
     # Dim handling
@@ -63,7 +100,10 @@ def SHcoeffsFromXR(dataIn, kind = None, keyDims = None):
 #         kind = kind
 
     # Init zeros SHtools coeffs object & populate
-    clm = pysh.SHCoeffs.from_zeros(lmax = dataIn[lDim].max().values, kind = kind)
+    # clm = pysh.SHCoeffs.from_zeros(lmax = dataIn[lDim].max().values, kind = kind)  # Minimal call
+
+    # Include defaults{}. Note can't simply use **defaults as some names/items are different!
+    clm = pysh.SHCoeffs.from_zeros(lmax = dataIn[lDim].max().values, kind = defaults['kind'], normalization = defaults['normType'], csphase = 1 if defaults['csPhase'] else -1)
     clm.set_coeffs(dataIn.values, dataIn[lDim].astype(int), dataIn[mDim].astype(int))  # NEEDS (values, ls, ms)
 
     return clm

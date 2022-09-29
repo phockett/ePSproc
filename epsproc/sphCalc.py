@@ -401,7 +401,7 @@ def setBLMs(BLMs = [0,0,1], LMLabels = None,   # keyDims = {},
 
 
 # Calculate a set of sph function
-def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph', convention = 'phys', conj = False):
+def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 'sph', convention = 'phys', conj = False, realCSphase = False):
     r'''
     Calculate set of spherical harmonics Ylm(theta,phi) on a grid.
 
@@ -427,6 +427,9 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
         (Might need some work!)
     conj : bool, optional, default = False
         Return complex conjugate.
+    realCSphase : bool, optional, default = False
+        Apply (-1)^m term in real harmonics calc.
+        Generally will already be included in complex spherical harmonics defn., so can be left as False.
 
 
     Note that either res OR angs needs to be passed.
@@ -449,6 +452,27 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
         \begin{equation}
         Y_{l,m}(\theta,\phi) = (-1)^m\sqrt{\frac{2l+1}{4\pi} \frac{(l-m)!}{(l+m)!}}e^{i m \phi} P^m_l(\cos(\theta))
         \end{equation}
+
+    And for real harmonics:
+
+    .. math::
+        \begin{equation}
+        \begin{aligned}
+        Y_{\ell m}&={\begin{cases}{\sqrt {2}}\,\Im [{Y_{\ell }^{|m|}}]&{\text{if}}\ m\lt0
+        \\Y_{\ell }^{0}&{\text{if}}\ m=0
+        \\{\sqrt {2}}\,\Re [{Y_{\ell }^{m}}]&{\text{if}}\ m\gt0.\end{cases}}
+        \end{aligned}
+        \end{equation}
+
+    See https://en.wikipedia.org/wiki/Spherical_harmonics#Real_form.
+
+    Demos:
+
+    - Complex: https://epsproc.readthedocs.io/en/dev/special_topics/ePSproc_docs_working_with_spherical_harmonics_200922.html
+    - Real: https://epsproc.readthedocs.io/en/dev/special_topics/ePSproc_docs_working_with_real_harmonics_220922.html
+    - For scipy backend, realCSphase = False case matches SHtools defn, see https://epsproc.readthedocs.io/en/dev/special_topics/ePSproc_docs_working_with_real_harmonics_220922.html#Converting-coefficients-real-to-complex-form
+
+
 
     Example
     -------
@@ -532,12 +556,21 @@ def sphCalc(Lmax = 2, Lmin = 0, res = None, angs = None, XFlag = True, fnType = 
                 # Method adapted from https://scipython.com/blog/visualizing-the-real-forms-of-the-spherical-harmonics/
                 # See also https://en.wikipedia.org/wiki/Spherical_harmonics#Real_form
                 # NOTE: Condon-Shortley phase (-1)**np.abs(m) removed here, since it's in the Ylm defn. already.
+                #       Although may be required if not using abs(m) above?
+                #       UPDATE: now added as an option, may be needed for some back-ends.
+                #       For scipy backend, realCSphase = False case matches SHtools defn, see https://epsproc.readthedocs.io/en/dev/special_topics/ePSproc_docs_working_with_real_harmonics_220922.html#Converting-coefficients-real-to-complex-form
+
+                if realCSphase:
+                    phase = (-1)**np.abs(m)
+                else:
+                    phase = 1
+
                 if m < 0:
                     # Ylm.append(np.sqrt(2) * (-1)**np.abs(m) * spC.imag)
-                    Ylm.append(np.sqrt(2) * spC.imag)
+                    Ylm.append(phase * np.sqrt(2) * spC.imag)
                 elif m > 0:
                     # Ylm.append(np.sqrt(2) * (-1)**np.abs(m) * spC.real)
-                    Ylm.append(np.sqrt(2) * spC.real)
+                    Ylm.append(phase * np.sqrt(2) * spC.real)
 
                 else:
                     Ylm.append(spC.real)   # Force real for m=0

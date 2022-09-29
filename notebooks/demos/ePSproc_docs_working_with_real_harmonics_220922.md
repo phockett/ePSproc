@@ -72,6 +72,8 @@ Y_{\ell m}&={\begin{cases}{\sqrt {2}}\,\Im [{Y_{\ell }^{|m|}}]&{\text{if}}\ m\lt
 \\{\sqrt {2}}\,\Re [{Y_{\ell }^{m}}]&{\text{if}}\ m\gt0.\end{cases}}
 \end{aligned}
 
+(For a basic python routine, see [Visualizing the real forms of the spherical harmonics](https://scipython.com/blog/visualizing-the-real-forms-of-the-spherical-harmonics/).)
+
 +++
 
 ## Imports
@@ -157,7 +159,7 @@ This currently (Sept. 2022) has two methods implemented for conversion:
         This may be phase-rotated relative to SHtools convention.
         NOTE: THIS METHOD CURRENTLY FAILS - phase issues somewhere, produces incorrect expansions in complex harmonics.
         
-A basic demo is given below. In general, plotting the original and converted forms is a good test of consistency here, and SHtools can also be used directly as an independent method.
+A basic demo is given below. In general, plotting the original and converted forms is a good test of consistency here, and SHtools can also be used directly as an independent method and cross-check (note, however, that this will only work for 1D cases, whilst `sphRealConvert()` will work accross any N-dimensional Xarray).
 
 ```{code-cell} ipython3
 # Basic distribution
@@ -185,7 +187,10 @@ BLMconvSH
 # Create SHtools object - note some additional settings may need to be specified
 sh = SHcoeffsFromXR(BLM)   #, kind = 'real')
 shC = sh.convert(kind = 'complex')   #, csphase =1 , normalization='4pi')  # Optional conversion options, will be taken from BLM.attrs['harmonics'] if not set
+shC
+```
 
+```{code-cell} ipython3
 # shC.coeffs   # Display array
 tabulateLM(XRcoeffsFromSH(shC))  # Display table
 ```
@@ -198,6 +203,7 @@ tabulateLM(BLMconvSH)
 ```{code-cell} ipython3
 # Plot maps with SHtools
 
+# Original REAL case
 # SHtools expand on grid & plot
 lmaxGrid = 10
 grid = sh.expand(lmax = lmaxGrid)
@@ -205,6 +211,7 @@ grid.plot(colorbar='right')
 ```
 
 ```{code-cell} ipython3
+# SHtools real > complex case
 grid = shC.expand(lmax = lmaxGrid)
 grid.plot(colorbar='right')
 ```
@@ -215,6 +222,10 @@ shC2 = SHcoeffsFromXR(BLMconvSH)
 grid = shC2.expand(lmax = lmaxGrid)
 grid.plot(colorbar='right')
 ```
+
+Looks good.
+
++++
 
 ## Versions
 

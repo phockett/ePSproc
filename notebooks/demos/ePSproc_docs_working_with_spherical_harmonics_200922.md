@@ -30,7 +30,7 @@ I(\theta,\phi)=\sum_{l,m}\beta_{l,m}Y_{l,m}(\theta,\phi)\label{eq:sph-harmonics}
 
 For additional control and conversion, the [SHtools library can also be used](https://shtools.github.io/SHTOOLS/complex-spherical-harmonics.html) - this includes some useful utility functions including converting between different forms (e.g. real and complex forms), and basic plotters.
 
-For use of real spherical harmonics, see the [*working with real harmonics notebook*](ePSproc_docs_working_with_real_harmonics_200922.html).
+For use of real spherical harmonics, see the ['working with real harmonics notebook'](ePSproc_docs_working_with_real_harmonics_200922.html).
 
 
 ## Expansions in Legendre polynomials
@@ -294,7 +294,7 @@ sphConj(Bpos)
 
 To convert values to [SHtools objects](https://shtools.github.io/SHTOOLS/index.html), use `epsproc.sphFuncs.sphConv.SHcoeffsFromXR()`. Note this currently (Sept. 2022) only supports 1D input arrays.
 
-For a list of SHtools object methods, see [the SHtools `SHCoeffs` class docs](https://shtools.github.io/SHTOOLS/python-shcoeffs.html).
+For a list of SHtools object methods, see [the SHtools 'SHCoeffs' class docs](https://shtools.github.io/SHTOOLS/python-shcoeffs.html).
 
 ```{code-cell} ipython3
 BLMallrand

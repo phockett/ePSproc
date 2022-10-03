@@ -15,6 +15,8 @@ Main function: :py:func:`epsproc.IO.readMatEle`:
 
 History
 -------
+03/10/22        Added basic R-matrix code dipoles IO.
+
 27/06/22        Moved some backend functionality for read/write data to submodule ioBackends.
                 Also adding additional backends for data/class file IO therein.
 
@@ -81,7 +83,7 @@ from epsproc.util.misc import fileListSort, restack
 from epsproc.util.env import isnotebook
 
 # IO backends
-from epsproc.ioBackends import xrIO, hdf5IO
+from epsproc.ioBackends import xrIO, hdf5IO, rMatrixIO
 
 # Set HTML output style for Xarray in notebooks (optional), may also depend on version of Jupyter notebook or lab, or Xr
 # See http://xarray.pydata.org/en/stable/generated/xarray.set_options.html
@@ -1589,7 +1591,8 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
 #TODO: Check/fix paths if incorrectly passed, e.g. https://stackoverflow.com/a/21605790
 # ADDED: type switch for matEle or EDCS, probably more to come. Should rename function!
 
-def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'DumpIdy', verbose = 1, stackE = True):
+def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'DumpIdy', verbose = 1,
+                stackE = True, stackDim = 'Eke'):
     r"""
     Read ePS file(s) and return results as Xarray data structures.
     File endings specified by fType, default *.out.
@@ -1623,6 +1626,10 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
 
     stackE : bool, optional, default = True
         Identify and stack multi-part jobs to single array (by E) if True.
+
+    stackDim : bool, optional, default = 'Eke'
+        Dim to stack.
+        Note if stackE=True, any dim can be set here (not just E).
 
     Returns
     -------
@@ -1668,10 +1675,23 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
     fList = getFiles(fileIn = fileIn, fileBase = fileBase, fType = fType, verbose = verbose)
 
     # Check if job is multipart, and stack files if so, based on filename prefix
+    # 03/10/22: this currently fails for Rmat format files, since name format is not covered in fileListSort/sortGroupFn - should generalise.
     if stackE:
         fListSorted, fListGrouped, prefixStr = fileListSort(fList, verbose = verbose)
 
+    # elif recordType == 'Rmat':
+    #     # UGLY hack on file name for R-matrix dipole types, in testing files are `pwdips-POL.txt`
+    #     fList = [f for f in fList if 'pwdips' in f]
+    #     fListGrouped = [fList]  # Default case, just use fList here.
+    #     prefixStr = ''
+
     else:
+        fListGrouped = [fList]  # Default case, just use fList here.
+        prefixStr = ''
+
+    if recordType == 'Rmat':
+        # UGLY hack on file name for R-matrix dipole types, in testing files are `pwdips-POL.txt`
+        fList = [f for f in fList if 'pwdips' in f]
         fListGrouped = [fList]  # Default case, just use fList here.
         prefixStr = ''
 
@@ -1738,6 +1758,23 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
                 lines, dumpSegs = getCroFileParse(file, verbose = verbose)
                 data, blankSegs = getCroSegsParseX(dumpSegs, symSegs, ekeList)
 
+            # Basic file IO for R-matrix dipoles - may not be general(?)
+            # 03/10/22 v1
+            if recordType == 'Rmat':
+                (lines, channelSegs) = rMatrixIO.RmatChannelSeg(file)
+
+                # Read header lines with offset determined above.
+                headerSegs = rMatrixIO.RmatHeader(file, lines[0][0]-1)
+
+                # Read dipoles
+                (lines, dumpSegs) = rMatrixIO.RmatDipoles(file)
+
+                # Parse dipoles
+                dipoles, attr = rMatrixIO.RmatDipolesSegParse(dumpSegs[0])
+                # dipolesX = RmatDipolesSegParseX(dipoles, channelSegs, headerSegs, fileIn)
+                data = rMatrixIO.RmatDipolesSegParseX(dipoles, channelSegs, headerSegs, file)
+                blankSegs = 0 # Don't need this here?
+
 
 
             # Add some additional properties to the output
@@ -1770,14 +1807,18 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
 
         else:
             if stackFlag:
-                dataSet.append(xr.combine_nested(dataStack, concat_dim = ['Eke']).sortby('Eke'))
+                dataSet.append(xr.combine_nested(dataStack, concat_dim = [stackDim]))
+
+                # 03/10/22 - sort separately to allow for more stacking flexibility - this fails with labelled dims for instance.
+                if stackDim == 'Eke':
+                    dataSet[-1] = dataSet[-1].sortby(stackDim)
 
                 # Propagate attribs for stacked case
                 dataSet[-1].attrs = dataStack[0].attrs
                 dataSet[-1].attrs['fileList'] = fList
 
                 if verbose:
-                    print(f"\n*** Stacked {len(fList)} files, prefix {prefixStr}, by Eke ({dataSet[-1].Eke.size} points).")
+                    print(f"\n*** Stacked {len(fList)} files, prefix {prefixStr}, by {stackDim} ({dataSet[-1][stackDim].size} points).")
 
             else:
                 dataSet[-1].attrs['fileList'] = dataSet[-1].attrs['file']  # Set also for single file case

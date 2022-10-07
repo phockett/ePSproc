@@ -143,7 +143,7 @@ class ePSmultiJob(ePSbase):
                 print(f"Found ePS output files in root dir {self.jobs['fileBase']}.")
 
 
-    def scanFiles(self, keys = None, outputKeyType = 'dir'):
+    def scanFiles(self, keys = None, outputKeyType = 'dir', **kwargs):
         """
         Scan ePS output files from dir list.
 
@@ -220,7 +220,7 @@ class ePSmultiJob(ePSbase):
                 outputKey = outputKeyType
 
             # Call super class to handle reading per dir
-            super().scanFiles(dataPath = dataPath, reset = False, keyType = outputKey)
+            super().scanFiles(dataPath = dataPath, reset = False, keyType = outputKey, **kwargs)
             #********** IN PROGRESS!
 
 #             # For dir scan

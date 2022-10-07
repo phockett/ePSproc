@@ -12,7 +12,7 @@ from epsproc import readMatEle, headerFileParse, molInfoParse, multiDimXrToPD, p
 from epsproc.util.summary import getOrbInfo, molPlot
 from epsproc.util.env import isnotebook
 
-def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'orb'):
+def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'orb', **kwargs):
     """
     Scan ePS output files from a dir for multiple data types. Sort data, and set to list/dict/Xarray structures.
 
@@ -49,6 +49,15 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
         'int': Use integer labels as dataset keys (will be ordered by file read)
         Any other setting will result in key = keyType, which can be used to explicitly pass a key (e.g. in multijob wrapper case). This should be tidied up.
 
+    **kwags : optional
+        Additional args passed to base ep.readMatEle() routine.
+        For non-standard files, set as required by readMatEle(), and some post-processing will be skipped.
+        E.g. to read R-matrix, run with `self.scanFiles(fType=fType, recordType='Rmat', stackDim = 'LF', keyType='name')`
+
+
+    07/10/22    Added **kwargs and alternative IO post-processing for other file types.
+                Quite messy, should tidy main loop and integrate.
+
     """
 
     # Allow dir & file override here for subclasses/independent use
@@ -71,13 +80,22 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
     # dsXS = xr.Dataset()  # Set blank dataset
     # dsMatE = xr.Dataset()
 
-    # Read fileset
-    # 13/10/20 with updated sorting code, this should return
-    # - a one-element list for a dir with Eke split files.
-    # - a multi-element list for a dir with multiple jobs.
-    # - Note cross-over with multiJob class in latter case.
-    dataSetXS = readMatEle(fileBase = dataPath, fileIn = fileIn, recordType = 'CrossSection', verbose = self.verbose['sub'])  # Set for XS + betas only
-    dataSetMatE = readMatEle(fileBase = dataPath, fileIn = fileIn, recordType = 'DumpIdy', verbose = self.verbose['sub'])
+    # 07/10/22 - added general file wrapper here for non-default cases
+    if 'recordType' in kwargs.keys():
+        dataSetMatE = readMatEle(fileBase = dataPath, fileIn = fileIn, verbose = self.verbose['sub'], **kwargs)
+        # dataSetXS = dataSetMatE.copy()   # Just set as a copy (redundant here) - gives issues with XS looping below.
+        # dataSetXS = None
+        dataSetXS = []   # This will skip further processing loop below.
+
+    # Default ePS case
+    else:
+        # Read fileset
+        # 13/10/20 with updated sorting code, this should return
+        # - a one-element list for a dir with Eke split files.
+        # - a multi-element list for a dir with multiple jobs.
+        # - Note cross-over with multiJob class in latter case.
+        dataSetXS = readMatEle(fileBase = dataPath, fileIn = fileIn, recordType = 'CrossSection', verbose = self.verbose['sub'])  # Set for XS + betas only
+        dataSetMatE = readMatEle(fileBase = dataPath, fileIn = fileIn, recordType = 'DumpIdy', verbose = self.verbose['sub'])
 
     # Log some details - currently not passed directly from readMatEle()
     # NOTE - with updated code, this is now in data.fileList
@@ -111,19 +129,23 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
         # Set orb info
         dataSetXS[m].attrs['orbX'], dataSetXS[m].attrs['orbInfo'] = getOrbInfo(item.attrs['jobInfo'], item.attrs['molInfo'])
 
-        # Additional labels, use these in plotting routines later
-        # Try/except here to allow for different formats, fallback to full comment line.
-        try:
-            dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
-            dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
-        except IndexError:
-            dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1]
-            dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1]
+        # 07/10/22 - skip for empty comments case
+        if dataSetXS[m].attrs['jobInfo']['comments']:
+            # Additional labels, use these in plotting routines later
+            # Try/except here to allow for different formats, fallback to full comment line.
+            try:
+                dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+                dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+            except IndexError:
+                dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1]
+                dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1]
 
 
-        # Set absolute photon energy
-        dataSetXS[m]['Ehv'] = (item['Ehv'] - (float(item.jobInfo['IPot']) + item.orbX['E'].data[0])).round(self.Edp)
-        dataSetMatE[m]['Ehv'] = (dataSetMatE[m]['Ehv'] - (float(item.jobInfo['IPot']) + item.orbX['E'].data[0])).round(self.Edp)
+        # 07/10/22 - skip for missing IPot case
+        if 'IPot' in dataSetXS[m].attrs['jobInfo'].keys():
+            # Set absolute photon energy
+            dataSetXS[m]['Ehv'] = (item['Ehv'] - (float(item.jobInfo['IPot']) + item.orbX['E'].data[0])).round(self.Edp)
+            dataSetMatE[m]['Ehv'] = (dataSetMatE[m]['Ehv'] - (float(item.jobInfo['IPot']) + item.orbX['E'].data[0])).round(self.Edp)
 
         # jobNotes.append({ 'batch': dataXS[m].jobInfo['comments'][0].strip('#').strip(),
         #                 'event': dataXS[m].jobInfo['comments'][1].split(',', maxsplit=1)[1].strip(),
@@ -191,6 +213,63 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
         # dsSet[key]['job'] = {'dir': dataPath, 'fN': fN, 'files': fList}
         dsSet[key]['job'] = {'dir': item.attrs['fileBase'], 'fN': fN, 'files': fList}  # Set individual fileBase here for cases when dataPath=None
         fNTotal += fN
+
+
+    # 07/10/22 - case for no XS data (e.g. different file type)
+    if not dataSetXS:
+        # Set other attribs from source files
+        for m, item in enumerate(dataSetMatE):
+            # Set job info from first datafile of each set (orbital)
+            # For Eke stated cases, this will use single file only, and assume identical props.
+            dataFile = Path(item.attrs['fileBase'], item.attrs['file'])
+            dataSetMatE[m].attrs['jobInfo'] = headerFileParse(dataFile, verbose = self.verbose['sub'])
+            dataSetMatE[m].attrs['molInfo'] = molInfoParse(dataFile, verbose = self.verbose['sub'])
+
+
+            #*** Set outputs to dict.
+            # Set key
+            if keyType == 'orb':
+                # key = f"orb{item.orbX['orb'].data[0]}"
+                #
+                # if key in dsSet.keys():
+                #     key = f"orb{item.orbX['orb'].data[0]}-{m}"  # Add m if key already exists to avoid overwrite.
+
+                # Orb not set in this case - default to int.
+                key = m
+
+            # Use int key. This might cause issues for multiJob wrapper
+            elif keyType == 'int':
+                key = m
+
+            # 07/10/22 - use name?
+            elif keyType == 'name':
+                key = item.name
+
+            # 06/04/21 Crude hack for multiJob case to pass preset key (for dir stacking with no overwrite for bond scan case)
+            else:
+                key = keyType
+
+            # Set as xr.ds(), staked by dataType, one per job/orbital
+            # Note stacking all jobs can be problematic due to alignment of dims - so use one Dataset per job as model for now.
+            #             dsSet[f"orb{item.orbX['orb'].data[0]}"] = xr.Dataset({'XS':dataSetXS[m], 'matE':dataSetMatE[m]})
+
+            # Issues with using xr.Dataset for objects with some different dimensions - use dict instead?
+            # May want to use an xr.Dataset for computed properties however? In that case dims should match.
+            dsSet[key] = {'XS':None, 'matE':dataSetMatE[m],
+                          'jobNotes':None}
+
+            # Set additional metadata, was previously in self.job, but set here for shared key
+            if isinstance(item.attrs['fileList'], list):
+                fList = item.attrs['fileList']
+            else:
+                fList = [item.attrs['fileList']]
+
+            fN = len(fList)
+
+            # dsSet[key]['job'] = {'dir': dataPath, 'fN': fN, 'files': fList}
+            dsSet[key]['job'] = {'dir': item.attrs['fileBase'], 'fN': fN, 'files': fList}  # Set individual fileBase here for cases when dataPath=None
+            fNTotal += fN
+
 
 
 

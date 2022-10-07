@@ -507,110 +507,126 @@ def molInfoParse(fileName, verbose = True):
         print('\n*** Found atoms')
         print(*atomList, sep='\n')
 
-    # Sort orbs to np.array
-    orbTable = []
-    [orbTable.append(parseLineDigits(orb)) for orb in orbList]
-    orbTable = np.asarray(orbTable).astype('float')
+    # 07/10/22 - if/else to skip empty cases here and return None.
+    if orbList:
+        # Sort orbs to np.array
+        orbTable = []
+        [orbTable.append(parseLineDigits(orb)) for orb in orbList]
+        orbTable = np.asarray(orbTable).astype('float')
 
-    # # Convert to Xarray - now moved below to include additional orb info.
-    # cols = ['N', 'EH', 'Occ', 'E']
-    # orbTableX = xr.DataArray(orbTable[:,1:], coords = {'orb':orbTable[:,0], 'props':cols}, dims=['orb','props'])
+        # # Convert to Xarray - now moved below to include additional orb info.
+        # cols = ['N', 'EH', 'Occ', 'E']
+        # orbTableX = xr.DataArray(orbTable[:,1:], coords = {'orb':orbTable[:,0], 'props':cols}, dims=['orb','props'])
 
-    # 26/03/21 - moved labels here with basic dim check to allow for different output in ePS build 3885d87
-    if 'SymOrb' in orbList[0]:
-        orbListCols = ['N', 'SymOrb', 'EH', 'Occ', 'E']
-        EHind = 3
+        # 26/03/21 - moved labels here with basic dim check to allow for different output in ePS build 3885d87
+        if 'SymOrb' in orbList[0]:
+            orbListCols = ['N', 'SymOrb', 'EH', 'Occ', 'E']
+            EHind = 3
+        else:
+            orbListCols = ['N', 'EH', 'Occ', 'E']
+            EHind = 2
+
+        orbTable = np.c_[orbTable, conv_ev_atm(orbTable[:,EHind], to='ev')]  # Convert to eV and add to array
+        EVind = orbTable.shape[1] - 2  # Set E index for Xarray conv later.
+
+        # Sort coords to np.array
+        atomTable = []
+        [atomTable.append(parseLineDigits(atom)) for atom in atomList]
+        atomTable = np.asarray(atomTable).astype('float')
+
+        # Convert to Xarray
+        cols = ['Z', 'Zs', 'x', 'y', 'z']
+        atomTableX = xr.DataArray(atomTable, coords = {'atom':np.arange(1,atomTable.shape[0]+1), 'props':cols}, dims=['atom','props'])
+
+
+        #*** Additional info from other segments
+
+        # Read SymProd output, this lists orbs by symmetry & degenerate groups
+        startPhrase = "SymProd - Construct products of symmetry types" # Read from top of file
+        endPhrase = ["Time Now ="]  # In this case only have a single end phrases, but need to pass as list to avoid iterating over phrase
+        (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, verbose = verbose)
+
+        # Convert lines to useful values
+        orbSet = []
+        orbList = []
+        orbSymList = []
+
+        # Parse for specific line beginnings only ... For grouping, easier to explicitly check values?
+
+        # Parse 'Set' and 'Orbital' lines
+        lineStart = ['Set', 'Orbital']
+        for item in dumpSegs[0]:
+            if(item[2].startswith(lineStart[0])):
+                orbSet.append(np.asarray(parseLineDigits(item[2])).astype('int'))
+
+            if(item[2].startswith(lineStart[1])):
+                temp = item[2].split()
+
+                # Assign values
+                if len(temp) == 12:
+                    orbList.append([temp[4], temp[7], temp[11], orbSet[-1][0], orbSet[-1][1]])
+                    orbSymList.append(temp[10])
+
+        # Convert final results to np.array
+        orbList = np.asarray(orbList).astype('int')
+        temp = np.c_[orbTable[:,1:], orbList[:,1:]]
+
+        # Parse ExpOrb output to check orbital expansion convergence
+        startPhrase = "ExpOrb - Single Center Expansion Program" # Read from top of file
+        endPhrase = ["Time Now ="]  # In this case only have a single end phrases, but need to pass as list to avoid iterating over phrase
+        (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, verbose = verbose)
+
+        # Parse 'Orbital' lines
+        # Note - these are orbital groups
+        orbIntList = []
+        for item in dumpSegs[0]:
+            if(item[2].startswith('Orbital')):
+                # temp = item[2].split()
+                # orbIntList.append(parseLineDigits(item[2]))
+                orbMetrics = parseLineDigits(item[2])
+                orbIntList.append([orbMetrics[0], orbMetrics[-1]])  # Set explicitly here, length may change depending on whether symmetries have digits in!
+
+        orbIntList = np.asarray(orbIntList).astype('float')
+
+        # Assign to main table by orbGrp
+        # - THIS IS HORRIBLE, should do with Xarrays directly, or just better sorting code, but not happening right now. It's Monday.
+        ogInt = np.zeros(temp.shape[0])
+        for n, row in enumerate(temp):
+            ind = row[6] == orbIntList[:,0]  # Find corresponding row
+            ogInt[n]=orbIntList[ind, 1]  # Set int value
+
+        temp = np.c_[temp, ogInt]
+
+        #*** Set as Xarray
+        # TODO: make this neater/better!
+        # cols = ['N', 'EH', 'Occ', 'E', 'Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt']
+        orbListCols.extend(['Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt'])  # 26/03/21 adapted for new ePS build
+        orbTableX = xr.DataArray(temp, coords = {'orb':orbTable[:,0].astype(int), 'props':orbListCols}, dims=['orb','props'])  # TODO: fix type here - changes to float in Xarray...?
+        orbTableX['Sym'] = ('orb', orbSymList)  # Add symmetries, E and OrbGrp as non-dim coords - possibly not a great thing to do...?  Not easy to index with these
+        orbTableX['E'] = ('orb', temp[:,EVind])
+        orbTableX['OrbGrp'] = ('orb', orbList[:,3])
+
+        # Alternatively - add as dim coords. This duplicates data in this case, would need to sort by line or reshape array to get this working (cf. matrix elements)
+        # orbTableX = orbTableX.expand_dims({'Sym':orbSymList}) # , 'Eke':[attribs[0][1]]})
+
+        # Compile to dict
+        molInfo = {'atomList':atomList, 'atomTable':atomTableX, 'orbList':orbList, 'orbTable':orbTableX}
+
+        return molInfo
+
     else:
-        orbListCols = ['N', 'EH', 'Occ', 'E']
-        EHind = 2
-
-    orbTable = np.c_[orbTable, conv_ev_atm(orbTable[:,EHind], to='ev')]  # Convert to eV and add to array
-    EVind = orbTable.shape[1] - 2  # Set E index for Xarray conv later.
-
-    # Sort coords to np.array
-    atomTable = []
-    [atomTable.append(parseLineDigits(atom)) for atom in atomList]
-    atomTable = np.asarray(atomTable).astype('float')
-
-    # Convert to Xarray
-    cols = ['Z', 'Zs', 'x', 'y', 'z']
-    atomTableX = xr.DataArray(atomTable, coords = {'atom':np.arange(1,atomTable.shape[0]+1), 'props':cols}, dims=['atom','props'])
+        # Return None if read fails.
+        # atomList = None
+        # atomTableX = None
+        # orbList = None
+        # orbTableX = None
+        return None
 
 
-    #*** Additional info from other segments
-
-    # Read SymProd output, this lists orbs by symmetry & degenerate groups
-    startPhrase = "SymProd - Construct products of symmetry types" # Read from top of file
-    endPhrase = ["Time Now ="]  # In this case only have a single end phrases, but need to pass as list to avoid iterating over phrase
-    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, verbose = verbose)
-
-    # Convert lines to useful values
-    orbSet = []
-    orbList = []
-    orbSymList = []
-
-    # Parse for specific line beginnings only ... For grouping, easier to explicitly check values?
-
-    # Parse 'Set' and 'Orbital' lines
-    lineStart = ['Set', 'Orbital']
-    for item in dumpSegs[0]:
-        if(item[2].startswith(lineStart[0])):
-            orbSet.append(np.asarray(parseLineDigits(item[2])).astype('int'))
-
-        if(item[2].startswith(lineStart[1])):
-            temp = item[2].split()
-
-            # Assign values
-            if len(temp) == 12:
-                orbList.append([temp[4], temp[7], temp[11], orbSet[-1][0], orbSet[-1][1]])
-                orbSymList.append(temp[10])
-
-    # Convert final results to np.array
-    orbList = np.asarray(orbList).astype('int')
-    temp = np.c_[orbTable[:,1:], orbList[:,1:]]
-
-    # Parse ExpOrb output to check orbital expansion convergence
-    startPhrase = "ExpOrb - Single Center Expansion Program" # Read from top of file
-    endPhrase = ["Time Now ="]  # In this case only have a single end phrases, but need to pass as list to avoid iterating over phrase
-    (lines, dumpSegs) = fileParse(fileName, startPhrase, endPhrase, verbose = verbose)
-
-    # Parse 'Orbital' lines
-    # Note - these are orbital groups
-    orbIntList = []
-    for item in dumpSegs[0]:
-        if(item[2].startswith('Orbital')):
-            # temp = item[2].split()
-            # orbIntList.append(parseLineDigits(item[2]))
-            orbMetrics = parseLineDigits(item[2])
-            orbIntList.append([orbMetrics[0], orbMetrics[-1]])  # Set explicitly here, length may change depending on whether symmetries have digits in!
-
-    orbIntList = np.asarray(orbIntList).astype('float')
-
-    # Assign to main table by orbGrp
-    # - THIS IS HORRIBLE, should do with Xarrays directly, or just better sorting code, but not happening right now. It's Monday.
-    ogInt = np.zeros(temp.shape[0])
-    for n, row in enumerate(temp):
-        ind = row[6] == orbIntList[:,0]  # Find corresponding row
-        ogInt[n]=orbIntList[ind, 1]  # Set int value
-
-    temp = np.c_[temp, ogInt]
-
-    #*** Set as Xarray
-    # TODO: make this neater/better!
-    # cols = ['N', 'EH', 'Occ', 'E', 'Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt']
-    orbListCols.extend(['Type', 'NOrbGrp', 'OrbGrp', 'GrpDegen', 'NormInt'])  # 26/03/21 adapted for new ePS build
-    orbTableX = xr.DataArray(temp, coords = {'orb':orbTable[:,0].astype(int), 'props':orbListCols}, dims=['orb','props'])  # TODO: fix type here - changes to float in Xarray...?
-    orbTableX['Sym'] = ('orb', orbSymList)  # Add symmetries, E and OrbGrp as non-dim coords - possibly not a great thing to do...?  Not easy to index with these
-    orbTableX['E'] = ('orb', temp[:,EVind])
-    orbTableX['OrbGrp'] = ('orb', orbList[:,3])
-
-    # Alternatively - add as dim coords. This duplicates data in this case, would need to sort by line or reshape array to get this working (cf. matrix elements)
-    # orbTableX = orbTableX.expand_dims({'Sym':orbSymList}) # , 'Eke':[attribs[0][1]]})
-
-    # Compile to dict
-    molInfo = {'atomList':atomList, 'atomTable':atomTableX, 'orbList':orbList, 'orbTable':orbTableX}
-
-    return molInfo
+    # # Compile to dict
+    # molInfo = {'atomList':atomList, 'atomTable':atomTableX, 'orbList':orbList, 'orbTable':orbTableX}
+    #
+    # return molInfo
 
 
 # ************* DumpIdy parsing
@@ -1816,6 +1832,7 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
                 # Propagate attribs for stacked case
                 dataSet[-1].attrs = dataStack[0].attrs
                 dataSet[-1].attrs['fileList'] = fList
+                dataSet[-1].name = os.path.split(dataSet[-1].attrs['fileBase'])[1]   # Rename by dir?
 
                 if verbose:
                     print(f"\n*** Stacked {len(fList)} files, prefix {prefixStr}, by {stackDim} ({dataSet[-1][stackDim].size} points).")

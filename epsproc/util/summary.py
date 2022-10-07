@@ -108,30 +108,35 @@ def getOrbInfo(jobInfo, molInfo):
     # Init dict.
     orbInfo = {}
 
-    # Find which orb is ionized using ePS orb numbering.
-    orbInfo['OrbOccInit'] = jobInfo['OrbOccInit']
-    orbInfo['OrbOccFinal'] = jobInfo['OrbOcc']
+    try:
+        # Find which orb is ionized using ePS orb numbering.
+        orbInfo['OrbOccInit'] = jobInfo['OrbOccInit']
+        orbInfo['OrbOccFinal'] = jobInfo['OrbOcc']
 
-    orbInfo['iList'] = jobInfo['OrbOccInit'] - jobInfo['OrbOcc']
+        orbInfo['iList'] = jobInfo['OrbOccInit'] - jobInfo['OrbOcc']
 
-    # Get orbGrp for event
-    orbInfo['iOrbGrp'] = np.flatnonzero(orbInfo['iList']) + 1
+        # Get orbGrp for event
+        orbInfo['iOrbGrp'] = np.flatnonzero(orbInfo['iList']) + 1
 
-    # Find entries in orbTableX
-    orbX = molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True)
+        # Find entries in orbTableX
+        orbX = molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True)
 
-    # Set orb properties to structure - mainly just taking relevant entries from orbTable, but will make for easier reference later.
-    orbInfo['orbN'] = orbX.orb.data[0]
-    orbInfo['orbSym'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).coords['Sym'])
+        # Set orb properties to structure - mainly just taking relevant entries from orbTable, but will make for easier reference later.
+        orbInfo['orbN'] = orbX.orb.data[0]
+        orbInfo['orbSym'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).coords['Sym'])
 
-    orbInfo['orbIP'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).sel(props = 'E'))
-    orbInfo['orbIPH'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).sel(props = 'EH'))
+        orbInfo['orbIP'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).sel(props = 'E'))
+        orbInfo['orbIPH'] = np.unique(molInfo['orbTable'].where(molInfo['orbTable'].coords['OrbGrp'] == orbInfo['iOrbGrp'], drop = True).sel(props = 'EH'))
 
-    orbInfo['orbIPnm'] = conv_ev_nm(orbInfo['orbIP'])
-    orbInfo['orbIPcm'] = 1/orbInfo['orbIPnm']*1e7
-    orbInfo['threshold'] = np.abs(orbInfo['orbIPnm'])[0]
+        orbInfo['orbIPnm'] = conv_ev_nm(orbInfo['orbIP'])
+        orbInfo['orbIPcm'] = 1/orbInfo['orbIPnm']*1e7
+        orbInfo['threshold'] = np.abs(orbInfo['orbIPnm'])[0]
 
-    return orbX, orbInfo
+        return orbX, orbInfo
+
+    except:
+        print("*** getOrbInfo Failed to get orbital info, returning empty.")
+        return None, None
 
 
 # Print (LM) and symmetry sets with Pandas tables

@@ -40,6 +40,9 @@ from epsproc.geomFunc.mfblmGeom import (mfblmXprod,)
 # from epsproc.geomFunc.phaseCons-verified_130420 import (setPhaseConventions,)
 from epsproc.geomFunc.w3jVecMethods import (Wigner3jQNs, w3jguVecCPU,
                                             w3jprange,)
+# 11/10/22 - removed w3jguVecCPU, issues with some Numba versions.
+# from epsproc.geomFunc.w3jVecMethods import (Wigner3jQNs,
+#                                             w3jprange,)
 
 __all__ = ['EPR', 'MFproj', 'Wigner3jQNs', 'afblmGeom', 'afblmXprod',
            'betaTerm', 'deltaLMKQS', 'genKQSterms', 'genKQStermsFromTensors',
@@ -48,4 +51,5 @@ __all__ = ['EPR', 'MFproj', 'Wigner3jQNs', 'afblmGeom', 'afblmXprod',
            'remapllpL', 'selQNsRow',
            'setPhaseConventions', 'setPhaseConventions', 'w3jTable',
            'w3jVecMethods', 'w3jguVecCPU', 'w3jprange']
+           # 'w3jprange']    # Skip Vec functions?
 # </AUTOGEN_INIT>

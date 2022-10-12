@@ -1,6 +1,8 @@
 """
 Core classes for ePSproc data.
 
+12/10/22    Added phaseCorrection() wrapper.
+
 13/10/20    v1  Started class development, reverse engineering a little from multiJob.py case.
 
 
@@ -28,6 +30,7 @@ from epsproc import mfpad, plotTypeSelector, writeXarray, readXarray
 from epsproc.MFPAD import mfWignerDelay
 from epsproc.geomFunc.afblmGeom import afblmXprod, AFwfExp
 from epsproc.geomFunc.mfblmGeom import mfblmXprod
+from epsproc.calc.phases import phaseCorrection
 
 class ePSbase():
     """
@@ -352,6 +355,55 @@ class ePSbase():
 
             # Using function
             self.data[key]['wigner'] = mfWignerDelay(self.data[key]['TX'], pType = pType)
+
+
+
+    def phaseCorrection(self, keys = None, cPhase = None, lPhase = True, **kwargs):
+        """
+        Phase correction function - apply Coulomb (or other) phase corrections.
+
+        Wraps :py:func:`epsproc.calc.phases.phaseCorrection()` for self.data[key] items.
+
+        Results are set to self.data[key]['matE'] and self.data[key]['phaseCorr']  (this stores additional phase term only).
+
+        Parameters
+        ----------
+        keys : str, int or list, optional, default = None
+            If set, use only these datasets (keys).
+            Otherwise run for all datasets in self.data.
+
+        cPhase : Xarray, optional, default = None
+            Coulomb phases to use.
+            If None, compute these for input array using :py:func:`epsproc.calc.phases.coulombPhase()` function.
+            **kwargs are also passed to :py:func:`epsproc.calc.phases.coulombPhase()`
+
+        lPhase : bool, default = True
+            Apply :math:`i^{-l}` term?
+            Skip this term if false
+
+        **kwargs : optional keyword args
+            Passed to :py:func:`epsproc.calc.phases.coulombPhase()`
+
+        TODO: fix ugly .unstack('LM') included here, should use smart dim handling.
+
+        """
+
+        # Check/set keys
+        keys = self._keysCheck(keys)
+
+        # Loop over datasets & store output
+        for key in keys:
+
+            dataCorr, phaseCorr = phaseCorrection(self.data[key]['matE'].unstack('LM'), cPhase = cPhase, lPhase = lPhase, **kwargs)
+
+            # Propagate attrs
+            dataCorr.attrs = self.data[key]['matE'].attrs
+            phaseCorr.attrs = self.data[key]['matE'].attrs
+            # TX.attrs['dataType'] = 'mfpad'
+
+            self.data[key]['matE'] = dataCorr.stack({'LM':['l','m']})
+            self.data[key]['phaseCorr'] = phaseCorr
+
 
 
     # **** Quick hack IO for dataarrays

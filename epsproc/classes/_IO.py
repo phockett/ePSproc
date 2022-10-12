@@ -70,6 +70,12 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
 #         else:
 #             self.job['fileBase']
 
+    # 07/10/22 - use self.job['ext'] as default case, and always pass fType.
+    if 'fType' in kwargs.keys():
+        fType = kwargs.pop('fType')
+    else:
+        fType = self.job['ext']
+
 
     # Remove existing data?
     if reset:
@@ -82,7 +88,7 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
 
     # 07/10/22 - added general file wrapper here for non-default cases
     if 'recordType' in kwargs.keys():
-        dataSetMatE = readMatEle(fileBase = dataPath, fileIn = fileIn, verbose = self.verbose['sub'], **kwargs)
+        dataSetMatE = readMatEle(fileBase = dataPath, fileIn = fileIn, fType = fType, verbose = self.verbose['sub'], **kwargs)
         # dataSetXS = dataSetMatE.copy()   # Just set as a copy (redundant here) - gives issues with XS looping below.
         # dataSetXS = None
         dataSetXS = []   # This will skip further processing loop below.
@@ -94,8 +100,8 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
         # - a one-element list for a dir with Eke split files.
         # - a multi-element list for a dir with multiple jobs.
         # - Note cross-over with multiJob class in latter case.
-        dataSetXS = readMatEle(fileBase = dataPath, fileIn = fileIn, recordType = 'CrossSection', verbose = self.verbose['sub'])  # Set for XS + betas only
-        dataSetMatE = readMatEle(fileBase = dataPath, fileIn = fileIn, recordType = 'DumpIdy', verbose = self.verbose['sub'])
+        dataSetXS = readMatEle(fileBase = dataPath, fileIn = fileIn,  fType = fType, recordType = 'CrossSection', verbose = self.verbose['sub'])  # Set for XS + betas only
+        dataSetMatE = readMatEle(fileBase = dataPath, fileIn = fileIn,  fType = fType, recordType = 'DumpIdy', verbose = self.verbose['sub'])
 
     # Log some details - currently not passed directly from readMatEle()
     # NOTE - with updated code, this is now in data.fileList

@@ -350,7 +350,8 @@ class ePSmultiJob(ePSbase):
             # Set from self.job, this data is overwritten for each dir
             # jobs[n] = {'dir': dirScan, 'fN': self.job['fN'], 'fList': self.job['files']}
             jobs[n] = {'dir': dirScan, 'fN':self.job['fN'],
-                        'fileList': self.data[outputKey]['job']['files'].copy()}
+                       'fileList': self.data[list(self.data.keys())[-1]]['job']['files'].copy()}  # Use last key in dict (==last added)
+                        # 'fileList': self.data[outputKey]['job']['files'].copy()}   # Only works if key=outputKey
                         # 'fileList': [self.data[key]['job']['files'] for key in self.data.keys()]}  # All keys
 
         self.dataSets = self.data  # Just set pointer for now, but should be redundant in reworked class with flat data dict

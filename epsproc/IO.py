@@ -1347,6 +1347,10 @@ def matEleGroupDimX(daIn):
     data : Xarray
         Data array with reordered matrix elements (dimensions).
 
+    NOTE Oct 2022: this is currently failing at 'it' restack in XR >2022.3, likely due to change in selectors?
+    See https://github.com/phockett/ePSproc/issues/64
+    Should rewrite in any case!
+
     """
 
     daRedList = []
@@ -1367,7 +1371,7 @@ def matEleGroupDimX(daIn):
     daRedList = []
     uVals = np.unique(daRed.it)
     for n, val in enumerate(uVals):
-        tmp = matEleSelector(daRed, inds = {'it':val})
+        tmp = matEleSelector(daRed, inds = {'it':val})  #, sq = True)
         tmp = tmp.expand_dims({'it':[val]})
         daRedList.append(tmp)
 

@@ -441,7 +441,7 @@ def sphRealConvert(dataIn, method = 'sh', keyDims = None, incConj = True, rotPha
     # UPDATE: yes, matches case for SHtools csphase = -1, which should be correct since this is included in Ylm definitions herein.
     # UPDATE2: Now fixed in real Ylm definitions.
     if addCSphase:
-        dataC = (-1)**np.abs(dataC.m) * dataC
+        dataC = (-1)**np.abs(dataC.m) * dataC   # Note abs(m) here, can't ** with -ve ints, but doesn't affect result in this case.
 
     # ADDITIONAL PHASE ROTATION
     if rotPhase is not None:

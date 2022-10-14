@@ -3,6 +3,7 @@
 
 import pytest
 from pathlib import Path
+import pickle
 
 # ePSproc
 import epsproc as ep
@@ -19,6 +20,18 @@ def setDataPath():
     dataPath = Path(epDemoDataPath, 'photoionization')
 
     return dataPath
+
+# Data as fixutre?
+@pytest.fixture(scope="module")
+def dataSingle(setDataPath):
+    dataPath = setDataPath
+    dataFile = Path(dataPath, 'n2_3sg_0.1-50.1eV_A2.inp.out')  # Set for sample N2 data for testing
+
+    # Scan data file
+    dataSet = ep.readMatEle(fileIn = dataFile.as_posix())
+    data = dataSet[0]
+
+    return data
 
 
 def test_ePS_read(setDataPath, capsys):
@@ -48,6 +61,36 @@ def test_ePS_read(setDataPath, capsys):
 
     assert captured.out == loadRef(fileName = 'ePS_read_ref.txt')
     # print('OK')
+
+
+def test_pickle_write(dataSingle):
+
+    data = dataSingle
+
+    # Save a dictionary
+    # with open(Path(dataPath, 'n2_3sg_0.1-50.1eV_A2_dict.pickle'), 'wb') as handle:
+    #     pickle.dump(dataDict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    # Save an Xarray
+    # with open(Path(dataPath, 'n2_3sg_0.1-50.1eV_A2_XR.pickle'), 'wb') as handle:
+    with open('n2_3sg_0.1-50.1eV_A2_XR.pickle', 'wb') as handle:
+        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def test_pickle_read(dataSingle):
+
+    data = dataSingle
+
+    # Read back in to test
+    # with open(Path(dataPath, 'n2_3sg_0.1-50.1eV_A2_XR.pickle'), 'rb') as handle:
+    with open('n2_3sg_0.1-50.1eV_A2_XR.pickle', 'rb') as handle:
+        dataDictPklIn = pickle.load(handle)
+
+    assert data.equals(dataDictPklIn)  # This is True
+    assert (dataDictPklIn - data).max() == 0   # And data looks OK.
+
+
+
 
 
 def loadRef(fileName = None):

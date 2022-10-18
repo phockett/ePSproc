@@ -21,27 +21,45 @@ def setDataPath():
 
     return dataPath
 
+@pytest.fixture(scope="module")
+def setDataFile(setDataPath):
+    dataPath = setDataPath
+    return Path(dataPath,'n2_3sg_0.1-50.1eV_A2').as_posix()  # Return POSIX to handle multiple suffixes later.
+                                                             # Or use .with_name?
+
+
 # Data as fixutre?
 @pytest.fixture(scope="module")
-def dataSingle(setDataPath):
-    dataPath = setDataPath
-    dataFile = Path(dataPath, 'n2_3sg_0.1-50.1eV_A2.inp.out')  # Set for sample N2 data for testing
+# def dataSingle(setDataPath):
+def dataSingle(setDataFile):
+    # dataPath = setDataPath
+    # dataFile = Path(dataPath, 'n2_3sg_0.1-50.1eV_A2.inp.out')  # Set for sample N2 data for testing
+
+    # dataFile = setDataFile.with_suffix('.inp.out')
+    dataFile = setDataFile+'.inp.out'
 
     # Scan data file
-    dataSet = ep.readMatEle(fileIn = dataFile.as_posix())
+    # dataSet = ep.readMatEle(fileIn = dataFile.as_posix())
+    dataSet = ep.readMatEle(fileIn = dataFile)
     data = dataSet[0]
 
     return data
 
 
-def test_ePS_read(setDataPath, capsys):
+def test_ePS_read(setDataPath, capsys, dataSingle, setDataFile):
     # Load data from modPath\data
-    dataPath = setDataPath
-    dataFile = Path(dataPath, 'n2_3sg_0.1-50.1eV_A2.inp.out')  # Set for sample N2 data for testing
+    # dataPath = setDataPath
+    # dataFile = Path(dataPath, 'n2_3sg_0.1-50.1eV_A2.inp.out')  # Set for sample N2 data for testing
+    dataFile = setDataFile +'.inp.out'  # One liner OK in fixture, but not in function - execution order issues.
+    # dataFile = dataFile +'.inp.out'
 
     # Scan data file
-    dataSet = ep.readMatEle(fileIn = dataFile.as_posix())
+    # dataSet = ep.readMatEle(fileIn = dataFile.as_posix())
+    dataSet = ep.readMatEle(fileIn = dataFile)
     data = dataSet[0]
+
+    # Fixture as test - should work, but need to return capsys output!
+    # data = dataSingle
 
     captured = capsys.readouterr()
     # assert captured.out == loadRef()   # Can't get this to work for basic string case, issues with loadRef() formatting.
@@ -63,7 +81,7 @@ def test_ePS_read(setDataPath, capsys):
     # print('OK')
 
 
-def test_pickle_write(dataSingle):
+def test_pickle_write(dataSingle, setDataFile):
 
     data = dataSingle
 
@@ -73,22 +91,46 @@ def test_pickle_write(dataSingle):
 
     # Save an Xarray
     # with open(Path(dataPath, 'n2_3sg_0.1-50.1eV_A2_XR.pickle'), 'wb') as handle:
-    with open('n2_3sg_0.1-50.1eV_A2_XR.pickle', 'wb') as handle:
+    dataFile = setDataFile +'_XR.pickle'
+    with open(dataFile, 'wb') as handle:
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def test_pickle_read(dataSingle):
+def test_pickle_read(dataSingle, setDataFile):
 
     data = dataSingle
 
     # Read back in to test
     # with open(Path(dataPath, 'n2_3sg_0.1-50.1eV_A2_XR.pickle'), 'rb') as handle:
-    with open('n2_3sg_0.1-50.1eV_A2_XR.pickle', 'rb') as handle:
+    dataFile = setDataFile +'_XR.pickle'
+    with open(dataFile, 'rb') as handle:
         dataDictPklIn = pickle.load(handle)
 
     assert data.equals(dataDictPklIn)  # This is True
     assert (dataDictPklIn - data).max() == 0   # And data looks OK.
 
+
+def test_hdf5_write(dataSingle):
+
+    data = dataSingle
+
+    ep.IO.writeXarray(data, fileName = 'n2_3sg_0.1-50.1eV_A2_XR.h5', filePath = None,
+                        engine = 'hdf5')   # Default case set as: engine = 'h5netcdf', forceComplex = False
+
+
+def test_hdf5_read(dataSingle):
+
+    data = dataSingle
+
+    # HDF5 file reader, note this returns both dict and Xarray formats
+    dataInDict, dataInXR = ep.IO.readXarray(fileName = 'n2_3sg_0.1-50.1eV_A2_XR.h5',
+                                            filePath = None, engine = 'hdf5')
+
+
+    # assert data.equals(dataDictPklIn)  # This fails
+    # assert data.dims == dataInXR.dims   # This may fail if dim ordering changed.
+    assert not (set(dataInXR.dims) - set(data.dims))  # Use sets to ignore ordering, returns null if OK.
+    assert (dataInXR - data).max() == 0   # And data looks OK.
 
 
 

@@ -9,8 +9,9 @@ import pickle
 import epsproc as ep
 
 # NOTE - should centralise this routine!
-# @pytest.fixture(scope="session")
-@pytest.fixture(scope="module")  # Scoping here doesn't help with class issues below.
+
+# @pytest.fixture(scope="module")  # Scoping here doesn't help with class issues below.
+@pytest.fixture(scope="session")
 def setDataPath():
     # Set data path
     # Note this is set here from ep.__path__, but may not be correct in all cases - depends on where the Github repo is.
@@ -21,15 +22,45 @@ def setDataPath():
 
     return dataPath
 
-@pytest.fixture(scope="module")
-def setDataFile(setDataPath):
+# @pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
+def setDataFileName():
+    return 'n2_3sg_0.1-50.1eV_A2'
+
+# @pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
+def setDataFile(setDataPath,setDataFileName):
     dataPath = setDataPath
-    return Path(dataPath,'n2_3sg_0.1-50.1eV_A2').as_posix()  # Return POSIX to handle multiple suffixes later.
+    return Path(dataPath,setDataFileName).as_posix()  # Return POSIX to handle multiple suffixes later.
                                                              # Or use .with_name?
+
+# Use tmp_path fixture for test data files, see https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html
+# tmp_path_factory should be better for persistence? https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-tmp-path-factory-fixture
+
+# @pytest.fixture()
+# def setTmpDataFile(tmp_path,setDataFileName,tmp_path_factory):
+@pytest.fixture(scope="session")
+def setTmpDataFile(setDataFileName,tmp_path_factory):
+    # dataPath = tmp_path  # THIS WORKS, but note that this also sets tmp dirs PER TEST FUNCTION.
+    dataPath = tmp_path_factory.mktemp("data") / setDataFileName  # SAME ISSUE - sets DATAN per N run.
+                                                                  # NEEDS scope = "session" to use single dir over all tests.
+                                                                  # Note this may fail if other fixtures are NOT session scoped.
+    return dataPath.as_posix()
+
+    # return Path(dataPath,setDataFileName).as_posix()  # Return POSIX to handle multiple suffixes later.
+                                                             # Or use .with_name?
+
+# @pytest.fixture(scope="session")
+# def image_file(tmp_path_factory):
+#     img = compute_expensive_image()
+#     fn = tmp_path_factory.mktemp("data") / "img.png"
+#     img.save(fn)
+#     return fn
 
 
 # Data as fixutre?
-@pytest.fixture(scope="module")
+# @pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 # def dataSingle(setDataPath):
 def dataSingle(setDataFile):
     # dataPath = setDataPath
@@ -50,8 +81,8 @@ def test_ePS_read(setDataPath, capsys, dataSingle, setDataFile):
     # Load data from modPath\data
     # dataPath = setDataPath
     # dataFile = Path(dataPath, 'n2_3sg_0.1-50.1eV_A2.inp.out')  # Set for sample N2 data for testing
-    dataFile = setDataFile +'.inp.out'  # One liner OK in fixture, but not in function - execution order issues.
-    # dataFile = dataFile +'.inp.out'
+    dataFile = setDataFile  # +'.inp.out'  # One liner OK in fixture, but not in function - execution order issues.
+    dataFile = dataFile +'.inp.out'
 
     # Scan data file
     # dataSet = ep.readMatEle(fileIn = dataFile.as_posix())
@@ -81,7 +112,7 @@ def test_ePS_read(setDataPath, capsys, dataSingle, setDataFile):
     # print('OK')
 
 
-def test_pickle_write(dataSingle, setDataFile):
+def test_pickle_write(dataSingle, setTmpDataFile):
 
     data = dataSingle
 
@@ -91,18 +122,24 @@ def test_pickle_write(dataSingle, setDataFile):
 
     # Save an Xarray
     # with open(Path(dataPath, 'n2_3sg_0.1-50.1eV_A2_XR.pickle'), 'wb') as handle:
-    dataFile = setDataFile +'_XR.pickle'
+    dataFile = setTmpDataFile
+    dataFile = dataFile +'_XR.pickle'
+
+    print(dataFile)
+
     with open(dataFile, 'wb') as handle:
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def test_pickle_read(dataSingle, setDataFile):
+def test_pickle_read(dataSingle, setTmpDataFile):
 
     data = dataSingle
 
     # Read back in to test
     # with open(Path(dataPath, 'n2_3sg_0.1-50.1eV_A2_XR.pickle'), 'rb') as handle:
-    dataFile = setDataFile +'_XR.pickle'
+    dataFile = setTmpDataFile
+    dataFile = dataFile +'_XR.pickle'
+
     with open(dataFile, 'rb') as handle:
         dataDictPklIn = pickle.load(handle)
 
@@ -110,15 +147,20 @@ def test_pickle_read(dataSingle, setDataFile):
     assert (dataDictPklIn - data).max() == 0   # And data looks OK.
 
 
-def test_hdf5_write(dataSingle):
+def test_hdf5_write(dataSingle,setTmpDataFile):
 
     data = dataSingle
 
-    ep.IO.writeXarray(data, fileName = 'n2_3sg_0.1-50.1eV_A2_XR.h5', filePath = None,
+    dataFile = setTmpDataFile
+    dataFile = dataFile +'_XR.h5'
+
+    # ep.IO.writeXarray(data, fileName = 'n2_3sg_0.1-50.1eV_A2_XR.h5', filePath = None,
+    #                     engine = 'hdf5')   # Default case set as: engine = 'h5netcdf', forceComplex = False
+    ep.IO.writeXarray(data, fileName = dataFile,
                         engine = 'hdf5')   # Default case set as: engine = 'h5netcdf', forceComplex = False
 
 
-def test_hdf5_read(dataSingle):
+def test_hdf5_read(dataSingle,setTmpDataFile):
 
     data = dataSingle
 

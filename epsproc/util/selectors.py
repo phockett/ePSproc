@@ -21,6 +21,7 @@ def matEleSelector(da, thres = None, inds = None, dims = None, sq = False, drop=
         Dicitonary of additional selection criteria, in name:value format.
         These correspond to parameter dimensions in the Xarray structure.
         E.g. inds = {'Type':'L','Cont':'A2'}
+        Slices are also acceptable, e.g. inds = {'Eke':slice(1,5,4)}
     dims : str or list of strs, dimensions to look for max & threshold, default None
         Set for *dimension-wise* thresholding. If set, this is used *instead* of element-wise thresholding.
         List of dimensions, which will be checked vs. threshold for max value, according to abs(dim.max) > threshold
@@ -63,7 +64,7 @@ def matEleSelector(da, thres = None, inds = None, dims = None, sq = False, drop=
     # Ah - issue is compatibility with multi-level indexes...
     # NOW FIXED - added multi-level dim checking in .util.misc.checkDims
     if inds is not None:
-        indsRed = subselectDims(da, inds)
+        indsRed = subselectDims(da, inds, ignoreItems=True)   # 20/10/22 - added ignoreItems option here, allows for slicing etc.
         da = da.sel(indsRed)    # Fors inds as dict, e.g. {'Type':'L','it':1,'Cont':'A2'}
                                 # May want to send as list, or automate vs. dim names?
                                 # NOTE - in current dev code this is used to reindex, so .squeeze() casuses issues!

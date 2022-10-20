@@ -879,16 +879,41 @@ def reconstructDims(data, dropna = True):
 
 
 # Subselect from sharedDims
-def subselectDims(data, refDims = []):
+def subselectDims(data, refDims = [], ignoreItems = False):
     """
     Subselect dims from shared dim dict.
     Check dimensions for a data array (Xarray) vs. a reference list.
 
     Used to set safe selection criteria in matEleSelector.
+
+    Parameters
+    ----------
+    data : Xarray
+        Object to use for dims to check.
+
+    refDims : dict or list
+        Ref dims to compare against data.
+
+    ignoreItems : bool, optional, default = False
+        If True, only pass refDims.keys() to checkDims()
+
+    Returns
+    -------
+    Dict or list
+        Safe selection criteria in format to match input refDims.
+
+
+    20/10/22: added ignoreItems option.
+    If true, only refDims.keys() is tested. This is better for selectors which don't need to be tested vs. dims.
+    Default behaviour is False, which matches original code.
+
     """
 
     # Check dims
-    dimSets = checkDims(data, refDims)
+    if ignoreItems:
+        dimSets = checkDims(data, list(refDims.keys()))
+    else:
+        dimSets = checkDims(data, refDims)
 
     # Subselect
     if isinstance(refDims,dict):

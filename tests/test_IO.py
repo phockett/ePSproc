@@ -165,9 +165,14 @@ def test_hdf5_read(dataSingle,setTmpDataFile):
 
     data = dataSingle
 
+    dataFile = setTmpDataFile
+    dataFile = dataFile +'_XR.h5'
+
     # HDF5 file reader, note this returns both dict and Xarray formats
-    dataInDict, dataInXR = ep.IO.readXarray(fileName = 'n2_3sg_0.1-50.1eV_A2_XR.h5',
-                                            filePath = None, engine = 'hdf5')
+    # dataInDict, dataInXR = ep.IO.readXarray(fileName = 'n2_3sg_0.1-50.1eV_A2_XR.h5',
+    #                                         filePath = None, engine = 'hdf5')
+    dataInDict, dataInXR = ep.IO.readXarray(fileName = dataFile,
+                                            engine = 'hdf5')
 
 
     # assert data.equals(dataDictPklIn)  # This fails

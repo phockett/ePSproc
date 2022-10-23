@@ -3,7 +3,9 @@
 
 import pytest
 from pathlib import Path
+
 import time
+import numpy as np
 
 # ePSproc
 import epsproc as ep
@@ -103,21 +105,31 @@ def test_AFBLM_iso(dataClass):
     # See https://epsproc.readthedocs.io/en/dev/methods/LF_AF_verification_tests_060720_tidy_100920.html#Test-vs.-AF-code
 
     # Note default threshold for AFBLM calcs, thres = 1e-2 - should give rough size of errors
+    # May want to test for smaller thresholds too?
     thres = 1e-2
 
     # Set getCro options
     keys = data._keysCheck(None)
     pGauge = 'L'
-    pType = 'SIGMA'
+    pTypes = [['SIGMA',0],['BETA',2]]  # Crude selection for XS and l values for test case only.
     sym = ('All','All')
 
     for key in keys:
-        # Test XS
-        XSdiff = data.data[key]['XS'].sel(XC=pType, Type=pGauge, Sym = sym) - data.data[key]['AFBLM'].sel(l=0).squeeze().XSrescaled  #, Type=pGauge)
+        for pType in pTypes:
 
-        assert XSdiff.sum() < (XSdiff.size * thres)
-        assert XSdiff.max() < thres
-        assert XSdiff.max().imag  == 0
+            if pType[0] == 'SIGMA':
+                # Test XS
+                XSdiff = data.data[key]['XS'].sel(XC=pType[0], Type=pGauge, Sym = sym) - data.data[key]['AFBLM'].sel(l=pType[1]).squeeze().XSrescaled  #, Type=pGauge)
+
+            else:
+                # Test B2, include conversion to Ylm coeffs.
+                betaConv = ep.conversion.conv_BL_BLM(data.data[key]['XS'], to='sph', renorm=True)
+                XSdiff = betaConv.sel(XC=pType[0], Type=pGauge, Sym = sym) - data.data[key]['AFBLM'].sel(l=pType[1]).squeeze()  #, Type=pGauge)
+
+
+            assert np.abs(XSdiff.sum()) < (XSdiff.size * thres)
+            assert np.abs(XSdiff.max()) < thres
+            assert np.abs(XSdiff.max().imag)  < np.finfo(complex).eps   # Check complex zero to machine precision.
 
 
 #******** IGNORE CLASS TESTS!!

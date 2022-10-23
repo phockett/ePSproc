@@ -3,6 +3,7 @@
 
 import pytest
 from pathlib import Path
+import time
 
 # ePSproc
 import epsproc as ep
@@ -85,6 +86,38 @@ def test_jobsSummary(dataClass, capsys):
     captured = capsys.readouterr()
     assert captured.out == jobsRef()
 
+
+# Test AFBLM calcultion for isotropic case
+def test_AFBLM_iso(dataClass):
+
+    data = dataClass
+
+    # Calculate BLMs for default case
+    start = time.time()
+    data.AFBLM()
+    end = time.time()
+    print(f'AFBLM reference calc completed, elapsed time = {end-start} seconds')
+
+
+    # Compare with ref ePS values to test
+    # See https://epsproc.readthedocs.io/en/dev/methods/LF_AF_verification_tests_060720_tidy_100920.html#Test-vs.-AF-code
+
+    # Note default threshold for AFBLM calcs, thres = 1e-2 - should give rough size of errors
+    thres = 1e-2
+
+    # Set getCro options
+    keys = data._keysCheck(None)
+    pGauge = 'L'
+    pType = 'SIGMA'
+    sym = ('All','All')
+
+    for key in keys:
+        # Test XS
+        XSdiff = data.data[key]['XS'].sel(XC=pType, Type=pGauge, Sym = sym) - data.data[key]['AFBLM'].sel(l=0).squeeze().XSrescaled  #, Type=pGauge)
+
+        assert XSdiff.sum() < (XSdiff.size * thres)
+        assert XSdiff.max() < thres
+        assert XSdiff.max().imag  == 0
 
 
 #******** IGNORE CLASS TESTS!!

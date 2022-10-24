@@ -112,7 +112,7 @@ def test_AFBLM_iso(dataClass):
     start = time.time()
     data.AFBLM()
     end = time.time()
-    print(f'AFBLM reference calc completed, elapsed time = {end-start} seconds')
+    print(f'\nAFBLM reference calc completed, elapsed time = {end-start} seconds')
 
 
     # Compare with ref ePS values to test
@@ -143,11 +143,14 @@ def test_AFBLM_iso(dataClass):
 
             assert np.abs(XSdiff.sum()) < (XSdiff.size * thres)
             assert np.abs(XSdiff.max()) < thres
-            assert np.abs(XSdiff.max().imag)  < np.finfo(complex).eps   # Check complex zero to machine precision.
+            # assert np.abs(XSdiff.max().imag)  < np.finfo(complex).eps   # Check complex zero to machine precision.
+            assert np.abs(XSdiff.imag.max())  < np.finfo(complex).eps   # Check complex zero to machine precision.
 
 
 # Test AFBLM calcs for aligned case.
 # Adapted from https://pemtk.readthedocs.io/en/latest/fitting/PEMtk_fitting_basic_demo_030621-full_010922.html
+# Basic version (without class-based subselection, which is PEMtk only currently) is working, but a but messy.
+# TODO: tidy up, and also add ref data for test comparison.
 def test_AFBLM_N2_ADMs(dataClass, setAlignmentDataFile):
 
     data = dataClass
@@ -208,7 +211,7 @@ def test_AFBLM_N2_ADMs(dataClass, setAlignmentDataFile):
     end = time.time()
 
     # print('Elapsed time = {0} seconds, for {1} energy points, {2} polarizations, threshold={3}.'.format((end-start), mTermST.Eke.size, RX.size, thres))
-    print(f'AFBLM calculations with alignment test, elapsed time = {(end-start)} seconds.')
+    print(f'\nAFBLM calculations with alignment completed, elapsed time = {(end-start)} seconds.')
 
     #*** Set data subsets
     # NOTE SOME OF THIS ONLY IMPLEMENTED IN PEMTK VERSION!
@@ -235,6 +238,17 @@ def test_AFBLM_N2_ADMs(dataClass, setAlignmentDataFile):
 
     #*** SET DATA SUBSETS - basic version
     # See https://epsproc.readthedocs.io/en/dev/methods/geometric_method_dev_pt3_AFBLM_090620_010920_dev_bk100920.html#Test-compared-to-experimental-N2-AF-results...
+
+    #*** Additional tests - TODO
+    keys = data._keysCheck(None)
+
+    for key in keys:
+        testData = data.data[key]['AFBLM']
+
+        assert np.abs(testData.imag.max())  < np.finfo(complex).eps   # Check complex zero to machine precision.
+
+        # refData = TODO!
+
 
 
 

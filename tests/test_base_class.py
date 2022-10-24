@@ -13,13 +13,27 @@ from epsproc.classes.base import ePSbase
 
 # @pytest.fixture(scope="session")
 @pytest.fixture(scope="module")  # Scoping here doesn't help with class issues below.
-def setDataPath():
+def setDataPath(setDemoDataPath):
     # Set data path
     # Note this is set here from ep.__path__, but may not be correct in all cases - depends on where the Github repo is.
-    epDemoDataPath = Path(ep.__path__[0]).parent/'data'
+    # epDemoDataPath = Path(ep.__path__[0]).parent/'data'
+    epDemoDataPath = setDemoDataPath
 
     # dataPath = os.path.join(epDemoDataPath, 'photoionization', 'n2_multiorb')
     dataPath = Path(epDemoDataPath, 'photoionization', 'n2_multiorb')
+
+    return dataPath
+
+
+@pytest.fixture(scope="module")  # Scoping here doesn't help with class issues below.
+def setAlignmentDataFile(setDemoDataPath):
+    # Set data path
+    # Note this is set here from ep.__path__, but may not be correct in all cases - depends on where the Github repo is.
+    # epDemoDataPath = Path(ep.__path__[0]).parent/'data'
+    epDemoDataPath = setDemoDataPath
+
+    # dataPath = os.path.join(epDemoDataPath, 'photoionization', 'n2_multiorb')
+    dataPath = Path(epDemoDataPath, 'alignment', 'N2_ADM_VM_290816.mat')
 
     return dataPath
 
@@ -130,6 +144,98 @@ def test_AFBLM_iso(dataClass):
             assert np.abs(XSdiff.sum()) < (XSdiff.size * thres)
             assert np.abs(XSdiff.max()) < thres
             assert np.abs(XSdiff.max().imag)  < np.finfo(complex).eps   # Check complex zero to machine precision.
+
+
+# Test AFBLM calcs for aligned case.
+# Adapted from https://pemtk.readthedocs.io/en/latest/fitting/PEMtk_fitting_basic_demo_030621-full_010922.html
+def test_AFBLM_N2_ADMs(dataClass, setAlignmentDataFile):
+
+    data = dataClass
+
+    #*** Load time-dependent ADMs for N2 case
+    # Adapted from ePSproc_AFBLM_testing_010519_300719.m
+
+    from scipy.io import loadmat
+    # ADMdataFile = os.path.join(epDemoDataPath, 'alignment', 'N2_ADM_VM_290816.mat')
+    ADMdataFile = setAlignmentDataFile
+    ADMs = loadmat(ADMdataFile)
+
+    # Set tOffset for calcs, 3.76ps!!!
+    # This is because this is 2-pulse case, and will set t=0 to 2nd pulse (and matches defn. in N2 experimental paper)
+    tOffset = -3.76
+    ADMs['time'] = ADMs['time'] + tOffset
+
+
+    # BASE VERSION FROM https://epsproc.readthedocs.io/en/dev/methods/geometric_method_dev_pt3_AFBLM_090620_010920_dev_bk100920.html#Test-compared-to-experimental-N2-AF-results...
+    # Run with sym summation...
+    phaseConvention = 'E'  # Set phase conventions used in the numerics - for ePolyScat matrix elements, set to 'E', to match defns. above.
+    symSum = True  # Sum over symmetry groups, or keep separate?
+    SFflag = False  # Include scaling factor to Mb in calculation?
+
+    SFflagRenorm = False  # Renorm terms
+    BLMRenorm = 1
+
+    thres = 1e-4
+    # ADMX = ep.setADMs(ADMs = ADMs['ADM'], t=ADMs['time'].squeeze(), KQSLabels = ADMs['ADMlist'], addS = True)
+    RX = ep.setPolGeoms()  # Set default pol geoms (z,x,y), or will be set by mfblmXprod() defaults - FOR AF case this is only used to set 'z' geom for unity wigner D's - should rationalise this!
+
+
+    # Selection & downsampling
+    trange=[4, 5]  # Set range in ps for calc
+    tStep=4  # Set tStep for downsampling
+
+    tMask = (ADMs['time']>trange[0]) * (ADMs['time']<trange[1])
+    ind = np.nonzero(tMask)[1][0::tStep]
+    At = ADMs['time'][:,ind].squeeze()
+    ADMin = ADMs['ADM'][:,ind]
+
+    ADMX = ep.setADMs(ADMs = ADMs['ADM'][:,ind], t=At, KQSLabels = ADMs['ADMlist'], addS = True)
+
+    # Original version with base function
+    # start = time.time()
+    # mTermST, mTermS, mTermTest, BetaNormX = ep.geomFunc.afblmXprod(dataSet[0], QNs = None, AKQS=ADMX, RX=RX, thres = thres, selDims = {'it':1, 'Type':'L'}, thresDims='Eke',
+    #                                                     symSum=symSum, SFflag=SFflag, BLMRenorm = BLMRenorm,
+    #                                                     phaseConvention=phaseConvention)
+    # end = time.time()
+    # print('Elapsed time = {0} seconds, for {1} energy points, {2} polarizations, threshold={3}.'.format((end-start), mTermST.Eke.size, RX.size, thres))
+
+    # Class version.
+    # NOte this currently has selection issues - dim needs to be (and remain) in matE, so currently fails for singleton Eke case
+    start = time.time()
+    data.AFBLM(AKQS=ADMX, RX=RX, thres = thres, selDims = {'it':1, 'Type':'L', 'Eke':[1.1,2.1]}, thresDims='Eke',   # thresDims='time',     # thresDims='Eke',
+                                                    symSum=symSum, SFflag=SFflag, BLMRenorm = BLMRenorm,
+                                                    phaseConvention=phaseConvention)
+    end = time.time()
+
+    # print('Elapsed time = {0} seconds, for {1} energy points, {2} polarizations, threshold={3}.'.format((end-start), mTermST.Eke.size, RX.size, thres))
+    print(f'AFBLM calculations with alignment test, elapsed time = {(end-start)} seconds.')
+
+    #*** Set data subsets
+    # NOTE SOME OF THIS ONLY IMPLEMENTED IN PEMTK VERSION!
+    # data.setADMs(ADMs = ADMs['ADM'], t=ADMs['time'].squeeze(), KQSLabels = ADMs['ADMlist'], addS = True)
+    #
+    # # Settings for type subselection are in selOpts[dataType]
+    #
+    # # Matrix element sub-selection
+    # data.selOpts['matE'] = {'thres': 0.01, 'inds': {'Type':'L', 'Eke':1.1}}
+    # data.setSubset(dataKey = 'orb5', dataType = 'matE')  # Subselect from 'orb5' dataset, matrix elements
+    #
+    # # Pols
+    # # And for the polarisation geometries...
+    # data.setPolGeoms()
+    # data.selOpts['pol'] = {'inds': {'Labels': 'z'}}
+    # data.setSubset(dataKey = 'pol', dataType = 'pol')
+    #
+    # # And for the ADMs...
+    # data.selOpts['ADM'] = {}   #{'thres': 0.01, 'inds': {'Type':'L', 'Eke':1.1}}
+    # data.setSubset(dataKey = 'ADM', dataType = 'ADM', sliceParams = {'t':[4, 5, 4]})
+    #
+    # #*** Compute
+    # BetaNormX, basis = data.afblmMatEfit()  # OK, uses default polarizations & ADMs as set in data['subset']
+
+    #*** SET DATA SUBSETS - basic version
+    # See https://epsproc.readthedocs.io/en/dev/methods/geometric_method_dev_pt3_AFBLM_090620_010920_dev_bk100920.html#Test-compared-to-experimental-N2-AF-results...
+
 
 
 #******** IGNORE CLASS TESTS!!

@@ -2,12 +2,22 @@ import pytest
 from pathlib import Path
 import epsproc as ep
 
-# @pytest.fixture(scope="module")  # Scoping here doesn't help with class issues below.
 @pytest.fixture(scope="session")
-def setDataPath():
+def setDemoDataPath():
     # Set data path
     # Note this is set here from ep.__path__, but may not be correct in all cases - depends on where the Github repo is.
     epDemoDataPath = Path(ep.__path__[0]).parent/'data'
+
+    return epDemoDataPath
+
+
+# @pytest.fixture(scope="module")  # Scoping here doesn't help with class issues below.
+@pytest.fixture(scope="session")
+def setDataPath(setDemoDataPath):
+    # # Set data path
+    # # Note this is set here from ep.__path__, but may not be correct in all cases - depends on where the Github repo is.
+    # epDemoDataPath = Path(ep.__path__[0]).parent/'data'
+    epDemoDataPath = setDemoDataPath
 
     # dataPath = os.path.join(epDemoDataPath, 'photoionization', 'n2_multiorb')
     dataPath = Path(epDemoDataPath, 'photoionization')

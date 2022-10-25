@@ -39,13 +39,7 @@ volumes:
   jupyter_data:
 
 
-# Fix for OVPN network sharign issue, https://stackoverflow.com/a/56136591
-# NOTE may want to change subnet here!
-# Without this, defulat network creation fails with
-#   Creating network "app_default" with the default driver
-#   ERROR: could not find an available, non-overlapping IPv4 address pool among the defaults to assign to the network
-
-
+# For network sharing issue, e.g. OVPN, set network directly here - see https://stackoverflow.com/a/56136591
 # networks:
 #   default:
 #     driver: bridge

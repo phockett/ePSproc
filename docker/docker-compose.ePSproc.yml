@@ -2,6 +2,7 @@
 # 10/08/21
 # Original: https://github.com/defeo/jupyterhub-docker
 # For more options, see https://docs.docker.com/compose/reference/
+# For base Jupyter Docker stacks info, see https://jupyter-docker-stacks.readthedocs.io/en/latest/using/running.html
 
 version: '3.7'
 
@@ -19,23 +20,22 @@ services:
     ports:
       - 8966:8888
     volumes:
-      - jupyter_data:/home/jupyterlab
+      # Option (1): set Docker-managed volume for user data (no additional config required)
+      - jupyter_data:/home/jovyan/work
+      # Option (2): mount local paths
+      # - <local path to notebooks>:/home/jovyan/work
+      # - <local path for .jupyter>:/home/jovyan/.jupyter  # Set .jupyter to add a persistent settings dir over builds.
+
 
 # Set persistent volume with default Docker settings.
 volumes:
   jupyter_data:
 
 
-# Fix for OVPN network sharign issue, https://stackoverflow.com/a/56136591
-# NOTE may want to change subnet here!
-# Without this, defulat network creation fails with
-#   Creating network "app_default" with the default driver
-#   ERROR: could not find an available, non-overlapping IPv4 address pool among the defaults to assign to the network
-
-
-networks:
-  default:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.21.0.1/24
+# For network sharing issue, e.g. OVPN, set network directly here - see https://stackoverflow.com/a/56136591
+# networks:
+#   default:
+#     driver: bridge
+#     ipam:
+#       config:
+#         - subnet: 172.21.0.1/24

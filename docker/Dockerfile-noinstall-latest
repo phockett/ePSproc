@@ -30,6 +30,10 @@ COPY ./libmsym_build.sh .
 
 #*** Libmsym build (for symmetrized harmonics)
 
+# Build essentials & make - may or may not be included in base image, so force here.
+RUN apt-get update \
+    && apt-get install -y build-essential make
+
 # Install Cmake, solution from https://hub.docker.com/r/rikorose/gcc-cmake/dockerfile
 ARG CMAKE_VERSION=3.21.0
 

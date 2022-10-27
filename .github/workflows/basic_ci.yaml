@@ -5,6 +5,7 @@
 name: Python package
 
 # on: [push]
+on:
 
 jobs:
   build:
@@ -28,7 +29,7 @@ jobs:
           if [ -f requirements-CI.txt ]; then pip install -r requirements-CI.txt; fi
           # Manual install for Spherical functions, see https://epsproc.readthedocs.io/en/latest/etc/installation_notes_051120.html#using-pip
           # pip install git+git://github.com/moble/spherical_functions   # Fails with repo access issues
-          pip install git+https://github.com/moble/spherical_functions.git
+          pip install git+https://github.com/moble/spherical_functions.git  # OK for python >= 3.8
           
       # - name: Lint with flake8
       #   run: |

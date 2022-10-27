@@ -76,7 +76,7 @@ def jobsRef():
     refPrint = """
 *** Job orb6 details
 Key: orb6
-Dir /home/femtolab/github/ePSproc/data/photoionization/n2_multiorb, 1 file(s).
+Dir /home/runner/work/ePSproc/ePSproc/data/photoionization/n2_multiorb, 1 file(s).
 {   'batch': 'ePS n2, batch n2_1pu_0.1-50.1eV, orbital A2',
     'event': ' N2 A-state (1piu-1)',
     'orbE': -17.09691397835426,
@@ -84,7 +84,7 @@ Dir /home/femtolab/github/ePSproc/data/photoionization/n2_multiorb, 1 file(s).
 
 *** Job orb5 details
 Key: orb5
-Dir /home/femtolab/github/ePSproc/data/photoionization/n2_multiorb, 1 file(s).
+Dir /home/runner/work/ePSproc/ePSproc/data/photoionization/n2_multiorb, 1 file(s).
 {   'batch': 'ePS n2, batch n2_3sg_0.1-50.1eV, orbital A2',
     'event': ' N2 X-state (3sg-1)',
     'orbE': -17.34181645456815,

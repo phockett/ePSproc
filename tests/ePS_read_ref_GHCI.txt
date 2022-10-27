@@ -1,13 +1,13 @@
 *** ePSproc readMatEle(): scanning files for DumpIdy segments.
 
 *** Scanning file(s)
-['/home/runner/work/ePSproc/data/photoionization/n2_3sg_0.1-50.1eV_A2.inp.out']
+['/home/runner/work/ePSproc/ePSproc/data/photoionization/n2_3sg_0.1-50.1eV_A2.inp.out']
 
 *** FileListSort 
-  Prefix: /home/runner/work/ePSproc/data/photoionization/n2_3sg_0.1-50.1eV_A2.inp.out 
+  Prefix: /home/runner/work/ePSproc/ePSproc/data/photoionization/n2_3sg_0.1-50.1eV_A2.inp.out
   1 groups.
 
-*** Reading ePS output file:  /home/runner/work/ePSproc/data/photoionization/n2_3sg_0.1-50.1eV_A2.inp.out
+*** Reading ePS output file:  /home/runner/work/ePSproc/ePSproc/data/photoionization/n2_3sg_0.1-50.1eV_A2.inp.out
 *** IO.fileParse() found 1 segments with 
 	Start: ScatEng
 	End: ['#'].

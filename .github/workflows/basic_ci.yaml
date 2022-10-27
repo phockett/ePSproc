@@ -43,7 +43,7 @@ jobs:
       #     pytest
 
       - name: Install Xarray
-        run: pip install xarray=${{ matrix.xarray-version }}
+        run: pip install xarray==${{ matrix.xarray-version }}
 
       - name: Test with pytest
         run: |

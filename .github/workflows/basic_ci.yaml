@@ -27,7 +27,8 @@ jobs:
           # pip install flake8 pytest
           if [ -f requirements-CI.txt ]; then pip install -r requirements-CI.txt; fi
           # Manual install for Spherical functions, see https://epsproc.readthedocs.io/en/latest/etc/installation_notes_051120.html#using-pip
-          pip install git+git://github.com/moble/spherical_functions
+          # pip install git+git://github.com/moble/spherical_functions   # Fails with repo access issues
+          pip install git+https://github.com/moble/spherical_functions.git
           
       # - name: Lint with flake8
       #   run: |

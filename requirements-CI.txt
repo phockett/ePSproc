@@ -24,6 +24,6 @@ seaborn==0.9.0
 numba
 # pyvista
 # cclib
-# holoviews
+holoviews
 # plotly
 # jupyter-dash    # For Plotly Jupyter Lab rendering

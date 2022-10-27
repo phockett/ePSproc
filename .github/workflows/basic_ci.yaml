@@ -30,7 +30,7 @@ jobs:
           # Manual install for Spherical functions, see https://epsproc.readthedocs.io/en/latest/etc/installation_notes_051120.html#using-pip
           # pip install git+git://github.com/moble/spherical_functions   # Fails with repo access issues
           pip install git+https://github.com/moble/spherical_functions.git  # OK for python >= 3.8
-          
+
       # - name: Lint with flake8
       #   run: |
       #     # stop the build if there are Python syntax errors or undefined names
@@ -40,15 +40,15 @@ jobs:
       # - name: Test with pytest
       #   run: |
       #     pytest
-      
+
       - name: Test with pytest
         run: |
           pip install pytest
           pip install pytest-cov
           # pytest --capture=tee-sys --show-capture=all   # Basic version as per local tests
           # pytest tests --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
-          pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml.xml --cov=com --cov-report=xml --cov-report=html
-          
+          pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov=ePSproc --cov-report=xml --cov-report=html
+
       # Output reports as per https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#packaging-workflow-data-as-artifacts
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3

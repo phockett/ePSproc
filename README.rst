@@ -1,14 +1,10 @@
 .. Readme originally converted from readme.md, via Pandoc
    pandoc -s -o readme.rst README.md
 
-.. Badges for CI, see https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/adding-a-workflow-status-badge
-.. image:: https://github.com/phockett/ePSproc/actions/workflows/basic_ci.yaml/badge.svg
-   :alt: Alternative text
-
 ePSproc Readme
 ==============
 
-|docs|
+|docs| |build-stable| |build-latest|
 
 A post-processing suite for ePolyScat calculations, and general tool for photoionzation calculations.
 
@@ -200,3 +196,10 @@ Thanks, finally, and of course, to those supporting scientific software developm
     :alt: Documentation Status
     :scale: 100%
     :target: https://epsproc.readthedocs.io/en/latest/?badge=latest
+
+.. Badges for CI, see https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/adding-a-workflow-status-badge
+.. |build-stable| image:: https://github.com/phockett/ePSproc/actions/workflows/basic_ci.yaml/badge.svg
+   :alt: Stable build status
+
+.. |build-latest| image:: https://github.com/phockett/ePSproc/actions/workflows/latest_ci.yaml/badge.svg
+  :alt: Latest Xarray version build status

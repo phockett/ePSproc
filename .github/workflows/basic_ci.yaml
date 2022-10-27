@@ -4,8 +4,8 @@
 
 name: Python package
 
-# on: [push]
-on:
+on: [push]
+# on:
 
 jobs:
   build:

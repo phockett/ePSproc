@@ -1,6 +1,10 @@
 .. Readme originally converted from readme.md, via Pandoc
    pandoc -s -o readme.rst README.md
 
+.. Badges for CI, see https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/adding-a-workflow-status-badge
+.. image:: https://github.com/phockett/ePSproc/actions/workflows/basic_ci.yaml/badge.svg
+   :alt: Alternative text
+
 ePSproc Readme
 ==============
 

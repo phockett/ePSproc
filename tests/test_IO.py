@@ -109,7 +109,8 @@ def test_ePS_read(setDataPath, capsys, dataSingle, setDataFile):
     #
     # assert captured.out == ref
 
-    assert captured.out == loadRef(fileName = 'tests/ePS_read_ref.txt')
+    # assert captured.out == loadRef(fileName = 'tests/ePS_read_ref.txt')
+    assert captured.out == loadRef(fileName = 'tests/ePS_read_ref_GHCI.txt')  # With paths set for GH action CI. TODO: don't test paths!
     # print('OK')
 
 

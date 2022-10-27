@@ -27,3 +27,5 @@ numba
 holoviews
 # plotly
 # jupyter-dash    # For Plotly Jupyter Lab rendering
+
+h5py

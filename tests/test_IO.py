@@ -109,7 +109,7 @@ def test_ePS_read(setDataPath, capsys, dataSingle, setDataFile):
     #
     # assert captured.out == ref
 
-    assert captured.out == loadRef(fileName = 'ePS_read_ref.txt')
+    assert captured.out == loadRef(fileName = 'tests/ePS_read_ref.txt')
     # print('OK')
 
 

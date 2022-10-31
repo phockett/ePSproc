@@ -10,15 +10,18 @@ TODO: should be able to simplify with subselection logic removed (bit ad hoc cur
 
 from matplotlib import pyplot as plt  # For plot legends with Xarray plotter
 import numpy as np # Needed only for np.nan at the moment
+import xarray as xr
 
 from epsproc import matEleSelector, plotTypeSelector, multiDimXrToPD, mfpad, sphSumPlotX, sphFromBLMPlot
 from epsproc import lmPlot as lmPlotCore  # Hack rename here to prevent circular logic with local function - TODO: fix with core fn. reorg.
 from epsproc.plot import hvPlotters
 from epsproc.util.env import isnotebook
+from epsproc.sphFuncs.sphConv import checkSphDims
 
 # Import HV into local namespace if hvPlotters successful (can't access directly)
 if hvPlotters.hvFlag:
     hv = hvPlotters.hv
+    from epsproc.plot.util import showPlot
 
 # ************** Plotters
 
@@ -442,6 +445,11 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     03/02/21: added col, row arguments for flexibility on calling. Still needs automated dim handling.
 
     """
+
+    if backend == 'hv':
+        # self._hvBLMplot(**locals())
+        self._hvBLMplot(**{k:v for k,v in locals().items() if k not in ['self','kwargs']}, **kwargs)
+
     # Set xDim if not passed.
     if xDim is None:
         xDim = Etype
@@ -532,13 +540,93 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 
 
     if backend == 'hv':
-        # Code from showPlot()
-        hvMap = hv.HoloMap(plotList)  # May need to handle dims here?
-        if self.__notebook__ and (backend == 'hv'):
-            if overlay is None:
-                display(hvMap)  # If notebook, use display to push plot.
-            else:
-                display(hvMap.overlay(overlay))
+        # 31/10/22 - debugging issues with HoloMap - see ep.basicPlotters.BLMplot(), which just uses overlays?
+        try:
+            # Code from showPlot()
+            hvMap = hv.HoloMap(plotList)  # May need to handle dims here?
+            if self.__notebook__ and (backend == 'hv'):
+                if overlay is None:
+                    display(hvMap)  # If notebook, use display to push plot.
+                else:
+                    display(hvMap.overlay(overlay))
+        except:
+            print("Failed to compose HoloMap, returning plot dictionary.")
+            return plotList
+
+
+# New BLMplot for hv backend only, but may end up more general
+# def _hvBLMplot(self, **kwargs):  # This works, but all args nested in kwargs dict
+def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
+            xDim = None, selDims = None, col = 'Labels', row = None,
+            thres = None, keys = None, verbose = None,
+            backend = 'xr', overlay = None,
+            **kwargs):
+    """
+    Plot BLM data with Holoviews. Subfunction for self.BLMplot, but also aim to implement better and general dim handling.
+
+    Method follows dev code at https://phockett.github.io/ePSdata/OCS-preliminary/OCS_orbs8-11_AFBLMs_VM-ADMs_140122-JAKE_tidy.html#AFBLMs-for-aligned-case
+    Subset data to Xarray Dataset then plot, rather than compose multiple plots and stack as per old method - should be simpler and more flexible & robust.
+
+    TODO: clarify arg passing, currently just dump locals to kwargs from main self.BLMplot call.
+
+    """
+
+    print(locals())
+    #*** Var checks - currently as per self.BLMplot
+    # Set xDim if not passed.
+    if xDim is None:
+        xDim = Etype
+
+    if verbose is None:
+        verbose = self.verbose
+
+    if not ('pType' in locals()) or (pType is None):
+        pType = 'r'
+
+    if not ('renderPlot' in locals()):
+        renderPlot = True
+
+    if not ('returnPlot' in locals()):
+        returnPlot = True
+
+    # # Default to all datasets
+    # if keys is None:
+    #     keys = list(self.data.keys())
+    keys = self._keysCheck(keys)
+
+
+    # UPDATED ROUTINE FROM https://phockett.github.io/ePSdata/OCS-preliminary/OCS_orbs8-11_AFBLMs_VM-ADMs_140122-JAKE_tidy.html#AFBLMs-for-aligned-case
+    # STACK TO XR FOR ALL DIM HANDLING, then plot!!!
+    # import xarray as xr
+    pDict = []
+    for key in keys:
+    #     subset = ep.matEleSelector(data.data[key][dataType], thres=thres, inds = selDims, dims = [Etype, 't'], sq = True)
+        subset = matEleSelector(self.data[key][dataType], thres=thres, inds = selDims, dims = Etype, sq = True)
+        subset.name = 'BLM'
+
+        subset = plotTypeSelector(subset, pType = pType)
+
+    #     pDict.append(subset.expand_dims({'Orb':[key]}))
+    #     pDict.append(subset.expand_dims({'Orb':[data.data[key][dataType].attrs['jobLabel']]}))
+        pDict.append(subset.expand_dims({'Orb':[self.data[key]['jobNotes']['orbLabel']]}))
+
+
+    xrDS = xr.concat(pDict, 'Orb')
+
+    #*** Also check BLM dims for stacking?
+    # Note this sets xrDS.attrs.harmonics, and these must all be the same.
+    checkSphDims(xrDS)
+
+    #*** Holoviews init
+    hvDS = hvPlotters.hv.Dataset(xrDS.unstack(xrDS.attrs['harmonics']['stackDim']))  # Need to unstack, otherwise sometimes get empty plots?
+                                                                                      # Seems to be issue with tuple/MultiIndex case.
+
+    hvObj = hvDS.to(hvPlotters.hv.Curve, kdims=Etype)  # .overlay(xrDS.attrs['harmonics']['dimList'])   # OK
+
+    if renderPlot:
+        return showPlot(hvObj.overlay(xrDS.attrs['harmonics']['dimList']), returnPlot = returnPlot, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
+    else:
+        return hvObj
 
 
 # # Plot PADs from mat elements (MF) or BLMs

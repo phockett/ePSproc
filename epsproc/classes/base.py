@@ -85,7 +85,7 @@ class ePSbase():
 
     # Import methods - these are essentially wrappers for core functions
     from ._IO import scanFiles, jobsSummary, molSummary, matEtoPD
-    from ._plotters import BLMplot, padPlot, lmPlot, plotGetCro, plotGetCroComp, ADMplot
+    from ._plotters import BLMplot, padPlot, lmPlot, plotGetCro, plotGetCroComp, ADMplot, _hvBLMplot
     from ._selectors import Esubset
 
     # TODO: set to varg in for jobs dict
@@ -384,7 +384,10 @@ class ePSbase():
         **kwargs : optional keyword args
             Passed to :py:func:`epsproc.calc.phases.coulombPhase()`
 
-        TODO: fix ugly .unstack('LM') included here, should use smart dim handling.
+        TODO:
+
+        - fix ugly .unstack('LM') included here, should use smart dim handling.
+        - similarly have .swap_dims({'Eke':'Eh'}) to force E dims, should be smartly handled via dim checks. Can also just pass Elist here?
 
         """
 
@@ -394,14 +397,14 @@ class ePSbase():
         # Loop over datasets & store output
         for key in keys:
 
-            dataCorr, phaseCorr = phaseCorrection(self.data[key]['matE'].unstack('LM'), cPhase = cPhase, lPhase = lPhase, **kwargs)
+            dataCorr, phaseCorr = phaseCorrection(self.data[key]['matE'].unstack('LM').swap_dims({'Eke':'Eh'}), cPhase = cPhase, lPhase = lPhase, **kwargs)
 
             # Propagate attrs
             dataCorr.attrs = self.data[key]['matE'].attrs
             phaseCorr.attrs = self.data[key]['matE'].attrs
             # TX.attrs['dataType'] = 'mfpad'
 
-            self.data[key]['matE'] = dataCorr.stack({'LM':['l','m']})
+            self.data[key]['matE'] = dataCorr.stack({'LM':['l','m']}).swap_dims({'Eh':'Eke'})
             self.data[key]['phaseCorr'] = phaseCorr
 
 

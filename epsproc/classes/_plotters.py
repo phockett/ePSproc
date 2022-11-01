@@ -438,6 +438,7 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 
     TODO: fix dim handling and subselection, see old plotting code.
 
+    31/10/22: added _hvBLMplot() for HV backend use, this skips rest of function.
     24/11/21: quick additions, override printing with "verbose", and added backend option for XR or Holoviews plotters.
                 Note this currently uses hvplot functionality, see https://hvplot.holoviz.org/user_guide/Gridded_Data.html.
                 UPDATE: currently not working due to unhandled dims at Holomap stack - see tmo-dev for method.
@@ -515,43 +516,45 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
                 subset.real.plot.line(x=Etype, col=col, row=row, **kwargs)
                 # plt.title(f"Dataset: {key}, {self.data[key]['jobNotes']['orbLabel']}, {dataType}")
 
+
+            # UPDATE 31/10/22: added _hvBLMplot() for HV backend
             # VERY ROUGH, based on not great tmo-dev code.
             # Currently no explicit dim handling, and auto-rename to ensure working Holomap output.
             # TODO: update/replace with routines in basicPlotters.BLMplot(), see also hvPlotters.curvePlot()
-            elif backend == 'hv':
-                try:
-                    # plotList[key] = (subset.real.hvplot.line(x=Etype, col=col, row=row, **kwargs))
-                    hvDS = hv.Dataset(subset.real.rename(str(key)))  # Convert to hv.Dataset, may need to rename too.
-                    # hvDS = hv.Dataset(subset.real.rename('AFBLM'))
-                    plotList[key] = hvDS.to(hv.Curve, kdims=Etype)   # TODO: add dim handling, will just autostack currently.
-
-                    # plotList[key] = hvPlotters.curvePlot(dataXR, kdims = Etype, returnPlot = True, renderPlot = False, **kwargs) # Curve plot version - needs better dim handling too!
-
-                except NotImplementedError as e:
-                    # if e.msg == "isna is not defined for MultiIndex":
-                    if e.args[0] == "isna is not defined for MultiIndex":   # Message as first arg - may be version specific?
-                        print("Unstacking data for plotting")
-                        # plotList[key] = (subset.real.unstack().hvplot.line(x=Etype, col=col, row=row, **kwargs))   # Should be OK for individual plots, but can't pass to holomap?
-                        hvDS = hv.Dataset(subset.real.unstack().rename(str(key)))  # Convert to hv.Dataset, may need to rename too.
-                        # hvDS = hv.Dataset(subset.real.unstack().rename('AFBLM'))  # Convert to hv.Dataset, may need to rename too.
-                        plotList[key] = hvDS.to(hv.Curve, kdims=Etype)   # TODO: add dim handling, will just autostack currently.
-                    else:
-                        print(f"Caught unhandelable exception {e}")
-
-
-    if backend == 'hv':
-        # 31/10/22 - debugging issues with HoloMap - see ep.basicPlotters.BLMplot(), which just uses overlays?
-        try:
-            # Code from showPlot()
-            hvMap = hv.HoloMap(plotList)  # May need to handle dims here?
-            if self.__notebook__ and (backend == 'hv'):
-                if overlay is None:
-                    display(hvMap)  # If notebook, use display to push plot.
-                else:
-                    display(hvMap.overlay(overlay))
-        except:
-            print("Failed to compose HoloMap, returning plot dictionary.")
-            return plotList
+    #         elif backend == 'hv':
+    #             try:
+    #                 # plotList[key] = (subset.real.hvplot.line(x=Etype, col=col, row=row, **kwargs))
+    #                 hvDS = hv.Dataset(subset.real.rename(str(key)))  # Convert to hv.Dataset, may need to rename too.
+    #                 # hvDS = hv.Dataset(subset.real.rename('AFBLM'))
+    #                 plotList[key] = hvDS.to(hv.Curve, kdims=Etype)   # TODO: add dim handling, will just autostack currently.
+    #
+    #                 # plotList[key] = hvPlotters.curvePlot(dataXR, kdims = Etype, returnPlot = True, renderPlot = False, **kwargs) # Curve plot version - needs better dim handling too!
+    #
+    #             except NotImplementedError as e:
+    #                 # if e.msg == "isna is not defined for MultiIndex":
+    #                 if e.args[0] == "isna is not defined for MultiIndex":   # Message as first arg - may be version specific?
+    #                     print("Unstacking data for plotting")
+    #                     # plotList[key] = (subset.real.unstack().hvplot.line(x=Etype, col=col, row=row, **kwargs))   # Should be OK for individual plots, but can't pass to holomap?
+    #                     hvDS = hv.Dataset(subset.real.unstack().rename(str(key)))  # Convert to hv.Dataset, may need to rename too.
+    #                     # hvDS = hv.Dataset(subset.real.unstack().rename('AFBLM'))  # Convert to hv.Dataset, may need to rename too.
+    #                     plotList[key] = hvDS.to(hv.Curve, kdims=Etype)   # TODO: add dim handling, will just autostack currently.
+    #                 else:
+    #                     print(f"Caught unhandelable exception {e}")
+    #
+    #
+    # if backend == 'hv':
+    #     # 31/10/22 - debugging issues with HoloMap - see ep.basicPlotters.BLMplot(), which just uses overlays?
+    #     try:
+    #         # Code from showPlot()
+    #         hvMap = hv.HoloMap(plotList)  # May need to handle dims here?
+    #         if self.__notebook__ and (backend == 'hv'):
+    #             if overlay is None:
+    #                 display(hvMap)  # If notebook, use display to push plot.
+    #             else:
+    #                 display(hvMap.overlay(overlay))
+    #     except:
+    #         print("Failed to compose HoloMap, returning plot dictionary.")
+    #         return plotList
 
 
 # New BLMplot for hv backend only, but may end up more general

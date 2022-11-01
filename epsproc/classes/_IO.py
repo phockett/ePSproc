@@ -403,6 +403,10 @@ def matEtoPD(self, keys = None, xDim = 'Eke', Erange = None, dataType = 'matE', 
     30/10/20 Added & reworked from multiJob test code.
             Changed output to nest in existing Xarray & allow multiple datatypes
 
+    TODO:
+
+    - Extra dim checks to add. Currently fails in some cases at multiDimXrToPD() if, e.g., a singleton dim is selected then squeezed out.
+
     """
 
     keys = self._keysCheck(keys)
@@ -462,6 +466,14 @@ def matEtoPD(self, keys = None, xDim = 'Eke', Erange = None, dataType = 'matE', 
         if setPD:
             # self.data[key]['daPlotpd'].append(daPD)
             self.data[key][dataType].attrs['pd'] = daPD
+
+            # 20/10/22 - set also subset XR for return. Should likely remove the above?
+            outputData = dataType + 'Sub'
+            self.data[key][outputData] = daSub
+            self.data[key][outputData].attrs['pd'] = daPD
+
+            if self.verbose:
+                print(f"* Subset data set to self.data['{key}']['{outputData}']")
 
 
     # Return value if not set to dataSets.

@@ -448,7 +448,7 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 
     if backend == 'hv':
         # self._hvBLMplot(**locals())
-        self._hvBLMplot(**{k:v for k,v in locals().items() if k not in ['self','kwargs']}, **kwargs)
+        return self._hvBLMplot(**{k:v for k,v in locals().items() if k not in ['self','kwargs']}, **kwargs)
 
     # Set xDim if not passed.
     if xDim is None:
@@ -571,7 +571,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 
     """
 
-    print(locals())
+    # print(locals())
     #*** Var checks - currently as per self.BLMplot
     # Set xDim if not passed.
     if xDim is None:

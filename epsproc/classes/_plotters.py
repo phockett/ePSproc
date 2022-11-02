@@ -16,6 +16,7 @@ from epsproc import matEleSelector, plotTypeSelector, multiDimXrToPD, mfpad, sph
 from epsproc import lmPlot as lmPlotCore  # Hack rename here to prevent circular logic with local function - TODO: fix with core fn. reorg.
 from epsproc.plot import hvPlotters
 from epsproc.util.env import isnotebook
+from epsproc.util.selectors import setXSfromCoords
 from epsproc.sphFuncs.sphConv import checkSphDims
 
 # Import HV into local namespace if hvPlotters successful (can't access directly)
@@ -423,7 +424,7 @@ def ADMplot(self, dataType = 'ADM', xDim = 't', Etype='t', col = None, **kwargs)
 def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             xDim = None, selDims = None, col = 'Labels', row = None,
             thres = None, keys = None, verbose = None,
-            backend = 'xr', overlay = None,
+            backend = 'xr', overlay = None, XS = False,
             **kwargs):
     """
     Basic BLM line plots using Xarray plotter.
@@ -437,6 +438,9 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     TODO: update BLMplot to support more datatypes, and implement here instead.
 
     TODO: fix dim handling and subselection, see old plotting code.
+
+    TODO: add XS plotting option.
+            02/11/22 - basic version now in place.
 
     31/10/22: added _hvBLMplot() for HV backend use, this skips rest of function.
     24/11/21: quick additions, override printing with "verbose", and added backend option for XR or Holoviews plotters.
@@ -488,6 +492,11 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
         # Threshold results. Set to check along Eke dim, but may want to pass this as an option.
         # Set squeeze to True also
         subset = matEleSelector(subset, thres=thres, inds = selDims, dims = Etype, sq = True)
+
+        # 02/11/22 - very basic XS handling, as per ep.basicPlotters.BLMplot, plus AF case handling.
+        # TODO: more options, tidy up, etc, May want to modify base AFBLM code outputs.
+        if XS:
+            subset = setXSfromCoords(subset, self.verbose)
 
         if subset.any():
             # THIS IS SHIT
@@ -563,6 +572,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             xDim = None, selDims = None, col = None, row = None,
             thres = None, keys = None, verbose = None,
             backend = 'hv', overlay = None, keyDim = 'Orb',
+            XS=False,
             **kwargs):
     """
     Plot BLM data with Holoviews. Subfunction for self.BLMplot, but also aim to implement better and general dim handling.
@@ -611,6 +621,20 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     #     subset = ep.matEleSelector(data.data[key][dataType], thres=thres, inds = selDims, dims = [Etype, 't'], sq = True)
         subset = matEleSelector(self.data[key][dataType], thres=thres, inds = selDims, dims = Etype, sq = True)
         subset.name = 'BLM'
+
+        # 02/11/22 - very basic XS handling, as per ep.basicPlotters.BLMplot, plus AF case handling.
+        # TODO: more options, tidy up, etc, May want to modify base AFBLM code outputs.
+        if XS:
+            subset = setXSfromCoords(subset, self.verbose)
+            # # if subset.attrs['dataType'] == 'BLM':
+            # if 'XS' in subset.coords.keys():
+            #     # try:
+            #     # daPlot.values = daPlot * daPlot.XS
+            #     subset = subset.where(subset.l !=0, subset.XS)  # Replace l=0 values with XS
+            # elif 'XSrescaled' in subset.coords.keys():
+            #     subset = subset.where(subset.l !=0, subset.XSrescaled)  # Replace l=0 values with XS
+            # else:
+            #     print(f"No XS found in dataset, skipping.")
 
         subset = plotTypeSelector(subset, pType = pType)
 

@@ -560,9 +560,9 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 # New BLMplot for hv backend only, but may end up more general
 # def _hvBLMplot(self, **kwargs):  # This works, but all args nested in kwargs dict
 def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
-            xDim = None, selDims = None, col = 'Labels', row = None,
+            xDim = None, selDims = None, col = None, row = None,
             thres = None, keys = None, verbose = None,
-            backend = 'xr', overlay = None,
+            backend = 'hv', overlay = None, keyDim = 'Orb',
             **kwargs):
     """
     Plot BLM data with Holoviews. Subfunction for self.BLMplot, but also aim to implement better and general dim handling.
@@ -570,7 +570,12 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     Method follows dev code at https://phockett.github.io/ePSdata/OCS-preliminary/OCS_orbs8-11_AFBLMs_VM-ADMs_140122-JAKE_tidy.html#AFBLMs-for-aligned-case
     Subset data to Xarray Dataset then plot, rather than compose multiple plots and stack as per old method - should be simpler and more flexible & robust.
 
-    TODO: clarify arg passing, currently just dump locals to kwargs from main self.BLMplot call.
+    TODO: clarify arg passing, currently just dump locals to kwargs from main self.BLMplot call, many not used.
+
+    ADDED: 'keyDim', to define stacking dim over keys, default = 'orb'
+        - 'orb' to use self.data[key]['jobNotes']['orbLabel']
+        - 'job' to use self.data[key][dataType].attrs['jobLabel']
+        - 'key' to use key directly. Also will be used for unrecognised cases, and use keyDim as dim name.
 
     """
 
@@ -609,9 +614,14 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 
         subset = plotTypeSelector(subset, pType = pType)
 
-    #     pDict.append(subset.expand_dims({'Orb':[key]}))
-    #     pDict.append(subset.expand_dims({'Orb':[data.data[key][dataType].attrs['jobLabel']]}))
-        pDict.append(subset.expand_dims({'Orb':[self.data[key]['jobNotes']['orbLabel']]}))
+        # if keyDim == 'key':
+        if keyDim == 'orb':
+            pDict.append(subset.expand_dims({'Orb':[self.data[key]['jobNotes']['orbLabel']]}))
+        elif keyDim == 'job':
+            pDict.append(subset.expand_dims({'Job':[data.data[key][dataType].attrs['jobLabel']]}))
+        else:
+            # pDict.append(subset.expand_dims({'Key':[key]}))   # Use key as default case.
+            pDict.append(subset.expand_dims({keyDim:[key]}))   # Use key as default case, with keyDim as dim name
 
 
     xrDS = xr.concat(pDict, 'Orb')

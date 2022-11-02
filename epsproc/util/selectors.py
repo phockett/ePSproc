@@ -1,6 +1,7 @@
 #*************** Selection functions
 
 import numpy as np
+import copy
 from .misc import subselectDims
 
 # Selector function for matrix elements in Xarray
@@ -103,6 +104,41 @@ def dataGroupSel(data, dInd):
         dataSub.append([data[0][:,iSel], data[1][iSel]])
 
     return dataSub
+
+
+# 02/11/22 - very basic XS handling, as per ep.basicPlotters.BLMplot, plus AF case handling.
+# TODO: more options, tidy up, etc, May want to modify base AFBLM code outputs.
+# TODO: check elsewhere for duplicate functionality?
+def setXSfromCoords(data, verbose = True):
+    """
+    Set (l,m)=(0,0) data to cross section.
+
+    Data taken from coords, either data.XS (MF case) or data.XSrescaled (AF case).
+
+    Returns copy.
+    """
+
+
+    subset = data.copy()
+    subset.attrs = copy.deepcopy(data.attrs)  # Deepcopy attrs for some XR versions!
+
+    # if subset.attrs['dataType'] == 'BLM':
+    if 'XS' in subset.coords.keys():
+        # try:
+        # daPlot.values = daPlot * daPlot.XS
+        subset = subset.where(subset.l !=0, subset.XS)  # Replace l=0 values with XS
+        subset.attrs['useXS'] = True
+
+    elif 'XSrescaled' in subset.coords.keys():
+        subset = subset.where(subset.l !=0, subset.XSrescaled)  # Replace l=0 values with XS
+        subset.attrs['useXS'] = True
+
+    else:
+        subset.attrs['useXS'] = False
+        if verbose:
+            print(f"No XS found in dataset, skipping.")
+
+    return subset
 
 
 # Xarray groupby + compare values

@@ -30,3 +30,5 @@ holoviews
 # jupyter-dash    # For Plotly Jupyter Lab rendering
 
 h5py
+
+mpmath

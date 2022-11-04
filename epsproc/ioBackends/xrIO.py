@@ -255,7 +255,18 @@ def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = Fa
     if engine != 'h5netcdf':
         dataIn = freader(fileName, engine = engine)
     else:
-        dataIn = freader(fileName, engine = engine, invalid_netcdf = forceComplex)
+        try:
+            dataIn = freader(fileName, engine = engine, invalid_netcdf = forceComplex)
+
+        except TypeError as e:
+            if e.args[0] == "open_dataset() got an unexpected keyword argument 'invalid_netcdf'":
+            # For older versions of open_dataset() may need to pass backend_kwargs as dict.
+            # This is OK in v0.13
+                dataIn = freader(fileName, engine = engine,
+                                backend_kwargs = {'invalid_netcdf':forceComplex})
+            else:
+                raise
+
 
     if (engine != 'h5netcdf') or (not forceComplex):
         # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!

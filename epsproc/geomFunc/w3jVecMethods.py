@@ -21,7 +21,7 @@ except ImportError as e:
     if e.msg != "No module named 'numba'":
         raise
     print('* Numba not found, fast 3j functions not available. ')
-    
+
 
 #*****************  Wrappers for functions
 # For tests, see
@@ -81,6 +81,9 @@ def w3jprange(QNs):
 
 # Vectorized 3j, see sf_function_tests_110220.py
 # Use Numba to compile function, vecotrised over input sets of QNs, doesn't return, but writes directly to passed 1D list of corresponding 3j terms
+# 11/10/22: note this has typing issues in some cases, fails with Numba 0.53.1, working in v0.48.0.
+#           didn't test more extensively as yet, but not used in any of the main routines, so can remove? (TBC)
+#           TODO: need to rationalise import chain before removing!
 @nb.guvectorize(["void(int32[:,:], float64[:])"], '(n,m)->(n)', target = 'parallel')
 def w3jguVecCPU(QNs,w3j_QNs):
     """

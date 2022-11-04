@@ -573,6 +573,8 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             thres = None, keys = None, verbose = None,
             backend = 'hv', overlay = None, keyDim = 'Orb',
             XS=False,
+            pType='r',renderPlot=True, returnPlot=True,
+            # plotDict='plots',
             **kwargs):
     """
     Plot BLM data with Holoviews. Subfunction for self.BLMplot, but also aim to implement better and general dim handling.
@@ -581,6 +583,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     Subset data to Xarray Dataset then plot, rather than compose multiple plots and stack as per old method - should be simpler and more flexible & robust.
 
     TODO: clarify arg passing, currently just dump locals to kwargs from main self.BLMplot call, many not used.
+            Update: some args NOT WORKING correctly in this manner, since **kwargs NOT unpacked correctly.
 
     ADDED: 'keyDim', to define stacking dim over keys, default = 'orb'
         - 'orb' to use self.data[key]['jobNotes']['orbLabel']
@@ -598,14 +601,15 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     if verbose is None:
         verbose = self.verbose
 
-    if not ('pType' in locals()) or (pType is None):
-        pType = 'r'
+    # Attempt at smart arg passing - doesn't work.
+    # if not ('pType' in locals()) or (pType is None):
+    #     pType = 'r'
 
-    if not ('renderPlot' in locals()):
-        renderPlot = True
-
-    if not ('returnPlot' in locals()):
-        returnPlot = True
+    # if not ('renderPlot' in locals()):
+    #     renderPlot = True
+    #
+    # if not ('returnPlot' in locals()):
+    #     returnPlot = True
 
     # # Default to all datasets
     # if keys is None:
@@ -659,6 +663,17 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
                                                                                       # Seems to be issue with tuple/MultiIndex case.
 
     hvObj = hvDS.to(hvPlotters.hv.Curve, kdims=Etype)  # .overlay(xrDS.attrs['harmonics']['dimList'])   # OK
+
+    # if setPlotData:
+    # Set output
+    # if not hasattr(self, dataDict):
+    #     self.data[plotDict] = {}
+
+    self.plots['BLMplot'] = {'XR':xrDS,'hvDS':hvDS,'hv':hvObj}
+    # self.data[plotDict]['BLMsetPlot'] = hvPlot
+    if self.verbose:
+        print(f"BLMplot set data and plots to self.plots['BLMplot']")
+
 
     if renderPlot:
         return showPlot(hvObj.overlay(xrDS.attrs['harmonics']['dimList']), returnPlot = returnPlot, __notebook__ = isnotebook())  # Currently need to pass __notebook__?

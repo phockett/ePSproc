@@ -129,6 +129,10 @@ class ePSbase():
         self.jobNotes = []
 #         self.jobs = []  # Possibly redundant, but usful for multi dir case
 
+        # 04/11/22 - add plot bag.
+        # May want more flexibility here?
+        self.plots = {}
+
 
     # **** Small utility fns.
     def _keysCheck(self, keys):

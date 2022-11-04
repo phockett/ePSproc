@@ -2,7 +2,7 @@
 # 26/10/22  v1
 # From https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
-name: Stable versions
+name: Stable versions (XR<=2022.3)
 
 on: [push]
 # on:

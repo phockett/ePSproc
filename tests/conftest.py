@@ -1,3 +1,9 @@
+# General setup fixtures for ePSproc tests
+# 25/10/22
+#
+# TODO: may want to config some as session or method scope?
+#       For ideas, see https://rednafi.github.io/reflections/compose-multiple-levels-of-fixtures-in-pytest.html
+
 import pytest
 from pathlib import Path
 import epsproc as ep

@@ -4,6 +4,7 @@
 import pytest
 from pathlib import Path
 import pickle
+import re
 
 # ePSproc
 import epsproc as ep
@@ -112,6 +113,24 @@ def test_ePS_read(setDataPath, capsys, dataSingle, setDataFile):
     # assert captured.out == loadRef(fileName = 'tests/ePS_read_ref.txt')
     # assert captured.out == loadRef(fileName = 'tests/ePS_read_ref_GHCI.txt')  # With paths set for GH action CI. TODO: don't test paths!
     # print('OK')
+
+    # 05/11/22 - 2nd go
+    # UPDATE: still brittle, sometimes works, but also sensitive to file type.
+    # TODO: try implementing with difflib or numdiff?
+    #
+    # Test vs, ref case WITHOUT FULL PATHS
+    # BASIC REGEX FROM https://stackoverflow.com/a/44398380
+    # Find paths including */data, then remove
+    regex = "(.*?)/data/(.*/)"
+    # re.findall(regex,refText)
+    # thestring = re.sub(regex, r'\1"$relativePath/\2"' , refText)
+    refString = re.sub(regex, '' , loadRef(fileName = 'tests/ePS_read_ref.txt'))
+    capString = re.sub(regex, '' , captured.out)
+
+    # This looks OK, but still failing? OK in local notebook testing however.
+    # print(refString)
+    # print(capString)
+    # assert capString == refString
 
 
 def test_pickle_write(dataSingle, setTmpDataFile):

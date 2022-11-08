@@ -449,6 +449,8 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     05/06/21: added **kwargs pass to Xarray line plot
     03/02/21: added col, row arguments for flexibility on calling. Still needs automated dim handling.
 
+    For ongoing issues: https://github.com/phockett/ePSproc/issues/27
+
     """
 
     if backend == 'hv':
@@ -573,7 +575,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             thres = None, keys = None, verbose = None,
             backend = 'hv', overlay = None, keyDim = 'Orb',
             XS=False,
-            pType='r',renderPlot=True, returnPlot=True,
+            pType='r',renderPlot=True, returnPlot=False,
             # plotDict='plots',
             **kwargs):
     """
@@ -675,10 +677,17 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
         print(f"BLMplot set data and plots to self.plots['BLMplot']")
 
 
+    # if renderPlot:
+    #     return showPlot(hvObj.overlay(xrDS.attrs['harmonics']['dimList']), returnPlot = returnPlot, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
+    # else:
+    #     return hvObj
     if renderPlot:
-        return showPlot(hvObj.overlay(xrDS.attrs['harmonics']['dimList']), returnPlot = returnPlot, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
-    else:
+        showPlot(hvObj.overlay(xrDS.attrs['harmonics']['dimList']), returnPlot = returnPlot, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
+
+    if returnPlot:
         return hvObj
+    else:
+        return True 
 
 
 # # Plot PADs from mat elements (MF) or BLMs

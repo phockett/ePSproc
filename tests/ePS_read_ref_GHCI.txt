@@ -1,0 +1,25 @@
+*** ePSproc readMatEle(): scanning files for DumpIdy segments.
+
+*** Scanning file(s)
+['/home/runner/work/ePSproc/ePSproc/data/photoionization/n2_3sg_0.1-50.1eV_A2.inp.out']
+
+*** FileListSort
+  Prefix: /home/runner/work/ePSproc/ePSproc/data/photoionization/n2_3sg_0.1-50.1eV_A2.inp.out
+  1 groups.
+
+*** Reading ePS output file:  /home/runner/work/ePSproc/ePSproc/data/photoionization/n2_3sg_0.1-50.1eV_A2.inp.out
+*** IO.fileParse() found 1 segments with
+	Start: ScatEng
+	End: ['#'].
+Expecting 51 energy points.
+*** IO.fileParse() found 2 segments with
+	Start: ScatSym
+	End: ['FileName', '\n'].
+Expecting 2 symmetries.
+*** IO.fileParse() found 102 segments with
+	Start: DumpIdy - dump
+	End: ['+ Command', 'Time Now'].
+Found 102 dumpIdy segments (sets of matrix elements).
+
+Processing segments to Xarrays...
+Processed 102 sets of DumpIdy file segments, (0 blank)

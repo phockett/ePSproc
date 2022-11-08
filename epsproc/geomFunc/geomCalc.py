@@ -13,7 +13,9 @@ import pandas as pd
 import xarray as xr
 
 # Fast calc functions
-from epsproc.geomFunc.w3jVecMethods import Wigner3jQNs, w3jguVecCPU, w3jprange
+# from epsproc.geomFunc.w3jVecMethods import Wigner3jQNs, w3jguVecCPU, w3jprange
+# 11/10/22 - removed w3jguVecCPU, issues with some Numba versions.
+from epsproc.geomFunc.w3jVecMethods import Wigner3jQNs, w3jprange
 # from epsproc.geomFunc import w3jVecMethods
 
 # Sympy wrappers

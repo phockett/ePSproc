@@ -1302,6 +1302,9 @@ def getCroSegsParseX(dumpSegs, symSegs, ekeList):
     # Set units - should set from file ideally.
     daOut.Ehv.attrs['units'] = 'eV'
     daOut.attrs['units'] = 'Mb'
+    daOut.attrs['normType'] = 'lg'  # NOTE GetCro expanded in Legendre polynomials
+                                    # See util.comversion.conv_BL_BLM() for conversion.
+                                    # TODO: implement conversion, need to set L terms first.
 
     # Reset energies to Eke, and shift key dim - might be a simpler/shorter way to do this...?
     # This fails for singleton Ehv/Eke?

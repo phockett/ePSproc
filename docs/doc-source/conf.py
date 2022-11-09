@@ -60,6 +60,10 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
                 # 'sphinx_mdinclude']    # 09/11/22 - testing MD include support - same issue as myst_parser.
                 # 'IPython.sphinxext.ipython_console_highlighting']  # Actually this throws an error on RTD - try adding ipyhton to requirements.txt instead...
 
+# 09/11/22 - testing MD setup, see https://github.com/readthedocs/blog/blob/main/adding-markdown-support.rst
+# source_parsers = {'.md': CommonMarkParser}
+# source_suffix = ['.rst', '.md']
+
 # api doc settings
 apidoc_module_dir = '../../epsproc'
 apidoc_output_dir = 'modules'

@@ -23,7 +23,8 @@ A post-processing suite for ePolyScat calculations, and general tool for photoio
 
    etc/installation_notes_051120
    .. etc/docker
-   ../../../docker/readme.md
+   .. ../../../docker/readme.md
+   etc/readme_docker_copy.md
 
 
 

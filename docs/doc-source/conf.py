@@ -56,7 +56,8 @@ release = version
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
                 'sphinxcontrib.apidoc', 'recommonmark',
                 'sphinx.ext.viewcode', 'nbsphinx',
-                'myst_parser','sphinx_mdinclude']    # 09/11/22 - testing MD support.
+                # 'myst_parser',   # Fails on RTD, "Extension error: source_suffix '.md' is already registered". Maybe already installed?
+                'sphinx_mdinclude']    # 09/11/22 - testing MD support.
                 # 'IPython.sphinxext.ipython_console_highlighting']  # Actually this throws an error on RTD - try adding ipyhton to requirements.txt instead...
 
 # api doc settings

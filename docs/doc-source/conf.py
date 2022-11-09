@@ -53,14 +53,21 @@ release = version
 # ones.
 # NOTE 'IPython.sphinxext.ipython_console_highlighting' for RTD ipython highlighting.
 # See https://github.com/spatialaudio/nbsphinx/issues/24
+#
+# Markdown support testing 09/11/22
+#   OK to add ONLY ONE ext, otherwise fails on RTD, "Extension error: source_suffix '.md' is already registered".
+#   Working OK with 'recommonmark' for full MD docs only, or 'sphinx_mdinclude' for full docs and rst with .. mdinclude::, see https://sphinx-mdinclude.omnilib.dev/en/latest/example.html
+#   Didn't test myst_parser as yet.
+#
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
                 'sphinxcontrib.apidoc', # 'recommonmark',
                 'sphinx.ext.viewcode', 'nbsphinx',
-                # 'myst_parser',   # Fails on RTD, "Extension error: source_suffix '.md' is already registered". Maybe already installed?
-                'sphinx_mdinclude']    # 09/11/22 - testing MD include support - same issue as myst_parser.
+                # 'myst_parser',
+                'sphinx_mdinclude']    # 09/11/22 - testing MD include support, e.g. .. mdinclude:: ../../../docker/readme.md
                 # 'IPython.sphinxext.ipython_console_highlighting']  # Actually this throws an error on RTD - try adding ipyhton to requirements.txt instead...
 
 # 09/11/22 - testing MD setup, see https://github.com/readthedocs/blog/blob/main/adding-markdown-support.rst
+# UPDATE: should be handled automatically by extensions now?
 # source_parsers = {'.md': CommonMarkParser}
 # source_suffix = ['.rst', '.md']
 

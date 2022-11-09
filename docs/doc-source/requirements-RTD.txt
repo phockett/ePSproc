@@ -45,4 +45,4 @@ sphinx-rtd-theme >= 1.0.0
 
 # 09/11/22 Added for Markdown support
 # myst-parser  # Fails on RTD, "Extension error: source_suffix '.md' is already registered". Maybe already installed?
-sphinx-mdinclude
+# sphinx-mdinclude

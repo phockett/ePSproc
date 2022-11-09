@@ -14,8 +14,16 @@ A post-processing suite for ePolyScat calculations, and general tool for photoio
    :caption: Intro:
 
    about
-   etc/installation_notes_051120
+   .. etc/installation_notes_051120
    demos/ePSproc_class_demo_161020
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Installation:
+
+   etc/installation_notes_051120
+   etc/docker
+
 
 
 .. toctree::

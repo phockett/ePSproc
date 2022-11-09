@@ -14,3 +14,4 @@ Readme.md (old)
 
 
 .. This doesn't work:  .. mdinclude:: ../../README.md
+.. UPDATE: does work once 'sphinx_mdinclude' set in Sphinx conf.py, for full docs and rst with .. mdinclude::, see https://sphinx-mdinclude.omnilib.dev/en/latest/example.html

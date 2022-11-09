@@ -45,3 +45,4 @@ sphinx-rtd-theme >= 1.0.0
 
 # 09/11/22 Added for Markdown support
 myst-parser
+sphinx-mdinclude

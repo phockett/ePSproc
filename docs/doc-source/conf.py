@@ -55,7 +55,8 @@ release = version
 # See https://github.com/spatialaudio/nbsphinx/issues/24
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
                 'sphinxcontrib.apidoc', 'recommonmark',
-                'sphinx.ext.viewcode', 'nbsphinx']
+                'sphinx.ext.viewcode', 'nbsphinx',
+                'myst_parser']
                 # 'IPython.sphinxext.ipython_console_highlighting']  # Actually this throws an error on RTD - try adding ipyhton to requirements.txt instead...
 
 # api doc settings

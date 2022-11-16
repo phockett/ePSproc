@@ -309,7 +309,8 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = N
 # TODO: More plot types.
 # TODO: More careful testing - not totally sure if summation & axes consistent here.
 # TODO: add dim checks, see classes._plotters.padPlot for some existing implementations.
-def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convention = 'phys', titleString = None, plotFlag = True, verbose = True, axisUW = None):
+def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', surfMap = 'R', backend = 'mpl',
+                convention = 'phys', titleString = None, plotFlag = True, verbose = True, axisUW = None):
     '''
     Plot sum of spherical harmonics from an Xarray.
 
@@ -332,6 +333,12 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
         * Currently set for a single dimension only.
         * For matplotlib backend: one figure per surface.
         * For plotly backend: subplots per surface.
+
+    surfMap : str, optional, default = None
+        Additional specification to use for surface colour specification.
+        NOTE: currently only implemented for Plotly backend (via surfacecolor).
+        If None not specified == z surf map.
+        If R == radial value surf map.
 
     backend : str, optional, default 'mpl'
         Set backend used for plotting.
@@ -434,7 +441,7 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', backend = 'mpl',  convent
 
     # Plotly - note that faceting is handled directly by Plotly in this case.
     if backend == 'pl':
-        fig.append(sphPlotPL(dataPlot, theta, phi, facetDim, convention = convention, plotFlag = plotFlag, verbose = verbose))
+        fig.append(sphPlotPL(dataPlot, theta, phi, facetDim, surfMap=surfMap, convention = convention, plotFlag = plotFlag, verbose = verbose))
 
     return fig
 
@@ -574,7 +581,9 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None):
 
 # Plot as Plotly subplots, as function of selected dim.
 # Currently set for subplotting over facetDim, but assumes other dims (theta,phi)
-def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global', convention = 'phys', plotFlag = True, verbose = False):
+def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
+                rc = None, norm = 'global',
+                convention = 'phys', plotFlag = True, verbose = False):
     '''
     Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Plotly.
 
@@ -588,6 +597,11 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
 
     facetDim : str, default 'Eke'
         Dimension to use for faceting (subplots), currently set for single dim only.
+
+    surfMap : str, optional, default = None
+        Additional specification to use for Plotly surfacecolor specification.
+        If None not specified == z surf map.
+        If R == radial value surf map.
 
     rc : array, optional, default = None
         If set, use to define layout grid [rows, columns].
@@ -693,9 +707,19 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
 
                 # Set data (NOTE - now repeats above in Xarray case)
                 if facetDim is not None:
-                    X,Y,Z = sphToCart(dataPlot.sel({facetDim:dataPlot[facetDim][n]}),theta,phi)  # Bit ugly, probably a better way to select here.
+                    R = dataPlot.sel({facetDim:dataPlot[facetDim][n]})
+                    # X,Y,Z = sphToCart(dataPlot.sel({facetDim:dataPlot[facetDim][n]}),theta,phi)  # Bit ugly, probably a better way to select here.
                 else:
-                    X,Y,Z = sphToCart(dataPlot,theta,phi)  # Singleton case
+                    R = dataPlot
+                    # X,Y,Z = sphToCart(dataPlot,theta,phi)  # Singleton case
+
+                X,Y,Z = sphToCart(R,theta,phi)
+
+                # Additional surface colour map options
+                if surfMap is None:
+                    surfMapArray = Z
+                elif surfMap == 'R':
+                    surfMapArray = R
 
                 # Set plot object
                 showscale = False
@@ -703,7 +727,7 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', rc = None, norm = 'global'
                 #     showscale = True  # Set scale bar for row?  Only for global scaling? With this code get multiple cbars?
 
                 fig.add_trace(
-                    go.Surface(x=X, y=Y, z=Z, colorscale='Viridis', showscale=showscale),
+                    go.Surface(x=X, y=Y, z=Z, colorscale='Viridis', showscale=showscale, surfacecolor=surfMapArray),
                     row=rInd, col=cInd)  # Needs some work here...
                     # title=[facetDim + '=' + str(dataPlot[facetDim][n].data.item())]),
 

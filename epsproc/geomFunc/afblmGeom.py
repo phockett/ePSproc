@@ -16,7 +16,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
                 # RX = None, eulerAngs = None, polLabel = None,
                 polProd = None, AFterm = None,
                 # basisDict = {},  May want to pass full dict here, or just pass as **basisDict from calling fn?
-                thres = 1e-2, thresDims = 'Eke', selDims = {'Type':'L'},   #, 'it':1},
+                thres = 1e-2, thresDims = 'Eke', selDims = {'Type':'L'}, sqThres = True, dropThres = True,  #, 'it':1},
                 # sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
                 sumDims = ['mu', 'mup', 'l','lp','m','mp','S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
                 degenDrop = True, SFflag = False, SFflagRenorm = False,
@@ -33,6 +33,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
 
     Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
+
+    24/11/22 Added sqThres = True, dropThres = True for use with INITIAL matEleSelector() call only - in some cases may get issues with dim drops here otherwise.
 
     04/05/22 Added **kwargs, unused but allows for arb basis dict unpack and passing from other functions. May want to pipe back to Full basis return however.
 
@@ -108,6 +110,15 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
         If 1 renorm by B00.
         See  code for further details.
 
+    sqThres  : bool, default = True
+        Used for initial matrix element threholding call only.
+        Default = True as previous code, but can cause issues in custom cases (usually accidentally dropping singleton mu coord).
+        Added 24/11/22
+
+    dropThres  : bool, default = True
+        Used for initial matrix element threholding call only.
+        Default = True as previous code, but can cause issues in custom cases (usually accidentally dropping singleton mu coord).
+        Added 24/11/22
 
     squeeze : bool, default = False
         Squeeze output array after thresholding?
@@ -214,7 +225,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
     calcSettings['degenDict'] = degenDict  # Add to calcSettings for output with main Xarray attribs.
 
     # Threshold
-    matEthres = matEleSelector(matE, thres = thres, inds = selDims, dims = thresDims, sq = True, drop = True)
+    matEthres = matEleSelector(matE, thres = thres, inds = selDims, dims = thresDims, sq = sqThres, drop = dropThres)
 
     # Sum **AFTER** threshold and selection, to allow for subselection on symmetries via matEleSelector
     symDegen = 1

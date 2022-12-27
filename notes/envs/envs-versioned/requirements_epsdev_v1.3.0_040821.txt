@@ -92,7 +92,7 @@ scipy==1.6.1
 scooby==0.5.6
 seaborn==0.9.0
 Send2Trash==1.5.0
-setuptools==49.6.0.post20210108
+setuptools==65.5.1
 six==1.15.0
 spherical-functions==2021.8.6.19.23.59
 statsmodels==0.12.2

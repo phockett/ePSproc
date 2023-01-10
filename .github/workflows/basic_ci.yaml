@@ -1,6 +1,9 @@
 # Basic CI workflow
 # 26/10/22  v1
 # From https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+#
+# 10/01/23 Added job summary reporting and updated pytest output files for (python)-(xarray) version naming.
+#          NEEDS WORK
 
 name: Stable versions (XR<=2022.3)
 
@@ -51,13 +54,19 @@ jobs:
           pip install pytest-cov
           # pytest --capture=tee-sys --show-capture=all   # Basic version as per local tests
           # pytest tests --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
-          pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov=ePSproc --cov-report=xml --cov-report=html
+          pytest --junitxml=junit/test-results-${{ matrix.python-version }}-${{ matrix.xarray-version }}.xml --cov=ePSproc --cov-report=xml --cov-report=html
 
       # Output reports as per https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#packaging-workflow-data-as-artifacts
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
         with:
-          name: pytest-results-${{ matrix.python-version }}
-          path: junit/test-results-${{ matrix.python-version }}.xml
+          name: pytest-results-${{ matrix.python-version }}-${{ matrix.xarray-version }}
+          path: junit/test-results-${{ matrix.python-version }}-${{ matrix.xarray-version }}.xml
         # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
+        
+      # Report with job summaries, see https://github.blog/2022-05-09-supercharging-github-actions-with-job-summaries/ 
+      # Should push this to a table? Need to config prior to matrix.
+      - name: Adding markdown
+        run: echo '${{ matrix.python-version }} ${{ matrix.xarray-version }} OK' >> $GITHUB_STEP_SUMMARY
+        

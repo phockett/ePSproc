@@ -22,8 +22,8 @@ jobs:
     strategy:
       matrix:
         # python-version: ["3.7", "3.8", "3.9", "3.10"]
-        python-version: ["3.8"]  #, "3.9", "3.10"]
-        xarray-version: ["0.15","0.19"]  #,"2022.3"]   # , "2022.10"]
+        python-version: ["3.8", "3.9", "3.10"]
+        xarray-version: ["0.15","0.19","2022.3"]   # , "2022.10"]
         
     # Name run with versions
     name: Python ${{ matrix.python-version }} - Xarray ${{ matrix.xarray-version }}
@@ -93,7 +93,19 @@ jobs:
         run: pwd
 
       - name: Summarise results
-        run: ls >> $GITHUB_STEP_SUMMARY
+        # Filenames only
+        # run: ls >> $GITHUB_STEP_SUMMARY
+        
+        # Crude output with basic name parsing. Need to also test file contents, may want to use python here.
+        run: |
+          echo "# Verified output files" >> $GITHUB_STEP_SUMMARY
+          files=(*)
+          bTest=$(for i in "${files[@]}"; do echo - ; echo $i | cut -d "-" -f 3; echo $i | cut -d "-" -f 4; echo " OK \n"; done)
+          echo $bTest >> $GITHUB_STEP_SUMMARY 
+          
+          # pyTestV=$(for i in "${files[@]}"; do echo $i | cut -d "-" -f 3; done)
+          # xrTestV=$(for i in "${files[@]}"; do echo $i | cut -d "-" -f 4; done)
+          
         
       # Test also alternatives...
       # See https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts#passing-data-between-jobs-in-a-workflow

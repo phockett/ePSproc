@@ -88,6 +88,18 @@ jobs:
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v3
 
-      - name: Adding markdown
-        run: echo ls >> $GITHUB_STEP_SUMMARY
+      - name: Check dir
+        shell: bash
+        run: pwd
+
+      - name: Summarise results
+        run: ls >> $GITHUB_STEP_SUMMARY
+        
+      # Test also alternatives...
+      # See https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts#passing-data-between-jobs-in-a-workflow
+      - name: Print results  
+        shell: bash
+        run: |
+          value=`ls`
+          echo $value
         

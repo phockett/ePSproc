@@ -10,6 +10,11 @@ name: Stable versions (XR<=2022.3)
 on: [push]
 # on:
 
+# From https://yonatankra.com/7-github-actions-tricks-i-wish-i-knew-before-i-started/ (#6)
+concurrency:
+  group: ci-tests-${{ github.ref }}-1
+  cancel-in-progress: true
+
 jobs:
   build:
 
@@ -17,8 +22,11 @@ jobs:
     strategy:
       matrix:
         # python-version: ["3.7", "3.8", "3.9", "3.10"]
-        python-version: ["3.8", "3.9", "3.10"]
-        xarray-version: ["0.15","0.19","2022.3"]   # , "2022.10"]
+        python-version: ["3.8"]  #, "3.9", "3.10"]
+        xarray-version: ["0.15","0.19"]  #,"2022.3"]   # , "2022.10"]
+        
+    # Name run with versions
+    name: Python ${{ matrix.python-version }} - Xarray ${{ matrix.xarray-version }}
 
     steps:
       - uses: actions/checkout@v3
@@ -67,6 +75,19 @@ jobs:
         
       # Report with job summaries, see https://github.blog/2022-05-09-supercharging-github-actions-with-job-summaries/ 
       # Should push this to a table? Need to config prior to matrix.
+      # NOTE: this reports per job on output page, not in concatenated format
+      #- name: Adding markdown
+      #  run: echo '${{ matrix.python-version }} ${{ matrix.xarray-version }} OK' >> $GITHUB_STEP_SUMMARY
+  
+  report:
+    name: Display results
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download all workflow run artifacts
+        uses: actions/download-artifact@v3
+
       - name: Adding markdown
-        run: echo '${{ matrix.python-version }} ${{ matrix.xarray-version }} OK' >> $GITHUB_STEP_SUMMARY
+        run: echo ls >> $GITHUB_STEP_SUMMARY
         

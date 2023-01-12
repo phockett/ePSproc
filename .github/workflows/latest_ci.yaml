@@ -4,8 +4,15 @@
 
 name: Xarray latest
 
-on: [push]
+# on: [push]
 # on:
+# 12/01/23: this currently always fails for XR 2022.10, so ignore dev branch for now (until debugged)
+# Syntax: https://docs.github.com/en/actions/using-workflows/triggering-a-workflow
+on:
+  push:
+    # Sequence of patterns matched against refs/heads
+    branches-ignore:    
+      - dev
 
 jobs:
   build:

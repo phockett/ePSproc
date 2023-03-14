@@ -9,6 +9,8 @@ def Esubset(self, key = None, dataType = None, Erange = None, Etype = None):
     """
     Basic Etype subselection & slice routine for base class and plot wrappers.
 
+    Erange used to define selection slice, `slice(Erange[0], Erange[1], Erange[2])`, which defines `[start,stop,step]` - note `step` is array bins, not specific units.
+
     Will return view of data only (http://xarray.pydata.org/en/stable/indexing.html#copies-vs-views).
 
     TODO: add matEleSelector for thresholding here too?

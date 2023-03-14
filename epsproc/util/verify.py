@@ -37,8 +37,12 @@ def verifyAFiso(data, thres = 1e-2, sym = ('All','All'), pGauge = 'L',
     Returns
     -------
 
+    dict
+        Output summary per key and over all keys.
+
 
     TODO: clean up input params, should match options elsewhere (e.g. matEleSelector), and use this for selections?
+    TODO: pretty print summary
 
     """
 

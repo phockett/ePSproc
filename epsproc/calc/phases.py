@@ -144,6 +144,7 @@ def phaseCorrection(data, cPhase = None, lPhase = True, **kwargs):
         Coulomb phases to use.
         If None, compute these for input array using :py:func:`coulombPhase()` function.
         **kwargs are also passed to :py:func:`coulombPhase()`
+        To skip phase correction, pass cPhase = 1
 
     lPhase : bool, default = True
         Apply :math:`i^{-l}` term?
@@ -151,7 +152,7 @@ def phaseCorrection(data, cPhase = None, lPhase = True, **kwargs):
 
     **kwargs : optional keyword args
         Passed to :py:func:`coulombPhase()`
-        
+
 
     Returns
     -------
@@ -161,13 +162,16 @@ def phaseCorrection(data, cPhase = None, lPhase = True, **kwargs):
     Xarray : phaseCorr
 
 
+    TODO: dim handling to add.
+
     """
 
     if cPhase is None:
         cPhase = coulombPhase(data, **kwargs)
 
     if lPhase:
-        lPhase = 1/(1j**cPhase.l)   # i^(-l) == 1/(i^l)
+        # lPhase = 1/(1j**cPhase.l)   # i^(-l) == 1/(i^l)
+        lPhase = 1/(1j**data.l)   # Use data, not cPhase, to allow lPhase only case.
 
     else:
         lPhase = 1

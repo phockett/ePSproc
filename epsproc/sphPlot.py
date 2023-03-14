@@ -582,6 +582,7 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None):
 # Plot as Plotly subplots, as function of selected dim.
 # Currently set for subplotting over facetDim, but assumes other dims (theta,phi)
 def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
+                showbackground = False, showaxes = True,
                 rc = None, norm = 'global',
                 convention = 'phys', plotFlag = True, verbose = False):
     '''
@@ -602,6 +603,12 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
         Additional specification to use for Plotly surfacecolor specification.
         If None not specified == z surf map.
         If R == radial value surf map.
+
+    showbackground : bool, default = False
+        Show background axis grid and planes if True.
+
+    showaxes : bool, default = True
+        Plot axes lines if True.
 
     rc : array, optional, default = None
         If set, use to define layout grid [rows, columns].
@@ -764,6 +771,23 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
                 # if rInd == (rc[0]):
                 #     fig.update_layout(**{sceneN:dict(showscale=True)})  # Set scale bar for row?
 
+                # Remove grid and background?
+                if not showbackground:
+        #             whiteOptions = dict(backgroundcolor = 'rgb(255,255,255)', color='rgb(255,255,255)')  # White bg
+        #             whiteOptions = dict(showbackground=False)   # No bg, keep axes
+                    whiteOptions = dict(showbackground=False, visible=False)   # showline=False, showticklabels=False, showaxeslabels=False)   # No bg, no axes
+        #             whiteOptions = dict(showbackground=True, showline=False, showticklabels=False)    # zeroline=True)   # No bg, test other options
+                    fig.update_scenes(xaxis=whiteOptions, yaxis=whiteOptions, zaxis=whiteOptions)
+
+                # Add (x,y,z) axes only?
+                # Use with Rmax or (X,Y,Z) max to define axis extent.
+                if showaxes:
+                    if norm == 'global':
+                        fig.add_trace(createAxesPL(scale=[Rmax,Rmax,Rmax]),row=rInd, col=cInd)
+                    else:
+                        fig.add_trace(createAxesPL(scale=[X.max(),Y.max(),Z.max()]),row=rInd, col=cInd)
+
+
 
     # fig.show()
     # Check if notebook and output
@@ -775,3 +799,78 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
         fig.show()  # Try fig.show(), although may not work in all cases.
 
     return fig
+
+
+def createAxesPL(scale = [1,1,1], color='rgb(0,0,0)', width=4):
+    """
+    Create (x,y,z) axes lines as Plotly go.Scatter3d object
+    Based on https://stackoverflow.com/questions/42301481/adding-specific-lines-to-a-plotly-scatter3d-plot
+
+    Basically set and draw point pairs, then lines based on these
+
+    Parameters
+    ----------
+    scale : list or array, default = [1,1,1]
+        [x,y,z] limits for the axes. Note +/- extents are drawn.
+        TODO: added +/- options and dictionary option?
+
+    color : str, default = 'rgb(0,0,0)'
+        Define line colour. See Plotly docs for supported values.
+
+    width : int, default = 4
+        Line width
+
+
+    Returns
+    -------
+
+    axes : plotly go.Scatter3d object.
+
+
+    Examples
+    --------
+
+    >>> # Draw unit axes
+    >>> import plotly.graph_objs as go
+    >>> fig = go.Figure(data=createAxesPL())
+    >>> fig.show()
+
+    >>> # Draw axes with custom scale
+    >>> import plotly.graph_objs as go
+    >>> fig = go.Figure(data=createAxesPL([5,10,1]))
+    >>> fig.show()
+
+    """
+
+    # Define points
+    x = [-scale[0],scale[0],0,0,0,0]
+    y = [0,0,-scale[1],scale[1],0,0]
+    z = [0,0,0,0,-scale[2],scale[2]]
+
+    # Define pairs (the start and end point for each line)
+    pairs = [(0,1), (2,3), (4,5)]
+
+    # Define lines
+    x_lines = list()
+    y_lines = list()
+    z_lines = list()
+
+    # create the coordinate list for the lines
+    for p in pairs:
+        for i in range(2):
+            x_lines.append(x[p[i]])
+            y_lines.append(y[p[i]])
+            z_lines.append(z[p[i]])
+        x_lines.append(None)
+        y_lines.append(None)
+        z_lines.append(None)
+
+    # Draw lines with Scatter3d
+    axes = go.Scatter3d(
+        x=x_lines,
+        y=y_lines,
+        z=z_lines,
+        mode='lines',
+        line=dict(color=color, width=width),showlegend=False)
+
+    return axes

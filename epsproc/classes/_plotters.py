@@ -687,7 +687,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     if returnPlot:
         return hvObj
     else:
-        return True 
+        return True
 
 
 # # Plot PADs from mat elements (MF) or BLMs
@@ -862,7 +862,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = 'Eke',
                 keys = None, dataType = 'TX', facetDims = None, squeeze = False, reducePhi = None,
                 pType = None, pStyle = 'polar', returnFlag = False, plotDict = 'plots',
-                backend = 'mpl', plotFlag = True):
+                backend = 'mpl', plotFlag = True, **kwargs):
 
     """
     Plot I(theta,phi) data from BLMs or gridded datasets.
@@ -879,6 +879,11 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     pType : str, optional, default = None
         Plot type, defaults to 'a' (abs) except for dataType = 'TX', 'a2'.
         See :py:func:`epsproc.sphPlot.plotTypeSelector` for options.
+
+    **kwargs
+        Additional args passed to backend plotting routines.
+        Currently only used for sphSumPlotX(), for polar plots with Plotly or Matplotlib.
+
 
     TODO: fix dim handling for pl case, need to pass facetDim != None.
     TODO: return plot objects. Probably to self.data[key][pStyle], or as dictionary of plots per run with data? (Cf. PEMtk plotters.)
@@ -999,12 +1004,12 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
                 for groupLabel, item in subset.groupby(facetDimsCheck[0]):
     #                 tString = f"Pol geom: {item.item()}, plotType: {pType}"
                     tString = f"{facetDimsCheck[0]}: {groupLabel}, plotType: {pType}"
-                    pltObj = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString, plotFlag=plotFlag, verbose = self.verbose['sub'])
+                    pltObj = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString, plotFlag=plotFlag, verbose = self.verbose['sub'], **kwargs)
                     # _ = sphSumPlotX(item, pType = pType, backend = backend, facetDim = facetDimsCheck[1], titleString = tString)
             else:
                 # For single dim case just pass to existing plotter for subplots,
                 tString = f"plotType: {pType}"
-                pltObj = sphSumPlotX(subset, pType = pType, backend = backend, facetDim = facetDimsCheck[0], titleString = tString, plotFlag=plotFlag, verbose = self.verbose['sub'])
+                pltObj = sphSumPlotX(subset, pType = pType, backend = backend, facetDim = facetDimsCheck[0], titleString = tString, plotFlag=plotFlag, verbose = self.verbose['sub'], **kwargs)
 
 
         elif pStyle == 'grid':

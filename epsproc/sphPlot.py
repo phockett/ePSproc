@@ -441,7 +441,7 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', surfMap = 'R', backend = 
             for nPlot in dataPlot[facetDim]:
                 # fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention, tString = f"{facetDim}: {nPlot.item()}"))
                 # {dataPlot[facetDim][nPlot].item()}"))  # Will fail if dims>2 passed.
-                fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention, tString = titleString + f"\n{facetDim}: {nPlot.item()}", **kwags))
+                fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention, tString = titleString + f"\n{facetDim}: {nPlot.item()}", **kwargs))
 
         else:
             # Call matplotlib plotting fn., single surface

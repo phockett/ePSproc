@@ -168,7 +168,7 @@ def sphPlotHV(dataIn):
 
 
 # Plot MFPADs from a set of BLM
-def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = None, backend = 'mpl', fnType = None, conj = False):
+def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = None, backend = 'mpl', fnType = None, conj = False, **kwargs):
     r'''
     Calculate spherical harmonic expansions from BLM parameters and plot.
 
@@ -207,6 +207,9 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = N
 
     conj : bool, optional, default = False
         Use conjugate harmonics.
+
+    **kwargs
+        Additional args passed to backend plotting routines.
 
     Returns
     -------
@@ -299,7 +302,7 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = N
 
         # Pass data to plotting function
         if plotFlag:
-            fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend)
+            fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend, **kwargs)
 
 
     return dataPlot, fig
@@ -311,7 +314,8 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = N
 # TODO: More careful testing - not totally sure if summation & axes consistent here.
 # TODO: add dim checks, see classes._plotters.padPlot for some existing implementations.
 def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', surfMap = 'R', backend = 'mpl',
-                convention = 'phys', titleString = None, plotFlag = True, verbose = True, axisUW = None):
+                convention = 'phys', titleString = None, plotFlag = True, verbose = True, axisUW = None,
+                **kwargs):
     '''
     Plot sum of spherical harmonics from an Xarray.
 
@@ -361,6 +365,9 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', surfMap = 'R', backend = 
 
     axisUW : str, optional, default = None
         Unwrap axis for phase maps, only used if pType = 'phaseUW'
+
+    **kwargs
+        Additional args passed to backend plotting routines.
 
     Returns
     -------
@@ -434,7 +441,7 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', surfMap = 'R', backend = 
             for nPlot in dataPlot[facetDim]:
                 # fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention, tString = f"{facetDim}: {nPlot.item()}"))
                 # {dataPlot[facetDim][nPlot].item()}"))  # Will fail if dims>2 passed.
-                fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention, tString = titleString + f"\n{facetDim}: {nPlot.item()}"))
+                fig.append(sphPlotMPL(dataPlot.sel({facetDim:nPlot}).squeeze(), theta, phi,  convention = convention, tString = titleString + f"\n{facetDim}: {nPlot.item()}", **kwags))
 
         else:
             # Call matplotlib plotting fn., single surface
@@ -442,7 +449,7 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', surfMap = 'R', backend = 
 
     # Plotly - note that faceting is handled directly by Plotly in this case.
     if backend == 'pl':
-        fig.append(sphPlotPL(dataPlot, theta, phi, facetDim, surfMap=surfMap, convention = convention, plotFlag = plotFlag, verbose = verbose))
+        fig.append(sphPlotPL(dataPlot, theta, phi, facetDim, surfMap=surfMap, convention = convention, plotFlag = plotFlag, verbose = verbose, **kwargs))
 
     return fig
 
@@ -518,7 +525,7 @@ def sphToCart(R, theta, phi, convention = 'phys', returnType = 'np'):
 #     sphPlotMatplotLib(dataPlot, theta, phi)
 
 # Plot using matplotlib
-def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None):
+def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None, **kwargs):
     '''
     Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Matplotlib.
 
@@ -537,6 +544,9 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None):
         Text to be used for plot title.
         This will be appended with other data info, if set.
         If facetDim is passed here, this will be used to set the label.
+
+    **kwargs
+        Unused, just for calling func convenience.
 
     Returns
     -------
@@ -594,7 +604,7 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None):
 def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
                 showbackground = False, showaxes = True,
                 rc = None, norm = 'local', padding = 0.01, camR = 0.85, #'global',
-                convention = 'phys', plotFlag = True, verbose = False):
+                convention = 'phys', plotFlag = True, verbose = False, **kwargs):
     '''
     Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Plotly.
 
@@ -641,6 +651,9 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
 
     plotFlag : bool, optional, default = True
         Set plotFlag=False bypass for plotter object return only.
+
+    **kwargs
+        Unused, just for calling func convenience.
 
 
     Returns

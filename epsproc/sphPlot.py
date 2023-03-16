@@ -53,6 +53,7 @@ except ImportError as e:
 # Local functions
 from epsproc.sphCalc import sphCalc
 from epsproc.util.env import isnotebook
+from epsproc.util.misc import checkDims
 
 #***** Plotting top-level functions & logic
 
@@ -449,7 +450,7 @@ def sphSumPlotX(dataIn, pType = 'a', facetDim = 'Eke', surfMap = 'R', backend = 
 #******** Low-level plotting functions
 
 # Set cart coords from spherical polar coords
-def sphToCart(R, theta, phi, convention = 'phys'):
+def sphToCart(R, theta, phi, convention = 'phys', returnType = 'np'):
     r"""
     Convert spherical polar coords :math:`(R,\theta,\phi)` to Cartesian :math:`(X,Y,Z)`.
 
@@ -461,9 +462,13 @@ def sphToCart(R, theta, phi, convention = 'phys'):
     convention : str, optional, default = 'phys'
         Specify choice of Spherical Polar coordinate system, 'phys' or 'maths' (see note below).
 
+    returnType : str, optional, default = 'np'
+        - 'np' return numpy arrays X,Y,Z (default)
+        - 'xr' return Xarray Dataset
+
     Returns
     -------
-    X, Y, Z : np.arrays
+    X, Y, Z : np.arrays or Xarray Dataset
         Cartesian coords :math:`(X,Y,Z)`.
 
 
@@ -499,7 +504,12 @@ def sphToCart(R, theta, phi, convention = 'phys'):
         print(f"*** Coordinate convention {convention} not supported.")
         return None
 
-    return X, Y, Z
+    # if returnType == 'np':
+
+    if returnType == 'xr':
+        return xr.Dataset({'X':X,'Y':Y,'Z':Z})
+    else:
+        return X, Y, Z
 
 
 # Plot using matplotlib - legacy
@@ -583,7 +593,7 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None):
 # Currently set for subplotting over facetDim, but assumes other dims (theta,phi)
 def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
                 showbackground = False, showaxes = True,
-                rc = None, norm = 'global',
+                rc = None, norm = 'local', padding = 0.01, camR = 0.85, #'global',
                 convention = 'phys', plotFlag = True, verbose = False):
     '''
     Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Plotly.
@@ -619,6 +629,13 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
         - 'global' : use same (x,y,z) limits for all plots.
         - 'local' : auto set (x,y,z) limits for each plot.
 
+    padding : float, optional, default = 0.1
+        Axis padding for plot scaling, as %age of R max.
+
+    camR : float, optional, default = 0.85
+        Use to move camera to zoom in on plots, with camera = dict(eye=dict(x=camR, y=camR, z=camR)).
+        Default case (1,1,1) usually doesn't fill render box.
+
     convention : str, optional, default = 'phys'
         Spherical polar coord convention, see :py:func:`epsproc.sphToCart`
 
@@ -644,6 +661,7 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
 
     - More playing around with Plotly.
     - Camera control and linking, e.g. https://community.plotly.com/t/synchronize-camera-across-3d-subplots/22236
+    - Update 14/03/23: added axis and background plotting options. Need to consolidate with global styles.
 
     For JupyterLab, need additional extensions - see https://plotly.com/python/getting-started/#jupyterlab-support:
     - `conda install -c conda-forge -c plotly jupyter-dash`
@@ -677,24 +695,88 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
     specs = [[pType] * rc[1] for i in range(rc[0])]  # Set specs as 2D list of dicts.
 
     # Check/set some global props - assumes Xarray datatype at the moment (also assumed later!)
+    # 16/03/23: updated sphToCart for Dataset return, and this code to use Dataset with coords.
     if isinstance(dataPlot, xr.core.dataarray.DataArray):
         # Check max coord limit, to use for all subplot ranges
-        # Should rewrite sphToCart for Xarray output?
-        X,Y,Z =sphToCart(dataPlot,dataPlot.Theta,dataPlot.Phi)  # NOTE - this is NOT used for plotting, just global limits.
-        # X,Y,Z =sphToCart(dataPlot,theta,phi)  # NOTE - (t,p) here predefined 2D arrays!
+        XYZds =sphToCart(dataPlot,dataPlot.Theta,dataPlot.Phi, returnType='xr')  # NOTE - this is NOT used for plotting, just global limits.
 
-        Cmax = np.max([X.max(), Y.max(), Z.max()])  # Check max & min coord values - may be unequal in some cases.
-        Cmin = np.min([X.min(), Y.min(), Z.min()])
-        Rmax = np.max([np.abs(Cmin), Cmax])
-        padding = 0.1 * Rmax  # Padding %age
-        aRanges = dict(range=[-(Rmax + padding), Rmax+padding])
+        # Get max & mins per coord
+        XYZds.attrs['dimMax'] = XYZds.max().to_array()
+        XYZds.attrs['dimMin'] = XYZds.min().to_array()
 
+        # Max & min global
+        XYZds.attrs['CMax'] = XYZds.attrs['dimMax'].max()
+        XYZds.attrs['CMin'] = XYZds.attrs['dimMin'].min()
+        XYZds.attrs['Rmax'] = np.max([np.abs(XYZds.attrs['CMin']), XYZds.attrs['CMax']])
+
+        # Axes settings global case
+        # padding = 0.1 * XYZds.attrs['Rmax']  # Padding %age
+        XYZds.attrs['aRanges'] = dict(range=[-(XYZds.attrs['Rmax'] + padding*XYZds.attrs['Rmax']),
+                                        XYZds.attrs['Rmax']+padding*XYZds.attrs['Rmax']])
+
+        # Set facet properties if required
         # Set subplot titles, see https://stackoverflow.com/questions/53991810/how-to-add-subplot-title-to-3d-subplot-in-plotly
         if facetDim is not None:
-            titles = [f"{facetDim}: {item.item()}" for item in dataPlot[facetDim]]
+            # Check dims are OK
+            dimDict = checkDims(XYZds, refDims=facetDim)
+
+            # Per subplot settings... max/min per facet dim.
+            XYZds.attrs['facetMax'] = XYZds.max(dim=dimDict['extra'])
+            XYZds.attrs['facetMin'] = XYZds.min(dim=dimDict['extra'])
+            XYZds.attrs['CfacetMax'] = XYZds.attrs['facetMax'].to_array().max('variable')
+            XYZds.attrs['CfacetMin'] = XYZds.attrs['facetMin'].to_array().min('variable')
+            XYZds.attrs['RfacetMax'] = xr.concat([XYZds.attrs['CfacetMax'], np.abs(XYZds.attrs['CfacetMin'])], dim='m').max('m')
+            XYZds.attrs['RfacetMaxRel'] = XYZds.attrs['RfacetMax'].max()/XYZds.attrs['RfacetMax']
+
+            # Axes settings facet case
+            # padding = 0.1 * XYZds.attrs['Rmax']  # Padding %age
+            # XYZds.attrs['aRanges'] = dict(range=[-(XYZds.attrs['Rmax'] + padding), XYZds.attrs['Rmax']+padding])
+            # Max/min R per facet dim with padding
+            XYZds.attrs['aRangesFacet'] = xr.Dataset({'min':-(XYZds.attrs['RfacetMax'] + padding*XYZds.attrs['RfacetMax']),
+                                                    'max':XYZds.attrs['RfacetMax']+padding*XYZds.attrs['RfacetMax']}).to_array(dim='m')
+
+            if norm != 'global':
+                # Add titles including scale factor
+                # Note <br> for newline in Plotly text object
+                titles = [f"{facetDim}: {item.item()}<br>Relative scale={np.round(XYZds.attrs['RfacetMaxRel'][n].data,1)}" for n,item in enumerate(dataPlot[facetDim])]
+            else:
+                titles = [f"{facetDim}: {item.item()}" for item in dataPlot[facetDim]]
+
         else:
             # titles = [f"{facetDim}: {item.item()}" for item in dataPlot[facetDim]]
             titles = ['']  # Singleton case.
+
+        # # Check max coord limit, to use for all subplot ranges
+        # # Should rewrite sphToCart for Xarray output?
+        # X,Y,Z =sphToCart(dataPlot,dataPlot.Theta,dataPlot.Phi)  # NOTE - this is NOT used for plotting, just global limits.
+        # # X,Y,Z =sphToCart(dataPlot,theta,phi)  # NOTE - (t,p) here predefined 2D arrays!
+        #
+        # Cmax = np.max([X.max(), Y.max(), Z.max()])  # Check max & min coord values - may be unequal in some cases.
+        # Cmin = np.min([X.min(), Y.min(), Z.min()])
+        # Rmax = np.max([np.abs(Cmin), Cmax])
+        # padding = 0.1 * Rmax  # Padding %age
+        # aRanges = dict(range=[-(Rmax + padding), Rmax+padding])
+        #
+        # # Set subplot titles, see https://stackoverflow.com/questions/53991810/how-to-add-subplot-title-to-3d-subplot-in-plotly
+        # if facetDim is not None:
+        #     # Max per subplot
+        #     dimsPlot = set(dataPlot.dims) - set([facetDim])
+        #     Xfacet = X.max(dim=['Theta','Phi'])
+        #     Yfacet = Y.max(dim=['Theta','Phi'])
+        #     Zfacet = Z.max(dim=['Theta','Phi'])
+        #     RmaxFacet = np.max(np.array([Xfacet,Yfacet,Zfacet]), axis=0)
+        #     RmaxFacetRel = RmaxFacet.max()/RmaxFacet  # Relative scale factor compared to largest magnitude case.
+        #
+        #     if norm != 'global':
+        #         # Add titles including scale factor
+        #         # Note <br> for newline in Plotly text object
+        #         titles = [f"{facetDim}: {item.item()}<br>Relative scale={np.round(RmaxFacetRel[n],1)}" for n,item in enumerate(dataPlot[facetDim])]
+        #     else:
+        #         titles = [f"{facetDim}: {item.item()}" for item in dataPlot[facetDim]]
+        #
+        # else:
+        #     # titles = [f"{facetDim}: {item.item()}" for item in dataPlot[facetDim]]
+        #     titles = ['']  # Singleton case.
 
     # Set up subplots
     fig = make_subplots(rows=rc[0], cols=rc[1], specs=specs, subplot_titles=titles)
@@ -764,7 +846,17 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
                     options = dict(xaxis = aRanges, yaxis = aRanges, zaxis = aRanges, aspectmode='cube')
 
                 else:
-                    options = dict(aspectmode='cube')
+                    # options = dict(aspectmode='cube')  # Doesn't seem to work as expected (distorts axes)
+                    # options = dict(aspectmode='auto')   # Ah, OK - relative scaling/aspect ratio preserved in this case.
+                                                        # BUT zoom set poorly?  Often seems to be x2 smaller than it should?
+                                                        # May want to force with per-plot camera options?
+
+                    # With ranges per facet set explicitly
+                    aRangesFacet = dict(range=list(XYZds.attrs['aRangesFacet'].sel({facetDim:XYZds.attrs['aRangesFacet'][facetDim][n-1]}).data))
+                    options = dict(xaxis = aRangesFacet, yaxis = aRangesFacet, zaxis = aRangesFacet, aspectmode='cube')
+
+                if camR is not None:
+                    options['camera'] = dict(eye=dict(x=camR, y=camR, z=camR))
 
                 fig.update_layout(**{sceneN:options})  # No effect of aspect here? auto/cube/data/manual
 
@@ -781,11 +873,12 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
 
                 # Add (x,y,z) axes only?
                 # Use with Rmax or (X,Y,Z) max to define axis extent.
+                # Add padding to always show ends of axes.
                 if showaxes:
                     if norm == 'global':
-                        fig.add_trace(createAxesPL(scale=[Rmax,Rmax,Rmax]),row=rInd, col=cInd)
+                        fig.add_trace(createAxesPL(scale=[Rmax+padding,Rmax+padding,Rmax+padding]),row=rInd, col=cInd)
                     else:
-                        fig.add_trace(createAxesPL(scale=[X.max(),Y.max(),Z.max()]),row=rInd, col=cInd)
+                        fig.add_trace(createAxesPL(scale=[X.max()+padding,Y.max()+padding,Z.max()+padding]),row=rInd, col=cInd)
 
 
 

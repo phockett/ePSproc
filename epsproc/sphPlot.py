@@ -603,7 +603,7 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None, **kwar
 # Currently set for subplotting over facetDim, but assumes other dims (theta,phi)
 def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
                 showbackground = False, showaxes = True,
-                rc = None, norm = 'local', padding = 0.01, camR = 0.85, #'global',
+                rc = None, norm = 'local', padding = 0.05, camR = 0.85, #'global',
                 convention = 'phys', plotFlag = True, verbose = False, **kwargs):
     '''
     Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Plotly.
@@ -639,12 +639,12 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
         - 'global' : use same (x,y,z) limits for all plots.
         - 'local' : auto set (x,y,z) limits for each plot.
 
-    padding : float, optional, default = 0.1
+    padding : float, optional, default = 0.05
         Axis padding for plot scaling, as %age of R max.
 
     camR : float, optional, default = 0.85
         Use to move camera to zoom in on plots, with camera = dict(eye=dict(x=camR, y=camR, z=camR)).
-        Default case (1,1,1) usually doesn't fill render box.
+        Plotly default case (1,1,1) usually doesn't fill render box.
 
     convention : str, optional, default = 'phys'
         Spherical polar coord convention, see :py:func:`epsproc.sphToCart`
@@ -675,6 +675,7 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
     - More playing around with Plotly.
     - Camera control and linking, e.g. https://community.plotly.com/t/synchronize-camera-across-3d-subplots/22236
     - Update 14/03/23: added axis and background plotting options. Need to consolidate with global styles.
+    - Update 16/03/23: better facet dim handling, and basic camera control added.
 
     For JupyterLab, need additional extensions - see https://plotly.com/python/getting-started/#jupyterlab-support:
     - `conda install -c conda-forge -c plotly jupyter-dash`
@@ -891,9 +892,19 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
                     if norm == 'global':
                         fig.add_trace(createAxesPL(scale=[Rmax+padding,Rmax+padding,Rmax+padding]),row=rInd, col=cInd)
                     else:
-                        fig.add_trace(createAxesPL(scale=[X.max()+padding,Y.max()+padding,Z.max()+padding]),row=rInd, col=cInd)
+                        # fig.add_trace(createAxesPL(scale=[X.max()+padding,Y.max()+padding,Z.max()+padding]),row=rInd, col=cInd)
 
+                        # TODO: replace above with precalc values from XYZds
+                        # Can use XYZds.attrs['aRangesFacet'].sel({facetDim:XYZds.attrs['aRangesFacet'][facetDim][n-1] as above
+                        # Or max per (X,Y,Z)
+                        # RmaxAxis = XYZds.attrs['RfacetMax'][facetDim][n-1]
+                        # fig.add_trace(createAxesPL(scale=),row=rInd, col=cInd)
 
+                        # 16/03/23 - working, but may want to add additional padding to ensure axis visibility?
+                        # UPDATE: padding now added. ~5-10% works nicely.
+                        axScale = XYZds.attrs['facetMax'].to_array().sel({facetDim:XYZds.attrs['aRangesFacet'][facetDim][n-1]})
+                        # print(axScale)
+                        fig.add_trace(createAxesPL(scale=axScale+axScale*padding),row=rInd, col=cInd)
 
     # fig.show()
     # Check if notebook and output

@@ -301,8 +301,11 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = N
         dataPlot.attrs['normType'] = fnType
 
         # Pass data to plotting function
-        if plotFlag:
-            fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend, **kwargs)
+        # if plotFlag:
+        #     fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend, **kwargs)
+
+        # 27/03/23 - changed to always run plotter, allows for figure return.
+        fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend, plotFlag = plotFlag, **kwargs)
 
 
     return dataPlot, fig

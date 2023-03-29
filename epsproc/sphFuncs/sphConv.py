@@ -5,6 +5,7 @@ ePSproc routines for Spherical Harmonic function conversions
 - Calculate conjugates with sphConj()
 - Convert to and from SHtools objects with SHcoeffsFromXR() and XRcoeffsFromSH()
 
+v2  29/03/23    Added basic "cleanLMcoords" routine, may need some work.
 v1  20/09/22
 
 """
@@ -620,3 +621,54 @@ def sphConj(dataIn, stackOutput = True, cleanOutput = True, keepAttrs = True):
         dataOut.attrs = dataCalc.attrs
 
     return dataOut
+
+
+def cleanLMcoords(daIn, refDims = None):
+    """
+    Basic routine to clean (L,M) coords to remove terms with m>l.
+
+    Parameters
+    ----------
+    daIn : Xarray
+        Data to clean.
+
+    refDims : list, optional, default = None
+        Default case checks uses checkSphDims(dataIn) to get (L,M) coords.
+        Or or specify coord pair, e.g. ['l','m'].
+
+    Returns
+    -------
+    daOut : Xarray with cleaned coords.
+        Note in some cases this may not work, and stack/unstack cycles may reintroduce m>l terms.
+
+
+    v1 29/03/23
+
+    """
+
+    da = daIn.copy()
+
+    # Quick dim checks
+    # For default case check for (l,m) and (L,M)
+    # NOTE - in some updated ePSproc routines these are now set in da.attrs, should propagate this!
+    if refDims is None:
+        # Manual case
+#         dimCheck = ep.util.misc.checkDims(da, refDims=['l','m'])
+
+#         if not dimCheck['refDims']:
+#             dimCheck = ep.util.misc.checkDims(da, refDims=['L','M'])
+
+        # With function
+        # da = ep.sphFuncs.sphConv.checkSphDims(da)
+        da = checkSphDims(da)
+
+        # Use da.attrs['harmonics']['dimList'] or 'lDim' and 'mDim'
+        dimCheck = {'refDims': da.attrs['harmonics']['dimList']}
+
+    else:
+        dimCheck = ep.util.misc.checkDims(da, refDims=refDims)
+
+    # Clean array - note this assumes [l,m] ordering.
+    daOut = da.where(np.abs(da.coords[dimCheck['refDims'][1]])<=da.coords[dimCheck['refDims'][0]],drop=True)
+
+    return daOut

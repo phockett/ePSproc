@@ -1597,7 +1597,15 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
         # Filenames only
         # fList = [f for f in os.listdir(fileBase) if f.endswith(fType)]
         # With full path
-        fList = [os.path.join(fileBase, f) for f in os.listdir(fileBase) if f.endswith(fType)]
+        # fList = [os.path.join(fileBase, f) for f in os.listdir(fileBase) if f.endswith(fType) and os.path.exists(fileBase)]
+
+        # 12/04/23 Added basic dir exist check here, try/except may be better/more flexible
+        # Return empty list if nothing found? Or None?
+        if os.path.exists(fileBase):
+            fList = [os.path.join(fileBase, f) for f in os.listdir(fileBase) if f.endswith(fType)]
+        else:
+            fList = None
+            # fList = []
 
         # Display message
         if verbose:
@@ -1696,6 +1704,11 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
 
     # Call function to check files or scan dir.
     fList = getFiles(fileIn = fileIn, fileBase = fileBase, fType = fType, verbose = verbose)
+
+    # 05/04/23: basic error for no files case (to avoid cascading errors)
+    if not fList:
+        print(f'*** No file(s) found matching fileIn={fileIn}, fileBase={fileBase}.')
+        return None
 
     # Check if job is multipart, and stack files if so, based on filename prefix
     # 03/10/22: this currently fails for Rmat format files, since name format is not covered in fileListSort/sortGroupFn - should generalise.

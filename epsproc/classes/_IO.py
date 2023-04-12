@@ -103,6 +103,7 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
         dataSetXS = readMatEle(fileBase = dataPath, fileIn = fileIn,  fType = fType, recordType = 'CrossSection', verbose = self.verbose['sub'])  # Set for XS + betas only
         dataSetMatE = readMatEle(fileBase = dataPath, fileIn = fileIn,  fType = fType, recordType = 'DumpIdy', verbose = self.verbose['sub'])
 
+
     # Log some details - currently not passed directly from readMatEle()
     # NOTE - with updated code, this is now in data.fileList
 #         fList = [item.attrs['fileList'] for item in dataSetXS]
@@ -124,105 +125,107 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
     jobNotes = []
     fNTotal = 0  # Count total files
 
-    # Set other attribs from source files
-    for m, item in enumerate(dataSetXS):
-        # Set job info from first datafile of each set (orbital)
-        # For Eke stated cases, this will use single file only, and assume identical props.
-        dataFile = Path(item.attrs['fileBase'], item.attrs['file'])
-        dataSetXS[m].attrs['jobInfo'] = headerFileParse(dataFile, verbose = self.verbose['sub'])
-        dataSetXS[m].attrs['molInfo'] = molInfoParse(dataFile, verbose = self.verbose['sub'])
+    # 12/04/23 Added basic error case - check some files were found
+    if dataSetXS:
+        # Set other attribs from source files
+        for m, item in enumerate(dataSetXS):
+            # Set job info from first datafile of each set (orbital)
+            # For Eke stated cases, this will use single file only, and assume identical props.
+            dataFile = Path(item.attrs['fileBase'], item.attrs['file'])
+            dataSetXS[m].attrs['jobInfo'] = headerFileParse(dataFile, verbose = self.verbose['sub'])
+            dataSetXS[m].attrs['molInfo'] = molInfoParse(dataFile, verbose = self.verbose['sub'])
 
-        # Set orb info
-        dataSetXS[m].attrs['orbX'], dataSetXS[m].attrs['orbInfo'] = getOrbInfo(item.attrs['jobInfo'], item.attrs['molInfo'])
+            # Set orb info
+            dataSetXS[m].attrs['orbX'], dataSetXS[m].attrs['orbInfo'] = getOrbInfo(item.attrs['jobInfo'], item.attrs['molInfo'])
 
-        # 07/10/22 - skip for empty comments case
-        if dataSetXS[m].attrs['jobInfo']['comments']:
-            # Additional labels, use these in plotting routines later
-            # Try/except here to allow for different formats, fallback to full comment line.
+            # 07/10/22 - skip for empty comments case
+            if dataSetXS[m].attrs['jobInfo']['comments']:
+                # Additional labels, use these in plotting routines later
+                # Try/except here to allow for different formats, fallback to full comment line.
+                try:
+                    dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+                    dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+                except IndexError:
+                    dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1]
+                    dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1]
+
+
+            # 07/10/22 - skip for missing IPot case
+            if 'IPot' in dataSetXS[m].attrs['jobInfo'].keys():
+                # Set absolute photon energy
+                dataSetXS[m]['Ehv'] = (item['Ehv'] - (float(item.jobInfo['IPot']) + item.orbX['E'].data[0])).round(self.Edp)
+                dataSetMatE[m]['Ehv'] = (dataSetMatE[m]['Ehv'] - (float(item.jobInfo['IPot']) + item.orbX['E'].data[0])).round(self.Edp)
+
+            # jobNotes.append({ 'batch': dataXS[m].jobInfo['comments'][0].strip('#').strip(),
+            #                 'event': dataXS[m].jobInfo['comments'][1].split(',', maxsplit=1)[1].strip(),
+            #                 'orbLabel': dataXS[m].jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0],
+            #                 'orbE': dataXS[m].orbX['E'].data[0]
+            #                 })
+
+            # Job notes for plot labels etc.
+            # This is basically as per summary.jobInfo() routine
             try:
-                dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
-                dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+                jobNotes.append({ 'batch': dataSetXS[m].jobInfo['comments'][0].strip('#').strip(),
+                                'event': dataSetXS[m].jobInfo['comments'][1].split(',', maxsplit=1)[1].strip(),
+                                'orbLabel': dataSetXS[m].jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0],
+                                'orbE': dataSetXS[m].orbX['E'].data[0]
+                                })
+            # Could do with some proper pattern-matching here, for now just fall-back to [-1] element and hope for the best!
             except IndexError:
-                dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1]
-                dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1]
+                jobNotes.append({ 'batch': dataSetXS[m].jobInfo['comments'][0].strip('#').strip(),
+                                'event': dataSetXS[m].jobInfo['comments'][1].split(',', maxsplit=1)[-1].strip('#'),
+                                'orbLabel': dataSetXS[m].jobInfo['comments'][1].split('(', maxsplit=1)[-1].split(')')[0],
+                                'orbE': dataSetXS[m].orbX['E'].data[0]
+                                })
 
+            # Job notes for plot labels etc.
+            # This is basically as per summary.jobInfo() routine
+            # TODO: Should replace/update/consolidate with regex and more to util func.
+            if self.verbose['main'] > 1:
+                print(f"Batch: {jobNotes[-1]['batch']}")
+                print(f"Orbital: {jobNotes[-1]['orbLabel']}")
+                print(f"OrbE: {jobNotes[-1]['orbE']}")
 
-        # 07/10/22 - skip for missing IPot case
-        if 'IPot' in dataSetXS[m].attrs['jobInfo'].keys():
-            # Set absolute photon energy
-            dataSetXS[m]['Ehv'] = (item['Ehv'] - (float(item.jobInfo['IPot']) + item.orbX['E'].data[0])).round(self.Edp)
-            dataSetMatE[m]['Ehv'] = (dataSetMatE[m]['Ehv'] - (float(item.jobInfo['IPot']) + item.orbX['E'].data[0])).round(self.Edp)
+            #*** Set outputs to dict.
+            # Set key
+            if keyType == 'orb':
+                key = f"orb{item.orbX['orb'].data[0]}"
 
-        # jobNotes.append({ 'batch': dataXS[m].jobInfo['comments'][0].strip('#').strip(),
-        #                 'event': dataXS[m].jobInfo['comments'][1].split(',', maxsplit=1)[1].strip(),
-        #                 'orbLabel': dataXS[m].jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0],
-        #                 'orbE': dataXS[m].orbX['E'].data[0]
-        #                 })
+                if key in dsSet.keys():
+                    key = f"orb{item.orbX['orb'].data[0]}-{m}"  # Add m if key already exists to avoid overwrite.
 
-        # Job notes for plot labels etc.
-        # This is basically as per summary.jobInfo() routine
-        try:
-            jobNotes.append({ 'batch': dataSetXS[m].jobInfo['comments'][0].strip('#').strip(),
-                            'event': dataSetXS[m].jobInfo['comments'][1].split(',', maxsplit=1)[1].strip(),
-                            'orbLabel': dataSetXS[m].jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0],
-                            'orbE': dataSetXS[m].orbX['E'].data[0]
-                            })
-        # Could do with some proper pattern-matching here, for now just fall-back to [-1] element and hope for the best!
-        except IndexError:
-            jobNotes.append({ 'batch': dataSetXS[m].jobInfo['comments'][0].strip('#').strip(),
-                            'event': dataSetXS[m].jobInfo['comments'][1].split(',', maxsplit=1)[-1].strip('#'),
-                            'orbLabel': dataSetXS[m].jobInfo['comments'][1].split('(', maxsplit=1)[-1].split(')')[0],
-                            'orbE': dataSetXS[m].orbX['E'].data[0]
-                            })
+            # Use int key. This might cause issues for multiJob wrapper
+            elif keyType == 'int':
+                key = m
 
-        # Job notes for plot labels etc.
-        # This is basically as per summary.jobInfo() routine
-        # TODO: Should replace/update/consolidate with regex and more to util func.
-        if self.verbose['main'] > 1:
-            print(f"Batch: {jobNotes[-1]['batch']}")
-            print(f"Orbital: {jobNotes[-1]['orbLabel']}")
-            print(f"OrbE: {jobNotes[-1]['orbE']}")
+            # 06/04/21 Crude hack for multiJob case to pass preset key (for dir stacking with no overwrite for bond scan case)
+            else:
+                key = keyType
 
-        #*** Set outputs to dict.
-        # Set key
-        if keyType == 'orb':
-            key = f"orb{item.orbX['orb'].data[0]}"
+            # Set as xr.ds(), staked by dataType, one per job/orbital
+            # Note stacking all jobs can be problematic due to alignment of dims - so use one Dataset per job as model for now.
+            #             dsSet[f"orb{item.orbX['orb'].data[0]}"] = xr.Dataset({'XS':dataSetXS[m], 'matE':dataSetMatE[m]})
 
-            if key in dsSet.keys():
-                key = f"orb{item.orbX['orb'].data[0]}-{m}"  # Add m if key already exists to avoid overwrite.
+            # Issues with using xr.Dataset for objects with some different dimensions - use dict instead?
+            # May want to use an xr.Dataset for computed properties however? In that case dims should match.
+            dsSet[key] = {'XS':dataSetXS[m], 'matE':dataSetMatE[m],
+                          'jobNotes':jobNotes[-1]}
 
-        # Use int key. This might cause issues for multiJob wrapper
-        elif keyType == 'int':
-            key = m
+            # Set additional metadata, was previously in self.job, but set here for shared key
+            if isinstance(item.attrs['fileList'], list):
+                fList = item.attrs['fileList']
+            else:
+                fList = [item.attrs['fileList']]
 
-        # 06/04/21 Crude hack for multiJob case to pass preset key (for dir stacking with no overwrite for bond scan case)
-        else:
-            key = keyType
+            fN = len(fList)
 
-        # Set as xr.ds(), staked by dataType, one per job/orbital
-        # Note stacking all jobs can be problematic due to alignment of dims - so use one Dataset per job as model for now.
-        #             dsSet[f"orb{item.orbX['orb'].data[0]}"] = xr.Dataset({'XS':dataSetXS[m], 'matE':dataSetMatE[m]})
-
-        # Issues with using xr.Dataset for objects with some different dimensions - use dict instead?
-        # May want to use an xr.Dataset for computed properties however? In that case dims should match.
-        dsSet[key] = {'XS':dataSetXS[m], 'matE':dataSetMatE[m],
-                      'jobNotes':jobNotes[-1]}
-
-        # Set additional metadata, was previously in self.job, but set here for shared key
-        if isinstance(item.attrs['fileList'], list):
-            fList = item.attrs['fileList']
-        else:
-            fList = [item.attrs['fileList']]
-
-        fN = len(fList)
-
-        # dsSet[key]['job'] = {'dir': dataPath, 'fN': fN, 'files': fList}
-        dsSet[key]['job'] = {'dir': item.attrs['fileBase'], 'fN': fN, 'files': fList}  # Set individual fileBase here for cases when dataPath=None
-        fNTotal += fN
+            # dsSet[key]['job'] = {'dir': dataPath, 'fN': fN, 'files': fList}
+            dsSet[key]['job'] = {'dir': item.attrs['fileBase'], 'fN': fN, 'files': fList}  # Set individual fileBase here for cases when dataPath=None
+            fNTotal += fN
 
 
     # 07/10/22 - case for no XS data (e.g. different file type)
-    if not dataSetXS:
+    if (not dataSetXS) and dataSetMatE:
         # Set other attribs from source files
         for m, item in enumerate(dataSetMatE):
             # Set job info from first datafile of each set (orbital)
@@ -299,6 +302,9 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
     if self.verbose['main']:
         self.jobsSummary()
 
+    # 12/04/23 Warn if empty
+    if (not dataSetXS) and (not dataSetMatE):
+        print(f"\n*** WARNING: no data files found. Please check path to data file(s) is correct.")
 
 
 def jobsSummary(self):

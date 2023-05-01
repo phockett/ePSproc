@@ -37,7 +37,8 @@ from epsproc.sphFuncs.sphConv import checkSphDims
 # v2: moding for variable coords
 def setMatE(data = [0,0,0,1], dataNames = ['l','m','mu'], LMLabels = None, symLabels = None, typeLabels = None,   # keyDims = {},
             Evals = None, eType = 'Eke', eUnits = 'eV',
-            name = None, conformDims = False, **kwargs):
+            name = None, conformDims = False, jobLabel = 'Manual matrix elements',
+             **kwargs):
     """
     Create Xarray from BLMs, or create default case BLM = [0,0,1].
 
@@ -78,11 +79,15 @@ def setMatE(data = [0,0,0,1], dataNames = ['l','m','mu'], LMLabels = None, symLa
         Add any missing dims to match ep.listFuncs.BLMdimList.
         Currently requires PEMtk.toePSproc() for function.
 
+    jobLabel : str, optional, default = 'Manual matrix elements'
+        Used for job metadata, some functions use this for plot titles/labels.
+
 
     Returns
     -------
     matE : Xarray
         matE in Xarray format, dims as per :py:func:`epsproc.utils.BLMdimList()`
+        Check matE.attrs for metadata.
 
     TODO:
 
@@ -145,6 +150,8 @@ def setMatE(data = [0,0,0,1], dataNames = ['l','m','mu'], LMLabels = None, symLa
     matE.name = name
     matE.attrs['dataType'] = 'matE'
     matE.attrs['long_name'] = 'Matrix elements (manually defined)'
+    # Set jobLabel
+    matE.attrs['jobLabel']
 
     attrsDict = listFuncs.dataTypesList()['matE']  # Get standard defn.
     # getRefDims(data = None, refType = None, sType = 'sDict')
@@ -190,7 +197,7 @@ def setMatE(data = [0,0,0,1], dataNames = ['l','m','mu'], LMLabels = None, symLa
 
     matE.attrs['dims'] = misc.checkDims(matE)  # Dim mappings info
 
-    # Set PD table
-    matE.attrs['PD'],_ = pdTest, _ = multiDimXrToPD(matE, colDims = eType if len(Evals)>1 else matE.attrs['harmonics']['keyDims'], thres=None, squeeze=False)
+    # Set PD table - see also classes._IO.matEtoPD() method for wrapped version.
+    matE.attrs['pd'],_ = pdTest, _ = multiDimXrToPD(matE, colDims = eType if len(Evals)>1 else matE.attrs['harmonics']['keyDims'], thres=None, squeeze=False)
 
     return matE

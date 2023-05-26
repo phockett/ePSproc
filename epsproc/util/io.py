@@ -14,6 +14,8 @@ Various tools for use in file IO.
 from datetime import datetime as dt # Import datetime.datetime for now() function
 import wget
 from pathlib import Path
+import requests
+
 import urllib
 
 from epsproc.util.epsdata import convert_bytes

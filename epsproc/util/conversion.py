@@ -297,10 +297,12 @@ def renormL0(data):
     # Note - this currently assumes m dim is present, and forces it to be dropped after selection.
     if hasattr(dataOut,'L'):
         # dataOut /= dataOut.sel({'L':0}).drop('BLM')
-        dataOut /= dataOut.sel({'L':0}).drop('M').squeeze()
+        # dataOut /= dataOut.sel({'L':0}).drop('M').squeeze()
+        dataOut = dataOut/dataOut.sel({'L':0}).drop('M').squeeze()  # Non-in-place version, more robust
     elif hasattr(dataOut,'l'):
         # dataOut /= dataOut.sel({'l':0}).drop('BLM')
-        dataOut /= dataOut.sel({'l':0}).drop('m').squeeze()
+        # dataOut /= dataOut.sel({'l':0}).drop('m').squeeze()
+        dataOut = dataOut/dataOut.sel({'l':0}).drop('m').squeeze()  # Non-in-place version, more robust
     else:
         print("***Warning, L/l not present in dataset.")
         return None

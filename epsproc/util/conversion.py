@@ -298,11 +298,15 @@ def renormL0(data):
     if hasattr(dataOut,'L'):
         # dataOut /= dataOut.sel({'L':0}).drop('BLM')
         # dataOut /= dataOut.sel({'L':0}).drop('M').squeeze()
-        dataOut = dataOut/dataOut.sel({'L':0}).drop('M').squeeze()  # Non-in-place version, more robust
+        # dataOut = dataOut/dataOut.sel({'L':0}).drop('M').squeeze()  # Non-in-place version, more robust
+        dataOut = dataOut/dataOut.sel({'L':0}).sel({'M':0}).drop('M').squeeze()  # Force m=0, issues with spurious m presisting in some cases otherwise
+
     elif hasattr(dataOut,'l'):
         # dataOut /= dataOut.sel({'l':0}).drop('BLM')
         # dataOut /= dataOut.sel({'l':0}).drop('m').squeeze()
-        dataOut = dataOut/dataOut.sel({'l':0}).drop('m').squeeze()  # Non-in-place version, more robust
+        # dataOut = dataOut/dataOut.sel({'l':0}).drop('m').squeeze()  # Non-in-place version, more robust
+        dataOut = dataOut/dataOut.sel({'l':0}).sel({'m':0}).drop('m').squeeze()  # Force m=0, issues with spurious m presisting in some cases otherwise
+
     else:
         print("***Warning, L/l not present in dataset.")
         return None

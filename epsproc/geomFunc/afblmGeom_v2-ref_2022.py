@@ -18,8 +18,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
                 # basisDict = {},  May want to pass full dict here, or just pass as **basisDict from calling fn?
                 thres = 1e-2, thresDims = 'Eke', selDims = {'Type':'L'}, sqThres = True, dropThres = True,  #, 'it':1},
                 # sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
-                sumDims = ['mu', 'mup', 'l','lp','m','mp', 'S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
-                outputDims = {'LM':['L','M']},
+                sumDims = ['mu', 'mup', 'l','lp','m','mp','S-Rp'], sumDimsPol = ['P','R','Rp','p'], symSum = True,  # Fixed summation ordering for AF*pol term...?
                 degenDrop = True, SFflag = False, SFflagRenorm = False,
                 BLMRenorm = 1,
                 squeeze = False, phaseConvention = 'E',  #  , phaseCons = None
@@ -34,18 +33,6 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
 
     Where each component is defined by fns. in :py:module:`epsproc.geomFunc.geomCalc` module.
-
-    30/06/23 Debugging for 3D aligment case. Currently issues with handling of M and S-Rp dims here?
-        - Tested:
-            - Removed sum over S-Rp (MF/AF)
-            - Set sum over M (LF)
-            - Various phase conventions.
-        - 3D alignment case (for OCS HOMO-1 test values) OK after fixing `phaseCons['afblmCons']['negM'] = True` (now corrected in source function).
-            - Gives correct basis functions, but only L,M=even terms in test case (with Q!=0 and S!=0 terms in ADMs).
-            - May still be phase issues for odd cases - TBC with further testing but probably not.
-        - Added `outDims` to allow for changes in output dim mapping (TODO: should use sph dim checks here too?)
-        - Added `matEmult` to output dataset for 'Full' basis return case.
-
 
     24/11/22 Added sqThres = True, dropThres = True for use with INITIAL matEleSelector() call only - in some cases may get issues with dim drops here otherwise.
 
@@ -410,9 +397,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
     # Sum and threshold
 #     sumDims = ['P', 'mu', 'mup', 'Rp', ]  # Define dims to sum over
-    # xDim = {'LM':['L','M']}
-    xDim = outputDims   # 30/06/23 allow input mods here - TODO: use standard dim checker here too.
-    stackDim = list(xDim.keys())[0]
+    xDim = {'LM':['L','M']}
     mTermSum = mTerm.sum(sumDims)
 
     if squeeze is True:
@@ -425,10 +410,9 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
     # Additional factors & renorm - calc. XS as per lfblmGeom.py testing, verified vs. ePS outputs for B2 case, June 2020
     #  XSmatE = (matE * matE.conj()).sel(selDims).sum(['LM','mu'])  # (['LM','mu','it'])  # Cross section as sum over mat E elements squared (diagonal terms only)
-    # XSmatE = (matEthres * matEthres.conj()).sum(['LM','mu']) # .expand_dims({'t':[0]})  # Use selected & thresholded matE.
+    XSmatE = (matEthres * matEthres.conj()).sum(['LM','mu']) # .expand_dims({'t':[0]})  # Use selected & thresholded matE.
                                 # NOTE - this may fail in current form if dims are missing.
                                 # Quick hack for testing, add expand_dims({'t':[0]}) need to ensure matching dims for division!
-    XSmatE = (matEthres * matEthres.conj()).sum([stackDim,'mu'])
     normBeta = 3/5 * (1/XSmatE)  # Normalise by sum over matrix elements squared.
 
     # Additional scaling if required for degeneracy and/or SF
@@ -438,8 +422,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
     if SFflagRenorm:
         mTermSumThres.values = mTermSumThres/mTermSumThres.SF
 
-    # mTermSumThres['XSraw'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()   # This basically works, and keeps all non-summed dims... but may give issues later...? Make sure to .copy(), otherwise it's just a pointer.
-    mTermSumThres['XSraw'] = mTermSumThres.sel({xDim[stackDim][0]:0,xDim[stackDim][1]:0}).drop(stackDim).copy()  # With var dims
+    mTermSumThres['XSraw'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy()  # This basically works, and keeps all non-summed dims... but may give issues later...? Make sure to .copy(), otherwise it's just a pointer.
 
     # Rescale by sqrt(4pi)*SF, this matches GetCro XS outputs in testing.
     # mTermSumThres['XSrescaled'] = mTermSumThres['XSraw']*mTermSumThres['SF']*np.sqrt(4*np.pi)
@@ -480,8 +463,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
             # Renorm by isotropic XS, then t-dependent (calculated) XS, then additional factors.
             # mTermSumThres /= mTermSumThres['XSiso']  # Includes 1/3 norm factor
             mTermSumThres /= XSmatE
-            # mTermSumThres['XSrenorm'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy() # Enforce dims here, otherwise get stray L,M coords.
-            mTermSumThres['XSrenorm'] = mTermSumThres.sel({xDim[stackDim][0]:0,xDim[stackDim][1]:0}).drop(stackDim).copy() # With var dims
+            mTermSumThres['XSrenorm'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy() # Enforce dims here, otherwise get stray L,M coords.
             mTermSumThres /= mTermSumThres['XSrenorm']
             # mTermSumThres *= symDegen/(2*mTermSumThres.L + 1)  # Renorm to match ePS GetCro defns. Not totally sure if symDegen is correct - TBC.
             # mTermSumThres *= symDegen/5  # Check if 2L+1 factor is correct...? This seems better for N2 AF test case, otherwise L>2 terms very small - maybe M-state degen only by matrix elements?
@@ -495,8 +477,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
             # Alt scheme... similar to #3, but testing different renorm factors
             # mTermSumThres /= mTermSumThres['XSiso'] # Includes 1/3 norm factor
             mTermSumThres /= XSmatE
-            # mTermSumThres['XSrenorm'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy() # Enforce dims here, otherwise get stray L,M coords.
-            mTermSumThres['XSrenorm'] = mTermSumThres.sel({xDim[stackDim][0]:0,xDim[stackDim][1]:0}).drop(stackDim).copy() # With var dims
+            mTermSumThres['XSrenorm'] = mTermSumThres.sel({'L':0,'M':0}).drop('LM').copy() # Enforce dims here, otherwise get stray L,M coords.
             mTermSumThres /= mTermSumThres['XSrenorm']
 
             mTermSumThres *= symDegen
@@ -520,8 +501,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
 
     #**** Tidy up and reformat to standard BLM array (see ep.util.BLMdimList() )
     # TODO: finish this, and set this as standard output
-    # BetasNormX = mTermSumThres.unstack().rename({'L':'l','M':'m'}).stack({'BLM':['l','m']})
-    BetasNormX = mTermSumThres.unstack(stackDim).rename({xDim[stackDim][0]:'l',xDim[stackDim][1]:'m'}).stack({'BLM':['l','m']})
+    BetasNormX = mTermSumThres.unstack().rename({'L':'l','M':'m'}).stack({'BLM':['l','m']})
 
     # Set/propagate global properties
     BetasNormX.attrs = matE.attrs
@@ -553,8 +533,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
         basis = {'QNs':QNs, 'EPRX':EPRXresort, 'lambdaTerm':lambdaTermResort,
                 'BLMtable':BLMtable, 'BLMtableResort':BLMtableResort,
                 'AFterm':AFterm, 'AKQS':AKQS, 'polProd':polProd,
-                'phaseConvention':phaseCons, 'BLMRenorm':BLMRenorm,
-                'matEmult':matEmult}   #, 'phaseCons':phaseCons}
+                'phaseConvention':phaseCons, 'BLMRenorm':BLMRenorm}   #, 'phaseCons':phaseCons}
 
         return  BetasNormX, basis
 

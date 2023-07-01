@@ -269,7 +269,7 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
     # (+/-)M phase selection, set as per existing code, betaCons['negM'] = genMatEcons['negm']       # Use -M term in 3j? Should be anti-correlated with genMatEcons['negm']...? 31/03/20 NOW correlated with mfblmCons['Mphase']
     # Note this is correlated with QN generation in genllpMatE() - should set equivalent fn for alignment terms.
     # In existing case this arises from M = (-m+mp) or M = -(m+mp) choice.
-    phaseCons['afblmCons']['negM'] = not(phaseCons['genMatEcons']['negm'])  # 01/07/23 - set to not() here, should be correct and tested for 3D alignment case (doesn't affect 1D results)
+    phaseCons['afblmCons']['negM'] = phaseCons['genMatEcons']['negm']
     phaseCons['afblmCons']['negQ'] = True
     phaseCons['afblmCons']['negS'] = True
 

@@ -301,11 +301,14 @@ def sphFromBLMPlot(BLMXin, res = 50, pType = 'a', plotFlag = False, facetDim = N
         dataPlot.attrs['normType'] = fnType
 
         # Pass data to plotting function
-        # if plotFlag:
-        #     fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend, **kwargs)
+        if plotFlag:
+            fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend, **kwargs)
+        else:
+            fig = None
 
         # 27/03/23 - changed to always run plotter, allows for figure return.
-        fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend, plotFlag = plotFlag, **kwargs)
+        # 12/07/23 - removed and modified conditional case above instead, otherwise can get issue with some cases for calc only where not all args passed.
+        # fig = sphSumPlotX(dataPlot, pType = pType, facetDim = facetDim, backend = backend, plotFlag = plotFlag, **kwargs)
 
 
     return dataPlot, fig

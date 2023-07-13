@@ -701,6 +701,10 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
         # facetDim = 'Eke'
         # nData = dataPlot[facetDim].size
         nData = 1
+        norm = 'global'  # Force to global, otherwise norm-per-facet will fail.
+
+        if rc is None:
+            rc = [1,1]
 
     if rc is None:
         nCols = 6
@@ -863,7 +867,8 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
                 if norm == 'global':
                     # Try looping... OK with dict unpacking... huzzah!
                     # NOTE Scene indexing starts at 1, so do this after n increments
-                    options = dict(xaxis = aRanges, yaxis = aRanges, zaxis = aRanges, aspectmode='cube')
+                    # options = dict(xaxis = aRanges, yaxis = aRanges, zaxis = aRanges, aspectmode='cube')
+                    options = dict(xaxis = XYZds.attrs['aRanges'], yaxis = XYZds.attrs['aRanges'], zaxis = XYZds.attrs['aRanges'], aspectmode='cube')
 
                 else:
                     # options = dict(aspectmode='cube')  # Doesn't seem to work as expected (distorts axes)
@@ -896,7 +901,15 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
                 # Add padding to always show ends of axes.
                 if showaxes:
                     if norm == 'global':
-                        fig.add_trace(createAxesPL(scale=[Rmax+padding,Rmax+padding,Rmax+padding]),row=rInd, col=cInd)
+                        fig.add_trace(createAxesPL(scale=[XYZds.attrs['Rmax']+padding,XYZds.attrs['Rmax']+padding,XYZds.attrs['Rmax']+padding]),row=rInd, col=cInd)
+                                # Max & min global
+                                # XYZds.attrs['CMax'] = XYZds.attrs['dimMax'].max()
+                                # XYZds.attrs['CMin'] = XYZds.attrs['dimMin'].min()
+                                # XYZds.attrs['Rmax'] = np.max([np.abs(XYZds.attrs['CMin']), XYZds.attrs['CMax']])
+                                # Axes settings global case
+                                # padding = 0.1 * XYZds.attrs['Rmax']  # Padding %age
+                                # XYZds.attrs['aRanges'] = dict(range=[-(XYZds.attrs['Rmax'] + padding*XYZds.attrs['Rmax']),
+                                #                                 XYZds.attrs['Rmax']+padding*XYZds.attrs['Rmax']])
                     else:
                         # fig.add_trace(createAxesPL(scale=[X.max()+padding,Y.max()+padding,Z.max()+padding]),row=rInd, col=cInd)
 

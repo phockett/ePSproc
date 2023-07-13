@@ -86,6 +86,19 @@ if on_rtd:
                             "pyvista","holoviews",
                             "natsort"]
 
+    # Try fix for Plotly (currently fails on dev branch, but OK on master)
+    # See https://github.com/phockett/ePSproc/issues/27
+    # Fix per https://github.com/readthedocs/sphinx_rtd_theme/issues/788#issuecomment-585785027
+    # Adds explict link per page
+    nbsphinx_prolog = r"""
+.. raw:: html
+
+    <script src='http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js'></script>
+    <script>require=requirejs;</script>
+
+
+"""
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 

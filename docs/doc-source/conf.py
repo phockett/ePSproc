@@ -92,14 +92,20 @@ if on_rtd:
     # Adds explict link per page
     # Appears OK in HTML, but Plotly NOT working, now added https://github.com/plotly/plotly.js/ script too...
     # <script src="https://cdn.plot.ly/plotly-2.24.3.min.js" charset="utf-8"></script> GIVES ACCESS DENIED
+#     nbsphinx_prolog = r"""
+# .. raw:: html
+#
+#     <script src='http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js'></script>
+#     <script>require=requirejs;</script>
+#     <script src="https://cdn.plot.ly/plotly-2.24.3.min.js" charset="utf-8"></script>
+#     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+#
+#
+# """
     nbsphinx_prolog = r"""
 .. raw:: html
 
-    <script src='http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js'></script>
-    <script>require=requirejs;</script>
-    <script src="https://cdn.plot.ly/plotly-2.24.3.min.js" charset="utf-8"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
 
 """
 

@@ -34,10 +34,17 @@ TODO
 # imports
 import numpy as np
 import xarray as xr
+
 # For plotting functions
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm, colors
+
+# Patch for 3D plotter changes for MPL > v3.4
+import matplotlib
+if float(matplotlib.__version__[:-2]) < 3.4:
+    from mpl_toolkits.mplot3d import Axes3D
+else:
+    Axes3D = 'Not required'
 
 import copy    # For attrs deepcopy.
 
@@ -565,8 +572,18 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None, **kwar
     X, Y, Z = sphToCart(dataPlot, theta, phi, convention = convention)
 
     # Plot in a new figure using Matplotlib
-    fig = plt.figure()
-    ax = Axes3D(fig)
+    # 13/07/23 - patched for MPL changes for v3.4+
+    # For MPL v3.7+ old code won't work at all, for 3.4-3.6 get a warning, "Axes3D(fig) adding itself to the figure is deprecated since 3.4. Pass the keyword argument auto_add_to_figure=False and use fig.add_axes(ax) to suppress this warning. The default value of auto_add_to_figure will change to False in mpl3.5 and True values will no longer work in 3.6.  This is consistent with other Axes classes."
+    if float(matplotlib.__version__[:-2]) < 3.4:
+        # Old style
+        fig = plt.figure()
+        ax = Axes3D(fig)
+    else:
+        # New style, per https://matplotlib.org/stable/plot_types/3D/surface3d_simple.html#sphx-glr-plot-types-3d-surface3d-simple-py
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+
+
+
     # ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap=cm.jet)
     ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.jet)
     # ax.axis('equal') # Not implemented for 3D axes

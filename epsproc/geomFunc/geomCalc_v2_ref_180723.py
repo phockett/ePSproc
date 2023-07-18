@@ -96,11 +96,6 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
 
     20/03/20 - first attempt. Aim to centralise all phase choices here to keep things clean and easy to debug/change.
 
-    July 2023 updates:
-        - Set EPRcons['negRcoordSwap'] = True in all cases. This swaps -R and +R in QN coords (Xarray only), and fixes issues with phase mismatches later.
-        - Set phaseCons['afblmCons'] per type. This decouples testing cases.
-        -
-
     Set as dictionary for each term, to be appended to results Xarray.
 
 
@@ -167,19 +162,19 @@ def setPhaseConventions(phaseConvention = 'S', typeList = False):
         EPRcons['Rphase'] = True        # Apply (-1)^R phase?
         EPRcons['negR'] = True          # Use -R or +R in 3j?
         EPRcons['negRlabel'] = False    # Use -R or +R in QN labels? (Will affect Xarray-based calculations.)
-        EPRcons['negRcoordSwap'] = True    # Swap -R and +R in QN coords? (Will affect Xarray-based calculations.)
+        EPRcons['negRcoordSwap'] = False    # Swap -R and +R in QN coords? (Will affect Xarray-based calculations.)
 
     elif phaseConvention == 'R':
         EPRcons['Rphase'] = True       # Apply (-1)^R phase?
         EPRcons['negR'] = True          # Use -R or +R in 3j?
         EPRcons['negRlabel'] = False    # Use -R or +R in QN labels? (Will affect Xarray-based calculations.)
-        EPRcons['negRcoordSwap'] = True    # Swap -R and +R in QN coords? (Will affect Xarray-based calculations.)
+        EPRcons['negRcoordSwap'] = False    # Swap -R and +R in QN coords? (Will affect Xarray-based calculations.)
 
     elif phaseConvention == 'E':
         EPRcons['Rphase'] = True        # Apply (-1)^R phase?
         EPRcons['negR'] = True          # Use -R or +R in 3j?
         EPRcons['negRlabel'] = False    # Use -R or +R in QN labels? (Will affect Xarray-based calculations.)
-        EPRcons['negRcoordSwap'] = True    # Swap -R and +R in QN coords? (Will affect Xarray-based calculations.)
+        EPRcons['negRcoordSwap'] = False    # Swap -R and +R in QN coords? (Will affect Xarray-based calculations.)
 
     phaseCons['EPR'] = EPRcons
 

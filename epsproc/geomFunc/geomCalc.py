@@ -4,6 +4,9 @@ ePSproc geometric terms/functions
 Collection of codes for geometric functions and tensors.
 
 26/02/20    v1  Initial implementation.
+18/07/23    v2  Updated phase conventions following 3D AFPAD testing.
+                Fixed use of '*=' in-place for Xarray, no longer robust.
+                NOTE: changed for index cases only.
 
 """
 
@@ -868,8 +871,10 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
             # Rphase = np.power(-1, np.abs(EPRtable.R))
             Rphase = np.power(-1, np.abs(EPRtable[dlist[-1]]))  # 18/07/23 - fixed for var name
             EPRtable *= Rphase*Pdegen
+            # EPRtable = EPRtable*Rphase*Pdegen
         else:
             EPRtable *= Pdegen
+            # EPRtable = EPRtable*Pdegen
 
         # Switch coord sign?
         if phaseCons['EPR']['negRcoordSwap']:
@@ -1000,8 +1005,10 @@ def betaTerm(QNs = None, Lmin = 0, Lmax = 10, nonzeroFlag = True, form = '2d', d
 
         if phaseCons['betaCons']['mPhase']:
             BLMtable *= mPhase*np.sqrt(degen)
+            # BLMtable = BLMtable*mPhase*np.sqrt(degen)
         else:
             BLMtable *= np.sqrt(degen)
+            # BLMtable = BLMtable*np.sqrt(degen)
 
         BLMtable.attrs['dataType'] = 'betaTerm'
         BLMtable.attrs['phaseCons'] = phaseCons

@@ -45,6 +45,7 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
             - May still be phase issues for odd cases - TBC with further testing but probably not.
         - Added `outDims` to allow for changes in output dim mapping (TODO: should use sph dim checks here too?)
         - Added `matEmult` to output dataset for 'Full' basis return case.
+        - Fixed issue with inplace multiplication for Xarray coords ('*='), not valid for XR 2022.3 (coordinates immutable).
 
 
     24/11/22 Added sqThres = True, dropThres = True for use with INITIAL matEleSelector() call only - in some cases may get issues with dim drops here otherwise.
@@ -264,7 +265,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
         EPRXresort = EPRX.squeeze(['l','lp']).drop(['l','lp'])  # Safe squeeze & drop of selected singleton dims only.
 
         if phaseCons['mfblmCons']['negRcoordSwap']:
-            EPRXresort['R'] *= -1
+            # EPRXresort['R'] *= -1
+            EPRXresort['R'] = -1 * EPRXresort['R']
 
     if (lambdaTerm is None) and (polProd is None):  # Skip if product term already passed
         # Set polGeoms if Euler angles are passed.
@@ -322,13 +324,15 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=[0],
         BLMtableResort = BLMtable.copy().unstack()
 
         if phaseCons['mfblmCons']['negMcoordSwap']:
-            BLMtableResort['M'] *= -1
+            # BLMtableResort['M'] *= -1
+            BLMtableResort['M'] = -1 * BLMtableResort['M']
 
         if phaseCons['mfblmCons']['Mphase']:
             BLMtableResort *= np.power(-1, np.abs(BLMtableResort.M))  # Associated phase term
 
         if phaseCons['mfblmCons']['negmCoordSwap']:
-            BLMtableResort['m'] *= -1
+            # BLMtableResort['m'] *= -1
+            BLMtableResort['m'] = -1 * BLMtableResort['m']
 
         if phaseCons['mfblmCons']['mPhase']:
             BLMtableResort *= np.power(-1, np.abs(BLMtableResort.m))  # Associated phase term

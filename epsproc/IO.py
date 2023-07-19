@@ -1611,7 +1611,10 @@ def getFiles(fileIn = None, fileBase = None, fType = '.out', verbose = True):
         if verbose:
             print('\n*** Scanning dir')
             print(fileBase)
-            print('Found {0} {1} file(s)\n'.format(len(fList), fType))
+            if fList is not None:
+                print('Found {0} {1} file(s)\n'.format(len(fList), fType))
+            else:
+                print('Found zero {0} file(s)\n'.format(fType))
 
     return fList
 

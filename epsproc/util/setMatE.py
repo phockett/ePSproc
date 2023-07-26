@@ -151,7 +151,7 @@ def setMatE(data = [0,0,0,1], dataNames = ['l','m','mu'], LMLabels = None, symLa
     matE.attrs['dataType'] = 'matE'
     matE.attrs['long_name'] = 'Matrix elements (manually defined)'
     # Set jobLabel
-    matE.attrs['jobLabel']
+    matE.attrs['jobLabel'] = jobLabel
 
     attrsDict = listFuncs.dataTypesList()['matE']  # Get standard defn.
     # getRefDims(data = None, refType = None, sType = 'sDict')

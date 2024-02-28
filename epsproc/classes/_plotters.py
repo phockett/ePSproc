@@ -15,6 +15,7 @@ import xarray as xr
 from epsproc import matEleSelector, plotTypeSelector, multiDimXrToPD, mfpad, sphSumPlotX, sphFromBLMPlot
 from epsproc import lmPlot as lmPlotCore  # Hack rename here to prevent circular logic with local function - TODO: fix with core fn. reorg.
 from epsproc.plot import hvPlotters
+from epsproc.util.conversion import datasetStack
 from epsproc.util.env import isnotebook
 from epsproc.util.selectors import setXSfromCoords
 from epsproc.sphFuncs.sphConv import checkSphDims
@@ -122,7 +123,10 @@ def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', selDims = No
 
 # Basically as per plotGetCro, but subselect and put on single plot.
 # Should do all of this with Holoviews...!
-def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange = None, Etype = 'Eke', Eshift = None, keys = None, backend = 'mpl', returnHandles = False):
+def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'),
+                    Erange = None, Etype = 'Eke', Eshift = None,
+                    keys = None, backend = 'mpl', hvXCplot = False,
+                    returnHandles = False):
     """
     Basic GetCro (cross-section) data plotting for multijob class, comparitive plots.
     Run self.plot.line(x=Etype) for each dataset after subselection on Gauge and Symmetry, and use single axis.
@@ -153,7 +157,7 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange =
 
     keys : list, optional, default = None
         Keys for datasets to plot.
-        If None, all datasets will be plotted.
+        If None, all datasets will be plotted (as given in self.jobKeys)
 
     backend : str, optional, default = 'mpl'
         Set plotter to use.
@@ -180,7 +184,86 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange =
     # # Default to all datasets
     # if keys is None:
     #     keys = self.data.keys()
+    # keys = self._keysCheck(keys)
+
+    # Update 28/02/24: select only jobKeys for default case.
+    if keys is None:
+        keys = self.jobKeys
+
     keys = self._keysCheck(keys)
+
+
+    # UPDATED 28/02/24 - hvPlot routine - should move to separate function.
+    # Note this uses same selection routines as mpl routine, but for full dataset.
+    # Should update to use matEleSelector() routine (also implemented via jobStack).
+    # See also _hvBLMplot below for similar method.
+    if backend == 'hv':
+
+        # Stack data, use sorted data from above.
+        # MAY want to just use self.XS instead?
+        # xrDA,_,_ = datasetStack(data.data, keys = hvDict.keys(), dataType = 'XS')
+        # xrDA = self.XS.copy()  # Use existing stack?
+        subset, _, _ = self.jobStack(keys = keys, dataType = 'XS')  # Generate new stack?
+
+        # Set default to full range, same for all cases
+        if Erange is None:
+            Erange = [subset[Etype].min().data, subset[Etype].max().data]
+
+        # More elegant way to swap on dims?
+        if Etype == 'Ehv':
+            print("Etype=Ehv not currently supported by HV plotting backend, using default Eke case instead.")
+            # Subset before plot to avoid errors on empty array selection!
+            # subset = self.data[key]['XS'].swap_dims({'Eke':'Ehv'}).sel(XC=pType, Type=pGauge, Sym=pSym, **{Etype:slice(Erange[0], Erange[1])})  # With dict unpacking for var as keyword
+
+            # if subset.any():
+            #     pltObj = subset.plot.line(x=Etype)
+
+        subset = subset.sel(XC=pType, Type=pGauge, Sym=pSym, **{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
+
+        # Original case, try and use XCplot routine.
+        if hvXCplot:
+            pltObj, *_ = hvPlotters.XCplot(subset, kdims = Etype)
+
+            print(f"\n*** {jobLabel}")
+            # Check if notebook and output
+            if isnotebook():
+                display(pltObj) # Use IPython display(), works nicely for notebook output
+                # Q: is display() always loaded automatically? I think so.
+            else:
+                pltObj  # Not yet tested - not sure what the options are here for hv/Bokeh.
+                        # May just want to return this object (hv layout)?
+
+        else:
+            # Quick plot with hvplot - may want some additional dim handling here.
+            # TODO: should set return/pass back to main class instance - currently returns only for some cases.
+            # NOTE force Eke currently.
+            # subset.unstack('Sym').hvplot(x=Etype).overlay('Orb')
+            # subset.unstack('Sym').hvplot(x='Eke').overlay('Orb')
+            try:
+                pltObj = subset.hvplot(x='Eke').overlay('Orb')
+
+                # Push back to main datastructure too
+                # if 'plots' not in self.data.keys():
+                #     self.data['plots'] = {}
+
+                # self.data['plots'][pType] = {'hvPlot':pltObj, 'subset':subset}
+                self.plots[pType] = {'hvPlot':pltObj, 'subset':subset}
+
+                if self.verbose:
+                    print(f"getCro data and plots to self.plots['{pType}']")
+
+                if isnotebook():
+                    display(pltObj)
+                else:
+                    return pltObj
+
+            # Return subset for use if hvplot fails.
+            except:
+                return subset
+
+    # MPL/original case below
+
+    hvDict = {}  # For hv plot case, stack to dict first.
 
     for key in keys:
 #                 testClass.dataSets[key]['XS'][0].sel(XC='SIGMA', Eke=slice(Erange[0], Erange[1])).plot.line(x='Eke', col='Type')   # This works
@@ -228,17 +311,24 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'), Erange =
 
             # NOTE: added backend options 27/10/20. CURRENTLY NOT WORKING for hv, due to data structure assumed in `hvPlotters.XCplot()`
             # TODO: change formatting to use XCplot and/or set up new subfunction.
-            if backend == 'hv':
-                pltObj, *_ = hvPlotters.XCplot(subset, kdims = Etype)
+            # NOTE: see also _hvBLMplot below for similar method.
+            # if backend == 'hv':
+            #
+            #     hvDict[key] = subset.copy()
 
-                print(f"\n*** {jobLabel}")
-                # Check if notebook and output
-                if isnotebook():
-                    display(pltObj) # Use IPython display(), works nicely for notebook output
-                    # Q: is display() always loaded automatically? I think so.
-                else:
-                    pltObj  # Not yet tested - not sure what the options are here for hv/Bokeh.
-                            # May just want to return this object (hv layout)?
+                # Removed this 28/02/24 - now stack then plot at end for HV case.
+                #
+                # pltObj, *_ = hvPlotters.XCplot(subset, kdims = Etype)
+                #
+                # print(f"\n*** {jobLabel}")
+                # # Check if notebook and output
+                # if isnotebook():
+                #     display(pltObj) # Use IPython display(), works nicely for notebook output
+                #     # Q: is display() always loaded automatically? I think so.
+                # else:
+                #     pltObj  # Not yet tested - not sure what the options are here for hv/Bokeh.
+                #             # May just want to return this object (hv layout)?
+
 
 
         # Label with orb_sym
@@ -622,6 +712,8 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     # UPDATED ROUTINE FROM https://phockett.github.io/ePSdata/OCS-preliminary/OCS_orbs8-11_AFBLMs_VM-ADMs_140122-JAKE_tidy.html#AFBLMs-for-aligned-case
     # STACK TO XR FOR ALL DIM HANDLING, then plot!!!
     # import xarray as xr
+    # NOTE: as of 28/02/24 see also ep.util.conversion.datasetStack() for this functionality.
+
     pDict = []
     for key in keys:
     #     subset = ep.matEleSelector(data.data[key][dataType], thres=thres, inds = selDims, dims = [Etype, 't'], sq = True)

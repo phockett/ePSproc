@@ -960,6 +960,7 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
 #    daOut = xr.combine_nested(dataArrays, concat_dim=['it'])
 
     # Set any other global attribs
+    daOut.coords['Eke'].attrs['units'] = 'eV'  # Set units
     daOut.attrs['dataType'] = 'matE'    # Set dataType for use later.
 
     # SF testing vs. symmetry - remove Sym dim if not necessary, for easier computation later!
@@ -1300,7 +1301,8 @@ def getCroSegsParseX(dumpSegs, symSegs, ekeList):
     daOut.attrs['dataType'] = 'XSect'    # Set dataType for use later.
 
     # Set units - should set from file ideally.
-    daOut.Ehv.attrs['units'] = 'eV'
+    # daOut.Ehv.attrs['units'] = 'eV'
+    daOut.coords['Ehv'].attrs['units'] = 'eV'
     daOut.attrs['units'] = 'Mb'
     daOut.attrs['normType'] = 'lg'  # NOTE GetCro expanded in Legendre polynomials
                                     # See util.comversion.conv_BL_BLM() for conversion.
@@ -1319,6 +1321,8 @@ def getCroSegsParseX(dumpSegs, symSegs, ekeList):
         daOut['Eke'] = ('Ehv', ekeList)
 
     daOut = daOut.swap_dims({'Ehv':'Eke'})
+    daOut.coords['Eke'].attrs['units'] = 'eV'  # May not propagate from Ehv?
+    daOut.coords['Ehv'].attrs['units'] = 'eV'  # May not propagate from Ehv?
 
     return daOut, blankSegs
 

@@ -220,7 +220,7 @@ class ePSmultiJob(ePSbase):
                 outputKey = outputKeyType
 
             # Call super class to handle reading per dir
-            super().scanFiles(dataPath = dataPath, reset = False, keyType = outputKey, **kwargs)
+            super().scanFiles(dataPath = dataPath, reset = False, keyType = outputKey, verbose = self.verbose['sub'], **kwargs)
             #********** IN PROGRESS!
 
 #             # For dir scan
@@ -364,8 +364,10 @@ class ePSmultiJob(ePSbase):
         # self.dsMatE = dsMatE
 
         # This is already called in super().scanFiles
-        # if self.verbose['main']:
-        #     self.jobsSummary()
+        # 28/02/24 - can now bypass in super().scanFiles, and just run here, based on self.verbose['sub'].
+        if self.verbose['main']:
+            self.jobsSummary()
+            
 
     def jobLabel(self, key = None, lString = None, append=True):
         """

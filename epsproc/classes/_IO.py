@@ -12,7 +12,7 @@ from epsproc import readMatEle, headerFileParse, molInfoParse, multiDimXrToPD, p
 from epsproc.util.summary import getOrbInfo, molPlot
 from epsproc.util.env import isnotebook
 
-def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'orb', **kwargs):
+def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'orb', verbose = True, **kwargs):
     """
     Scan ePS output files from a dir for multiple data types. Sort data, and set to list/dict/Xarray structures.
 
@@ -48,6 +48,10 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
         'orb': Use orbital labels as dataset keys
         'int': Use integer labels as dataset keys (will be ordered by file read)
         Any other setting will result in key = keyType, which can be used to explicitly pass a key (e.g. in multijob wrapper case). This should be tidied up.
+
+    verbose : bool or int, optional, default = True
+        Additional config for printing self.jobSummary results.
+        This evaluates self.verbose and verbose settings, set verbose=False to skip printing.
 
     **kwags : optional
         Additional args passed to base ep.readMatEle() routine.
@@ -299,7 +303,8 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
     self.dataSetXS = dataSetXS
     self.dataSetMatE = dataSetMatE
 
-    if self.verbose['main']:
+    # Print based on self.verbose, but can also override by setting dedicated print setting to False.
+    if self.verbose['main'] and verbose:
         self.jobsSummary()
 
     # 12/04/23 Warn if empty

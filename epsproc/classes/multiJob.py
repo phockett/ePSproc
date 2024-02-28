@@ -361,7 +361,8 @@ class ePSmultiJob(ePSbase):
                         # 'fileList': [self.data[key]['job']['files'] for key in self.data.keys()]}  # All keys
 
         self.dataSets = self.data  # Just set pointer for now, but should be redundant in reworked class with flat data dict
-        self.jobKeys = self.data.keys()  # Set master list of job keys.
+        self.jobKeys = list(self.data.keys())  # Set master list of job keys.
+                                               # Note if set as pointer WILL UPDATE with new keys, which is not the aim!
 
         # 28/02/24: Fix labels for multi job case (defaults to symmetry only in base .scanFiles())
         # TODO: should also reformat and update self.jobNotes, as set in base .scanFiles()
@@ -442,16 +443,19 @@ class ePSmultiJob(ePSbase):
         super().jobsSummary()
 
 
-    def jobStack(self, **kwargs):
+    def jobStack(self, keys = None, **kwargs):
         """
         Thin wrapper for ep.util.conversion.datasetStack(), use for stacking XS and matE orb jobs to single xr.da type.
 
-        Added 28/02/24, note working properly only for Eke Etype - see `py:func:epsproc.util.conversion.datasetStack()` for notes.
+        Added 28/02/24, note working properly only for Eke Etype - see py:func:`epsproc.util.conversion.datasetStack()` for notes.
         """
 
         # Run datasetStack for self.data, self.jobKeys
+        if keys is None:
+            keys = self.jobKeys
+            
         # xrDA, xrDS, dataDict = datasetStack(self.data, keys = self.jobKeys, **kwargs)
-        return datasetStack(self.data, keys = self.jobKeys, **kwargs)
+        return datasetStack(self.data, keys = keys, **kwargs)
 
 
 

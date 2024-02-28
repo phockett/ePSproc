@@ -21,6 +21,7 @@ from epsproc import readMatEle, headerFileParse, molInfoParse, lmPlot, matEleSel
 from epsproc.classes.base import ePSbase
 from epsproc.util.summary import getOrbInfo, molPlot
 from epsproc.util.env import isnotebook
+from epsproc.util.conversion import datasetStack
 from epsproc.plot import hvPlotters
 
 # Class for multiple ePS datasets
@@ -384,6 +385,16 @@ class ePSmultiJob(ePSbase):
         # self.dsXS = dsXS
         # self.dsMatE = dsMatE
 
+        # Stacked format using new util function
+        # Note this currently only works properly for Eke
+        # 28/02/24
+        self.XS, _, _ = self.jobStack()
+        self.matE, _, _ = self.jobStack(dataType='matE')
+
+        self.data['stacked'] = {'XS':self.XS, 'matE':self.matE,
+                                'note':"Stacked dataset from 'epsproc.util.conversion.datasetStack()'. Note this may not work for Ehv coords."}
+
+
         # This is already called in super().scanFiles
         # 28/02/24 - can now bypass in super().scanFiles, and just run here, based on self.verbose['sub'].
         if self.verbose['main']:
@@ -429,6 +440,22 @@ class ePSmultiJob(ePSbase):
 
         # Run parent fn - this is OK, but only outputs self.job info at the moment
         super().jobsSummary()
+
+
+    def jobStack(self, **kwargs):
+        """
+        Thin wrapper for ep.util.conversion.datasetStack(), use for stacking XS and matE orb jobs to single xr.da type.
+
+        Added 28/02/24, note working properly only for Eke Etype - see `py:func:epsproc.util.conversion.datasetStack()` for notes.
+        """
+
+        # Run datasetStack for self.data, self.jobKeys
+        # xrDA, xrDS, dataDict = datasetStack(self.data, keys = self.jobKeys, **kwargs)
+        return datasetStack(self.data, keys = self.jobKeys, **kwargs)
+
+
+
+
 
 #         # Set pprint object
 #         pp = pprint.PrettyPrinter(indent=4)

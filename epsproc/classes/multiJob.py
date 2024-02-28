@@ -355,6 +355,14 @@ class ePSmultiJob(ePSbase):
                         # 'fileList': [self.data[key]['job']['files'] for key in self.data.keys()]}  # All keys
 
         self.dataSets = self.data  # Just set pointer for now, but should be redundant in reworked class with flat data dict
+        self.jobKeys = self.data.keys()  # Set master list of job keys.
+
+        # 28/02/24: Fix labels for multi job case (defaults to symmetry only in base .scanFiles())
+        # TODO: should also reformat and update self.jobNotes, as set in base .scanFiles()
+        for key in self.jobKeys:
+            self.data[key]['jobNotes']['symmetryLabel'] = self.data[key]['jobNotes']['orbLabel']
+            self.data[key]['jobNotes']['orbLabel'] = key
+
 
         # Aggregate data per dir, from self.data[key][job]
         self.jobs['files'] = jobs  # self.dataSets['jobs']
@@ -367,7 +375,9 @@ class ePSmultiJob(ePSbase):
         # 28/02/24 - can now bypass in super().scanFiles, and just run here, based on self.verbose['sub'].
         if self.verbose['main']:
             self.jobsSummary()
-            
+
+
+
 
     def jobLabel(self, key = None, lString = None, append=True):
         """

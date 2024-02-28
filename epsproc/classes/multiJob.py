@@ -184,6 +184,11 @@ class ePSmultiJob(ePSbase):
         This should also be in line with hypothetical base dataclass, which will be per orb by defn.
         UPDATE 16/10/20: now handled in base class, use flat dict with entry per job or dir (for E-stacked case).
 
+        28/02/24        Small updates to output data:
+                        - Fix orbLabel for current ePSman style jobs.
+                        - Fix self.jobs and self.jobNotes.
+                        - Added self.jobKeys for quick ref to source data.
+                        - TODO: dir scan ordering?  Should sort keys/use ordered list for this?
 
         14/10/20    v2  Now using ePSbase() class for functionality.
                         DATASTRUCTURE IS NOW FLAT
@@ -349,7 +354,7 @@ class ePSmultiJob(ePSbase):
             # Dir aggregate data
             # Set from self.job, this data is overwritten for each dir
             # jobs[n] = {'dir': dirScan, 'fN': self.job['fN'], 'fList': self.job['files']}
-            jobs[n] = {'dir': dirScan, 'fN':self.job['fN'],
+            jobs[n] = {'dir': dirScan, 'fN':self.job['fN'], 'key':list(self.data.keys())[-1],
                        'fileList': self.data[list(self.data.keys())[-1]]['job']['files'].copy()}  # Use last key in dict (==last added)
                         # 'fileList': self.data[outputKey]['job']['files'].copy()}   # Only works if key=outputKey
                         # 'fileList': [self.data[key]['job']['files'] for key in self.data.keys()]}  # All keys
@@ -362,6 +367,14 @@ class ePSmultiJob(ePSbase):
         for key in self.jobKeys:
             self.data[key]['jobNotes']['symmetryLabel'] = self.data[key]['jobNotes']['orbLabel']
             self.data[key]['jobNotes']['orbLabel'] = key
+
+            # Push to dataType too
+            for dataType in self.data[key].keys():
+                if dataType in ['XS','matE']:
+                    self.data[key][dataType].attrs['jobLabel'] = self.data[key]['jobNotes']['orbLabel']
+
+        # Replace base jobNotes
+        self.jobNotes = {k:self.data[k]['jobNotes'] for k in self.jobKeys}
 
 
         # Aggregate data per dir, from self.data[key][job]

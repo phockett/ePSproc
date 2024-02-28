@@ -1,6 +1,7 @@
 """
 ePSproc conversion functions
 
+28/02/24    Added datasetStack(), mainly for use with multiJob class datastructure.
 17/07/20    Added orb3DCoordConv(), for orbital file coord conversions.
 12/03/20    Added multiDimXrToPD(), function adapted from lmPlot() code.
 
@@ -13,6 +14,7 @@ import numpy as np
 import xarray as xr
 
 from epsproc.util.misc import deconstructDims, reconstructDims, restack
+from epsproc.util.selectors import matEleSelector
 
 #************* Xarray handling (to Pandas, to flat, to dict)
 def multiDimXrToPD(da, colDims = None, rowDims = None, thres = None, squeeze = True, dropna = True, fillna = False,
@@ -205,6 +207,145 @@ def multiDimXrFromDict(daDict):
         da = reconstructDims(daFlat)
 
     return daFlat, daDict
+
+
+def datasetStack(data, dataType = 'XS', keys = None, stackDim = 'Orb', dimLabel = None,
+                 swapDims = False, dropDims = False, **kwargs):
+    """
+    General routine for stacking dict of XR.dataArray data to new array.
+
+    For use with multiJob class or general data.data[job][dataType] style data. (Cf. TMOdev code...?)
+
+    NOTE: that this format doesn't work for Ehv coords for plotting directly, may need DataSet format for this case.
+    NOTE: additonal options for Eke,Ehv dims, which are (orb,E) dependent. May have better routines for handling this elsewhere.
+
+    See also epsproc.util.misc and epsproc.util.xrIO for complementary restacking XR functions.
+
+    Pass **kwargs for matEleSelector to subselect data prior to stacking.
+
+
+    Parameters
+    ----------
+
+    data : dict
+        Dictionary of data to stack.
+        Should contain elements of type data[key][dataType], e.g. as used by multijob class.
+
+    dataType : str, default = 'XS'
+        Data type to stack.
+
+    keys : list, default = None
+        List of keys to use.
+        If None, skip routine return empty items only.
+
+    stackDim : str, default = 'Orb'
+        Dim for concat to new array.
+        Can be an existing or new dim.
+        Default case assumes data[key] correspond to different orb (channels) jobs.
+
+    dimLabel : str, default = None
+        Label for array along stackDim.
+        If None, use `data[key][dataType].attrs['jobLabel']` or integer if missing.
+        If passed try and use data[key]['jobNotes'][dimLabel].
+
+    swapDims : bool, default = False
+        If True swap Eke > Ehv dims.
+
+    dropDims : bool, default = False
+        If True, drop secondary Eke or Ehv dim.
+        This is currently required for stacking to DA for dims which are (orb,E) dependent.
+
+    **kwargs : optional
+        Additional args for ep.matESelector.
+        No subselection if not passed.
+
+
+    Returns
+    -------
+    xrDA, xrDS, dataDict
+        XR dataarray of stacked data.
+        XR dataset of stacked data (note this may be None in some cases, when dims are an issue).
+        dataDict contains data subset in dictionary format.
+
+
+    v1  28/02/24  Mainly from quick hacks in https://phockett.github.io/ePSdata/OCS-preliminary/OCS_orbs8-11_AFBLMs_VM-ADMs_140122-JAKE_tidy-replot-200722_v5.html
+                  Should check codebase for other complementary routines!
+
+    """
+
+    # Skip empty case.
+    if keys is None:
+        return None, None, None
+
+    dataDict = {}
+    for n,key in enumerate(keys):
+        # Set data
+        try:
+            dataDict[key] = data[key][dataType]
+        except KeyError:
+            print(f"*** Warning: {key} missing dataType = {dataType}.")
+            break
+
+        # Subselect?
+        if kwargs:
+            dataDict[key] = matEleSelector(data[key][dataType], **kwargs)
+
+        # Test Ehv stacking - may be necessary to maintain this in DA format...?
+        # Working with no swap - all orbs have same Eke values.
+        # With swap also working, but get many NaNs - issue is that Ehv coords distinct per Orb.
+        if swapDims:
+            dataDict[key] = dataDict[key].swap_dims({'Eke':'Ehv'})
+
+            if dropDims:
+                dataDict[key] = dataDict[key].drop('Eke')
+
+        if dropDims:
+            dataDict[key] = dataDict[key].drop('Ehv')
+
+
+        # Expand dims for stacking
+        # TODO: try/except for better logic here for missing labels.
+#         dataDict[key].name = dataType
+        if stackDim not in dataDict[key].dims:
+            if dimLabel is not None:
+                if 'jobNotes' in data[key].keys():
+                    dataDict[key] = dataDict[key].expand_dims({stackDim:[data[key]['jobNotes'][dimLabel]]})
+                else:
+                    dataDict[key] = dataDict[key].expand_dims({stackDim:[dataDict[key].attrs[dimLabel]]})
+
+            else:
+                if 'jobLabel' in dataDict[key].attrs.keys():
+                    dataDict[key] = dataDict[key].expand_dims({stackDim:[dataDict[key].attrs['jobLabel']]})
+                else:
+                    dataDict[key].expand_dims({stackDim:[n]})
+
+
+    # Stack to DA... note this may require list not dict (may depend on XR version)
+    xrDA = xr.concat([dataDict[k] for k in dataDict.keys()] , stackDim)
+    xrDA.name = f"{dataType}"
+    xrDA.attrs['jobLabel'] = f"{stackDim}-stacked data"
+    xrDA.attrs['stackedKeys'] = keys
+
+    # Stack to DS
+    # Should work, but in XR15 get merge issues with Ehv, may just want to reset coord? Should be OK for E-subselected data?
+    # MergeError: conflicting values for variable 'Ehv' on objects to be combined. You can skip this check by specifying compat='override'.
+    # But this still fails for XR15
+    #
+    # Running swapDims with dataDict[key].drop('Eke') allows this to work, although format not so useful.
+    #
+    # TODO: debug and/or check old codes, got this working elsewhere before with additional coord transforms?
+    #
+
+    if dropDims:
+        xrDS = xr.Dataset(dataDict)
+    else:
+        xrDS = None
+
+#     xrDA.to_dataset()  # Should also work, but may silently drop some data...? TBC, tested elsewhere already?
+
+#     return xr.concat(dataDict, stackDim)
+    return xrDA, xrDS, dataDict
+
 
 
 #********************** Calculations

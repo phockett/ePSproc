@@ -64,6 +64,12 @@ def plotGetCro(self, pType = 'SIGMA', Erange = None, Etype = 'Eke', selDims = No
     # # Default to all datasets
     # if keys is None:
     #     keys = self.data.keys()
+    # keys = self._keysCheck(keys)
+
+    # Update 28/02/24: select only jobKeys for default case.
+    # if keys is None:
+    #     keys = self.jobKeys
+
     keys = self._keysCheck(keys)
 
 #         if self.jobs['jobStructure'] == 'subDirs':
@@ -187,8 +193,8 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'),
     # keys = self._keysCheck(keys)
 
     # Update 28/02/24: select only jobKeys for default case.
-    if keys is None:
-        keys = self.jobKeys
+    # if keys is None:
+    #     keys = self.jobKeys
 
     keys = self._keysCheck(keys)
 
@@ -982,6 +988,8 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     TODO: return plot objects. Probably to self.data[key][pStyle], or as dictionary of plots per run with data? (Cf. PEMtk plotters.)
         23/04/22: added plot data and object returns to self.data[key][plotDict][pStyle]
 
+    29/02/24: added 'hv' option for PAD grid style only. This also returns stacked data (all keys) to self.plot['PADGrid']
+
     """
 
 
@@ -1004,6 +1012,8 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     if len(facetDims) > 2:
         print(f"Too many facetDims (max=2), using only {facetDims[0:2]}.")
 
+    # 29/02/24 - added output for stacked data for use with HV plot.
+    datastack = []
 
     # Loop over datasets
     for key in keys:
@@ -1116,18 +1126,22 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
             # Set data
             subset = plotTypeSelector(subset, pType = pType, axisUW = Etype)
 
-            try:
-                if reducePhi:
-                    # subset.plot(x='Theta', y=Etype, col=eDim, robust=True)
-                    # subset.plot(x='Theta', y=facetDimsCheck[0], col=facetDimsCheck[1], robust=True)  # This might fail for only one facetDim
-                                                                                                        # This did work initially, but not later - dim ordering always goes to alphabetical with set selection above
-                    pltObj = subset.plot(x='Theta', y=Etype, col=list({*facetDimsCheck}-{Etype})[0], robust=True)  # Force E dim to y
-                else:
-                    pltObj = subset.plot(y='Theta',x='Phi', row=facetDimsCheck[1], col=facetDimsCheck[0], robust=True)  # This might fail for only one facetDim. DIM ORDERING NOT PRESERVED
+            # Plot with XR/MPL
+            if backend != 'hv' and plotFlag:
+                try:
+                    if reducePhi:
+                        # subset.plot(x='Theta', y=Etype, col=eDim, robust=True)
+                        # subset.plot(x='Theta', y=facetDimsCheck[0], col=facetDimsCheck[1], robust=True)  # This might fail for only one facetDim
+                                                                                                            # This did work initially, but not later - dim ordering always goes to alphabetical with set selection above
+                        pltObj = subset.plot(x='Theta', y=Etype, col=list({*facetDimsCheck}-{Etype})[0], robust=True)  # Force E dim to y
+                    else:
+                        pltObj = subset.plot(y='Theta',x='Phi', row=facetDimsCheck[1], col=facetDimsCheck[0], robust=True)  # This might fail for only one facetDim. DIM ORDERING NOT PRESERVED
 
-            except ValueError as e:
-                print(f"*** Error {e} for grid plotter with facetDims={facetDimsCheck}: try passing selDims, sumDims or facetDims manually.")  # Gives "ValueError: IndexVariable objects must be 1-dimensional" for singleton facet dim case (gets squeezed out here?)
+                except ValueError as e:
+                    print(f"*** Error {e} for grid plotter with facetDims={facetDimsCheck}: try passing selDims, sumDims or facetDims manually.")  # Gives "ValueError: IndexVariable objects must be 1-dimensional" for singleton facet dim case (gets squeezed out here?)
 
+        # Stack data for replotting (hv backend/later use)
+        datastack.append(subset.expand_dims({'Orb':[key]}))
 
         # Return data?
         if returnFlag:
@@ -1143,3 +1157,28 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     # # Return data? Note this is only set for final key value at the moment.
     # if returnFlag:
     #     return subset
+
+    # 29/02/24 - HV plotting for PAD grid type only.
+    # Follows _hvBLMplot() routine above.
+    # TODO: separate this out into new function?
+    if backend == 'hv':
+        # HV plot for PAD grid only.
+        xrDS = xr.concat(datastack, 'Orb')
+        xrDS.name = 'PAD grid'
+
+        hvDS = hvPlotters.hv.Dataset(xrDS)
+        hvObj = hvDS.to(hvPlotters.hv.HeatMap, kdims=['Eke','Theta'])
+
+        if returnFlag:
+            self.plots['PADGrid'] = {'XR':xrDS,'hvDS':hvDS,'hv':hvObj}
+            # self.data[plotDict]['BLMsetPlot'] = hvPlot
+            if self.verbose:
+                print(f"PADGrid set data and plots to self.plots['PADGrid']")
+
+        if plotFlag:
+            showPlot(hvObj.opts(cmap='vlag').layout('Orb').cols(2), returnPlot = returnFlag, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
+
+        if returnFlag:
+            return hvObj
+        else:
+            return True

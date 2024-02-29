@@ -145,7 +145,12 @@ class ePSbase():
         """
         # Default to all datasets
         if keys is None:
-            keys = list(self.data.keys())  # Get keys and set as list
+            # keys = list(self.data.keys())  # Get keys and set as list
+            # UPDATE 29/02/24: for multijob class now use self.jobKeys to set job items only.
+            if hasattr(self,'jobKeys'):
+                keys = self.jobKeys
+            else:
+                keys = list(self.data.keys())  # Get keys and set as list
         else:
             if not isinstance(keys, list):   # Force list if single item passed
                 keys = [keys]

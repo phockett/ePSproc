@@ -212,6 +212,7 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'),
         subset, _, _ = self.jobStack(keys = keys, dataType = 'XS')  # Generate new stack?
 
         # More elegant way to swap on dims?
+        # This also fails for HV case - may want to return to loop as per mpl case, then stack plots instead of data? Ugh.
         if Etype == 'Ehv':
             print("Etype=Ehv not currently supported by HV plotting backend, using default Eke case instead.")
             Etype = 'Eke'
@@ -1133,9 +1134,10 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
                         # subset.plot(x='Theta', y=Etype, col=eDim, robust=True)
                         # subset.plot(x='Theta', y=facetDimsCheck[0], col=facetDimsCheck[1], robust=True)  # This might fail for only one facetDim
                                                                                                             # This did work initially, but not later - dim ordering always goes to alphabetical with set selection above
-                        pltObj = subset.plot(x='Theta', y=Etype, col=list({*facetDimsCheck}-{Etype})[0], robust=True)  # Force E dim to y
+                        pltObj = subset.plot(x='Theta', y=Etype, col=list({*facetDimsCheck}-{Etype})[0], robust=True).fig.text(0.02, 0.9, key, fontsize=14);  # Force E dim to y
+                        # 29/02/24: added plot labels per https://stackoverflow.com/a/42439154
                     else:
-                        pltObj = subset.plot(y='Theta',x='Phi', row=facetDimsCheck[1], col=facetDimsCheck[0], robust=True)  # This might fail for only one facetDim. DIM ORDERING NOT PRESERVED
+                        pltObj = subset.plot(y='Theta',x='Phi', row=facetDimsCheck[1], col=facetDimsCheck[0], robust=True).fig.text(0.02, 0.9, key, fontsize=14);  # This might fail for only one facetDim. DIM ORDERING NOT PRESERVED
 
                 except ValueError as e:
                     print(f"*** Error {e} for grid plotter with facetDims={facetDimsCheck}: try passing selDims, sumDims or facetDims manually.")  # Gives "ValueError: IndexVariable objects must be 1-dimensional" for singleton facet dim case (gets squeezed out here?)
@@ -1144,7 +1146,7 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
         datastack.append(subset.expand_dims({'Orb':[key]}))
 
         # Return data?
-        if returnFlag:
+        if returnFlag and (backend != 'hv'):
             if not plotDict in self.data[key].keys():
                 self.data[key][plotDict] = {}
 
@@ -1178,7 +1180,7 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
         if plotFlag:
             showPlot(hvObj.opts(cmap='vlag').layout('Orb').cols(2), returnPlot = returnFlag, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
 
-        if returnFlag:
-            return hvObj
-        else:
-            return True
+        # if returnFlag:
+        #     return hvObj
+        # else:
+        #     return True

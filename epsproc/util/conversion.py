@@ -210,7 +210,7 @@ def multiDimXrFromDict(daDict):
 
 
 def datasetStack(data, dataType = 'XS', keys = None, stackDim = 'Orb', dimLabel = None,
-                 swapDims = False, dropDims = False, **kwargs):
+                 swapDims = False, dropDims = False, sortByStacked = True, **kwargs):
     """
     General routine for stacking dict of XR.dataArray data to new array.
 
@@ -254,6 +254,9 @@ def datasetStack(data, dataType = 'XS', keys = None, stackDim = 'Orb', dimLabel 
     dropDims : bool, default = False
         If True, drop secondary Eke or Ehv dim.
         This is currently required for stacking to DA for dims which are (orb,E) dependent.
+
+    sortByStaked : bool, default = True
+        If True, run da.sortby() along stackDim.
 
     **kwargs : optional
         Additional args for ep.matESelector.
@@ -322,6 +325,11 @@ def datasetStack(data, dataType = 'XS', keys = None, stackDim = 'Orb', dimLabel 
 
     # Stack to DA... note this may require list not dict (may depend on XR version)
     xrDA = xr.concat([dataDict[k] for k in dataDict.keys()] , stackDim)
+
+    # Sort along new dim?
+    if sortByStacked:
+        xrDA = xrDA.sortby(stackDim)
+
     xrDA.name = f"{dataType}"
     xrDA.attrs['jobLabel'] = f"{stackDim}-stacked data"
     xrDA.attrs['stackedKeys'] = keys

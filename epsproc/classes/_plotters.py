@@ -205,18 +205,19 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'),
         # xrDA = self.XS.copy()  # Use existing stack?
         subset, _, _ = self.jobStack(keys = keys, dataType = 'XS')  # Generate new stack?
 
-        # Set default to full range, same for all cases
-        if Erange is None:
-            Erange = [subset[Etype].min().data, subset[Etype].max().data]
-
         # More elegant way to swap on dims?
         if Etype == 'Ehv':
             print("Etype=Ehv not currently supported by HV plotting backend, using default Eke case instead.")
+            Etype = 'Eke'
             # Subset before plot to avoid errors on empty array selection!
             # subset = self.data[key]['XS'].swap_dims({'Eke':'Ehv'}).sel(XC=pType, Type=pGauge, Sym=pSym, **{Etype:slice(Erange[0], Erange[1])})  # With dict unpacking for var as keyword
 
             # if subset.any():
             #     pltObj = subset.plot.line(x=Etype)
+
+        # Set default to full range, same for all cases
+        if Erange is None:
+            Erange = [subset[Etype].min().data, subset[Etype].max().data]
 
         subset = subset.sel(XC=pType, Type=pGauge, Sym=pSym, **{Etype:slice(Erange[0], Erange[1])})   # With dict unpacking for var as keyword
 
@@ -240,7 +241,7 @@ def plotGetCroComp(self, pType='SIGMA', pGauge='L', pSym=('All','All'),
             # subset.unstack('Sym').hvplot(x=Etype).overlay('Orb')
             # subset.unstack('Sym').hvplot(x='Eke').overlay('Orb')
             try:
-                pltObj = subset.hvplot(x='Eke').overlay('Orb')
+                pltObj = subset.hvplot(x=Etype).overlay('Orb')
 
                 # Push back to main datastructure too
                 # if 'plots' not in self.data.keys():

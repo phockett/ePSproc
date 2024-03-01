@@ -715,7 +715,8 @@ def CG(QNs, dlist = ['l', 'lp', 'L', 'm', 'mp', 'M'], form = 'xarray'):
 #************** Geometric terms (EPR, betaTerm etc.)
 #*************************************************************
 
-def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist = None,
+def EPR(QNs = None, p = None, ep = None, normE = False,
+        nonzeroFlag = True, form = '2d', dlist = None,
         phaseConvention = 'S', verbose = 0):
     r"""Define polarization tensor (LF) for 1-photon case.
 
@@ -744,6 +745,9 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
     ep : list or array, optional, default = None
         Relative strengths for the fields ep.
         If set to None, all terms will be set to unity, ep = 1
+        
+    normE : bool, optional, default = None
+        If True, renorm ep field strength terms to unity.
 
     nonzeroFlag : bool, optional, default = True
         Drop null terms before returning values if true.
@@ -776,6 +780,9 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
     Currently not handling ep correctly!  Should implement as passed Xarray for correct (p,p') assignment.
 
     18/07/23: fixed issues with dlist > Xarray conversion, and switched to setting in function to avoid odd behaviour with passed list.
+    
+    01/03/24: implemented ep terms for 2d and xarray forms.
+    TODO: test with new pol functions (see ep.efields.epol).
 
     """
     # 18/07/23: use dlist=None as default.
@@ -808,6 +815,19 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
     # If no field strength components are defined, set to unity
     if ep is None:
         ep = np.ones(len(p))
+        
+    # Force to numpy, otherwise indexing later may fail
+    if type(ep) is not np.ndarray:
+        ep = np.array(ep)
+        
+    if normE:
+        # Norm field?
+        ep = ep/np.sqrt((ep**2).sum())
+        
+    if form == 'xarray':
+        epXR = xr.DataArray(ep, coords={'p':p}, dims='p')
+        # Conj term, p > R-p for cross-product
+        eRpXR = epXR.conj().copy().rename({'p':'R-p'})
 
     # If no QNs are passed, set for all possible terms
     if QNs is None:
@@ -861,6 +881,21 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
         Rphase = np.power(-1, np.abs(EPRtable[:,5]))
         Pdegen = np.sqrt(2*EPRtable[:,2] + 1)
         EPRtable[:,-1] = EPRtable[:,-1]*Rphase*Pdegen
+        
+        # Set Ep field strength terms and multiply
+        pRPInd = EPRtable[:,[3,4]]  # Select (p, R-p) terms only
+
+        # Multiplication vectors from indexes into ep values...
+        epMult = ep[(pRPInd[:,0]+1).astype(int)]
+        epMultConj = ep[(pRPInd[:,1]+1).astype(int)].conj()
+
+#         Test terms - resultant is 0 if ep=p
+#         pRPInd[:,0] - epMult
+#         pRPInd[:,1] - epMultConj
+
+        # Update main table
+        EPRtable[:,-1] = EPRtable[:,-1] * epMult * epMultConj
+        
 
     elif form == 'xarray':
         Pdegen = np.sqrt(2*EPRtable.P + 1)  # Note sqrt here - as per U&S defn.
@@ -884,6 +919,12 @@ def EPR(QNs = None, p = None, ep = None, nonzeroFlag = True, form = '2d', dlist 
             EPRtable = temp.stack({'QN':dlist}).dropna(dim = 'QN',how = 'all')
             # NOTE: Without dropna here dims grow! Default settings have 18 elements, but end up with 135 and lots of NaNs.
 
+        # Multiply by field strength array
+        # TO TEST: does QN coord swap propagate correctly here?
+        # Should be OK since ep terms just indexed by (p,p*)?
+        EPRmult = EPRtable.unstack() * epXR * eRpXR
+        EPRtable = EPRmult.stack({'QN':dlist}).dropna(dim = 'QN',how = 'all')            
+            
         EPRtable.attrs['dataType'] = 'EPR'
         EPRtable.attrs['phaseCons'] = phaseCons
 

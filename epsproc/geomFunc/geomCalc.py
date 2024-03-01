@@ -777,11 +777,11 @@ def EPR(QNs = None, p = None, ep = None, normE = False,
 
     Note
     ----
-    Currently not handling ep correctly!  Should implement as passed Xarray for correct (p,p') assignment.
 
     18/07/23: fixed issues with dlist > Xarray conversion, and switched to setting in function to avoid odd behaviour with passed list.
     
     01/03/24: implemented ep terms for 2d and xarray forms.
+    Default case with ep = np.ones(len(p)) should match previous version outputs (==all terms). 
     TODO: test with new pol functions (see ep.efields.epol).
 
     """

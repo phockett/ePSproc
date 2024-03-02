@@ -17,9 +17,12 @@ Quick pol overviews:
 
 py_pol library details: https://py-pol.readthedocs.io
 
+TODO: implement additonal py_pol creation routines with wrapper?
+
 """
 
 import numpy as np
+import xarray as xr   # TODO: change to optional, since only used in setep
 
 # Optional imports
 py_polFlag = False
@@ -43,7 +46,8 @@ class EfieldPol():
     
     - (Ex,Ey)
     - (El,Er)
-    - ep list of field strengths as per geomFunc.EPR() routine.
+    - ep list of field strengths as per geomFunc.EPR() routine. 
+        (NOT YET IMPLEMENTED for field creation, but use self.setep() for conversion.)
     
     If py_pol is installed, additional routines are available, including Stokes vector handling and plotting functions.
     
@@ -53,30 +57,41 @@ class EfieldPol():
     Exy : list or np.array, optional, default = None
         Field amplitudes defined by [Ex,Ey] pairs (list or array).
         Optionally can be in mag, phase format, with items [Ex,phix,Ey,phiy].
+        And field will be set as [Ex*e^{i*phix}, Ey*e^{i*phiy}].
         
     Elr : list or np.array, optional, default = None
         Field amplitudes defined by [El,Er] pairs.
         E.g. Elr = [[El1,Er1],[El2,Er2]...]
         
-    elliptical : list or np.array, optional, default = None
-        Field defined as terms [[amplitude,azimuth,ellipticity]...]
+    ell : list or np.array, optional, default = None
+        Elliptical field defined as terms [[amplitude,azimuth,ellipticity]...]
         Only available if py_pol available, and then run Stokes.elliptical() method.
-        NOTE azimuth in degrees.
+        NOTE azimuth in RAD.
+        Ellipticity range: [-pi/4:pi/4]
+        
+    normField : bool, optional, default = True
+        Renormalise input field components to unity magnitude if True.
+        
+    verbose : bool or int, optional, default = True
+        Controls printing level to terminal.
         
     
     """
     
+    # Init class with inputs for different methods.
+    # May want to change to **kwargs to avoid overloaded locals() usage below.
     def __init__(self, Exy = None, Elr = None, 
 #                  ep = None, p = None,
-                 elliptical = None,
-                 normField = True):
+                 ell = None,
+                 normField = True, verbose = 1):
         
         # Set defaults
         self.inputs = locals()
         self.normField = normField
+        self.verbose = verbose
         
         # Check for main config
-        inputDict = {k:v for k,v in self.inputs.items() if v is not None and k not in ['self','normField']}
+        inputDict = {k:v for k,v in self.inputs.items() if v is not None and k not in ['self','normField','verbose']}
         
         if not inputDict:
             print(f"*** No inputs specified, setting default case Exy=[1,0]")
@@ -92,7 +107,10 @@ class EfieldPol():
             
             if func is not None:
                 func(v)
-                print(f"Set field {k}.")
+                print(f"Set field from {k}.")
+                
+                if self.verbose:
+                    print(getattr(self,k))
             else:
                 print(f"*** Epol error: Function {k} not defined.")
         
@@ -139,8 +157,15 @@ class EfieldPol():
         
         """
         
-        self.Elr = np.array(Elr, ndmin=2)  # Set ndmin here to allow singleton case
+        Elr = np.array(Elr, ndmin=2)  # Set ndmin here to allow singleton case
                                       # Assumes input Elr = [[El1,Er1],[El2,Er2]...]
+            
+        # For mag-phase definition
+        if Elr.shape[1] == 4:
+            Elr = np.c_[Elr[:,0]*np.exp(1j*Elr[:,1]),
+                        Elr[:,2]*np.exp(1j*Elr[:,3])]
+            
+        self.Elr = Elr
         
         # TODO: convert to Exy too
         # This is currently done for py_pol case only below.
@@ -170,13 +195,44 @@ class EfieldPol():
             self.setExyFromStokes()
     
         
+    def setep(self, labels = None):
+        """
+        Set field terms in ep array format for use in :py:func:`epsproc.geomFunc.EPR()`
+        
+        Note this uses self.Elr ONLY, and sets p=[-1,1].
+        
+        self.epDict can be passed to EPR inputs.
+        self.epXR contains Xarray representation.
+        """
+        
+        p = [-1,1]
+        
+        self.epDict = {'ep':self.Elr,
+                       'p':p}
+        
+        
+        if labels is None:
+            # Set labels if missing
+            labels = np.arange(1,self.Elr.shape[0]+1)
+    
+        self.epXR = xr.DataArray(self.Elr, coords={'p':p,'Labels':labels}, 
+                                 dims=['Labels','p'])
+#         self.epXR = xr.DataArray(self.Elr, coords={'p':p}, dims='p')
+        
+        if self.verbose:
+            print("Set parameters to `self.epDict` and `self.epXR`.")
+        
+    
     
     def calcElrFromExy(self):
         # Set Elr
         # Defined as El = Ex - iEy, Er = Ex + iEy
         norm = 1/np.sqrt(2)   # Always need extra norm here!
-        self.Elr = norm * np.c_[self.Exy[:,0]-1j*self.Exy[:,1],
-                                self.Exy[:,0]+1j*self.Exy[:,1]] 
+        
+        # Note sign convention here, 
+        # matches wiki defns. https://en.wikipedia.org/wiki/Stokes_parameters#Definitions_2
+        self.Elr = norm * np.c_[self.Exy[:,0]+1j*self.Exy[:,1],
+                                self.Exy[:,0]-1j*self.Exy[:,1]] 
     
     
     def calcNorm(self,E):
@@ -197,13 +253,13 @@ class EfieldPol():
         return E, norm
     
     
-    def setelliptical(self, elliptical):
+    def setell(self, elliptical):
         """
         Set elliptical light using py_pol
         
         elliptical = [[amplitude,azimuth,ellipticity]...]
         
-        NOTE: currently assumes azimuth in DEGREES.
+        NOTE: currently assumes azimuth in RAD.
         
         From py_pol docs:
         
@@ -224,7 +280,7 @@ class EfieldPol():
         
         S = Stokes('Elliptical light source')
         S.general_azimuth_ellipticity(amplitude=self.ell[:,0], 
-                                       azimuth=self.ell[:,1]*degrees, 
+                                       azimuth=self.ell[:,1],   # *degrees, 
                                        ellipticity=self.ell[:,2])
  
         self.stokes = S
@@ -237,12 +293,16 @@ class EfieldPol():
         # Set other basis terms
         self.Exy = np.array(self.stokes.parameters.amplitudes(),ndmin=2)
         
+        # Note transpose to give [[x,y]...] 2D array for multi field cases.
+        if self.Exy.shape[0]>1:
+            self.Exy = self.Exy.T
+        
         # Propagate global phase term
         self.Exy[:,1] = self.Exy[:,1]*np.exp(1j*self.stokes.parameters.delay())
         
         
-    def plot(self):
+    def plot(self, **kwargs):
         if py_polFlag and hasattr(self,'stokes'):
-            self.stokes.draw_ellipse()
+            self.stokes.draw_ellipse(**kwargs)
         else:
             print("py_pol library required for self.plot. Run 'pip install py_pol' to install.")

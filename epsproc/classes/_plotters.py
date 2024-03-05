@@ -690,6 +690,8 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
         - 'job' to use self.data[key][dataType].attrs['jobLabel']
         - 'key' to use key directly. Also will be used for unrecognised cases, and use keyDim as dim name.
 
+    NOTE: **kwargs passed to hv.opts(**kwargs) for additional plotter control.
+
     """
 
     # print(locals())
@@ -782,7 +784,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     # else:
     #     return hvObj
     if renderPlot:
-        showPlot(hvObj.overlay(xrDS.attrs['harmonics']['dimList']), returnPlot = returnPlot, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
+        showPlot(hvObj.overlay(xrDS.attrs['harmonics']['dimList']).opts(**kwargs), returnPlot = returnPlot, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
 
     if returnPlot:
         return hvObj

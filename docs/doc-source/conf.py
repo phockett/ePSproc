@@ -112,6 +112,7 @@ if on_rtd:
 # """
 
 # Alternative Plotly script injection, as per Jupyter Book style, https://jupyterbook.org/en/stable/interactive/interactive.html#plotly
+# Testing 06/03/24 since current builds are broken again - see notes https://github.com/phockett/ePSproc/issues/27
 html_js_files = ['https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js']
 
 # Add any paths that contain templates here, relative to this directory.

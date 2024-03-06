@@ -2,11 +2,20 @@
 # Read the Docs configuration file
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
 #
+# 06/03/24  Failing with "Config validation error in build.os. Value build not found."
+#           Looks like RTD change, see https://docs.readthedocs.io/en/stable/config-file/v2.html - added build section to fix.
+#
 # 16/07/20  Updated for minimal Sphinx build-chain
 # Feb 2020  v1
 
 # Required
 version: 2
+
+# Set the OS, Python version and other tools you might need
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.7"
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
@@ -23,6 +32,6 @@ sphinx:
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
-  version: 3.7
+  # version: 3.7
   install:
     - requirements: docs/doc-source/requirements-RTD.txt

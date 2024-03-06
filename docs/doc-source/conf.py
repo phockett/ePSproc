@@ -103,12 +103,16 @@ if on_rtd:
 #
 # """
 
+# REMOVED 06/03/24 - no longer working, incorrect script version and/or issues with current RTD template?
 #     nbsphinx_prolog = r"""
 # .. raw:: html
 #
 #     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 #
 # """
+
+# Alternative Plotly script injection, as per Jupyter Book style, https://jupyterbook.org/en/stable/interactive/interactive.html#plotly
+html_js_files = ['https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

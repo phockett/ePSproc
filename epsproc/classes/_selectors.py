@@ -24,6 +24,8 @@ def Esubset(self, key = None, dataType = None, Erange = None, Etype = None):
     Failing since 2022... issues with float or complex datatypes?
     Should work per https://docs.xarray.dev/en/stable/user-guide/indexing.html#nearest-neighbor-lookups
 
+    Update 06/03/24 - added .copy() here to avoid side-effects in some cases (specifically self.padPlot not working correctly for facetDims after running self.BLMplot).
+
     """
 
     if Erange is None:
@@ -35,10 +37,14 @@ def Esubset(self, key = None, dataType = None, Erange = None, Etype = None):
     # More elegant way to swap on dims?
     if Etype == 'Ehv':
     # Subset before plot to avoid errors on empty array selection!
-        subset = self.data[key][dataType].swap_dims({'Eke':'Ehv'}).sel(**{Etype:slice(Erange[0], Erange[1], Erange[2])})   # With dict unpacking for var as keyword
+        # subset = self.data[key][dataType].swap_dims({'Eke':'Ehv'}).sel(**{Etype:slice(Erange[0], Erange[1], Erange[2])})   # With dict unpacking for var as keyword
+        # 06/03/24 - added .copy() here to avoid side-effects in some cases (specifically self.padPlot not working after running self.BLMplot)
+        subset = self.data[key][dataType].copy().swap_dims({'Eke':'Ehv'}).sel(**{Etype:slice(Erange[0], Erange[1], Erange[2])})   # With dict unpacking for var as keyword
 
     else:
-        subset = self.data[key][dataType].sel(**{Etype:slice(Erange[0], Erange[1], Erange[2])})   # With dict unpacking for var as keyword
+        # subset = self.data[key][dataType].sel(**{Etype:slice(Erange[0], Erange[1], Erange[2])})   # With dict unpacking for var as keyword
+        # 06/03/24 - added .copy() here to avoid side-effects in some cases (specifically self.padPlot not working after running self.BLMplot)
+        subset = self.data[key][dataType].copy().sel(**{Etype:slice(Erange[0], Erange[1], Erange[2])})   # With dict unpacking for var as keyword
 
     return subset
 

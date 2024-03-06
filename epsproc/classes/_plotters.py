@@ -727,7 +727,13 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     pDict = []
     for key in keys:
     #     subset = ep.matEleSelector(data.data[key][dataType], thres=thres, inds = selDims, dims = [Etype, 't'], sq = True)
-        subset = matEleSelector(self.data[key][dataType], thres=thres, inds = selDims, dims = Etype, sq = True)
+
+        # 06/03/24 - reinstated Esubset for Erange settings.
+        # NEEDS TESTING - something here messes up padPlot() later for PL facetDims!!!
+        subset = self.Esubset(key = key, dataType = dataType, Etype = Etype, Erange = Erange)
+        subset = matEleSelector(subset, thres=thres, inds = selDims, dims = Etype, sq = True)
+
+        # subset = matEleSelector(self.data[key][dataType], thres=thres, inds = selDims, dims = Etype, sq = True)
         subset.name = 'BLM'
 
         # 02/11/22 - very basic XS handling, as per ep.basicPlotters.BLMplot, plus AF case handling.

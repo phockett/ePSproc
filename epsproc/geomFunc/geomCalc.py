@@ -745,7 +745,7 @@ def EPR(QNs = None, p = None, ep = None, normE = False,
     ep : list or array, optional, default = None
         Relative strengths for the fields ep.
         If set to None, all terms will be set to unity, ep = 1
-        
+
     normE : bool, optional, default = None
         If True, renorm ep field strength terms to unity.
 
@@ -779,9 +779,9 @@ def EPR(QNs = None, p = None, ep = None, normE = False,
     ----
 
     18/07/23: fixed issues with dlist > Xarray conversion, and switched to setting in function to avoid odd behaviour with passed list.
-    
+
     01/03/24: implemented ep terms for 2d and xarray forms.
-    Default case with ep = np.ones(len(p)) should match previous version outputs (==all terms). 
+    Default case with ep = np.ones(len(p)) should match previous version outputs (==all terms).
     TODO: test with new pol functions (see ep.efields.epol).
 
     """
@@ -815,19 +815,24 @@ def EPR(QNs = None, p = None, ep = None, normE = False,
     # If no field strength components are defined, set to unity
     if ep is None:
         ep = np.ones(len(p))
-        
+
     # Force to numpy, otherwise indexing later may fail
     if type(ep) is not np.ndarray:
         ep = np.array(ep)
-        
+
     if normE:
         # Norm field?
         ep = ep/np.sqrt((ep**2).sum())
-        
+
     if form == 'xarray':
         epXR = xr.DataArray(ep, coords={'p':p}, dims='p')
         # Conj term, p > R-p for cross-product
         eRpXR = epXR.conj().copy().rename({'p':'R-p'})
+
+        # Include additional phase term?
+        # TODO: consider this, see Zare p209.
+        # Only required for case with real fields defined, and cos+sin components.
+        # RpPhase = (-1)**eRpXR.coords['R-p'].pipe(np.abs)
 
     # If no QNs are passed, set for all possible terms
     if QNs is None:
@@ -881,7 +886,7 @@ def EPR(QNs = None, p = None, ep = None, normE = False,
         Rphase = np.power(-1, np.abs(EPRtable[:,5]))
         Pdegen = np.sqrt(2*EPRtable[:,2] + 1)
         EPRtable[:,-1] = EPRtable[:,-1]*Rphase*Pdegen
-        
+
         # Set Ep field strength terms and multiply
         pRPInd = EPRtable[:,[3,4]]  # Select (p, R-p) terms only
 
@@ -895,7 +900,7 @@ def EPR(QNs = None, p = None, ep = None, normE = False,
 
         # Update main table
         EPRtable[:,-1] = EPRtable[:,-1] * epMult * epMultConj
-        
+
 
     elif form == 'xarray':
         Pdegen = np.sqrt(2*EPRtable.P + 1)  # Note sqrt here - as per U&S defn.
@@ -923,8 +928,8 @@ def EPR(QNs = None, p = None, ep = None, normE = False,
         # TO TEST: does QN coord swap propagate correctly here?
         # Should be OK since ep terms just indexed by (p,p*)?
         EPRmult = EPRtable.unstack() * epXR * eRpXR
-        EPRtable = EPRmult.stack({'QN':dlist}).dropna(dim = 'QN',how = 'all')            
-            
+        EPRtable = EPRmult.stack({'QN':dlist}).dropna(dim = 'QN',how = 'all')
+
         EPRtable.attrs['dataType'] = 'EPR'
         EPRtable.attrs['phaseCons'] = phaseCons
 

@@ -171,7 +171,7 @@ class EfieldPol():
 
         # TODO: convert to Exy too
         # This is currently done for py_pol case only below.
-
+        self.Exy = None
 
         if py_polFlag:
             # Set l+r components - may be a better way to do this?

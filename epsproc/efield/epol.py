@@ -314,7 +314,8 @@ class EfieldPol():
     def setExyFromStokes(self):
         """Convert py_pol stokes params > Exy components."""
         # Set other basis terms
-        self.Exy = np.array(self.stokes.parameters.amplitudes(),ndmin=2)
+        # NOTE - force type to complex here, otherwise may accidentally be cast to real and drop phase term below!
+        self.Exy = np.array(self.stokes.parameters.amplitudes(),ndmin=2).astype(np.complex)
 
         # Note transpose to give [[x,y]...] 2D array for multi field cases.
         if self.Exy.shape[0]>1:

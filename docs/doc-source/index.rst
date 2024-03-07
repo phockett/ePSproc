@@ -37,7 +37,6 @@ A post-processing suite for ePolyScat calculations, and general tool for photoio
    demos/ePSproc_wfPlot_tests_150720_tidy
    demos/ePSproc_wfPlot_tests_150720-110820-CH3I-tidy_Stimpy
    demos/Epol_class_demo_docs_030324
-   demos/Epol_class_demo_docs_030324-newBuild
 
 
 .. toctree::

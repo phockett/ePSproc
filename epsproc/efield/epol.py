@@ -38,6 +38,8 @@ except ImportError as e:
 
 
 from epsproc.geomFunc import geomCalc
+from epsproc.sphCalc import setPolGeoms, setBLMs, TKQarrayRotX
+from epsproc.sphPlot import sphFromBLMPlot
 
 
 class EfieldPol():
@@ -116,6 +118,9 @@ class EfieldPol():
             else:
                 print(f"*** Epol error: Function {k} not defined.")
 
+#
+#****** Basic functionality - Exy and Elr fields, py_pol wrappers
+#
 
     def setExy(self, Exy):
         """Set Exy and dependent terms."""
@@ -195,56 +200,6 @@ class EfieldPol():
 #                 self.stokes = Sr
 
             self.setExyFromStokes()
-
-
-    def setep(self, labels = None):
-        """
-        Set field terms in ep array format for use in :py:func:`epsproc.geomFunc.EPR()`
-
-        Note this uses self.Elr ONLY, and sets p=[-1,1].
-        Note EPR() currently only supports single pol state.
-
-        self.epDict can be passed to EPR inputs.
-        self.epXR contains Xarray representation.
-
-        TODO: update EPR() for multiple pol states with labels.
-
-        """
-
-        p = [-1,1]
-
-        self.epDict = {'ep':self.Elr.squeeze(),  # Note squeeze here for single pol state.
-                       'p':p}
-
-
-        if labels is None:
-            # Set labels if missing
-            labels = np.arange(1,self.Elr.shape[0]+1)
-
-        self.epXR = xr.DataArray(self.Elr, coords={'p':p,'Labels':labels},
-                                 dims=['Labels','p'])
-#         self.epXR = xr.DataArray(self.Elr, coords={'p':p}, dims='p')
-
-        if self.verbose:
-            print("Set parameters to `self.epDict` and `self.epXR`.")
-
-
-    def calcEPR(self):
-        """
-        Compute polarization tensor EPR from self.epDict.
-
-        Thin wrapper for :py:func:`epsproc.geomFunc.EPR()`
-
-        """
-        # Set inputs if missing.
-        if not hasattr(self,'epDict'):
-            self.setep()
-
-        # Run tensor calculation.
-        self.EPRX = geomCalc.EPR(form = 'xarray', **self.epDict)
-
-        if self.verbose:
-            print("Set geomCalc.EPR() results to `self.EPRX`.")
 
 
     def calcElrFromExy(self):
@@ -330,3 +285,128 @@ class EfieldPol():
             self.stokes.draw_ellipse(**kwargs)
         else:
             print("py_pol library required for self.plot. Run 'pip install py_pol' to install.")
+
+#
+#********** Additional functionality for ePSproc integration
+#
+
+    def setep(self, labels = None):
+        """
+        Set field terms in ep array format for use in :py:func:`epsproc.geomFunc.EPR()`
+
+        Note this uses self.Elr ONLY, and sets p=[-1,1].
+        Note EPR() currently only supports single pol state.
+
+        self.epDict can be passed to EPR inputs.
+        self.epXR contains Xarray representation.
+
+        TODO: update EPR() for multiple pol states with labels.
+
+        """
+
+        p = [-1,1]
+
+        self.epDict = {'ep':self.Elr.squeeze(),  # Note squeeze here for single pol state.
+                       'p':p}
+
+
+        if labels is None:
+            # Set labels if missing
+            labels = np.arange(1,self.Elr.shape[0]+1)
+
+        self.epXR = xr.DataArray(self.Elr, coords={'p':p,'Labels':labels},
+                                 dims=['Labels','p'])
+#         self.epXR = xr.DataArray(self.Elr, coords={'p':p}, dims='p')
+
+        if self.verbose:
+            print("Set parameters to `self.epDict` and `self.epXR`.")
+
+
+    def calcEPR(self):
+        """
+        Compute polarization tensor EPR from self.epDict.
+        .. math:: E_{PR}(\hat{e})=[e\otimes e^*]^P_R
+
+        Thin wrapper for :py:func:`epsproc.geomFunc.EPR()`
+
+        """
+        # Set inputs if missing.
+        if not hasattr(self,'epDict'):
+            self.setep()
+
+        # Run tensor calculation.
+        self.EPRX = geomCalc.EPR(form = 'xarray', **self.epDict)
+
+        if self.verbose:
+            print("Set geomCalc.EPR() results to `self.EPRX`.")
+
+
+    def setOrientation(self, RX = None, eulerAngs = None, labels = None,
+                        defaultMap = 'exy'):
+        """
+        Rotate Epol fields.
+
+        In default case (no args), map Epol (x,y) to standard ePSproc axis system.
+
+        Default mappings define 3 rotations:
+              1. Epol(x) > z
+              2. Epol(x) > x
+              3. Epol(y) > y
+
+        Where (1) is the usual z-axis definition for linear pol. case.
+        And all 3 match the usual cases in ep.setPolGeoms().
+
+        Default mappings are set as:
+
+            pRot = [np.pi/2, 0, 0, np.pi/2, 0]
+            tRot = [np.pi/2, 0, 0, np.pi/4, np.pi/4]
+            cRot = [np.pi/2, np.pi/2, 0, np.pi/2, np.pi/2]
+            labels = ['x>z', 'x', 'y', '+45y', '+45x']
+
+            eulerAngs = np.array([pRot, tRot, cRot]).T
+
+        """
+
+        if RX is None:
+            RX = setPolGeoms(eulerAngs = eulerAngs, labels = labels, defaultMap = defaultMap)
+
+        # Set terms - currently use BLM array for this.
+        # TODO: tidy this up, test for multiple term passing.
+        # TODO: pol array type?
+        # Basic
+        # self.YLM = setBLMs(np.array([[1,0,0],[1,-1,self.Elr[0,0]],[1,1,self.Elr[0,1]]]))
+        self.YLM = setBLMs(np.array([self.Elr[:,0],self.Elr[:,1]]), LMLabels = np.array([[1,-1],[1,1]]),
+                            name = 'Epol')
+
+        # Rotate
+        self.YLMrot, _, _ = TKQarrayRotX(self.YLM, RX)
+
+        if self.verbose:
+            print("Set data to self.YLM and self.YLMrot.")
+
+        # TODO: Set terms to standard dict - need to set options for output key in setep(), calcEPR()?
+
+
+    def plotSph(self, dataType = None, **kwargs):
+        """
+        Thin wrapper for ep.sphFromBLMPlot
+
+        Set working defaults. Note facetDim only working for Mpl backend currently (08/03/24).
+        See base class padPlot() for better routine!
+
+        Parameters
+        ----------
+        dataType : string, optional, default = None
+            If None, plot from self.YLM
+            If 'rot', plot from self.YLMrot
+
+        """
+
+        # Default case, note .squeeze() currently required, and not tested with multi-pol cases.
+        if dataType is None:
+            Itp, fig = sphFromBLMPlot(self.YLM.squeeze(drop=True), plotFlag = True, **kwargs)
+
+        # For rotated frame plotted currently only working for facetDim='Euler'
+        if dataType == 'rot':
+            Itp, fig = sphFromBLMPlot(self.YLMrot.squeeze(drop=True), plotFlag = True,
+                                    backend='mpl', facetDim='Euler', **kwargs)

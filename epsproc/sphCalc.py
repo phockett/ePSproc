@@ -43,7 +43,8 @@ from epsproc.util import listFuncs
 
 
 # Master function for setting geometries/frame rotations
-def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
+def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2,
+                defaultMap = 'canonical'):
     """
     Generate Xarray containing polarization geometries as Euler angles and corresponding quaternions.
 
@@ -73,6 +74,12 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
         Options:
         - 1, use labels as sub-dimensional coord.
         - 2, set labels as non-dimensional coord.
+
+    defaultMap : str, optional, default = 'canonical'
+        Mapping to use for default case.
+        - 'canonical' as listed above.
+        - 'exy' for use with :py:class:`ep.efield.epol.EfieldPol()` for conversion
+            of (Ex,Ey) or (El,Er) basis to canonical orientation.
 
     Returns
     -------
@@ -128,12 +135,24 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2):
 
     # Default case, set (x,y,z) geometries
     if (eulerAngs is None) and (quat is None):
-        # As arrays, with labels
-        pRot = [0, 0, np.pi/2]
-        tRot = [0, np.pi/2, np.pi/2]
-        cRot = [0, 0, 0]
-        labels = ['z','x','y']
-        eulerAngs = np.array([labels, pRot, tRot, cRot]).T   # List form to use later, rows per set of angles
+        # 08/03/24 - added exy case here for for use with :py:class:`ep.efield.epol.EfieldPol()` for conversion
+        # of (Ex,Ey) or (El,Er) basis to canonical orientation.
+        if defaultMap == 'exy':
+            # As arrays, with labels
+            pRot = [np.pi/2, 0, 0]  #, np.pi/2, 0]
+            tRot = [np.pi/2, 0, 0]  #, np.pi/4, np.pi/4]
+            cRot = [np.pi/2, np.pi/2, 0] #, np.pi/2, np.pi/2]
+            labels = ['z', 'x', 'y']  #, '+45y', '+45x']
+            eulerAngs = np.array([labels, pRot, tRot, cRot]).T   # List form to use later, rows per set of angles
+
+        # Use canonical case otherwise (no checks)
+        else:
+            # As arrays, with labels
+            pRot = [0, 0, np.pi/2]
+            tRot = [0, np.pi/2, np.pi/2]
+            cRot = [0, 0, 0]
+            labels = ['z','x','y']
+            eulerAngs = np.array([labels, pRot, tRot, cRot]).T   # List form to use later, rows per set of angles
 
     # Get quaternions from Eulers, if provided or as set above for default case.
     if eulerAngs is not None:

@@ -23,7 +23,7 @@ A post-processing suite for ePolyScat calculations, and general tool for photoio
 
    etc/installation_notes_051120
    etc/docker
-   
+
    .. .. ../../../docker/readme.md
    .. etc/readme_docker_copy.md
 
@@ -77,6 +77,7 @@ A post-processing suite for ePolyScat calculations, and general tool for photoio
    :maxdepth: 2
    :caption: Advanced/Special Topics:
 
+   special_topics/frame_definitions_090324-tidy
    special_topics/ePSproc_docs_working_with_spherical_harmonics_200922
    special_topics/ePSproc_docs_working_with_real_harmonics_220922
    special_topics/ePS_ePSproc_degenerate_states_demo_030821-v4-tidy

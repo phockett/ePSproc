@@ -35,3 +35,11 @@ python:
   # version: 3.7
   install:
     - requirements: docs/doc-source/requirements-RTD.txt
+
+
+# 09/03/24: Include all submodules in docs by default
+# Otherwise may only have docs for code in main __init__.py.
+# Can also spec in Sphinx/elsewhere.
+submodules:
+  include: all
+  recursive: true

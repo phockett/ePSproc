@@ -78,8 +78,13 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2,
     defaultMap : str, optional, default = 'canonical'
         Mapping to use for default case.
         - 'canonical' as listed above.
+            Use this in most cases.
         - 'exy' for use with :py:class:`ep.efield.epol.EfieldPol()` for conversion
-            of (Ex,Ey) or (El,Er) basis to canonical orientation.
+            of (Ex,Ey) or (El,Er) basis to canonical orientation (maps x axis > z axis for z-pol case etc.).
+            Note this is appropriate for linear pol light, but less so for circ pol.
+        - 'circ' same as 'canoncial'.
+            For circ. pol. canonical case with (Ex,Ey) or (El,Er) basis.
+            Here (z,x,y) correspond to propagation axis.
 
     Returns
     -------

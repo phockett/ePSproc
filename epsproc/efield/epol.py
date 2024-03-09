@@ -342,7 +342,7 @@ class EfieldPol():
 
 
     def setOrientation(self, RX = None, eulerAngs = None, labels = None,
-                        defaultMap = 'exy'):
+                        mapping = 'exy'):
         """
         Rotate Epol fields.
 
@@ -368,28 +368,39 @@ class EfieldPol():
         """
 
         if RX is None:
-            RX = setPolGeoms(eulerAngs = eulerAngs, labels = labels, defaultMap = defaultMap)
+            RX = setPolGeoms(eulerAngs = eulerAngs, labels = labels, defaultMap = mapping)
+
+        self.RX = RX
 
         # Set terms - currently use BLM array for this.
         # TODO: tidy this up, test for multiple term passing.
         # TODO: pol array type?
         # Basic
         # self.YLM = setBLMs(np.array([[1,0,0],[1,-1,self.Elr[0,0]],[1,1,self.Elr[0,1]]]))
-        self.YLM = setBLMs(np.array([self.Elr[:,0],self.Elr[:,1]]), LMLabels = np.array([[1,-1],[1,1]]),
-                            name = 'Epol')
+        # self.YLM = setBLMs(np.array([np.ones(self.Elr[:,0].size),self.Elr[:,0],self.Elr[:,1]]), LMLabels = np.array([[1,0],[1,-1],[1,1]]),
+        # self.YLM = setBLMs(np.array([self.Elr[:,0],self.Elr[:,1]]), LMLabels = np.array([[1,-1],[1,1]]),
+        #                     name = 'Epol')
+        self.setYLM()
 
         # Rotate
         self.YLMrot, _, _ = TKQarrayRotX(self.YLM, RX)
 
         if self.verbose:
-            print("Set data to self.YLM and self.YLMrot.")
+            print("Set pol state data to self.YLM and self.YLMrot, and orientations to self.RX.")
 
         # TODO: Set terms to standard dict - need to set options for output key in setep(), calcEPR()?
 
 
+    def setYLM(self):
+        """Set Elr terms to YLM expansion Xarray via :py:func:`epsproc.sphCalc.setBLMs`."""
+
+        self.YLM = setBLMs(np.array([self.Elr[:,0],self.Elr[:,1]]), LMLabels = np.array([[1,-1],[1,1]]),
+                            name = 'Epol')
+
+
     def plotSph(self, dataType = None, **kwargs):
         """
-        Thin wrapper for ep.sphFromBLMPlot
+        Thin wrapper for :py:func:`epsproc.sphFromBLMPlot`
 
         Set working defaults. Note facetDim only working for Mpl backend currently (08/03/24).
         See base class padPlot() for better routine!
@@ -404,9 +415,15 @@ class EfieldPol():
 
         # Default case, note .squeeze() currently required, and not tested with multi-pol cases.
         if dataType is None:
+            if not hasattr(self,'YLM'):
+                self.setYLM()
+
             Itp, fig = sphFromBLMPlot(self.YLM.squeeze(drop=True), plotFlag = True, **kwargs)
 
         # For rotated frame plotted currently only working for facetDim='Euler'
         if dataType == 'rot':
-            Itp, fig = sphFromBLMPlot(self.YLMrot.squeeze(drop=True), plotFlag = True,
+            if not hasattr(self,'YLMrot'):
+                print("Missing `self.YLMrot` data, run `self.setOrientation()` to define.")
+            else:
+                Itp, fig = sphFromBLMPlot(self.YLMrot.squeeze(drop=True), plotFlag = True,
                                     backend='mpl', facetDim='Euler', **kwargs)

@@ -18,6 +18,7 @@ Quick pol overviews:
 py_pol library details: https://py-pol.readthedocs.io
 
 TODO: implement additonal py_pol creation routines with wrapper?
+TODO: consolidate phase choices. See calcElrFromExy, setep, setYLM for existing cases.
 
 """
 
@@ -161,6 +162,7 @@ class EfieldPol():
         Set Elr and dependent terms.
 
         Assumes input Elr = [[El1,Er1],[El2,E22]...]
+        Or mag-phase form, Elr = [[El1_mag, El1_phase,Er1_mag, Er1_phase],[El2_mag,...]...]
 
         """
 
@@ -202,15 +204,31 @@ class EfieldPol():
             self.setExyFromStokes()
 
 
-    def calcElrFromExy(self):
+    def calcElrFromExy(self, xPhase = 1, yPhase = 1, lPhase = 1, rPhase = 1):
+        """
+        Set (El,Er) basis from existing (Ex,Ey) terms.
+
+        .. math:: E_l = \frac{1}{\sqrt 2}(E_x - iE_y)
+        .. math:: E_r = \frac{1}{\sqrt 2}(E_x + iE_y)
+
+        Additional phase terms can also be set for frame transformations.
+
+        TODO: set conventions here, see also setYLM and setep.
+
+        """
+
         # Set Elr
         # Defined as El = Ex - iEy, Er = Ex + iEy
         norm = 1/np.sqrt(2)   # Always need extra norm here!
 
         # Note sign convention here,
         # matches wiki defns. https://en.wikipedia.org/wiki/Stokes_parameters#Definitions_2
-        self.Elr = norm * np.c_[self.Exy[:,0]+1j*self.Exy[:,1],
-                                self.Exy[:,0]-1j*self.Exy[:,1]]
+        self.Elr = norm * np.c_[xPhase*self.Exy[:,0]-1j*yPhase*self.Exy[:,1],
+                                xPhase*self.Exy[:,0]+1j*yPhase*self.Exy[:,1]]
+
+        # Apply additional phases
+        self.Elr[:,0] *= lPhase
+        self.Elr[:,1] *= rPhase
 
 
     def calcNorm(self,E):
@@ -290,7 +308,7 @@ class EfieldPol():
 #********** Additional functionality for ePSproc integration
 #
 
-    def setep(self, labels = None):
+    def setep(self, labels = None, basis = 'ep'):
         """
         Set field terms in ep array format for use in :py:func:`epsproc.geomFunc.EPR()`
 
@@ -302,11 +320,30 @@ class EfieldPol():
 
         TODO: update EPR() for multiple pol states with labels.
 
+        For ep terms, use Zare/Wiki conventions (e.g. https://en.wikipedia.org/wiki/Spherical_basis, Zare p209),
+        following l,r definitions here - note this is phase flipped relative to (l,r) basis:
+
+        .. math:: e_- = E_l = +\frac{1}{\sqrt 2} e_x - \frac{i}{\sqrt 2} e_y
+        .. math:: e_+ = -E_r = -\frac{1}{\sqrt 2} e_x - \frac{i}{\sqrt 2} e_y
+
+        To set additional phase terms, pass `lPhase` or `rPhase` to `self.calcElrFromExy()` if working from self.Exy.
+        Alternatively, set terms directly with `self.setElr()`.
+
         """
 
         p = [-1,1]
 
-        self.epDict = {'ep':self.Elr.squeeze(),  # Note squeeze here for single pol state.
+        # Set for spherical basis, e_- = El, e_+ = -Er
+        if basis == 'ep':
+            # ep = np.array([self.Elr[:,0],-self.Elr[:,1]],ndmin=2).astype(np.complex)
+            ep = np.c_[self.Elr[:,0],-self.Elr[:,1]]
+
+        # Set directly from Elr basis
+        elif basis == 'lr':
+            # ep = np.array([self.Elr[:,0],self.Elr[:,1]],ndmin=2).astype(np.complex)
+            ep = self.Elr
+
+        self.epDict = {'ep':ep.squeeze(),  # Note squeeze here for single pol state.
                        'p':p}
 
 
@@ -314,7 +351,7 @@ class EfieldPol():
             # Set labels if missing
             labels = np.arange(1,self.Elr.shape[0]+1)
 
-        self.epXR = xr.DataArray(self.Elr, coords={'p':p,'Labels':labels},
+        self.epXR = xr.DataArray(ep, coords={'p':p,'Labels':labels},
                                  dims=['Labels','p'])
 #         self.epXR = xr.DataArray(self.Elr, coords={'p':p}, dims='p')
 
@@ -342,7 +379,7 @@ class EfieldPol():
 
 
     def setOrientation(self, RX = None, eulerAngs = None, labels = None,
-                        mapping = 'exy'):
+                        mapping = 'exy', basis='ep'):
         """
         Rotate Epol fields.
 
@@ -380,7 +417,8 @@ class EfieldPol():
         # self.YLM = setBLMs(np.array([np.ones(self.Elr[:,0].size),self.Elr[:,0],self.Elr[:,1]]), LMLabels = np.array([[1,0],[1,-1],[1,1]]),
         # self.YLM = setBLMs(np.array([self.Elr[:,0],self.Elr[:,1]]), LMLabels = np.array([[1,-1],[1,1]]),
         #                     name = 'Epol')
-        self.setYLM()
+
+        self.setYLM(basis=basis)
 
         # Rotate
         self.YLMrot, _, _ = TKQarrayRotX(self.YLM, RX)
@@ -391,10 +429,17 @@ class EfieldPol():
         # TODO: Set terms to standard dict - need to set options for output key in setep(), calcEPR()?
 
 
-    def setYLM(self):
+    def setYLM(self, basis='ep'):
         """Set Elr terms to YLM expansion Xarray via :py:func:`epsproc.sphCalc.setBLMs`."""
 
-        self.YLM = setBLMs(np.array([self.Elr[:,0],self.Elr[:,1]]), LMLabels = np.array([[1,-1],[1,1]]),
+        # Set directly from Elr basis
+        if basis == 'lr':
+            self.YLM = setBLMs(np.array([self.Elr[:,0],self.Elr[:,1]]), LMLabels = np.array([[1,-1],[1,1]]),
+                            name = 'Epol')
+
+        # Set for spherical basis, e_- = El, e_+ = -Er
+        elif basis == 'ep':
+            self.YLM = setBLMs(np.array([self.Elr[:,0],-self.Elr[:,1]]), LMLabels = np.array([[1,-1],[1,1]]),
                             name = 'Epol')
 
 

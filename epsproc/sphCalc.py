@@ -80,8 +80,11 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2,
         - 'canonical' as listed above.
             Use this in most cases.
         - 'exy' for use with :py:class:`ep.efield.epol.EfieldPol()` for conversion
-            of (Ex,Ey) or (El,Er) basis to canonical orientation (maps x axis > z axis for z-pol case etc.).
+            of (Ex,Ey) or (El,Er) basis to canonical orientation.
+            This assumes x-axis is main pol axis, and maps x axis > z axis for z-pol case.
             Note this is appropriate for linear pol light, but less so for circ pol.
+        - 'exyDiag'
+            As 'exy', plus some diagonal cases.
         - 'circ' same as 'canoncial'.
             For circ. pol. canonical case with (Ex,Ey) or (El,Er) basis.
             Here (z,x,y) correspond to propagation axis.
@@ -143,13 +146,30 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2,
         # 08/03/24 - added exy case here for for use with :py:class:`ep.efield.epol.EfieldPol()` for conversion
         # of (Ex,Ey) or (El,Er) basis to canonical orientation.
         if defaultMap == 'exy':
-            # As arrays, with labels
-            pRot = [np.pi/2, 0, 0]  #, np.pi/2, 0]
-            tRot = [np.pi/2, 0, 0]  #, np.pi/4, np.pi/4]
-            cRot = [np.pi/2, np.pi/2, 0] #, np.pi/2, np.pi/2]
-            labels = ['z', 'x', 'y']  #, '+45y', '+45x']
-            eulerAngs = np.array([labels, pRot, tRot, cRot]).T   # List form to use later, rows per set of angles
+            # v1, prior to ep phase fix
+#             # As arrays, with labels
+#             pRot = [np.pi/2, 0, 0]  #, np.pi/2, 0]
+#             tRot = [np.pi/2, 0, 0]  #, np.pi/4, np.pi/4]
+#             cRot = [np.pi/2, np.pi/2, 0] #, np.pi/2, np.pi/2]
+#             labels = ['z', 'x', 'y']  #, '+45y', '+45x']
+            
+            #*** Custom case for Epol defns...
+            # 13/03/24: WORKIG OK FOR updated ep definitions.
+            # Just need to decide on geoms, and debug plotter issues!
+            pRot = [0, np.pi/2, np.pi/2]
+            tRot = [0, 0, np.pi/2]
+            cRot = [0, 0, 0]
+            labels = ['x', 'y', 'z']
+            
+#             eulerAngs = np.array([labels, pRot, tRot, cRot]).T   # List form to use later, rows per set of angles
 
+        # Exy > canonical, plus diagonal pol tests
+        elif defaultMap == 'exyDiag':
+            pRot = [0, np.pi/2, np.pi/2, 0, 0, 0]   # Samll values here to get plot working, have some index issue somewhere
+            tRot = [0, 0, np.pi/2, np.pi/4, np.pi/4, np.pi/2]
+            cRot = [0, 0, 0, 0, np.pi/4, np.pi/4]
+            labels = ['x', 'y', 'z','+45x', '+45xy', '+45y']
+            
         # Use canonical case otherwise (no checks)
         else:
             # As arrays, with labels
@@ -157,7 +177,9 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2,
             tRot = [0, np.pi/2, np.pi/2]
             cRot = [0, 0, 0]
             labels = ['z','x','y']
-            eulerAngs = np.array([labels, pRot, tRot, cRot]).T   # List form to use later, rows per set of angles
+#             eulerAngs = np.array([labels, pRot, tRot, cRot]).T   # List form to use later, rows per set of angles
+
+        eulerAngs = np.array([labels, pRot, tRot, cRot]).T   # List form to use later, rows per set of angles
 
     # Get quaternions from Eulers, if provided or as set above for default case.
     if eulerAngs is not None:

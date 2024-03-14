@@ -395,12 +395,33 @@ class EfieldPol():
 
         Default mappings are set as:
 
-            pRot = [np.pi/2, 0, 0, np.pi/2, 0]
-            tRot = [np.pi/2, 0, 0, np.pi/4, np.pi/4]
-            cRot = [np.pi/2, np.pi/2, 0, np.pi/2, np.pi/2]
-            labels = ['x>z', 'x', 'y', '+45y', '+45x']
+            pRot = [0, np.pi/2, np.pi/2]
+            tRot = [0, 0, np.pi/2]
+            cRot = [0, 0, 0]
+            labels = ['x', 'y', 'z']
 
             eulerAngs = np.array([pRot, tRot, cRot]).T
+            
+        See :py:func:`epsproc.setPolGeoms` for other `mapping` options.
+        
+        Parameters
+        ----------
+        RX : Xarray, optional, default = None
+            Array of quaternions defining pol geometries, as output by ep.setPolGeoms().
+            
+        eulerAngs : Xarray, optional, default = None
+            Array of Euler angles defining pol geometries.
+            
+        labels : array, optional, default = None
+            Array of labels for eulerAngs.
+            
+        mapping : str, default = 'exy'
+            If no RX or eulerAngs are passed, pass this mapping for ep.setPolGeoms() to get default case.
+            
+        basis : str, default = 'ep'
+            Define phase convention for self.setYLM().
+            'ep' for spherical basis.
+            'lr' for optical (l,r) basis (phase switched from 'ep' case).
 
         """
 
@@ -408,6 +429,11 @@ class EfieldPol():
             RX = setPolGeoms(eulerAngs = eulerAngs, labels = labels, defaultMap = mapping)
 
         self.RX = RX
+        
+        # If self.epDict is set, set RX there too.
+        if hasattr(self,"epDict"):
+            self.epDict['RX']=self.RX
+            epDictFlag = True
 
         # Set terms - currently use BLM array for this.
         # TODO: tidy this up, test for multiple term passing.
@@ -425,6 +451,9 @@ class EfieldPol():
 
         if self.verbose:
             print("Set pol state data to self.YLM and self.YLMrot, and orientations to self.RX.")
+            if epDictFlag:
+                print("Set orientations to self.epDict['RX'].")
+                
 
         # TODO: Set terms to standard dict - need to set options for output key in setep(), calcEPR()?
 

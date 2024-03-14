@@ -431,6 +431,7 @@ class EfieldPol():
         self.RX = RX
         
         # If self.epDict is set, set RX there too.
+        epDictFlag = False
         if hasattr(self,"epDict"):
             self.epDict['RX']=self.RX
             epDictFlag = True

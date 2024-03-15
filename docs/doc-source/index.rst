@@ -36,7 +36,7 @@ A post-processing suite for ePolyScat calculations, and general tool for photoio
    demos/ePSdata_download_demo_300720
    demos/ePSproc_wfPlot_tests_150720_tidy
    demos/ePSproc_wfPlot_tests_150720-110820-CH3I-tidy_Stimpy
-   demos/Epol_class_demo_docs_030324
+   demos/Epol_class_demo_docs_030324-tidy
 
 
 .. toctree::
@@ -77,7 +77,7 @@ A post-processing suite for ePolyScat calculations, and general tool for photoio
    :maxdepth: 2
    :caption: Advanced/Special Topics:
 
-   special_topics/frame_definitions_090324-tidy
+   special_topics/frame_definitions_docs_130323
    special_topics/ePSproc_docs_working_with_spherical_harmonics_200922
    special_topics/ePSproc_docs_working_with_real_harmonics_220922
    special_topics/ePS_ePSproc_degenerate_states_demo_030821-v4-tidy

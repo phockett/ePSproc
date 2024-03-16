@@ -74,6 +74,12 @@ class EfieldPol():
         NOTE azimuth in RAD.
         Ellipticity range: [-pi/4:pi/4]
 
+    labels : str, list or np.array, optional, default = None
+        Labels for pol states.
+        Currently used by self.setep() and self.calcEPR() for dim stacking to Xarray.
+        If None, will be set to integer labels on run of self.setep().
+        Can also be passed directly to self.setep() and self.calcEPR() to override.
+
     normField : bool, optional, default = True
         Renormalise input field components to unity magnitude if True.
 
@@ -87,16 +93,17 @@ class EfieldPol():
     # May want to change to **kwargs to avoid overloaded locals() usage below.
     def __init__(self, Exy = None, Elr = None,
 #                  ep = None, p = None,
-                 ell = None,
+                 ell = None, labels = None,
                  normField = True, verbose = 1):
 
         # Set defaults
         self.inputs = locals()
         self.normField = normField
         self.verbose = verbose
+        self.labels = None
 
-        # Check for main config
-        inputDict = {k:v for k,v in self.inputs.items() if v is not None and k not in ['self','normField','verbose']}
+        # Check for main config (see also PEMtk.fit._util.setClassArgs for more developed method)
+        inputDict = {k:v for k,v in self.inputs.items() if v is not None and k not in ['self','normField','verbose','labels']}
 
         if not inputDict:
             print(f"*** No inputs specified, setting default case Exy=[1,0]")
@@ -347,11 +354,15 @@ class EfieldPol():
                        'p':p}
 
 
-        if labels is None:
+        # Use passed labels, or self.labels if present.
+        if (labels is None) and (self.labels is None):
             # Set labels if missing
-            labels = np.arange(1,self.Elr.shape[0]+1)
+            self.labels = np.arange(1,self.Elr.shape[0]+1)
+        if labels is not None:
+            self.labels = labels
 
-        self.epXR = xr.DataArray(ep, coords={'p':p,'Labels':labels},
+
+        self.epXR = xr.DataArray(ep, coords={'p':p,'Labels':self.labels},
                                  dims=['Labels','p'])
 #         self.epXR = xr.DataArray(self.Elr, coords={'p':p}, dims='p')
 
@@ -359,20 +370,61 @@ class EfieldPol():
             print("Set parameters to `self.epDict` and `self.epXR`.")
 
 
-    def calcEPR(self):
+    def calcEPR(self, stackDim = 'pol', labels = None):
         """
         Compute polarization tensor EPR from self.epDict.
         .. math:: E_{PR}(\hat{e})=[e\otimes e^*]^P_R
 
         Thin wrapper for :py:func:`epsproc.geomFunc.EPR()`
 
+        (Note this will also run self.setep(labels = labels) on first run if self.ep is missing.)
+
+        Parameters
+        ----------
+        stackDim : str, optional, default = 'pol'
+            New dimension for stacking (used for multiple polarization case only).
+
+        labels : array, optional, default = None.
+            Names for polarization states (used for multiple polarization case only).
+            If None, will be set to integer labels.
+
+
         """
+
         # Set inputs if missing.
         if not hasattr(self,'epDict'):
-            self.setep()
+            self.setep(labels = labels)
 
-        # Run tensor calculation.
-        self.EPRX = geomCalc.EPR(form = 'xarray', **self.epDict)
+        if self.epDict['ep'].ndim == 1:
+            # Run tensor calculation, single case
+            self.EPRX = geomCalc.EPR(form = 'xarray', **self.epDict)
+
+        else:
+            # Run for multiple cases & stack outputs (geomCacl.EPR only supports single pol state)
+            stackDim = 'pol'
+            dataDict = {}
+
+            # Labels for pol states - just set to ints if not passed
+            # UPDATE: already set in self.setep(), just allow override here.
+            # if labels is None:
+            #     labels = list(range(0,self.epDict['ep'].shape[0]))
+            if labels is not None:
+                self.labels = labels
+            else:
+                labels = self.labels
+
+            # Calc EPR per pol state
+            for n,item in enumerate(self.epDict['ep']):
+                EPRX = geomCalc.EPR(form = 'xarray', ep = item, p = self.epDict['p'])
+                dataDict[labels[n]] = EPRX.expand_dims({stackDim:[labels[n]]})
+
+            # Stack to DA... note this may require list not dict (may depend on XR version)
+            self.EPRX = xr.concat([dataDict[k] for k in dataDict.keys()] , stackDim)
+
+        # Set RX to epDict too, for quick arg passing to BLM routines
+        # Note this needs unstack over QNs.
+        self.epDict['EPRX']=self.EPRX.unstack('QN')
+
 
         if self.verbose:
             print("Set geomCalc.EPR() results to `self.EPRX`.")
@@ -401,23 +453,23 @@ class EfieldPol():
             labels = ['x', 'y', 'z']
 
             eulerAngs = np.array([pRot, tRot, cRot]).T
-            
+
         See :py:func:`epsproc.setPolGeoms` for other `mapping` options.
-        
+
         Parameters
         ----------
         RX : Xarray, optional, default = None
             Array of quaternions defining pol geometries, as output by ep.setPolGeoms().
-            
+
         eulerAngs : Xarray, optional, default = None
             Array of Euler angles defining pol geometries.
-            
+
         labels : array, optional, default = None
             Array of labels for eulerAngs.
-            
+
         mapping : str, default = 'exy'
             If no RX or eulerAngs are passed, pass this mapping for ep.setPolGeoms() to get default case.
-            
+
         basis : str, default = 'ep'
             Define phase convention for self.setYLM().
             'ep' for spherical basis.
@@ -429,7 +481,7 @@ class EfieldPol():
             RX = setPolGeoms(eulerAngs = eulerAngs, labels = labels, defaultMap = mapping)
 
         self.RX = RX
-        
+
         # If self.epDict is set, set RX there too.
         epDictFlag = False
         if hasattr(self,"epDict"):
@@ -454,7 +506,7 @@ class EfieldPol():
             print("Set pol state data to self.YLM and self.YLMrot, and orientations to self.RX.")
             if epDictFlag:
                 print("Set orientations to self.epDict['RX'].")
-                
+
 
         # TODO: Set terms to standard dict - need to set options for output key in setep(), calcEPR()?
 

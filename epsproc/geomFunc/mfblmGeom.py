@@ -5,12 +5,15 @@ import numpy as np
 from epsproc.sphCalc import setPolGeoms
 from epsproc.geomFunc import geomCalc
 # from epsproc.geomFunc.geomCalc import (EPR, MFproj, betaTerm, remapllpL, w3jTable,)
-from epsproc.geomFunc.geomUtils import genllpMatE
+from epsproc.geomFunc.geomUtils import genllpMatE, EfieldPolConfig
+
+# For EfieldPol class (type checking only)
+# from epsproc.efield import epol
 
 # Code as developed 16/17 March 2020.
 # Needs some tidying, and should implement BLM Xarray attrs and format for output.
 def mfblmXprod(matEin, QNs = None, EPRX = None, EPRXresort = None, p=None, ep=None, BLMtable = None, BLMtableResort = None,
-                lambdaTerm = None, RX = None, eulerAngs = None, polProd = None,
+                lambdaTerm = None, RX = None, eulerAngs = None, polProd = None, EfieldPol = None,
                 thres = 1e-2, thresDims = 'Eke', selDims = {'it':1, 'Type':'L'},
                 sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','R-p'], symSum = True,
                 SFflag = False, squeeze = False, phaseConvention = 'E', basisReturn = "BLM", verbose = 0, **kwargs):
@@ -145,6 +148,11 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, EPRXresort = None, p=None, ep=No
     polProd : Xarray, optional, default = None
         Polarization tensor as defined by EPRXresort * lambdaTermResort
 
+    EfieldPol : object, default = None
+        Pass field settings as :py:class:`epsproc.efield.epol.EfieldPol` object.
+        See docs at https://epsproc.readthedocs.io/en/3d-afpad-dev/demos/Epol_class_demo_docs_030324-tidy.html
+
+
     phaseConvention : optional, str, default = 'E'
         Set phase conventions with :py:func:`epsproc.geomCalc.setPhaseConventions`.
         To use preset phase conventions, pass existing dictionary.
@@ -179,6 +187,17 @@ def mfblmXprod(matEin, QNs = None, EPRX = None, EPRXresort = None, p=None, ep=No
     """
 
     from epsproc.util import matEleSelector
+
+    # 16/03/24: allow for passing EfieldPol object to define fields and rotations.
+    if EfieldPol is not None:
+        # Check class, could also use EfieldPol.__class__.__name__ ==
+        # if isinstance(EfieldPol,epol.EfieldPol):  # Issues with circular import at load if using this!
+        if hasattr(EfieldPol,"__class__") and (EfieldPol.__class__.__name__ == "EfieldPol"):
+            ep, p, RX, EPRX, EfieldPol = EfieldPolConfig(EfieldPol)
+        else:
+            print(f"Ignoring `EfieldPol`, unrecognised object type{type(EfieldPol)}.")
+
+
 
     # Set phase conventions - either from function call or via passed dict.
     # if type(phaseConvention) is str:

@@ -674,3 +674,35 @@ def degenChecks(matEin, selDims, sumDims, degenDrop, verbose):
     degenDict = {'it':itX, 'degenN':degenN, 'degenFlag':degenFlag, 'degenDrop':degenDrop, 'selDims':selDims}
 
     return degenDict
+
+# Function for handling EfieldPol objects
+def EfieldPolConfig(Efield):
+    """
+    Handle EfieldPol object for PAD calculations.
+
+    Check required fields are present, run for defaults if missing.
+
+    16/03/24 - v1
+    """
+
+    # Set inputs if missing.
+    if not hasattr(Efield,'epDict'):
+        Efield.setep()  #labels = labels)
+
+    # Set default orientations (Epol method different to usual defaults)
+    if not hasattr(Efield,'RX'):
+        Efield.setOrientation()
+
+    # Set RX if missing from epDict
+    if not "RX" in Efield.epDict.keys():
+        Efield.epDict['RX']=Efield.RX
+
+    # Set EPR if required (for multipol case only)
+    if (not "EPRX" in Efield.epDict.keys()):
+        if (Efield.epDict['ep'].ndim > 1):
+            Efield.calcEPR()
+        else:
+            Efield.epDict['EPRX'] = None  # Set None for default case. May want to run anyway?
+
+    # Return unstacked dict of required objects & updated object
+    return Efield.epDict['ep'], Efield.epDict['p'], Efield.epDict['RX'], Efield.epDict['EPRX'], Efield

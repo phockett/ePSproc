@@ -772,7 +772,8 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     hvDS = hvPlotters.hv.Dataset(xrDS.unstack(xrDS.attrs['harmonics']['stackDim']))  # Need to unstack, otherwise sometimes get empty plots?
                                                                                       # Seems to be issue with tuple/MultiIndex case.
 
-    hvObj = hvDS.to(hvPlotters.hv.Curve, kdims=Etype)  # .overlay(xrDS.attrs['harmonics']['dimList'])   # OK
+    # hvObj = hvDS.to(hvPlotters.hv.Curve, kdims=Etype)  # .overlay(xrDS.attrs['harmonics']['dimList'])   # OK
+    hvObj = hvDS.to(hvPlotters.hv.Curve, kdims=xDim)   # For arb xDim
 
     # if setPlotData:
     # Set output

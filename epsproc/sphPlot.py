@@ -626,7 +626,7 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None, **kwar
 # Currently set for subplotting over facetDim, but assumes other dims (theta,phi)
 def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
                 showbackground = False, showaxes = True,
-                rc = None, norm = 'local', padding = 0.05, camR = 0.85, #'global',
+                rc = None, nCols = 4, norm = 'local', padding = 0.05, camR = 0.85, #'global',
                 convention = 'phys', plotFlag = True, verbose = False, **kwargs):
     '''
     Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Plotly.
@@ -655,7 +655,12 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
 
     rc : array, optional, default = None
         If set, use to define layout grid [rows, columns].
-        If not set, this will be set for nCols = 5
+        If not set, this will be set for nCols = 4
+
+    nCols : int, optional, default = 4
+        Number of columns in plot layout grid (if required).
+        Layout grid will be set as rc = [nData/nCols, nCols]
+        Where nData is number of plots.
 
     norm : str, optional, default = 'global'
         Set for plot normalisation.
@@ -724,7 +729,7 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
             rc = [1,1]
 
     if rc is None:
-        nCols = 6
+        # nCols = 6
         if nData < nCols:   # Set for single row layout
             nCols = nData
         rc = [nData/nCols, nCols]

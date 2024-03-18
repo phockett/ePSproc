@@ -100,7 +100,7 @@ class EfieldPol():
         self.inputs = locals()
         self.normField = normField
         self.verbose = verbose
-        self.labels = None
+        self.labels = labels
 
         # Check for main config (see also PEMtk.fit._util.setClassArgs for more developed method)
         inputDict = {k:v for k,v in self.inputs.items() if v is not None and k not in ['self','normField','verbose','labels']}

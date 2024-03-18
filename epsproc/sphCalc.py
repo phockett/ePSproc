@@ -142,6 +142,7 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2,
     """
 
     # Default case, set (x,y,z) geometries
+    useDefaults = False
     if (eulerAngs is None) and (quat is None):
         # 08/03/24 - added exy case here for for use with :py:class:`ep.efield.epol.EfieldPol()` for conversion
         # of (Ex,Ey) or (El,Er) basis to canonical orientation.
@@ -152,7 +153,7 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2,
 #             tRot = [np.pi/2, 0, 0]  #, np.pi/4, np.pi/4]
 #             cRot = [np.pi/2, np.pi/2, 0] #, np.pi/2, np.pi/2]
 #             labels = ['z', 'x', 'y']  #, '+45y', '+45x']
-            
+
             #*** Custom case for Epol defns...
             # 13/03/24: WORKIG OK FOR updated ep definitions.
             # Just need to decide on geoms, and debug plotter issues!
@@ -160,7 +161,7 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2,
             tRot = [0, 0, np.pi/2]
             cRot = [0, 0, 0]
             labels = ['x', 'y', 'z']
-            
+
 #             eulerAngs = np.array([labels, pRot, tRot, cRot]).T   # List form to use later, rows per set of angles
 
         # Exy > canonical, plus diagonal pol tests
@@ -169,7 +170,7 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2,
             tRot = [0, 0, np.pi/2, np.pi/4, np.pi/4, np.pi/2]
             cRot = [0, 0, 0, 0, np.pi/4, np.pi/4]
             labels = ['x', 'y', 'z','+45x', '+45xy', '+45y']
-            
+
         # Use canonical case otherwise (no checks)
         else:
             # As arrays, with labels
@@ -180,6 +181,7 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2,
 #             eulerAngs = np.array([labels, pRot, tRot, cRot]).T   # List form to use later, rows per set of angles
 
         eulerAngs = np.array([labels, pRot, tRot, cRot]).T   # List form to use later, rows per set of angles
+        useDefaults = True
 
     # Get quaternions from Eulers, if provided or as set above for default case.
     if eulerAngs is not None:
@@ -229,17 +231,21 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2,
         eulerInd = pd.MultiIndex.from_arrays(eulerAngs.T, names = ['Label','P','T','C'])
         # Create Xarray
         RX = xr.DataArray(quat, coords={'Euler':eulerInd}, dims='Euler')
-        RX.attrs['dataType'] = 'Euler'
+
 
     elif vFlag == 2:
         # v2    Labels as non-dim coords.
         #       Doesn't allow selection, but keeps Euler coords as floats in all cases.
         Euler = pd.MultiIndex.from_arrays(eulerAngs[:,1:].T.astype('float'), names = ['P','T','C'])
         RX = xr.DataArray(quat, coords={'Euler':Euler,'Labels':('Euler',eulerAngs[:,0].T)}, dims='Euler')
-        RX.attrs['dataType'] = 'Euler'
 
     else:
         print('***Version not recognized')
+        return false
+
+    # Attrs
+    RX.attrs['dataType'] = 'Euler'
+    RX.attrs['mapping'] = defaultMap if useDefaults else None
 
     return RX
 

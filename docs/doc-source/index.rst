@@ -33,6 +33,7 @@ A post-processing suite for ePolyScat calculations, and general tool for photoio
    :maxdepth: 2
    :caption: Class demos:
 
+   demos/ePSproc_class_with_pol_demo_140324
    demos/ePSdata_download_demo_300720
    demos/ePSproc_wfPlot_tests_150720_tidy
    demos/ePSproc_wfPlot_tests_150720-110820-CH3I-tidy_Stimpy

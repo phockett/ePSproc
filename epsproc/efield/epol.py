@@ -503,7 +503,7 @@ class EfieldPol():
         self.YLMrot, _, _ = TKQarrayRotX(self.YLM, RX)
 
         if self.verbose:
-            print("Set pol state data to self.YLM and self.YLMrot, and orientations to self.RX.")
+            print(f"Set pol state data to self.YLM and self.YLMrot, and orientations to self.RX (mapping={mapping}).")
             if epDictFlag:
                 print("Set orientations to self.epDict['RX'].")
 

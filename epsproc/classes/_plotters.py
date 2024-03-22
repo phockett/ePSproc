@@ -971,7 +971,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = 'Eke',
                 keys = None, dataType = 'TX', facetDims = None, squeeze = False, reducePhi = None,
                 pType = None, pStyle = 'polar', returnFlag = False, plotDict = 'plots',
-                backend = 'mpl', plotFlag = True, **kwargs):
+                backend = 'mpl', plotFlag = True, hvCHist = True, hvClims = 0.7, **kwargs):
 
     """
     Plot I(theta,phi) data from BLMs or gridded datasets.
@@ -988,6 +988,20 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     pType : str, optional, default = None
         Plot type, defaults to 'a' (abs) except for dataType = 'TX', 'a2'.
         See :py:func:`epsproc.sphPlot.plotTypeSelector` for options.
+
+    pStyle : str, optional, default = 'polar'
+        Set as:
+        - 'polar' for I(theta,phi) surf plots (Matplotlib or Plotly)
+        - 'grid' for I(theta,E) surfaces (Matplotlib or Holoviews)
+
+    backend : str, optional, default = 'mpl'
+        Backend to use, some plot types are only supported by specific backends.
+        - 'mpl' Matplotlib, static outputs, all plot types.
+        - 'pl' Plotly, interactive outputs, polar surfs only.
+        - 'hv' Holoviews, interactive outputs, grid plots only.
+            - Also applies args 'hvCHist' to add c-map hist per plot if True (default).
+            - Also applies are 'hvClims'. If int, use this as scale-factor for max cmap for each plot.
+                If list, use directly as clims (for all plots).
 
     **kwargs
         Additional args passed to backend plotting routines.
@@ -1172,10 +1186,23 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     # 29/02/24 - HV plotting for PAD grid type only.
     # Follows _hvBLMplot() routine above.
     # TODO: separate this out into new function?
+    # TODO: fix dim handling, just hard-coded for testing, should implement dim checks as above.
+    # TODO: more control over .hist, may have this in TMOdev codes with better layouts?
     if backend == 'hv':
         # HV plot for PAD grid only.
         xrDS = xr.concat(datastack, 'Orb')
         xrDS.name = 'PAD grid'
+
+        # Set clims dynamically with scaling, or directly from passed arg.
+        if isinstance(hvClims,float):
+            clims = hvClims * xrDS.max(dim = ['Labels','Eke','Theta'])  # Max per orb for additional cmap control - NOTE HARD-CODED DIMS HERE!
+            bin_range=[0, hvClims*clims.max().astype(int)]  # For .hist() - can't seem to set per plot for Adjoint layout? xlim= is ignored, and passing `bin_range=[0,clims.sel(Orb = orb).item().astype(int)]` doesn't do anything?
+        else:
+            # TODO: need to set this to XR and/or change plotting code below to implement.
+            # Could also pass as XR, but a bit of a pain to setup.
+            print("Direct clims passing not yet implemented, ignoring hvClims.")
+            # clims = tuple(hvClims)
+            # bin_range = hvClims
 
         hvDS = hvPlotters.hv.Dataset(xrDS)
         hvObj = hvDS.to(hvPlotters.hv.HeatMap, kdims=['Eke','Theta'])
@@ -1187,7 +1214,13 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
                 print(f"PADGrid set data and plots to self.plots['PADGrid']")
 
         if plotFlag:
-            showPlot(hvObj.opts(cmap='vlag').layout('Orb').cols(2), returnPlot = returnFlag, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
+            if hvCHist:
+                # For hist PER PLOT need to add to each plot prior to layout (otherwise get only sinlge linked hist)
+                hvList = [hvDS.select(Orb=orb).reduce(Orb=np.mean).to(hvPlotters.hv.HeatMap, kdims=['Eke','Theta']).opts(height=300,width=300, cmap='vlag', title=orb, clim=(0,clims.sel(Orb = orb).item())).hist(bin_range=bin_range) for orb in self.jobKeys]
+                showPlot(hvPlotters.hv.Layout(hvList).cols(2), returnPlot = returnFlag, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
+
+            else:
+                showPlot(hvObj.opts(cmap='vlag').layout('Orb').cols(2), returnPlot = returnFlag, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
 
         # if returnFlag:
         #     return hvObj

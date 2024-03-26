@@ -17,7 +17,7 @@ from epsproc import lmPlot as lmPlotCore  # Hack rename here to prevent circular
 from epsproc.plot import hvPlotters
 from epsproc.util.conversion import datasetStack
 from epsproc.util.env import isnotebook
-from epsproc.util.selectors import setXSfromCoords
+from epsproc.util.selectors import setXSfromCoords, dropXSfromArray
 from epsproc.sphFuncs.sphConv import checkSphDims
 
 # Import HV into local namespace if hvPlotters successful (can't access directly)
@@ -672,8 +672,11 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             xDim = None, selDims = None, col = None, row = None,
             thres = None, keys = None, verbose = None,
             backend = 'hv', overlay = None, keyDim = 'Orb',
-            XS=False,
-            pType='r',renderPlot=True, returnPlot=False,
+            XS=False, filterXS=None, absXS = False,
+            sqSelector = False, sqPlot = True,
+            pType='r', hvType = 'heatmap',
+            addHist = True, addADMs = True,
+            renderPlot=True, returnPlot=False,
             # plotDict='plots',
             **kwargs):
     """
@@ -689,16 +692,39 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
         - 'orb' to use self.data[key]['jobNotes']['orbLabel']
         - 'job' to use self.data[key][dataType].attrs['jobLabel']
         - 'key' to use key directly. Also will be used for unrecognised cases, and use keyDim as dim name.
+        - 'hvType' for plot style, currently `heatmap` or `line` supported. (May be able to make generic by arb passing to hv?)
+        - 'addHist', 'addADMs', add panels to output plot only. Note 'addHist' applies for hvType='heatmap' only.
+
 
     NOTE: **kwargs passed to hv.opts(**kwargs) for additional plotter control.
+
+    NOTE 22/03/24: added sqSelector and sqPlot for better squeeze control.
+                   In some cases may get issues stacking to XR dataset if sqSelector=True
+
+                   added filterXS to allow filtering on XS to remove spurious points.
+                   Default = None (not applied), or set to a threshold value.
+
+                   added absXS option to force np.abs(XS), default = False.
+
+    TODO: see PEMtk and TMOdev codes for better dim handling for HVplots?
+    TODO: options for ADM plot, currently hard-coded (and opts from defaults)
+          for matching plot sizes:
+              from epsproc.plot import hvPlotters
+              hvPlotters.setPlotDefaults(fSize = [700,300], imgSize = 600)
+
+    TODO: linked layout for ADM plot?
 
     """
 
     # print(locals())
     #*** Var checks - currently as per self.BLMplot
     # Set xDim if not passed.
+    # 22/03/24: added contiguousDims to pass to matEleSelector for smoother selection.
     if xDim is None:
         xDim = Etype
+        contiguousDims = xDim
+    else:
+        contiguousDims = [xDim,Etype]
 
     if verbose is None:
         verbose = self.verbose
@@ -731,7 +757,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
         # 06/03/24 - reinstated Esubset for Erange settings.
         # NEEDS TESTING - something here messes up padPlot() later for PL facetDims!!!
         subset = self.Esubset(key = key, dataType = dataType, Etype = Etype, Erange = Erange)
-        subset = matEleSelector(subset, thres=thres, inds = selDims, dims = Etype, sq = True)
+        subset = matEleSelector(subset, thres=thres, inds = selDims, dims = contiguousDims, sq = sqSelector)
 
         # subset = matEleSelector(self.data[key][dataType], thres=thres, inds = selDims, dims = Etype, sq = True)
         subset.name = 'BLM'
@@ -739,7 +765,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
         # 02/11/22 - very basic XS handling, as per ep.basicPlotters.BLMplot, plus AF case handling.
         # TODO: more options, tidy up, etc, May want to modify base AFBLM code outputs.
         if XS:
-            subset = setXSfromCoords(subset, self.verbose)
+            subset = setXSfromCoords(subset, absXS = absXS, verbose = self.verbose)
             # # if subset.attrs['dataType'] == 'BLM':
             # if 'XS' in subset.coords.keys():
             #     # try:
@@ -761,19 +787,43 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             # pDict.append(subset.expand_dims({'Key':[key]}))   # Use key as default case.
             pDict.append(subset.expand_dims({keyDim:[key]}))   # Use key as default case, with keyDim as dim name
 
+    # 23/03/24 for quick debug/testing!
+    # return pDict
 
     xrDS = xr.concat(pDict, 'Orb')
+
+    # 23/03/24: allow for squeeze and threshold on output data
+    if sqPlot:
+        xrDS = xrDS.squeeze(drop=True)
+
+    if filterXS is not None:
+        xrDS = xrDS.where(np.abs(xrDS.XSrescaled) > filterXS)
 
     #*** Also check BLM dims for stacking?
     # Note this sets xrDS.attrs.harmonics, and these must all be the same.
     checkSphDims(xrDS)
 
+    # 26/03/24 - added XS option.
+    # If true, keep l=0, otherwise drop.
+    # Note - set this as new DA to keep main xrDS output complete.
+    if XS:
+        tempData = xrDS
+    else:
+        tempData = dropXSfromArray(xrDS)
+
     #*** Holoviews init
-    hvDS = hvPlotters.hv.Dataset(xrDS.unstack(xrDS.attrs['harmonics']['stackDim']))  # Need to unstack, otherwise sometimes get empty plots?
+    hvDS = hvPlotters.hv.Dataset(tempData.unstack(xrDS.attrs['harmonics']['stackDim']))  # Need to unstack, otherwise sometimes get empty plots?
                                                                                       # Seems to be issue with tuple/MultiIndex case.
 
     # hvObj = hvDS.to(hvPlotters.hv.Curve, kdims=Etype)  # .overlay(xrDS.attrs['harmonics']['dimList'])   # OK
-    hvObj = hvDS.to(hvPlotters.hv.Curve, kdims=xDim)   # For arb xDim
+    if hvType == 'line':
+        hvObj = hvDS.to(hvPlotters.hv.Curve, kdims=xDim)   # For arb xDim
+    elif hvType == 'heatmap':
+        hvObj = hvDS.to(hvPlotters.hv.HeatMap, kdims=[xDim,Etype])   # Always need 2 dims here?
+    else:
+        print(f'hvType {hvType} not supported, skipping plot output and render.')
+        hvObj = None
+        renderPlot = False
 
     # if setPlotData:
     # Set output
@@ -790,8 +840,24 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
     #     return showPlot(hvObj.overlay(xrDS.attrs['harmonics']['dimList']), returnPlot = returnPlot, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
     # else:
     #     return hvObj
+
+    # Render with options.
     if renderPlot:
-        showPlot(hvObj.overlay(xrDS.attrs['harmonics']['dimList']).opts(**kwargs), returnPlot = returnPlot, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
+        if hvType == 'line':
+            hvPlotOut = hvObj.overlay(xrDS.attrs['harmonics']['dimList']).opts(**kwargs)
+
+        if hvType == 'heatmap':
+            hvPlotOut = hvObj.opts(**kwargs)
+
+            if addHist:
+                hvPlotOut = hvPlotOut.hist()
+
+        if addADMs:
+            ADMplot = self.data['ADM']['ADM'].unstack().squeeze().real.hvplot.line(x='t').overlay('K')
+            hvPlotOut = (hvPlotOut + ADMplot).cols(1)
+
+        showPlot(hvPlotOut, returnPlot = returnPlot, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
+        # display(hvPlotOut)
 
     if returnPlot:
         return hvObj

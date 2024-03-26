@@ -10,7 +10,8 @@ from epsproc.geomFunc.geomUtils import genllpMatE, degenChecks
 
 # Code as developed 16/17 March 2020.
 # Needs some tidying, and should implement BLM Xarray attrs and format for output.
-def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, p=None, ep = None,
+def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, EPRXresort = None,
+                p=None, ep = None,
                 BLMtable = None, BLMtableResort = None,
                 lambdaTerm = None,
                 # RX = None, eulerAngs = None, polLabel = None,

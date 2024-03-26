@@ -109,13 +109,17 @@ def dataGroupSel(data, dInd):
 # 02/11/22 - very basic XS handling, as per ep.basicPlotters.BLMplot, plus AF case handling.
 # TODO: more options, tidy up, etc, May want to modify base AFBLM code outputs.
 # TODO: check elsewhere for duplicate functionality?
-def setXSfromCoords(data, verbose = True):
+def setXSfromCoords(data, absXS = False, verbose = True):
     """
     Set (l,m)=(0,0) data to cross section.
 
     Data taken from coords, either data.XS (MF case) or data.XSrescaled (AF case).
 
     Returns copy.
+
+    Pass 'absXS = True' to use absolute values.
+
+    26/03/24 - added abs option
     """
 
 
@@ -126,17 +130,50 @@ def setXSfromCoords(data, verbose = True):
     if 'XS' in subset.coords.keys():
         # try:
         # daPlot.values = daPlot * daPlot.XS
-        subset = subset.where(subset.l !=0, subset.XS)  # Replace l=0 values with XS
+
+        # 26/03/24 - added abs option
+        XSarray = subset.XS
+        if absXS:
+            XSarray = np.abs(XSarray)
+
+        subset = subset.where(subset.l !=0, XSarray)  # Replace l=0 values with XS
         subset.attrs['useXS'] = True
+        subset.attrs['absXS'] = absXS
 
     elif 'XSrescaled' in subset.coords.keys():
-        subset = subset.where(subset.l !=0, subset.XSrescaled)  # Replace l=0 values with XS
+
+        # 26/03/24 - added abs option
+        XSarray = subset.XSrescaled
+        if absXS:
+            XSarray = np.abs(XSarray)
+
+        subset = subset.where(subset.l !=0, XSarray)  # Replace l=0 values with XS
         subset.attrs['useXS'] = True
+        subset.attrs['absXS'] = absXS
 
     else:
         subset.attrs['useXS'] = False
         if verbose:
             print(f"No XS found in dataset, skipping.")
+
+    return subset
+
+
+def dropXSfromArray(data):
+    """
+    Drop l=0 terms from array using XR.where(l>0)
+
+    See also
+    - sphFuncs.sphConv.cleanLMcoords() for removing m>l terms.
+    - Can also generically use matEleSelector, e.g. ep.matEleSelector(subset.unstack(), thres=thres, inds = {'l':slice(2,20)}, drop=True)
+        (Note Blm params need to be unstacked in that case)
+        
+    """
+
+    subset = data.copy()
+    subset.attrs = copy.deepcopy(data.attrs)  # Deepcopy attrs for some XR versions!
+
+    subset = subset.where(subset.l>0, drop=True)
 
     return subset
 

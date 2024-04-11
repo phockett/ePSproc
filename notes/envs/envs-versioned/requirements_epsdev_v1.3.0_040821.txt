@@ -22,7 +22,7 @@ entrypoints==0.3
 gmpy2==2.0.8
 h5py==3.1.0
 holoviews==1.14.2
-idna==2.10
+idna==3.7
 imageio==2.9.0
 importlib-metadata==3.7.3
 ipykernel==5.3.4

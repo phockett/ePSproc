@@ -111,6 +111,17 @@ if on_rtd:
 #
 # """
 
+# *** NOTE FOR JUPYTER NOTEBOOK SINGLE FILE > HTML EXPORT
+# Should just work, but may fail depending on build env/plugins
+# Can fix with notebook additions (per https://stackoverflow.com/questions/66210187/exporting-jupyter-notebook-with-plotly-to-html-not-displaying-correctly-when-off)
+# (This is preferable than manually adding scripts as above, since it results in embedded script with correct version for plots - testing 12/04/24 for recent QM3 Docker builds found that method failed using above <script> lines, and variations on those, but this method worked.)
+#
+#  	# Plotly export fix
+#  	import plotly.io as pio
+#  	pio.renderers.default='notebook'
+# 
+
+
 # Alternative Plotly script injection, as per Jupyter Book style, https://jupyterbook.org/en/stable/interactive/interactive.html#plotly
 # Testing 06/03/24 since current builds are broken again - see notes https://github.com/phockett/ePSproc/issues/27
 html_js_files = ['https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js']

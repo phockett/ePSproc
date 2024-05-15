@@ -19,6 +19,8 @@ from epsproc.sphCalc import setADMs
 
 import pandas as pd
 import numpy as np
+from scipy.io import loadmat
+from pathlib import Path
 
 # Import HV into local namespace if hvPlotters successful (can't access directly)
 from epsproc.plot import hvPlotters
@@ -59,15 +61,18 @@ class ADM(ePSmultiJob):
 
 
     def loadData(self, keyType = 'fileName',
+                 fReader=None, fType = 'text',
                  normType = None, renorm = False,
-                 addPop = True):
+                 addPop = True, addS = True):
         """
         Load ADM data from file(s).
 
-        NOTE: currently assumes dir and file structure as:
-        root dir - AKQS dir, e.g. 'A200' - files per T, e.g. 'A200_10K.txt'
-        Variables are parsed according to this scheme (for 2024 N2O data).
+        NOTE: For `Tunstack` case currently assumes dir and file structure as:
+            root dir - AKQS dir, e.g. 'A200' - files per T, e.g. 'A200_10K.txt'
+            Variables are parsed according to this scheme (for 2024 N2O data).
+
         For older datasets (single dir/alternative naming schema) may need converters or regex methods.
+            Using `keyType='fileName'` should generally read data, but may not pull labels correctly currently, and may fail to convert to Xarray.
 
         Time points are searched for in PARENT dir.
 
@@ -79,9 +84,21 @@ class ADM(ePSmultiJob):
             Set data type and load style (needs work).
             Currently:
             - 'fileName', load and set to dictionary with filename keys.
+                (Note this will set self.data[dir] and stack ADMs by file.)
             - 'T', load and set to dictionary with T (temperature) keys.
             - 'Tunstack', load and set to dictionary with T (temperature) keys, alternative formatting.
             - 'setADMsT', load and set to XR dataArray with T (temperature) keys.
+
+        fReader : function, optional, default = None
+            Pass file read function.
+            If None, defaults will be set by file ext.
+            - For .txt, .csv, use pd.read_csv
+            - For .mat, .dat, use scipy.io.loadmat
+
+        fType : str, optional, default = 'text'
+            Used to explicitly set file type if fReader set.
+            Otherwise set automatically by file extension.
+            Note this only controls some extra data formatting options.
 
         normType : str, optional, default = None
             Set normType (via self.normDict).
@@ -94,7 +111,29 @@ class ADM(ePSmultiJob):
             Add K=0 population term?
             Only applied if normType is set.
 
+        addS : bool, optional, default = True
+            Add S=0 terms?
+            Default=False.
+
+        TODO:
+        - More general searching and file handling.
+            - 15/05/24 added general handling for multiple files per dir. Should test further, see other libs for alternative data structures...?
+        - Automate addS, currently setADMs throws errors if not correct dims set.
+
         """
+
+        # Set file reader by type
+        if fReader is None:
+            if self.jobs['ext'] in ['.txt','.csv']:
+                fReader = pd.read_csv
+                fType = 'text'
+            elif self.jobs['ext'] in ['.mat','.dat']:
+                fReader = loadmat
+                fType = 'matlab'
+            else:
+                print(f"*** File type {self.jobs['ext']} not recognised.")
+                print("Skipping file reading. To force, pass fReader=<file read function>. E.g. `fReader=pd.read_csv` for default case.")
+                return None
 
         # Set renorm/population term
         # If None this will NOT be set
@@ -113,13 +152,51 @@ class ADM(ePSmultiJob):
 
         Tcols = []  # Set this for output, not used in all cases.
 
-        # Scan data files with Pandas - loop over subdirs and files
+        # Scan data files with fReader - loop over subdirs and files
         if keyType == 'fileName':
-            dataDict = {k:{Path(f).name:pd.read_csv(f) for f in item} for k,item in self.fileDict.items()}
+            dataDict = {k:{Path(f).name:fReader(f) for f in item} for k,item in self.fileDict.items()}
+
+            # Try assigning ADMs per dir...
+            for k,item in dataDict.items():
+                xrData = {}
+                if fType == 'matlab':
+                    # For Matlab case, have items for things in single-file case
+                    # xrData = {k2:setADMs(ADMs = item2['ADM'], t=item2['time'].squeeze(),
+                    #             KQSLabels = item2['ADMlist'], addS = addS) for k2,item2 in item.items() if 'time' in item2.keys()}
+
+                    for k2,item2 in item.items():
+                        if 'time' in item2.keys():
+                            xrData[k2] = {'ADM':setADMs(ADMs = item2['ADM'], t=item2['time'].squeeze(),
+                                                KQSLabels = item2['ADMlist'], addS = addS)  }
+
+                    # Set also to standard self.data[key][dataType] style
+                    # This is used by existing core functionality
+                    # TODO: fix to use something like xrDA, xrDS, dataDict = datasetStack(ADMin.data['alignment']['ADM'], dataType='ADM', stackDim = 'file', keys = ADMin.data['alignment']['ADM'].keys())
+                    #       Currently this fails, since the ordering is incorrect - should reorder to data[dir][fileName]['ADM'] for this.
+                    # self.data[k] = xrData
+
+                    # Stack to single DA/DS per dir...
+                    # Use existing function, but note need to set coords curently
+                    fKeys = list(xrData.keys())
+                    fNames = [item.rstrip(self.jobs['ext']) for item in fKeys]
+                    xrDA, xrDS, dataDict = datasetStack(xrData, dataType='ADM', stackDim = 'file', keys = xrData.keys())
+
+                    self.xr = xrDA.assign_coords({"file":fNames})
+                    self.xrDS = xrDS
+                    # self.xr.Temp.attrs['units'] = 'K'
+                    # self.xr = self.xr.sortby('Temp')
+
+                    # Set data with dir as key
+                    self.data[k] = {'ADM':self.xr}
+
+                else:
+                    print(f"No data formatting implemented for fType '{fType}' from dir '{k}'. Please run ep.setADMs manually to reformat")
 
         if keyType == 'T':
             dataDict = {k:{f.split('_')[-1].strip(self.jobs['ext']):pd.read_csv(f) for f in item} for k,item in self.fileDict.items()}
 
+        # Case for dirs per Temp.
+        # CURRENTLY ONLY SUPPORTS pd.read_csv.
         if keyType == 'Tunstack':
             # Try better formatting for T data...
             # See also https://stackoverflow.com/a/21232849 for ideas/cleaner methods
@@ -142,6 +219,7 @@ class ADM(ePSmultiJob):
 
         # Version to loop over T and use setADMs
         # Better? More loops on IO, but simpler output!
+        # CURRENTLY ONLY SUPPORTS pd.read_csv.
         if keyType == 'setADMsT':
             dataDict = {}
             for k,item in self.fileDict.items():

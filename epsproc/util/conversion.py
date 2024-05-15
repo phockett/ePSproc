@@ -343,11 +343,15 @@ def datasetStack(data, dataType = 'XS', keys = None, stackDim = 'Orb', dimLabel 
     #
     # TODO: debug and/or check old codes, got this working elsewhere before with additional coord transforms?
     #
+    # 15/05/24: added quick try/except here to try and generalise.
 
     if dropDims:
         xrDS = xr.Dataset(dataDict)
     else:
-        xrDS = None
+        try:
+            xrDS = xr.Dataset(dataDict)
+        except:
+            xrDS = None
 
 #     xrDA.to_dataset()  # Should also work, but may silently drop some data...? TBC, tested elsewhere already?
 

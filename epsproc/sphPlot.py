@@ -627,7 +627,9 @@ def sphPlotMPL(dataPlot, theta, phi, convention = 'phys', tString = None, **kwar
 def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
                 showbackground = False, showaxes = True,
                 rc = None, nCols = 4, norm = 'local', padding = 0.05, camR = 0.85, #'global',
-                convention = 'phys', plotFlag = True, verbose = False, **kwargs):
+                convention = 'phys', plotFlag = True, verbose = False,
+                height=None, width=800,
+                debug=False, **kwargs):
     '''
     Plot spherical polar function (R,theta,phi) to a Cartesian grid, using Plotly.
 
@@ -680,6 +682,12 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
     plotFlag : bool, optional, default = True
         Set plotFlag=False bypass for plotter object return only.
 
+    height : int, optional, default = 800
+        Overall figure height (px).
+
+    width : int, optional, default = 800
+        Overall figure width (px).
+
     **kwargs
         Unused, just for calling func convenience.
 
@@ -687,7 +695,7 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
     Returns
     -------
     fig
-        Handle to figure.
+        Figure object.
 
     Notes
     -----
@@ -697,6 +705,20 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
 
     For Jupyter use: currently (Oct. 2020) working only for Notebook Export to HTML (not nbsphinx), and max of 12 subplots. Possible issues with rendering in Firefox (80.0.1, Oct. 2020).
     Should be fixable with some effort/testing, see https://plotly.com/python/renderers/
+
+    For more control, apply mods to returned figure object.
+    E.g.
+        # Change figure size
+        fig.update_layout(height=1400, width=1400)
+
+        # Figure export
+        fig.write_html(f'{fName}.html')   # Default export
+        fig.write_image(f'{fName}.png')   # Default export
+        fig.write_html(f'{fName}.html', include_plotlyjs="cdn", full_html=False)  # Skip JS to reduce file size (Authorea <6.1Mb, currently at 6.8Mb)
+
+    See https://plotly.com/python/subplots
+    And https://plot.ly/python/3d-subplots
+    For more options and details.
 
     TODO:
 
@@ -713,6 +735,10 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
     For more see https://plotly.com/python/troubleshooting/
 
     '''
+
+    # 15/05/24 Quick arg pass check
+    if debug:
+        print(locals().keys())
 
     # Set up subplots
     # 31/03/22 type check to fix issues with padPlot wrapper and None type facetDims.
@@ -826,6 +852,7 @@ def sphPlotPL(dataPlot, theta, phi, facetDim = 'Eke', surfMap = None,
 
     # Set up subplots
     fig = make_subplots(rows=rc[0], cols=rc[1], specs=specs, subplot_titles=titles)
+    fig.update_layout(height=height, width=width)  # 15/05/24 added control over figure size here. Should use standard config from hvPlotters...?
     nPlots = rc[0] * rc[1]
 
     # Add surfaces

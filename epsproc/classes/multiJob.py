@@ -100,11 +100,13 @@ class ePSmultiJob(ePSbase):
                      'jobDirs':jobDirs,
                      'jobStructure':jobStructure}
 
-        if jobDirs is None:
+        # 16/05/24 modified logic here to allow for empty class init.
+        if (jobDirs is None) and fileBase:
             if verbose:
                 print(f"Scanning {fileBase} for ePS jobs.")
 
             self.scanDirs()
+
 
 
     def scanDirs(self):
@@ -453,7 +455,7 @@ class ePSmultiJob(ePSbase):
         # Run datasetStack for self.data, self.jobKeys
         if keys is None:
             keys = self.jobKeys
-            
+
         # xrDA, xrDS, dataDict = datasetStack(self.data, keys = self.jobKeys, **kwargs)
         return datasetStack(self.data, keys = keys, **kwargs)
 

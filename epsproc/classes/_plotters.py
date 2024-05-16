@@ -677,6 +677,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             pType='r', hvType = 'heatmap',
             addHist = True, addADMs = True,
             renderPlot=True, returnPlot=False,
+            overrideMF = False,
             # plotDict='plots',
             **kwargs):
     """
@@ -697,6 +698,10 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
 
 
     NOTE: **kwargs passed to hv.opts(**kwargs) for additional plotter control.
+        E.g. to set axis limits, pass as tuples:
+                 ylim=(-1.5, 2.5), xlim=(0,15), clim=(-1,2)
+        E.g. to set figure size:
+                 width = 700, height = 700
 
     NOTE 22/03/24: added sqSelector and sqPlot for better squeeze control.
                    In some cases may get issues stacking to XR dataset if sqSelector=True
@@ -705,6 +710,8 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
                    Default = None (not applied), or set to a threshold value.
 
                    added absXS option to force np.abs(XS), default = False.
+
+    NOTE 15/05/24: added different defaults for MFBLM case (hvType=line), to skip these pass `overrideMF = True`.
 
     TODO: see PEMtk and TMOdev codes for better dim handling for HVplots?
     TODO: options for ADM plot, currently hard-coded (and opts from defaults)
@@ -725,6 +732,14 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
         contiguousDims = xDim
     else:
         contiguousDims = [xDim,Etype]
+
+    if dataType is 'MFBLM' and not overrideMF:
+        print('Applying MFBLM plot defaults, pass overrideMF=True to skip.')
+        addADMs = False  # Also checked later.
+        addHist = False  # Seems to break MF case?
+        # clim =
+        hvType = 'line'  # Using lines always preferable for MF case?
+
 
     if verbose is None:
         verbose = self.verbose
@@ -850,11 +865,21 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             hvPlotOut = hvObj.opts(**kwargs)
 
             if addHist:
-                hvPlotOut = hvPlotOut.hist()
+                # Push clims to .hist if set, otherwise will default to full range.
+                if 'clim' in kwargs.keys():
+                    hvPlotOut = hvPlotOut.hist(bin_range=kwargs['clim'])
+                else:
+                    hvPlotOut = hvPlotOut.hist()
 
+        # Add ADMs, check if exist and that dataType is not MF - skip if so.
         if addADMs:
-            ADMplot = self.data['ADM']['ADM'].unstack().squeeze().real.hvplot.line(x='t').overlay('K')
-            hvPlotOut = (hvPlotOut + ADMplot).cols(1)
+            ADMdata = self.data.get('ADM')
+
+            if ADMdata and (not dataType.startswith('MF')):
+                ADMplot = ['ADM'].unstack().squeeze().real.hvplot.line(x='t').overlay('K')
+                hvPlotOut = (hvPlotOut + ADMplot).cols(1)
+
+
 
         showPlot(hvPlotOut, returnPlot = returnPlot, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
         # display(hvPlotOut)

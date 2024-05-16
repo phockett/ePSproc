@@ -117,7 +117,10 @@ class ADM(ePSmultiJob):
 
         TODO:
         - More general searching and file handling.
-            - 15/05/24 added general handling for multiple files per dir. Should test further, see other libs for alternative data structures...?
+            - Not all methods use norm or renorm.
+            - 15/05/24 added general handling for multiple files per dir.
+                Should test further, see other libs for alternative data structures...?
+                Currently stack per dir, files labelled as dict items or in xr.Dataset.
         - Automate addS, currently setADMs throws errors if not correct dims set.
 
         """
@@ -153,6 +156,7 @@ class ADM(ePSmultiJob):
         Tcols = []  # Set this for output, not used in all cases.
 
         # Scan data files with fReader - loop over subdirs and files
+        # TODO: add file name as XR attrs.
         if keyType == 'fileName':
             dataDict = {k:{Path(f).name:fReader(f) for f in item} for k,item in self.fileDict.items()}
 
@@ -181,13 +185,15 @@ class ADM(ePSmultiJob):
                     fNames = [item.rstrip(self.jobs['ext']) for item in fKeys]
                     xrDA, xrDS, dataDict = datasetStack(xrData, dataType='ADM', stackDim = 'file', keys = xrData.keys())
 
+                    # TODO - store XR per dir too...?
                     self.xr = xrDA.assign_coords({"file":fNames})
                     self.xrDS = xrDS
                     # self.xr.Temp.attrs['units'] = 'K'
                     # self.xr = self.xr.sortby('Temp')
 
                     # Set data with dir as key
-                    self.data[k] = {'ADM':self.xr}
+                    # self.data[k] = {'ADM':self.xr}
+                    self.data[k] = {'ADM':xrDA.assign_coords({"file":fNames})}  # Set again here as above will be overriden!
 
                 else:
                     print(f"No data formatting implemented for fType '{fType}' from dir '{k}'. Please run ep.setADMs manually to reformat")
@@ -276,6 +282,29 @@ class ADM(ePSmultiJob):
 
         self.dataDict = dataDict
         self.TempIndex = Tcols # Assume all identical! BUT ORDERING MAY CHANGE!!!
+
+        if self.verbose:
+            print(f"Files from self.fileDict read OK, outputs: self.dataDict and self.data.")
+
+    def setADMs(self,key=None,**kwargs):
+        """
+        Thin wrapper for ep.setADMs.
+
+        Run `help(ep.setADMs)` for details.
+
+        Additionally pass key=<str> to define data output, defaults to self.data['ADM'].
+
+        """
+
+        ADMs = setADMs(**kwargs)
+
+        if key is None:
+            key = 'ADM'
+
+        self.data[key] = {'ADM':ADMs}
+
+        if self.verbose:
+            print(f"Set `self.data['{key}']['ADM']` from inputs.")
 
 
     def plot(self, keys = None, **kwargs):
@@ -372,13 +401,41 @@ class ADM(ePSmultiJob):
 #         tStep=2  # Set tStep for downsampling
 
         # SLICE version - was working, but not working July 2022, not sure if it's data types or Xarray version issue? Just get KeyErrors on slice.
-        # data.data['ADM'] = {'ADM': ADMs.sel(t=slice(trange[0],trange[1], tStep))}   # Set and update
+        # 15/05/24: reimplemented this version... seems to be working, and avoids issues with dim changes in mask case.
+        self.data['ADM'] = {'ADM': ADMs.sel(t=slice(trange[0],trange[1], tStep))}   # Set and update
 
-        # Inds/mask version - seems more robust?
-        tMask = (ADMs.t>trange[0]) & (ADMs.t<trange[1])
-        # ind = np.nonzero(tMask)  #[0::tStep]
-        # At = ADMs['time'][:,ind].squeeze()
-        # ADMin = ADMs['ADM'][:,ind]
+        # TODO 15/05/24: need dim check and subselection here for dim change case too?
+        if self.data['ADM']['ADM'].ndim > 2:
+            print(f"*** Warning: setting ADMs with ndim = {self.data['ADM']['ADM'].ndim} may cause issues. Trying squeeze to fix...")
+            self.data['ADM']['ADM'] = self.data['ADM']['ADM'].squeeze()
 
-        self.data['ADM'] = {'ADM': ADMs[:,tMask][:,::tStep]}   # Set and update
+            if self.data['ADM']['ADM'].ndim < 3:
+                print("Squeezed OK")
+            else:
+                print("Squeeze failed, additional subselection may be required.")
+
+
+        # # Inds/mask version - seems more robust?
+        # tMask = (ADMs.t>trange[0]) & (ADMs.t<trange[1])
+        # # ind = np.nonzero(tMask)  #[0::tStep]
+        # # At = ADMs['time'][:,ind].squeeze()
+        # # ADMin = ADMs['ADM'][:,ind]
+        #
+        # self.data['ADM'] = {'ADM': ADMs[:,tMask][:,::tStep]}   # Set and update
+
+        # Set metadata...
+        self.data['ADM']['ADM'].attrs['subselection'] = {'trange':trange,
+                                                     'tstep':tstep,
+                                                     'sourceKey':dataKey,
+                                                     'sourceDataType':dataType}
+
         print(f"Selecting {self.data['ADM']['ADM'].t.size} points")
+        print("Set subset data to `self.data['ADM']['ADM']`")
+
+
+        # NOTE: may want to apply more general methods per main plotting routines
+        # E.G. from epsproc\classes\_plotters.py, line 772:
+        # # 06/03/24 - reinstated Esubset for Erange settings.
+        # # NEEDS TESTING - something here messes up padPlot() later for PL facetDims!!!
+        # subset = self.Esubset(key = key, dataType = dataType, Etype = Etype, Erange = Erange)
+        # subset = matEleSelector(subset, thres=thres, inds = selDims, dims = contiguousDims, sq = sqSelector)

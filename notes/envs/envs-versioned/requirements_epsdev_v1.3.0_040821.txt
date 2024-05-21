@@ -86,7 +86,7 @@ pyvista==0.29.0
 pyviz-comms==2.0.1
 PyYAML==5.4.1
 pyzmq==22.0.3
-requests==2.25.1
+requests==2.32.0
 retrying==1.3.3
 scipy==1.6.1
 scooby==0.5.6

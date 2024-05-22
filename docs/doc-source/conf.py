@@ -63,8 +63,25 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
                 'sphinxcontrib.apidoc', # 'recommonmark',
                 'sphinx.ext.viewcode', 'nbsphinx',
                 # 'myst_parser',
-                'sphinx_mdinclude']    # 09/11/22 - testing MD include support, e.g. .. mdinclude:: ../../../docker/readme.md
+                'sphinx_mdinclude',    # 09/11/22 - testing MD include support, e.g. .. mdinclude:: ../../../docker/readme.md
                 # 'IPython.sphinxext.ipython_console_highlighting']  # Actually this throws an error on RTD - try adding ipyhton to requirements.txt instead...
+                'sphinx_math_dollar', 'sphinx.ext.mathjax'] # 22/05/24 For $ maths in RST, from https://github.com/sympy/sphinx-math-dollar
+
+# 22/05/24 Additional Mathjax config for $ maths in RST, from https://github.com/sympy/sphinx-math-dollar
+mathjax_config = {
+    'tex2jax': {
+        'inlineMath': [ ["\\(","\\)"] ],
+        'displayMath': [["\\[","\\]"] ],
+    },
+}
+
+mathjax3_config = {
+  "tex": {
+    "inlineMath": [['\\(', '\\)']],
+    "displayMath": [["\\[", "\\]"]],
+  }
+}
+
 
 # 09/11/22 - testing MD setup, see https://github.com/readthedocs/blog/blob/main/adding-markdown-support.rst
 # UPDATE: should be handled automatically by extensions now?
@@ -119,7 +136,7 @@ if on_rtd:
 #  	# Plotly export fix
 #  	import plotly.io as pio
 #  	pio.renderers.default='notebook'
-# 
+#
 
 
 # Alternative Plotly script injection, as per Jupyter Book style, https://jupyterbook.org/en/stable/interactive/interactive.html#plotly

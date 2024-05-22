@@ -51,3 +51,6 @@ sphinx-mdinclude
 # ACTUALLY, should already be covered above in Plotly fix, although may need to update versions.
 # recommonmark
 # sphinx_rtd_theme
+
+# 22/05/24 Fix $ maths rendering, not sure if this was an issue previously?
+sphinx-math-dollar

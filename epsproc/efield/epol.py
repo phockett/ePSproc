@@ -552,5 +552,10 @@ class EfieldPol():
             if not hasattr(self,'YLMrot'):
                 print("Missing `self.YLMrot` data, run `self.setOrientation()` to define.")
             else:
+                if 'facetDim' in kwargs.keys():
+                    facetDim = kwargs['facetDim']
+                else:
+                    kwargs['facetDim'] = 'Euler'
+
                 Itp, fig = sphFromBLMPlot(self.YLMrot.squeeze(drop=True), plotFlag = True,
-                                    backend='mpl', facetDim='Euler', **kwargs)
+                                    backend='mpl', **kwargs)    # facetDim=facetDim, **kwargs)

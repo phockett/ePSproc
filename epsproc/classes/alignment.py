@@ -402,7 +402,20 @@ class ADM(ePSmultiJob):
 
         # SLICE version - was working, but not working July 2022, not sure if it's data types or Xarray version issue? Just get KeyErrors on slice.
         # 15/05/24: reimplemented this version... seems to be working, and avoids issues with dim changes in mask case.
-        self.data['ADM'] = {'ADM': ADMs.sel(t=slice(trange[0],trange[1], tStep))}   # Set and update
+        #           UPDATE: issues with older version of Xarray?
+        #           Slice OK in xr2022, but fails in xr15.
+        try:
+            self.data['ADM'] = {'ADM': ADMs.sel(t=slice(trange[0],trange[1], tStep))}   # Set and update
+        except KeyError:
+            # Inds/mask version - seems more robust?
+            # NOTE THIS ASSUMES DIMS!!!!
+            tMask = (ADMs.t>trange[0]) & (ADMs.t<trange[1])
+            # ind = np.nonzero(tMask)  #[0::tStep]
+            # At = ADMs['time'][:,ind].squeeze()
+            # ADMin = ADMs['ADM'][:,ind]
+
+            self.data['ADM'] = {'ADM': ADMs[:,tMask][:,::tStep]}   # Set and update
+
 
         # TODO 15/05/24: need dim check and subselection here for dim change case too?
         if self.data['ADM']['ADM'].ndim > 2:
@@ -425,7 +438,7 @@ class ADM(ePSmultiJob):
 
         # Set metadata...
         self.data['ADM']['ADM'].attrs['subselection'] = {'trange':trange,
-                                                     'tstep':tstep,
+                                                     'tstep':tStep,
                                                      'sourceKey':dataKey,
                                                      'sourceDataType':dataType}
 

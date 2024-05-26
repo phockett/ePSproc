@@ -17,6 +17,7 @@ from epsproc import lmPlot as lmPlotCore  # Hack rename here to prevent circular
 from epsproc.plot import hvPlotters
 from epsproc.util.conversion import datasetStack
 from epsproc.util.env import isnotebook
+from epsproc.util.misc import checkDims
 from epsproc.util.selectors import setXSfromCoords, dropXSfromArray
 from epsproc.sphFuncs.sphConv import checkSphDims
 
@@ -1105,6 +1106,10 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
 
     29/02/24: added 'hv' option for PAD grid style only. This also returns stacked data (all keys) to self.plot['PADGrid']
 
+    26/05/24: Implemented ep.util.misc.checkDims for (some) dim checks.
+              Also force facetDimsCheck ordering to match input facetDims for better plot control.
+              TODO: may need some more work here, see main padPlot routine for more/alternatives.
+
     """
 
 
@@ -1120,7 +1125,8 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     # Default facetDims, (Eulers, Eke)
     # Should test these? YES - it's done later, per key.
     if facetDims is None:
-        facetDims = ['Labels', Etype]
+        # facetDims = ['Labels', Etype]   # Rows per Label
+        facetDims = [Etype, 'Labels']   # Rows per E
 
     if len(facetDims) == 1:
         facetDims.append(None)
@@ -1189,7 +1195,13 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
 
         # Check facetDims exist, otherwise may get groupby errors (may be cleaner to use try/except here?)
         # NOTE this will still produce errors in some cases (0 dims matched)
-        facetDimsCheck = list(set(subset.dims)&{*facetDims})
+        # facetDimsCheck = list(set(subset.dims)&{*facetDims})
+
+        # 26/05/24 - use ep.util.misc.checkDims here instead.
+        # Also preserve ordering of facetDims, for better plot control
+        dimsCheckDict = checkDims(subset,refDims=facetDims)
+        facetDimsCheck = [item for item in facetDims if item in dimsCheckDict['shared']]
+
         groupFlag = True
         if len(facetDimsCheck) == 0:
             print(f'***Error: missing dims {facetDims}.')

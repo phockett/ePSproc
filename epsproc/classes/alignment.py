@@ -340,11 +340,16 @@ class ADM(ePSmultiJob):
                     .real.hvplot.line(x='t').overlay(['K','Q','S']).opts(width=700)
             showPlot(hvObj.opts(**kwargs), __notebook__=True)
 
-        else:
+        elif self.TempIndex:
         # ADMin.xr.unstack().squeeze().real.hvplot.line(x='t').overlay(['K'])
             keysT = [int(item.rstrip('K')) for item in keys]  # Convert to key coords
 
             hvObj = self.xr.sel(Temp=keysT).unstack().real.hvplot.line(x='t').overlay(['K','Q','S'])
+            showPlot(hvObj.opts(**kwargs), __notebook__=True)
+
+        # If multiple keys and no T index, just plot all cases...
+        else:
+            hvObj = self.xr.unstack().real.hvplot.line(x='t').overlay(['K','Q','S'])
             showPlot(hvObj.opts(**kwargs), __notebook__=True)
 
         #
@@ -371,7 +376,10 @@ class ADM(ePSmultiJob):
             print(f"Set self.norm from self.norms['{normType}'].")
 
 
-    def subsetADMs(self, dataKey = None, dataType = 'ADM', trange = None, tStep = 4):
+    def subsetADMs(self, dataKey = None, dataType = 'ADM',
+                    trange = None, tStep = 4,
+                    subKey = 'ADM',
+                    plotSubset = False):
         """
         Subselect ADMs to use for calcs.
 
@@ -382,8 +390,13 @@ class ADM(ePSmultiJob):
         """
 
         if dataKey is None:
-            # Use first key for default case
-            dataKey = self.TempIndex[0]
+            # Use first key for default case, from T index if set.
+            if self.TempIndex:
+                dataKey = self.TempIndex[0]
+            else:
+                dataKey = self._keysCheck(None)[0]
+
+        print(f"Setting subset data from `self.data['{dataKey}']['ADM']`")
 
         if trange is None:
             # Set full axis, just downsample
@@ -405,7 +418,7 @@ class ADM(ePSmultiJob):
         #           UPDATE: issues with older version of Xarray?
         #           Slice OK in xr2022, but fails in xr15.
         try:
-            self.data['ADM'] = {'ADM': ADMs.sel(t=slice(trange[0],trange[1], tStep))}   # Set and update
+            self.data[subKey] = {'ADM': ADMs.sel(t=slice(trange[0],trange[1], tStep))}   # Set and update
         except KeyError:
             # Inds/mask version - seems more robust?
             # NOTE THIS ASSUMES DIMS!!!!
@@ -414,15 +427,15 @@ class ADM(ePSmultiJob):
             # At = ADMs['time'][:,ind].squeeze()
             # ADMin = ADMs['ADM'][:,ind]
 
-            self.data['ADM'] = {'ADM': ADMs[:,tMask][:,::tStep]}   # Set and update
+            self.data[subKey] = {'ADM': ADMs[:,tMask][:,::tStep]}   # Set and update
 
 
         # TODO 15/05/24: need dim check and subselection here for dim change case too?
-        if self.data['ADM']['ADM'].ndim > 2:
-            print(f"*** Warning: setting ADMs with ndim = {self.data['ADM']['ADM'].ndim} may cause issues. Trying squeeze to fix...")
-            self.data['ADM']['ADM'] = self.data['ADM']['ADM'].squeeze()
+        if self.data[subKey]['ADM'].ndim > 2:
+            print(f"*** Warning: setting ADMs with ndim = {self.data[subKey]['ADM'].ndim} may cause issues. Trying squeeze to fix...")
+            self.data[subKey]['ADM'] = self.data[subKey]['ADM'].squeeze()
 
-            if self.data['ADM']['ADM'].ndim < 3:
+            if self.data[subKey]['ADM'].ndim < 3:
                 print("Squeezed OK")
             else:
                 print("Squeeze failed, additional subselection may be required.")
@@ -437,13 +450,16 @@ class ADM(ePSmultiJob):
         # self.data['ADM'] = {'ADM': ADMs[:,tMask][:,::tStep]}   # Set and update
 
         # Set metadata...
-        self.data['ADM']['ADM'].attrs['subselection'] = {'trange':trange,
+        self.data[subKey]['ADM'].attrs['subselection'] = {'trange':trange,
                                                      'tstep':tStep,
                                                      'sourceKey':dataKey,
                                                      'sourceDataType':dataType}
 
-        print(f"Selecting {self.data['ADM']['ADM'].t.size} points")
-        print("Set subset data to `self.data['ADM']['ADM']`")
+        print(f"Selecting {self.data[subKey]['ADM'].t.size} points")
+        print(f"Set subset data to `self.data['{subKey}']['ADM']`")
+
+        if plotSubset:
+            self.plot(keys=subKey, title=f"Subset ADMs, t={trange[0]} - {trange[1]}, tstep={tStep}")
 
 
         # NOTE: may want to apply more general methods per main plotting routines

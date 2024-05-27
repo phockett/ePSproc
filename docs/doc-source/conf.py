@@ -98,7 +98,7 @@ apidoc_separate_modules = True
 # 27/05/24 testing autoapi, https://github.com/readthedocs/sphinx-autoapi
 # For options: https://sphinx-autoapi.readthedocs.io/en/latest/reference/config.html
 autoapi_dirs = '../../epsproc'
-autoapi_ignore = ['*tests*','*bk*']
+autoapi_ignore = ['*tests*','*bk*','*set_plot_options_json.py']   # Note issues with notebook > .py files! May want to use a standard pattern here.
 # suppress_warnings = ["autoapi.python_import_resolution", "autoapi.not_readable"]
 
 # Sphinx-autodoc mock imports for minimal build-chain.

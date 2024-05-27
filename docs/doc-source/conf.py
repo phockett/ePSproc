@@ -96,7 +96,10 @@ apidoc_excluded_paths = ['tests','*/bk']
 apidoc_separate_modules = True
 
 # 27/05/24 testing autoapi, https://github.com/readthedocs/sphinx-autoapi
+# For options: https://sphinx-autoapi.readthedocs.io/en/latest/reference/config.html
 autoapi_dirs = '../../epsproc'
+autoapi_ignore = ['*tests*','*bk*']
+# suppress_warnings = ["autoapi.python_import_resolution", "autoapi.not_readable"]
 
 # Sphinx-autodoc mock imports for minimal build-chain.
 # https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#confval-autodoc_mock_imports

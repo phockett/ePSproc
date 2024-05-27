@@ -439,7 +439,7 @@ class EfieldPol():
 
         else:
             # Run for multiple cases & stack outputs (geomCacl.EPR only supports single pol state)
-            stackDim = 'pol'
+            # stackDim = 'pol'
             dataDict = {}
 
             # Labels for pol states - just set to ints if not passed
@@ -571,12 +571,12 @@ class EfieldPol():
         # Set directly from Elr basis
         if basis == 'lr':
             self.YLM = setBLMs(np.array([self.Elr[:,0],self.Elr[:,1]]), LMLabels = np.array([[1,-1],[1,1]]),
-                            name = 'Epol')
+                            name = 'Epol', dimNames = ['BLM','pol'])
 
         # Set for spherical basis, e_- = El, e_+ = -Er
         elif basis == 'ep':
             self.YLM = setBLMs(np.array([self.Elr[:,0],-self.Elr[:,1]]), LMLabels = np.array([[1,-1],[1,1]]),
-                            name = 'Epol')
+                            name = 'Epol', dimNames = ['BLM','pol'])
 
 
     def plotSph(self, dataType = None, **kwargs):

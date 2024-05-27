@@ -676,18 +676,34 @@ def degenChecks(matEin, selDims, sumDims, degenDrop, verbose):
     return degenDict
 
 # Function for handling EfieldPol objects
-def EfieldPolConfig(Efield):
+def EfieldPolConfig(Efield, basis='ep',
+                    rotSel=None, config=None):
     """
     Handle EfieldPol object for PAD calculations.
 
     Check required fields are present, run for defaults if missing.
 
     16/03/24 - v1
+    26/05/24 - added 'basis' option for using rotated ep basis.
+             - added config for forcing AF case, although maybe unnecessary.
     """
 
-    # Set inputs if missing.
+    # # Set inputs if missing.
+    # if not hasattr(Efield,'epDict'):
+    #    Efield.setep(basis=basis)  #labels = labels)
+
+    # 26/05/24 - modified logic. Force for AF if case specified, or missing
+    # For AF case,
+    # Should also force rotated case?
+    if (config == "AF") and (rotSel is not None):
+        Efield.setep(basis=basis, rotSel=rotSel)  #labels = labels)
+
+    # Also set if missing.
+    # For MF case basis='ep', and rotSel will be ignored.
     if not hasattr(Efield,'epDict'):
-        Efield.setep()  #labels = labels)
+        Efield.setep(basis=basis, rotSel=rotSel)  #labels = labels)
+
+
 
     # Set default orientations (Epol method different to usual defaults)
     if not hasattr(Efield,'RX'):

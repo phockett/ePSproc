@@ -6,7 +6,7 @@ import xarray as xr # Currently used for type checks only.
 from epsproc import sphCalc
 from epsproc.geomFunc import geomCalc
 # from epsproc.geomFunc.geomCalc import (EPR, MFproj, betaTerm, remapllpL, w3jTable,)
-from epsproc.geomFunc.geomUtils import genllpMatE, degenChecks
+from epsproc.geomFunc.geomUtils import genllpMatE, degenChecks, EfieldPolConfig
 
 # Code as developed 16/17 March 2020.
 # Needs some tidying, and should implement BLM Xarray attrs and format for output.
@@ -15,7 +15,8 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, EPRXresort = None,
                 BLMtable = None, BLMtableResort = None,
                 lambdaTerm = None,
                 # RX = None, eulerAngs = None, polLabel = None,
-                polProd = None, AFterm = None, EfieldPol = None,
+                polProd = None, AFterm = None,
+                EfieldPol = None, EfieldBasis = 'rot', EfieldRotSel = 'z',
                 # basisDict = {},  May want to pass full dict here, or just pass as **basisDict from calling fn?
                 thres = 1e-2, thresDims = 'Eke', selDims = {'Type':'L'}, sqThres = True, dropThres = True,  #, 'it':1},
                 # sumDims = ['mu', 'mup', 'l','lp','m','mp'], sumDimsPol = ['P','R','Rp','p','S-Rp'], symSum = True,
@@ -189,7 +190,19 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, EPRXresort = None,
 
     EfieldPol : object, default = None
         Pass field settings as :py:class:`epsproc.efield.epol.EfieldPol` object.
+        Note this defaults to the 'rot' basis case, and z-pol geometry.
+        Multiple polarization states are supported, but only a single pol geometry currently.
+        Set `EfieldBasis` and `EfieldRotSel` arguments to override.
         See docs at https://epsproc.readthedocs.io/en/3d-afpad-dev/demos/Epol_class_demo_docs_030324-tidy.html
+
+    EfieldBasis : str, optional, default = 'rot'
+        Only used for EfieldPol objects.
+        Sets basis for E-field, see :py:func:`epsproc.classes.epol.setep`.
+
+    EfieldRotSel : str, optional, default = 'z'
+        Only used for EfieldPol objects.
+        Sets pol geom selection for E-field, see :py:func:`epsproc.classes.epol.setep`.
+        Note this is also used as a pol geom label in the output.
 
     phaseConvention : optional, str, default = 'E'
         Set phase conventions with :py:func:`epsproc.geomCalc.setPhaseConventions`.
@@ -231,11 +244,22 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, EPRXresort = None,
     calcSettings = locals()  # Grab passed args (calc. settings) for reference later.
 
     # 21/03/24: allow for passing EfieldPol object to define fields and rotations.
+    # 26/05/24: added EfieldBasis, EfieldRotSel to force use of rotated fields from epDict.
+    #           added 'config' option for automatic handling too.
+    # 27/05/24: RX > RXfield, since this is not used later, but EfieldRotSel IS now set as a label later.
     if EfieldPol is not None:
         # Check class, could also use EfieldPol.__class__.__name__ ==
         # if isinstance(EfieldPol,epol.EfieldPol):  # Issues with circular import at load if using this!
         if hasattr(EfieldPol,"__class__") and (EfieldPol.__class__.__name__ == "EfieldPol"):
-            ep, p, RX, EPRX, EfieldPol = EfieldPolConfig(EfieldPol)
+            ep, p, RXfield, EPRX, EfieldPol = EfieldPolConfig(EfieldPol,
+                                                        basis=EfieldBasis, rotSel=EfieldRotSel,
+                                                        config='AF')
+
+            # Update passed values for ref.
+            for item in ['ep', 'p', 'RXfield', 'EPRX']:
+                calcSettings[item] = locals()[item]
+
+
         else:
             print(f"Ignoring `EfieldPol`, unrecognised object type{type(EfieldPol)}.")
 
@@ -333,7 +357,9 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, EPRXresort = None,
         # if polLabel is not None:
         #     RX = RX.sel({'Label':polLabel})
 
-        RX = sphCalc.setPolGeoms(eulerAngs = [0,0,0])  # Use setPolGeoms, but ONLY VALID FOR (0,0,0) case BY DEFINITION (no frame rotation term in AF formulation, although can ACCIDENTALLY APPLY with MFproj() function below).
+        RX = sphCalc.setPolGeoms(eulerAngs = [0,0,0], labels=EfieldRotSel)  # Use setPolGeoms, but ONLY VALID FOR (0,0,0) case BY DEFINITION (no frame rotation term in AF formulation, although can ACCIDENTALLY APPLY with MFproj() function below).
+                                                                            # 27/05/24: added label passing for case when field is rotated.
+                                                                            #           this does NOT affect RX or calculation, aside from dim label passing later.
 
         # *** Lambda term
         lambdaTerm, lambdaTable, lambdaD, _ = geomCalc.MFproj(RX = RX, form = 'xarray', phaseConvention = phaseConvention)

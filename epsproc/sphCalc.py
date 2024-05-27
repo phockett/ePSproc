@@ -353,6 +353,7 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False, name = N
 # TODO: implement dim remapping, see PEMtk.toePSproc()
 def setBLMs(BLMs = [0,0,1], LMLabels = None,   # keyDims = {},
             t = None, name = None, tUnits = 'ps',
+            dimNames = ['BLM','t'],
             conformDims = False, **kwargs):
     """
     Create Xarray from BLMs, or create default case BLM = [0,0,1].
@@ -376,6 +377,9 @@ def setBLMs(BLMs = [0,0,1], LMLabels = None,   # keyDims = {},
 
     tUnits : str, optional, default = 'ps'
         Units for t axis, if set.
+
+    dimNames : list, optional, default = ['BLM','t']
+        Names for dims in output Xarray.
 
     conformDims : bool, optional, default = False
         Add any missing dims to match ep.listFuncs.BLMdimList.
@@ -427,7 +431,7 @@ def setBLMs(BLMs = [0,0,1], LMLabels = None,   # keyDims = {},
 
     # Set up Xarray
     QNs = pd.MultiIndex.from_arrays(LMLabels.real.T.astype('int8'), names = ['l','m'])  # Set lables, enforce type
-    BLMX = xr.DataArray(BLMs, coords={'BLM':QNs,'t':t}, dims = ['BLM','t'])
+    BLMX = xr.DataArray(BLMs, coords={dimNames[0]:QNs,dimNames[1]:t}, dims = dimNames)
 
     # Metadata
     if name is None:
@@ -440,7 +444,7 @@ def setBLMs(BLMs = [0,0,1], LMLabels = None,   # keyDims = {},
 
     # Set units
     BLMX.attrs['units'] = 'arb'
-    BLMX.t.attrs['units'] = tUnits
+    BLMX[dimNames[1]].attrs['units'] = tUnits
 
     # Set defaults for harmonics
     BLMX.attrs['harmonics'] = listFuncs.YLMtype(**kwargs)

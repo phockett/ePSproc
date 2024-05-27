@@ -263,6 +263,23 @@ def afblmXprod(matEin, QNs = None, AKQS = None, EPRX = None, EPRXresort = None,
         else:
             print(f"Ignoring `EfieldPol`, unrecognised object type{type(EfieldPol)}.")
 
+
+    # 27/05/24: add AKQS handling for new class object.
+    # If subset is not configured skip this and use defaults instead.
+    # This avoid accidentally using a large ADM array from input class.
+    if AKQS is not None:
+        if hasattr(AKQS,"__class__") and (AKQS.__class__.__name__ == "ADM"):
+            if hasattr(AKQS,"subKey"):
+                ADMkey = AKQS.subKey
+                AKQS = AKQS.data[ADMkey]['ADM']
+                print(f"Using ADMs from AKQS.data['{ADMkey}']['ADM']")
+            else:
+                print(f"*** Skipping passed ADMs, `AKQS.subKey` not set.")
+                print("Run `AKQS.subsetADMs()` to configure ADM subset.")
+                AKQS = None
+
+
+
     # Set phase conventions - either from function call or via passed dict.
     # if type(phaseConvention) is str:
     #     phaseCons = geomCalc.setPhaseConventions(phaseConvention = phaseConvention)

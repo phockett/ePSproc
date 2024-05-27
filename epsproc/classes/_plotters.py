@@ -597,7 +597,7 @@ def BLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
         # 02/11/22 - very basic XS handling, as per ep.basicPlotters.BLMplot, plus AF case handling.
         # TODO: more options, tidy up, etc, May want to modify base AFBLM code outputs.
         if XS:
-            subset = setXSfromCoords(subset, self.verbose)
+            subset = setXSfromCoords(subset, absXS = absXS, verbose = self.verbose)
 
         if subset.any():
             # THIS IS SHIT
@@ -673,7 +673,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             xDim = None, selDims = None, col = None, row = None,
             thres = None, keys = None, verbose = None,
             backend = 'hv', overlay = None, keyDim = 'Orb',
-            XS=False, filterXS=None, absXS = False,
+            XS=False, filterXS=None, absXS = True,
             sqSelector = False, sqPlot = True,
             pType='r', hvType = 'heatmap',
             addHist = True, addADMs = True,
@@ -710,7 +710,7 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
                    added filterXS to allow filtering on XS to remove spurious points.
                    Default = None (not applied), or set to a threshold value.
 
-                   added absXS option to force np.abs(XS), default = False.
+                   added absXS option to force np.abs(XS), default = True.
 
     NOTE 15/05/24: added different defaults for MFBLM case (hvType=line), to skip these pass `overrideMF = True`.
 

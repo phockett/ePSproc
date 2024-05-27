@@ -315,12 +315,17 @@ class EfieldPol():
 #********** Additional functionality for ePSproc integration
 #
 
-    def setep(self, labels = None, basis = 'ep'):
+    def setep(self, labels = None, basis = 'ep', rotSel = None):
         """
         Set field terms in ep array format for use in :py:func:`epsproc.geomFunc.EPR()`
 
         Note this uses self.Elr ONLY, and sets p=[-1,1].
         Note EPR() currently only supports single pol state.
+
+        UPDATE 22/05/24: to use rotated fields directly (as set by `self.setOrientation()`),
+        pass "basis='rot'".
+        Note this only supports a single pol geom currently.
+        Optionally pass `rotSel=<polGeom>` to control selection (by labels), default = 'z'.
 
         self.epDict can be passed to EPR inputs.
         self.epXR contains Xarray representation.
@@ -344,14 +349,43 @@ class EfieldPol():
         if basis == 'ep':
             # ep = np.array([self.Elr[:,0],-self.Elr[:,1]],ndmin=2).astype(np.complex)
             ep = np.c_[self.Elr[:,0],-self.Elr[:,1]]
+            setDict = True
 
         # Set directly from Elr basis
         elif basis == 'lr':
             # ep = np.array([self.Elr[:,0],self.Elr[:,1]],ndmin=2).astype(np.complex)
             ep = self.Elr
+            setDict = True
 
-        self.epDict = {'ep':ep.squeeze(),  # Note squeeze here for single pol state.
-                       'p':p}
+        # Set from rotated case.
+        # Note this is required for correct setting of self.EPRX for AF calcs.
+        elif basis == 'rot':
+            # Set default orientation if not already configured.
+            if not hasattr(self,'YLMrot'):
+                self.setOrientation()
+
+            # Set new ep, note single rotation geometry only currently.
+            # Note squeeze prior to unstack here to remove any extra dims, should keep (BLM,Labels)
+            epSub = self.YLMrot.swap_dims({"Euler":"Labels"}).squeeze().unstack('BLM').sel(Labels=rotSel)
+
+            # Set values to use for epDict passing, and also self.epXR below.
+            # (Alternatively: may want to relabel XR axes here instead instead of recomposing epXR below.)
+            ep = epSub.values
+            p = epSub.m.values
+
+            # Update master dict, and add RX for reference
+            self.epDict = {'ep':ep.squeeze(),  # Note squeeze here for single pol state.
+                            'p':p,
+                           'RX':self.RX}
+
+            setDict = False  # Skip main setter below.
+
+            # labels=[rotSel]  # Set to replace labels with only selected case.
+
+
+        if setDict:
+            self.epDict = {'ep':ep.squeeze(),  # Note squeeze here for single pol state.
+                           'p':p}
 
 
         # Use passed labels, or self.labels if present.
@@ -361,13 +395,17 @@ class EfieldPol():
         if labels is not None:
             self.labels = labels
 
+        # 26/05/24: added quick try/except here to skip for AF case with additional dims.
+        try:
+            self.epXR = xr.DataArray(ep, coords={'p':p,'Labels':self.labels},
+                                    dims=['Labels','p'])
+        except ValueError:
+            print("Skipping self.epXR configuration, issue with dims.")
 
-        self.epXR = xr.DataArray(ep, coords={'p':p,'Labels':self.labels},
-                                 dims=['Labels','p'])
 #         self.epXR = xr.DataArray(self.Elr, coords={'p':p}, dims='p')
 
         if self.verbose:
-            print("Set parameters to `self.epDict` and `self.epXR`.")
+            print(f"Set E-field parameters to `self.epDict` and `self.epXR`, using basis={basis} (rotSel={rotSel}).")
 
 
     def calcEPR(self, stackDim = 'pol', labels = None):
@@ -431,7 +469,8 @@ class EfieldPol():
 
 
     def setOrientation(self, RX = None, eulerAngs = None, labels = None,
-                        mapping = 'exy', basis='ep'):
+                        mapping = 'exy', basis='ep',
+                        TKQform = 1, TKQconj = True):
         """
         Rotate Epol fields.
 
@@ -475,6 +514,13 @@ class EfieldPol():
             'ep' for spherical basis.
             'lr' for optical (l,r) basis (phase switched from 'ep' case).
 
+        TKQform : int, default = 1
+            Which formalism to use from :py:func:`epsproc.sphCalc.TKQarrayRotX()`.
+
+        TKQconj : bool, default = True
+            Take conjugate of results if True.
+            In case of TKQform = 1, this should = True.
+
         """
 
         if RX is None:
@@ -500,7 +546,15 @@ class EfieldPol():
         self.setYLM(basis=basis)
 
         # Rotate
-        self.YLMrot, _, _ = TKQarrayRotX(self.YLM, RX)
+        self.YLMrot, _, _ = TKQarrayRotX(self.YLM, RX, form = TKQform)
+
+        # Conjugate results...?
+        if TKQconj:
+            self.YLMrot = self.YLMrot.conj()
+
+        # Log options to output data.
+        self.YLMrot.attrs['TKQrotOptions'] = {"TKQform":TKQform,
+                                                "TKQconj":TKQconj}
 
         if self.verbose:
             print(f"Set pol state data to self.YLM and self.YLMrot, and orientations to self.RX (mapping={mapping}).")

@@ -92,7 +92,7 @@ mathjax3_config = {
 # api doc settings
 apidoc_module_dir = '../../epsproc'
 apidoc_output_dir = 'modules'
-apidoc_excluded_paths = ['tests']
+apidoc_excluded_paths = ['tests','*/bk']
 apidoc_separate_modules = True
 
 # 27/05/24 testing autoapi, https://github.com/readthedocs/sphinx-autoapi

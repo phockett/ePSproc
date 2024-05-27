@@ -63,7 +63,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
                 'sphinxcontrib.apidoc', # 'recommonmark',
                 'sphinx.ext.viewcode', 'nbsphinx',
                 # 'myst_parser',
-                'autoapi.extension',   # 27/05/24 testing autoapi
+                # 'autoapi.extension',   # 27/05/24 testing autoapi. Initial tests run autoapi OK, then fail on build at `autoapi/epsproc/AFBLM/index`...? Maybe version issue or conflict...?
                 'sphinx_mdinclude',    # 09/11/22 - testing MD include support, e.g. .. mdinclude:: ../../../docker/readme.md
                 # 'IPython.sphinxext.ipython_console_highlighting']  # Actually this throws an error on RTD - try adding ipyhton to requirements.txt instead...
                 'sphinx_math_dollar', 'sphinx.ext.mathjax'] # 22/05/24 For $ maths in RST, from https://github.com/sympy/sphinx-math-dollar
@@ -97,9 +97,9 @@ apidoc_separate_modules = True
 
 # 27/05/24 testing autoapi, https://github.com/readthedocs/sphinx-autoapi
 # For options: https://sphinx-autoapi.readthedocs.io/en/latest/reference/config.html
-autoapi_dirs = '../../epsproc'
-autoapi_ignore = ['*tests*','*bk*','*set_plot_options_json.py']   # Note issues with notebook > .py files! May want to use a standard pattern here.
-# suppress_warnings = ["autoapi.python_import_resolution", "autoapi.not_readable"]
+# autoapi_dirs = '../../epsproc'
+# autoapi_ignore = ['*tests*','*bk*','*set_plot_options_json.py']   # Note issues with notebook > .py files! May want to use a standard pattern here.
+# # suppress_warnings = ["autoapi.python_import_resolution", "autoapi.not_readable"]
 
 # Sphinx-autodoc mock imports for minimal build-chain.
 # https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#confval-autodoc_mock_imports

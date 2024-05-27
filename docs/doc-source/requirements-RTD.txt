@@ -54,3 +54,8 @@ sphinx-mdinclude
 
 # 22/05/24 Fix $ maths rendering, not sure if this was an issue previously?
 sphinx-math-dollar
+
+# 27/05/24 - Testing https://github.com/readthedocs/sphinx-autoapi
+# Note - currently using apidoc, but only includes directly imported modules?
+# See https://github.com/sphinx-contrib/apidoc
+sphinx-autoapi

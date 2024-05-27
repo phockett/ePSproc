@@ -378,7 +378,7 @@ class ADM(ePSmultiJob):
 
     def subsetADMs(self, dataKey = None, dataType = 'ADM',
                     trange = None, tStep = 4,
-                    subKey = 'ADM',
+                    subKey = None,
                     plotSubset = False):
         """
         Subselect ADMs to use for calcs.
@@ -386,6 +386,7 @@ class ADM(ePSmultiJob):
         Basic case from https://phockett.github.io/ePSdata/OCS-preliminary/OCS_orbs8-11_AFBLMs_VM-ADMs_140122-JAKE_tidy-replot-200722_v5.html
 
         See also PEMtk fitting code for setSubset() method.
+        Note that has better routines for key passing/updates.
 
         """
 
@@ -397,6 +398,18 @@ class ADM(ePSmultiJob):
                 dataKey = self._keysCheck(None)[0]
 
         print(f"Setting subset data from `self.data['{dataKey}']['ADM']`")
+
+        # Set subKey
+        # Used passed values, or set from default.
+        # Update self.subKey if passed.
+        if subKey is None:
+            if hasattr(self,'subKey'):
+                subKey = self.subKey
+            else:
+                subKey = 'ADM'
+                self.subKey = subKey
+        else:
+            self.subKey = subKey
 
         if trange is None:
             # Set full axis, just downsample

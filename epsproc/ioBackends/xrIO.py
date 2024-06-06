@@ -185,7 +185,9 @@ def writeXarray(dataIn, fileName = None, filePath = None, engine = 'h5netcdf', f
 
 
 # File read wrapper.
-def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = False, forceArray = True):
+def readXarray(fileName, filePath = None, engine = 'h5netcdf',
+                forceComplex = False, forceArray = True,
+                verbose = True):
     """
     Read file from netCDF format via Xarray method.
 
@@ -244,6 +246,16 @@ def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = Fa
     # if not Path(fileIn).exists():
     #     fileIn = Path(dataPath,fileIn)  # Assume full path missing if file doesn't exist?
 
+    # Quick hack in for use 06/06/24
+    # Note in this case if not specified reader will always use cwd
+    if filePath is not None:
+        # filePath = os.getcwd()
+        fileName = os.path.join(filePath, fileName)
+
+    if not os.path.exists(fileName):
+        print(f"*** No file found for {fileName}, skipping file read.")
+        return None
+
     # Set reader - can try and force to array too.
     # If forceComplex = False, need to use xr.open_dataset for Re+Im dataset format.
     if forceArray and forceComplex:
@@ -267,6 +279,8 @@ def readXarray(fileName, filePath = None, engine = 'h5netcdf', forceComplex = Fa
             else:
                 raise
 
+    if verbose:
+        print(f"*** Read {fileName}.")
 
     if (engine != 'h5netcdf') or (not forceComplex):
         # Reconstruct complex variables, NOTE this drops attrs... there's likely a better way to do this!

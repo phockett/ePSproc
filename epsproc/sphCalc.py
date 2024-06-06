@@ -351,8 +351,10 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False, name = N
 # General BLM setter for using with custom values.
 # 04/04/22: hacking in as per existing setADMs() and cf. also blmXarray().
 # TODO: implement dim remapping, see PEMtk.toePSproc()
+# 31/05/24: added XS and addXS options.
 def setBLMs(BLMs = [0,0,1], LMLabels = None,   # keyDims = {},
             t = None, name = None, tUnits = 'ps',
+            XS = None, addXS = False,
             dimNames = ['BLM','t'],
             conformDims = False, **kwargs):
     """
@@ -377,6 +379,15 @@ def setBLMs(BLMs = [0,0,1], LMLabels = None,   # keyDims = {},
 
     tUnits : str, optional, default = 'ps'
         Units for t axis, if set.
+
+    XS : list or array (1D), optional, default = None
+        Used to pass a separate array for XS data.
+        Will be assigned to B(0,0) in output.
+
+    addXS : bool, optional, default = False
+        Add XS/B(0,0) term?
+        If XS is passed this is always applied.
+        If XS is None, setting addXS=True will add B(0,0)=1 terms.
 
     dimNames : list, optional, default = ['BLM','t']
         Names for dims in output Xarray.
@@ -422,6 +433,16 @@ def setBLMs(BLMs = [0,0,1], LMLabels = None,   # keyDims = {},
     if LMLabels is None:
         LMLabels = BLMs[:,0:2]
         BLMs = BLMs[:,2:]
+
+    # Add XS if missing?
+    if addXS or (XS is not None):
+        if XS is None:
+            BLMs = np.c_[np.ones(BLMs.shape[1]), BLMs.T].T   # Ugly but OK
+        else:
+            BLMs = np.c_[XS, BLMs.T].T   # Ugly but OK
+
+        # Add [0,0] label.
+        LMLabels = np.concatenate(([[0,0]],LMLabels))   # Add [0,0] row, should be OK for list or np.array types.
 
 
     # Set indexing, default to numerical

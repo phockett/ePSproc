@@ -135,7 +135,7 @@ class ePSbase():
 
 
     # **** Small utility fns.
-    def _keysCheck(self, keys):
+    def _keysCheck(self, keys, sortKeys=True):
         """
         Set keys:
 
@@ -154,6 +154,9 @@ class ePSbase():
         else:
             if not isinstance(keys, list):   # Force list if single item passed
                 keys = [keys]
+
+        if sortKeys:
+            keys.sort()
 
         return keys
 

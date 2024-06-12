@@ -1317,6 +1317,12 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     # TODO: separate this out into new function?
     # TODO: fix dim handling, just hard-coded for testing, should implement dim checks as above.
     # TODO: more control over .hist, may have this in TMOdev codes with better layouts?
+    # TODO: should be able to stack I(theta,t) grids by Eke, but can’t at the moment… related to dim handling hacks/assumptions below?
+    #
+    # 12/06/24:
+    #  - Use 'Etype' for dims
+    #  - Set pltObj = None default case for empty data return.
+    #
     if backend == 'hv':
         # HV plot for PAD grid only.
         xrDS = xr.concat(datastack, 'Orb')

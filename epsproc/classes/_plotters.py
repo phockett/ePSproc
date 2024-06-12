@@ -704,6 +704,10 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
         E.g. to set figure size:
                  width = 700, height = 700
 
+        For HeatMap case may need to sepecify `frame_width` here for Bokeh backend.
+        If ADMplot and hist set, `width=1000, frame_width=860` matches axes.
+        TODO: ordering of compositing here? Axes automatically aligned in some cases, but not all.
+
     NOTE 22/03/24: added sqSelector and sqPlot for better squeeze control.
                    In some cases may get issues stacking to XR dataset if sqSelector=True
 
@@ -863,7 +867,14 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             hvPlotOut = hvObj.overlay(xrDS.attrs['harmonics']['dimList']).opts(**kwargs)
 
         if hvType == 'heatmap':
+            # from holoviews import opts
+            # hvPlotOut = hvObj.opts(opts.HeatMap(**kwargs))
+            # if 'width' in kwargs.keys():
+            #     ADMopts['width'] = kwargs['width']
+            # Pass args directly... note may need `frame_width` here for Bokeh backend.
+            # If ADMplot and hist set, width=1000, frame_width=860 is good.
             hvPlotOut = hvObj.opts(**kwargs)
+
 
             if addHist:
                 # Push clims to .hist if set, otherwise will default to full range.
@@ -877,7 +888,21 @@ def _hvBLMplot(self, Erange = None, Etype = 'Eke', dataType = 'AFBLM',
             ADMdata = self.data.get('ADM')
 
             if ADMdata and (not dataType.startswith('MF')):
-                ADMplot = ['ADM'].unstack().squeeze().real.hvplot.line(x='t').overlay('K')
+                # Pass any required options...
+                # TODO: for Heatmap case may want to pull img defaults here?
+                ADMopts = {}
+                if 'width' in kwargs.keys():
+                    ADMopts['width'] = kwargs['width']
+                if 'height' in kwargs.keys():
+                    ADMopts['height'] = round(kwargs['height']*0.2)
+                else:
+                    ADMopts['height'] = 200
+
+
+                ADMplot = ADMdata['ADM'].unstack().squeeze().real.hvplot.line(x='t').opts(**ADMopts).overlay('K')
+
+
+                # Set plot
                 hvPlotOut = (hvPlotOut + ADMplot).cols(1)
 
 
@@ -1229,6 +1254,7 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
         # 12/08/22: added group by-pass for single facet dim case.
         #           Seems to be OK for Plotly case, but NOT WORKING CORRECTLY FOR MPL CASE HOWEVER, still get single fig per item?
 
+        pltObj = None  # Set for default case - allows data manipulation and return without plotter.
         if pStyle == 'polar':
             if groupFlag:
                 for groupLabel, item in subset.groupby(facetDimsCheck[0]):
@@ -1298,7 +1324,8 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
 
         # Set clims dynamically with scaling, or directly from passed arg.
         if isinstance(hvClims,float):
-            clims = hvClims * xrDS.max(dim = ['Labels','Eke','Theta'])  # Max per orb for additional cmap control - NOTE HARD-CODED DIMS HERE!
+            #clims = hvClims * xrDS.max(dim = ['Labels','Eke','Theta'])  # Max per orb for additional cmap control - NOTE HARD-CODED DIMS HERE!
+            clims = hvClims * xrDS.max(dim = ['Labels',Etype,'Theta'])
             bin_range=[0, hvClims*clims.max().astype(int)]  # For .hist() - can't seem to set per plot for Adjoint layout? xlim= is ignored, and passing `bin_range=[0,clims.sel(Orb = orb).item().astype(int)]` doesn't do anything?
         else:
             # TODO: need to set this to XR and/or change plotting code below to implement.
@@ -1308,7 +1335,7 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
             # bin_range = hvClims
 
         hvDS = hvPlotters.hv.Dataset(xrDS)
-        hvObj = hvDS.to(hvPlotters.hv.HeatMap, kdims=['Eke','Theta'])
+        hvObj = hvDS.to(hvPlotters.hv.HeatMap, kdims=[Etype,'Theta']).opts(**kwargs)
 
         if returnFlag:
             self.plots['PADGrid'] = {'XR':xrDS,'hvDS':hvDS,'hv':hvObj}
@@ -1316,14 +1343,15 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
             if self.verbose:
                 print(f"PADGrid set data and plots to self.plots['PADGrid']")
 
+        # 12/06/24 Quickly patched in opts(**kwargs), but may need some additional logic in general.
         if plotFlag:
             if hvCHist:
                 # For hist PER PLOT need to add to each plot prior to layout (otherwise get only sinlge linked hist)
-                hvList = [hvDS.select(Orb=orb).reduce(Orb=np.mean).to(hvPlotters.hv.HeatMap, kdims=['Eke','Theta']).opts(height=300,width=300, cmap='vlag', title=orb, clim=(0,clims.sel(Orb = orb).item())).hist(bin_range=bin_range) for orb in self.jobKeys]
+                hvList = [hvDS.select(Orb=orb).reduce(Orb=np.mean).to(hvPlotters.hv.HeatMap, kdims=[Etype,'Theta']).opts(cmap='vlag', title=orb, clim=(0,clims.sel(Orb = orb).item()),**kwargs).hist(bin_range=bin_range) for orb in self.jobKeys]
                 showPlot(hvPlotters.hv.Layout(hvList).cols(2), returnPlot = returnFlag, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
 
             else:
-                showPlot(hvObj.opts(cmap='vlag').layout('Orb').cols(2), returnPlot = returnFlag, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
+                showPlot(hvObj.opts(cmap='vlag',**kwargs).layout('Orb').cols(2), returnPlot = returnFlag, __notebook__ = isnotebook())  # Currently need to pass __notebook__?
 
         # if returnFlag:
         #     return hvObj

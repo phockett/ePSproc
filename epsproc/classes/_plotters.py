@@ -1318,6 +1318,7 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
     # TODO: fix dim handling, just hard-coded for testing, should implement dim checks as above.
     # TODO: more control over .hist, may have this in TMOdev codes with better layouts?
     # TODO: should be able to stack I(theta,t) grids by Eke, but can’t at the moment… related to dim handling hacks/assumptions below?
+    # TODO: arg passing, currently SOME are hard-coded, and also depend on other options.
     #
     # 12/06/24:
     #  - Use 'Etype' for dims
@@ -1335,6 +1336,7 @@ def padPlot(self, selDims = {}, sumDims = {'Sym','it'}, Erange = None, Etype = '
             bin_range=[0, hvClims*clims.max().astype(int)]  # For .hist() - can't seem to set per plot for Adjoint layout? xlim= is ignored, and passing `bin_range=[0,clims.sel(Orb = orb).item().astype(int)]` doesn't do anything?
         else:
             # TODO: need to set this to XR and/or change plotting code below to implement.
+            # UPDATE 12/06/24: now working for passing `clim=()` directly as kwarg, but only for hvCHist=False case.
             # Could also pass as XR, but a bit of a pain to setup.
             print("Direct clims passing not yet implemented, ignoring hvClims.")
             # clims = tuple(hvClims)

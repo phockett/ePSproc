@@ -709,6 +709,8 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
     """
     Extract data from ePS dumpIdy segments into usable form.
 
+    (June 2024) Note new Numpy issue, works with 1.23, 1.26 breaks something here, related to array size or ordering? Or use of `np.unique()` - basically misses cases with empty matrix elements, then causes errors later.
+
     Parameters
     ----------
     dumpSegs : list

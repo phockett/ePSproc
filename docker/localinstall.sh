@@ -7,5 +7,5 @@ BASEPATH="${1:-/home/jovyan/github}"
 # USER="${2:}"   # TODO: set user flag as option
 
 cd $BASEPATH
-pip install -e epsproc #--user
+pip install -e ePSproc #--user
 pip install -e pemtk #--user

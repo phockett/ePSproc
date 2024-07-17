@@ -86,13 +86,13 @@ def readGamma(fileName, filePath = None,
         cols = list(range(1,9))
     
     # Read CSV with PD
-    df = pd.read_csv(fileIn, skiprows=lineStart[0]-1, # skiprows seems more consistent than 'header'
+    df = pd.read_csv(fileName, skiprows=lineStart[0]-1, # skiprows seems more consistent than 'header'
                      sep='\t+',   # use reg ex to allow for inconsistent tabbing
                      engine='python',  # Set engine to allow reg ex without warning
                      index_col=cols)  # Add index
     
     # Read file header
-    with open(fileIn) as fp:
+    with open(fileName) as fp:
         # lines = fp.readlines(100)
         head = [next(fp) for _ in range(lineStop[0])]
         
@@ -103,7 +103,7 @@ def readGamma(fileName, filePath = None,
         
     # Set metadata
     df.attrs['header']=head
-    df.attrs['file']=fileIn
+    df.attrs['file']=fileName
     df.attrs['headerlines']=[lineStart, lineStop]
     df.attrs['lines']=lines
     

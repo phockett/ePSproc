@@ -245,6 +245,7 @@ def Ccalc(channel=None, lmax=4, thres=1e-4):
     # Set C-terms and multiply
     # thres=1e-2
     C1 = dfprod['prod'].to_frame()
+    C1.rename(columns={'prod':'C1'}, inplace=True)
     
     if thres is not None:
         C1 = C1[C1.pipe(np.abs) > thres].dropna()
@@ -253,6 +254,7 @@ def Ccalc(channel=None, lmax=4, thres=1e-4):
     # NOTE - currently assumes single 'p', also INCOHERENT over Nc/Mc?
     # May need to revisit this for general case.
     C2 = C1.copy()
+    C2.rename(columns={'C1':'C2'}, inplace=True)
     C2.index.rename({'l':'lp','m':'mp','lam':'lamp','Nt':'Ntp','Mi':'Mip','q':'qp'}, inplace=True)
 
     Cprod = C2.merge(C1, 
@@ -341,5 +343,7 @@ def gammaCalc(channel=None,Cterms = None, denMat = None,
 
     gammaPD['lPhase'] = (-1j)**((gammaPD.index.get_level_values(level='lp')-gammaPD.index.get_level_values(level='l')).values)
     gammaPD['prod'] *= gammaPD['lPhase']
+    
+    gammaPD.rename(columns={'prod':'gamma'}, inplace=True)
     
     return gammaPD

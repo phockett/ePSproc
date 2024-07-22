@@ -108,6 +108,7 @@ A post-processing suite for ePolyScat calculations, and general tool for photoio
    methods/ePSproc_orbPlot_tests_130520
    methods/density_mat_notes_demo_300821
    methods/state-resolved_gamma_legacy_demo_170724
+   methods/state-resolved_gamma_python_demo_190724
 ..   ../../notebooks/in_progress/density_mat_notes_demo_300821   NEED TO USE INDLUCED HERE, or set in conf.py, see https://stackoverflow.com/questions/10199233/can-sphinx-link-to-documents-that-are-not-located-in-directories-below-the-root
 
 

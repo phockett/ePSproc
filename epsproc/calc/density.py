@@ -15,8 +15,14 @@ Dev code:
 #*** Dim functionality (see also lmPlot() and multiDimXrToPD() functions)
 
 # Set imports
+import pandas as pd
+import xarray as xr
+import numpy as np
+
 from epsproc.util import matEleSelector
 from epsproc.util.misc import checkDims
+from epsproc.geomFunc import geomCalc
+from epsproc.sphFuncs.sphConv import cleanLMcoords, checkSphDims
 # matEdimList, BLMdimList, dataTypesList, multiDimXrToPD
 # checkDims = ep.util.misc.checkDims
 
@@ -298,6 +304,162 @@ def densityCalc(da, denDims = 'LM',
 
     return daOut, daDot
 
+
+
+def densityFromSphTensor(tensorInput, denDims = None, #['M','Mp'],
+                         sphDims = None, stackDims = True,
+                         sumDims = None, selDims = None,
+                         calcType = None,
+                         dlist = None,
+                         Lmax = None,
+                         # dlist = ['Jp','J','K','Mp','M','Q'],
+                         verbose = 1,
+                         **kwargs):
+    """
+    Compute density matrix representation from spherical tensor form TKQ.
+    
+    Relations as defined by (Eqn. 4.34 in Blum):
+
+    \begin{equation}
+    \langle J'M'|\hat{\rho}|JM\rangle=\sum_{KQ}(-1)^{J'-M'}(2K+1)^{1/2}\left(\begin{array}{ccc}
+    J' & J & K\\
+    M' & -M & -Q
+    \end{array}\right)\left\langle T(J',J)_{KQ}^{\dagger}\right\rangle 
+    \end{equation}
+    
+    See also https://epsproc.readthedocs.io/en/3d-afpad-dev/methods/density_mat_notes_demo_300821.html#Density-matrix-from-geometric-tensors, and :py:func:`densityCalc` for general case.
+    
+    Parameters
+    ----------
+    tensorIn : Xarray or Panadas DataFrame
+        Input tensor data.
+        Must contain denDims and dlist terms.
+        
+    
+    
+    """
+    # Set data
+    tensorIn = tensorInput.copy()
+    
+    if calcType is None:
+        # Check type
+        inputType = type(tensorIn)
+
+        if isinstance(tensorIn, pd.core.frame.DataFrame):
+            calcType = 'pd'
+        # elif inputType.startswith('xarray'):
+        elif isinstance(tensorIn, xr.core.dataarray.DataArray):
+            calcType = 'xarray'
+        else:
+            print(f'*** Unsupported input/calc type "{inputType}". Pass `calcType=...` to override.')
+    
+    #*** Configure dims
+    # 23/07/24 v1: manual dim config here, should integrate with other dim handling functions!
+    # TODO: See from epsproc.sphFuncs.sphConv import cleanLMcoords, checkSphDims
+    # And epsproc.util.listFuncs
+    # And epsproc.util.misc import setDefaultArgs, checkDims
+    if denDims is None:
+        if stackDims:
+            denDims={'JM':['J','M'], 'JMp':['Jp','Mp']}
+        else:
+            denDims=['J','M','Jp','Mp']
+            
+        if verbose:
+            print(f"Set denDims={denDims}. Pass directly for more control.")
+                  
+    if sphDims is None:
+        # sphDims = {'TKQ':['T','K']}
+        
+        # Use current functionality but force keyDims
+        # Should work provided tensorIn.attrs['dataType'] is set.
+        # E.g. dataType='TKQ'
+        # See also densityCalc above for more options/methods.
+        try:
+            tensorIn = checkSphDims(tensorIn, keyDims=listFuncs.getRefDims(tensorIn))
+            sphDims = tensorIn.attrs['harmonics']['keyDims']
+            
+        except Exception as e:
+            # Fallback to defaults if checkDims issues.
+            sphDims = {'KQ':['K','Q']}
+            print(e)
+            print(f"Error with checkSphDims(), setting defaults.")
+        
+        if verbose:
+            print(f"Set sphDims={sphDims}. Pass directly for more control.")
+        
+    
+    # Format dlist as [J1,J2,J3,M1,M2,M3] from input terms unless preset.
+    # Should be an easier way to do this...? Maybe via tensorIn.attrs['harmonics']['keyDims'] if set?
+    if dlist is None:
+        if isinstance(denDims,dict):
+            llist = [v[0] for k,v in denDims.items()]
+            mlist = [v[1] for k,v in denDims.items()]
+            print(llist)
+            print(mlist)
+        else:
+            llist = denDims[0:3:2]
+            mlist = denDims[1::2]
+
+        llist.extend([v[0] for k,v in sphDims.items()])
+        mlist.extend([v[1] for k,v in sphDims.items()])
+        
+        dlist = [*llist,*mlist]
+        print(dlist)
+
+        
+    #*** Compute 3j terms
+    if Lmax is None:
+        # Lmax = tensorIn[tensorIn.attrs['harmonics']['lDim']]
+        Lmax = tensorIn[llist[-1]].max()  #.item()
+        
+    w3jXR = geomCalc.w3jTable(Lmax = Lmax, form = calcType, nonzeroFlag = True, dlist = dlist)
+
+    
+    #*** Unstack
+    w3jXR = w3jXR.unstack('QN')
+    
+    # Check inputs - TODO: generalise this!
+    if tensorIn.attrs['harmonics']['LMStackFlag']:
+        tensorIn = tensorIn.unstack(tensorIn.attrs['harmonics']['stackDim'])
+        
+    # Apply phases... For Q=0 case these don't matter...?
+    # return tensorIn, w3jXR
+
+    tensorIn[mlist[-1]] = -1* tensorIn[mlist[-1]]  # -Q term
+    w3jXR[mlist[0]] = -1* w3jXR[mlist[0]]  # -M term
+    
+    #*** Multiplicatoin
+    w3jMult = w3jXR * tensorIn * ((-1)**np.abs(w3jXR[llist[1]]-w3jXR[mlist[1]]))*np.sqrt(2*tensorIn[llist[-1]]+1) 
+    
+    pmm = w3jMult
+    
+    #*** Select & sum (optional)
+    # pmm = w3jMult.sel({'J':J,'Jp':Jp}).sum(['K','Q'])
+    
+    # Remove spurious M states?
+    # from epsproc.sphFuncs.sphConv import cleanLMcoords, checkSphDims
+    # pmmClean = cleanLMcoords(pmm, refDims=['J','M'])
+    # pmmClean = cleanLMcoords(pmmClean, refDims=['Jp','Mp'])
+    
+    if stackDims:
+        pmm = pmm.stack(denDims)
+
+    #*** Set atts
+    pmm.attrs['dataType']='Density Matrix'
+    pmm.attrs['density']={'denDims':denDims,
+                          'sphDims':sphDims,
+                          'stackDims':stackDims,
+                          'dlist':dlist,
+                          'sumDims':sumDims,
+                          'selDims':selDims}
+    # pmm.attrs['density'] = {'denSettings':denSettings,
+    #                          'sumTot':sumTot,
+    #                          'denDims':rsMap.update(denDimPMap),
+    #                          'kdims':[denDim, denDimP]}
+    
+    # Return full results
+    return pmm
+    
 
 #******* HV plotting code
 #

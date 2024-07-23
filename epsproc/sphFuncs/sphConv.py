@@ -16,7 +16,7 @@ import copy    # For attrs deepcopy.
 
 from epsproc.util.listFuncs import genLM, YLMtype, YLMdimList
 from epsproc.util.conversion import multiDimXrToPD
-from epsproc.util.misc import setDefaultArgs
+from epsproc.util.misc import setDefaultArgs, checkDims
 
 try:
     import pyshtools as pysh
@@ -666,7 +666,7 @@ def cleanLMcoords(daIn, refDims = None):
         dimCheck = {'refDims': da.attrs['harmonics']['dimList']}
 
     else:
-        dimCheck = ep.util.misc.checkDims(da, refDims=refDims)
+        dimCheck = checkDims(da, refDims=refDims)
 
     # Clean array - note this assumes [l,m] ordering.
     daOut = da.where(np.abs(da.coords[dimCheck['refDims'][1]])<=da.coords[dimCheck['refDims'][0]],drop=True)

@@ -94,6 +94,36 @@ def YLMdimList(sType = 'stacked'):
     else:
         # unstackedDims
         return ['l', 'm', 'Theta','Phi']
+    
+    
+# Return list of standard dataArray dims for BLM values
+def TKQdimList(sType = 'stacked'):
+    """
+    Return standard list of dimensions for calculated TKQs (spherical harmonics).
+    
+    NOTE: identical to YLM case, except L > K, M > Q mapping (upper case terms only).
+
+    Parameters
+    ----------
+    sType : string, optional, default = 'stacked'
+        Selected 'stacked' or 'unstacked' dimensions.
+        Set 'sDict' to return a dictionary of unstacked <> stacked dims mappings for use with xr.stack({dim mapping}).
+
+    Returns
+    -------
+    list : set of dimension labels.
+
+    """
+    if sType == 'stacked':
+        # stackedDims
+        return ['KQ','Theta','Phi']
+
+    elif sType == 'sDict':
+        return {'KQ':['K','Q']}
+
+    else:
+        # unstackedDims
+        return ['K', 'Q', 'Theta','Phi']
 
 
 # Return list of standard dataArray dims for Euer angles
@@ -247,6 +277,12 @@ def dataTypesList():
                     'desc':'Spherical harmonics from epsproc.sphCalc(), with various options.',
                     'dims': YLMdimList(sType = 'sDict'),
                     'def': YLMdimList
+                    },
+                'TKQ' :
+                    {'source':'TBD',
+                    'desc':'TKQ (general) spherical tensors.',
+                    'dims': TKQdimList(sType = 'sDict'),
+                    'def': TKQdimList
                     },
                 'phaseCons' :
                      {'source':'epsproc.geomFunc.setPhaseConventions()',

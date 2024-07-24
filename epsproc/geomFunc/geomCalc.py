@@ -513,6 +513,7 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
             - nd, return ND np.array, dims indexed as [l, lp, L, l+m, lp+mp, L+M], with values 3j.
                 This is suitable for direct indexing, but will have a lot of zero entries and may be large.
             - ndsparse, return ND sparse array, dims indexed as [l, lp, L, l+m, lp+mp, L+M], with values 3j.
+            - 'pd' : 2d table as Pandas DataFrame, with QNs as multindex.  (TODO: consider additional sorting here?)
 
         Additional options are set via :py:func:`remapllpL()`. This additionally sorts values by (l,lp,L) triples, which is useful in some cases.
             - 'dict' : dictionary with keys (l,lp,L), coordinate tables
@@ -520,7 +521,7 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
             - 'xdaLM' : Xarray dataarray, with stacked dims ['lSet','mSet']
             - 'xds' : Xarray dataset, with one array per (l,lp,L)
             - 'xdalist' : List of Xarray dataarrays, one per (l,lp,L)
-            - 'pd' : 2d table as Pandas DataFrame, with QNs as multindex.
+
 
     dlist : list of labels, optional, default ['l','lp','L','m','mp','M']
         Used to label array for Xarray output case.
@@ -633,18 +634,18 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
         # print('Not implemented')
         w3js = sparse.COO(QNs.T, w3j_QNs)  # Set matrix from ND cood list + data array.
         return w3js
-    
+
     elif form == 'pd':
-        
+
         # Set to PD from full table, then push to index.
         # Could also set index first, as per Xr case above
         w3jPD = pd.DataFrame(np.c_[QNs, w3j_QNs],columns = [*dlist, '3j'])
-        w3jPD = w3jPD.astype({k:int for k in dlist}) 
+        w3jPD = w3jPD.astype({k:int for k in dlist})
         w3jPD.set_index(dlist, inplace=True)
-        
+
         w3jPD.attrs['dataType'] = 'Wigner3j'
         w3jPD.attrs['dlist'] = dlist
-        
+
         return w3jPD
 
     else:

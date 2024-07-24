@@ -4,3 +4,5 @@ Dump for various development environments, see [the extended installation notes 
 
 * `envs-versioned`: working envs for specific ePSproc builds. Use these.
 * `envs-dump`: general dumping ground. Don't look here.
+
+Note July 2024: moved to archive to stop GH Dependabot flagging these.

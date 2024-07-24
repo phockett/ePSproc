@@ -19,7 +19,7 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 
-from epsproc.util import matEleSelector
+from epsproc.util import matEleSelector, listFuncs
 from epsproc.util.misc import checkDims
 from epsproc.geomFunc import geomCalc
 from epsproc.sphFuncs.sphConv import cleanLMcoords, checkSphDims
@@ -329,15 +329,56 @@ def densityFromSphTensor(tensorInput, denDims = None, #['M','Mp'],
     
     See also https://epsproc.readthedocs.io/en/3d-afpad-dev/methods/density_mat_notes_demo_300821.html#Density-matrix-from-geometric-tensors, and :py:func:`densityCalc` for general case.
     
+    23/07/24: v1
+    
     Parameters
     ----------
     tensorIn : Xarray or Panadas DataFrame
         Input tensor data.
         Must contain denDims and dlist terms.
+        NOTE: DATAFRAME VERSION NOT YET FULLY IMPLEMENTED
+        TODO: Implement, or transform to Xarray version?
         
+    denDims : list or dict, optional, default = None
+        Dims to use for 3j, stacked if dict.
+        If None, will default to {'JM':['J','M'], 'JpMp':['Jp','Mp']} or ['J','M','Jp','Mp']
     
+    sphDims : list or dict, optional, default = None
+        Dims to use from input tensor.
+        If None, will try to use checkSphDims(), or default to {'KQ':['K','Q']}
+        
+    sumDims : list or dict, optional, default = None
+        Dims to sum over, pmm.sum(sumDims)
+        NOT IMPLEMENTED
+        
+    selDims : list or dict, optional, default = None
+        Dims to select from, pmm.sel(selDims)
+        NOT IMPLEMENTED
+        
+    calcType : str, optional, default = None
+        calcType to pass to geomCalc.w3jTable
+        If None, will set to Xarray or PD from input.
+        
+    dlist : list, optional, default = None
+        Full dim list for geomCalc.w3jTable, format = [J1,J2,J3,M1,M2,M3]
+        Will be set automatically if None, or pass to override defaults.
     
+    Lmax : int, optional, default = None
+        Lmax for geomCalc.w3jTable
+        Will be set from tensorInput if None.
+        
+    verbose :
+    
+    **kwargs : optional
+        Additional kwargs passed to geomCalc.w3jTable().
+    
+    Returns
+    -------
+    pmm : Xarray or Pandas DataFrame
+        Density matrix result.
+        
     """
+    
     # Set data
     tensorIn = tensorInput.copy()
     
@@ -360,7 +401,7 @@ def densityFromSphTensor(tensorInput, denDims = None, #['M','Mp'],
     # And epsproc.util.misc import setDefaultArgs, checkDims
     if denDims is None:
         if stackDims:
-            denDims={'JM':['J','M'], 'JMp':['Jp','Mp']}
+            denDims={'JM':['J','M'], 'JpMp':['Jp','Mp']}
         else:
             denDims=['J','M','Jp','Mp']
             
@@ -412,7 +453,7 @@ def densityFromSphTensor(tensorInput, denDims = None, #['M','Mp'],
         # Lmax = tensorIn[tensorIn.attrs['harmonics']['lDim']]
         Lmax = tensorIn[llist[-1]].max()  #.item()
         
-    w3jXR = geomCalc.w3jTable(Lmax = Lmax, form = calcType, nonzeroFlag = True, dlist = dlist)
+    w3jXR = geomCalc.w3jTable(Lmax = Lmax, form = calcType, nonzeroFlag = True, dlist = dlist, **kwargs)
 
     
     #*** Unstack
@@ -434,6 +475,10 @@ def densityFromSphTensor(tensorInput, denDims = None, #['M','Mp'],
     pmm = w3jMult
     
     #*** Select & sum (optional)
+    if (selDims is not None) or (sumDims is not None):
+        print("*** selDims and sumDims not yet implemented.")
+    
+    # TODO: use existing selectors here?
     # pmm = w3jMult.sel({'J':J,'Jp':Jp}).sum(['K','Q'])
     
     # Remove spurious M states?
@@ -442,10 +487,18 @@ def densityFromSphTensor(tensorInput, denDims = None, #['M','Mp'],
     # pmmClean = cleanLMcoords(pmmClean, refDims=['Jp','Mp'])
     
     if stackDims:
-        pmm = pmm.stack(denDims)
+        pmm = pmm.stack(denDims)  #.stack(sphDims)  # sphDims should be summed, or could choose to keep & restack?
 
     #*** Set atts
-    pmm.attrs['dataType']='Density Matrix'
+    if tensorInput.name:
+        pmm.name = tensorInput.name
+    else:
+        pmm.name = 'Density Matrix'
+        
+    pmm.attrs = tensorInput.attrs.copy()  # Propagate existing attrs
+    
+    pmm.attrs['dataType']='Density Matrix'  # Density specific attrs
+    pmm.attrs['long_name']='Density Matrix'
     pmm.attrs['density']={'denDims':denDims,
                           'sphDims':sphDims,
                           'stackDims':stackDims,
@@ -612,7 +665,7 @@ def matPlot(da, kdims = None, pTypes = ['r','i','a'],
     hvds = hv.Dataset(daPlot)
     hvmap = hvds.to(hv.HeatMap, kdims=kdims)
 
-    if returnType is 'full':
+    if returnType == 'full':
         return hvmap, hvds, daPlotDS
     else:
         return hvmap

@@ -16,8 +16,11 @@ numpy
 scipy
 #xarray<=2022.3.0
 pandas
-matplotlib
+
+# Matplotlib v3.9 breaks compatibility with Seaborn 0.9. TODO: update Seaborn usage!
+matplotlib<3.9 
 seaborn==0.9.0
+
 # spherical_functions
 
 # Optional, but included here for now

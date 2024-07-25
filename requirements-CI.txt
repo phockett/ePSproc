@@ -34,4 +34,6 @@ holoviews
 
 h5py
 
+# Others which should be optional...
 mpmath
+wget

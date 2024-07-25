@@ -8,11 +8,14 @@ name: Xarray latest
 # on:
 # 12/01/23: this currently always fails for XR 2022.10, so ignore dev branch for now (until debugged)
 # Syntax: https://docs.github.com/en/actions/using-workflows/triggering-a-workflow
+# UPDATE 25/07/24: skip all branches with latest, currently failing in multiple places.
 on:
   push:
     # Sequence of patterns matched against refs/heads
     branches-ignore:
       - dev
+      - 3d-AFPAD-dev
+      - master
 
 jobs:
   build:

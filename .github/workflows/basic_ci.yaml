@@ -5,7 +5,7 @@
 # 10/01/23 Added job summary reporting and updated pytest output files for (python)-(xarray) version naming.
 #          NEEDS WORK
 
-name: Stable versions (XR<=2022.3)
+name: Stable versions (XR==2022.3)
 
 on: [push]
 # on:

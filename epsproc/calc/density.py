@@ -376,6 +376,8 @@ def densityFromSphTensor(tensorInput, denDims = None, #['M','Mp'],
     -------
     pmm : Xarray or Pandas DataFrame
         Density matrix result.
+        Note default case may also keep input sph tensor dims, which should be summed over for the standard result.
+        E.g. `pmm.sum(['K','Q'])`
         
     """
     

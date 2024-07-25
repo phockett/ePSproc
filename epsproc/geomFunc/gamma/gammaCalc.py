@@ -10,7 +10,9 @@ ePSproc Gamma functions: calculations
 
 import pandas as pd
 import numpy as np
+import xarray as xr
 
+from epsproc import multiDimXrToPD
 from epsproc.geomFunc.geomCalc import w3jTable
 
 
@@ -324,26 +326,102 @@ def gammaCalc(channel=None,Cterms = None, denMat = None,
     Ni,Ki,Nc,Kc=channel
     
     if Cterms is None:
-        Cterms = Ccalc(channel,**kwargs)
+        Cterms = Ccalc(channel,**kwargs)     
         
     if denMat is not None:
-        print("*** Density matrix mult not yet implemented.")
+        # print("*** Density matrix mult not yet implemented.")
+        if isinstance(denMat, xr.core.dataarray.DataArray):
+            denMat = denMatReformat(denMat)
+          
+        # Assign and multiply density matrix & gamma terms
+        CtermsRho = Cterms.merge(denMat, 
+                 left_index=True, 
+                 right_index=True,
+                 how='left')
         
+        # Crho['prod']*=Crho['rho']  # For single col case
+
+        # For multi-col case, plus return clean DF
+        # Per https://stackoverflow.com/a/46779778
+        Cpmm = CtermsRho.iloc[:, 3:].mul(CtermsRho['prod'],axis=0)  #.combine_first(Crho)  # Add this to return original vals too.
+    
+    # For null density matrix, just set product term - this saves additional axis checks etc....?
+    # OR may want to keep C1,C1...?
+    else:
+        Cpmm = Cterms['prod']
+    
     
     # Sum over some dims
-    dims = list(Cterms.index.names)
-    # sumList = ['q','qp','Mi','Mip','Nt','Ntp','Mc']
+    gammaPD = sumPDGroups(Cpmm, sumDims=sumList)
 
-    dimsGroup = list({*dims}-{*sumList})
-
-    gammaPD = Cterms.groupby(by=dimsGroup).sum()
-
-    gammaPD['prod'] = (2*Ni+1) * (2*Nc+1) * \
-                      gammaPD['prod']
-
-    gammaPD['lPhase'] = (-1j)**((gammaPD.index.get_level_values(level='lp')-gammaPD.index.get_level_values(level='l')).values)
-    gammaPD['prod'] *= gammaPD['lPhase']
+    lPhase = (-1j)**((gammaPD.index.get_level_values(level='lp')-gammaPD.index.get_level_values(level='l')).values)
     
-    gammaPD.rename(columns={'prod':'gamma'}, inplace=True)
+    # Multiply by degen & phase factors
+    gammaPD =  gammaPD.multiply(lPhase, axis=0)  # Need to force row-wise multiply here in general.
+    gammaPD *= (2*Ni+1) * (2*Nc+1)
     
-    return gammaPD
+    # TODO: Renorm...?
+    
+    
+    # Initial test version - assumes single col gamma only.
+#     # Sum over some dims
+#     dims = list(Cterms.index.names)
+#     # sumList = ['q','qp','Mi','Mip','Nt','Ntp','Mc']
+
+#     dimsGroup = list({*dims}-{*sumList})
+
+#     gammaPD = Cterms.groupby(by=dimsGroup).sum()
+
+#     gammaPD['prod'] = (2*Ni+1) * (2*Nc+1) * \
+#                       gammaPD['prod']
+
+#     gammaPD['lPhase'] = (-1j)**((gammaPD.index.get_level_values(level='lp')-gammaPD.index.get_level_values(level='l')).values)
+#     gammaPD['prod'] *= gammaPD['lPhase']
+    
+#     gammaPD.rename(columns={'prod':'gamma'}, inplace=True)
+        
+    
+    return gammaPD, lPhase, Cpmm, Cterms
+
+
+def denMatReformat(denMat, dimMap = {'M':'Mi','Mp':'Mip'}, 
+                   colDims = 't', sumDims = 'default'):
+    """
+    Reformat density matrix Xarray to PD version for gammaCalc().
+    
+    NOTE: default config assumes density matrix format from :py:func:`ep.calc.density.densityFromSphTensor()`.
+    
+    For other cases manual reformatting may be required.
+    
+    """
+    
+    if sumDims is not None:
+        if sumDims == 'default':
+            denMat = denMat.sum(['K','Q'])
+    
+    denMatPD, denMatRestack = multiDimXrToPD(denMat, colDims=colDims)
+    
+    if dimMap is not None:
+        denMatPD.index.rename(dimMap,inplace=True)
+        
+    # TODO: add cleanup and other selectors?
+    # # Remove spurious M states?
+    # from epsproc.sphFuncs.sphConv import cleanLMcoords, checkSphDims
+    # pmmClean = cleanLMcoords(pmm, refDims=['J','M'])
+    # pmmClean = cleanLMcoords(pmmClean, refDims=['Jp','Mp'])
+        
+    return denMatPD
+
+
+def sumPDGroups(dataIn, sumDims = None):
+    """
+    Group by & sum PD DataFrame by sumDims only.
+    
+    """
+    
+    dims = list(dataIn.index.names)
+
+    dimsGroup = list({*dims}-{*sumDims})
+
+    return dataIn.groupby(by=dimsGroup).sum()
+    

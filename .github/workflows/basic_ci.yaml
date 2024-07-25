@@ -22,9 +22,11 @@ jobs:
     strategy:
       matrix:
         # python-version: ["3.7", "3.8", "3.9", "3.10"]
-        python-version: ["3.8", "3.9", "3.10"]
-        xarray-version: ["0.15","0.19","2022.3"]   # , "2022.10"]
-        
+        # python-version: ["3.8", "3.9", "3.10"]
+        # xarray-version: ["0.15","0.19","2022.3"]   # , "2022.10"]
+        python-version: ["3.10"]
+        xarray-version: ["0.19","2022.3"]   # , "2022.10"]
+
     # Name run with versions
     name: Python ${{ matrix.python-version }} - Xarray ${{ matrix.xarray-version }}
 
@@ -72,18 +74,18 @@ jobs:
           path: junit/test-results-${{ matrix.python-version }}-${{ matrix.xarray-version }}.xml
         # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
-        
-      # Report with job summaries, see https://github.blog/2022-05-09-supercharging-github-actions-with-job-summaries/ 
+
+      # Report with job summaries, see https://github.blog/2022-05-09-supercharging-github-actions-with-job-summaries/
       # Should push this to a table? Need to config prior to matrix.
       # NOTE: this reports per job on output page, not in concatenated format
       #- name: Adding markdown
       #  run: echo '${{ matrix.python-version }} ${{ matrix.xarray-version }} OK' >> $GITHUB_STEP_SUMMARY
-  
+
   report:
     name: Display results
     needs: build
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v3
@@ -95,26 +97,26 @@ jobs:
       - name: Summarise results
         # Filenames only
         # run: ls >> $GITHUB_STEP_SUMMARY
-        
+
         # Crude output with basic name parsing. Need to also test file contents, may want to use python here.
         run: |
           echo "# Verified output files" >> $GITHUB_STEP_SUMMARY
           files=(*)
           bTest=$(for i in "${files[@]}"; do echo - ; echo $i | cut -d "-" -f 3; echo $i | cut -d "-" -f 4; echo " OK \n"; done)
-          echo $bTest >> $GITHUB_STEP_SUMMARY 
-          
+          echo $bTest >> $GITHUB_STEP_SUMMARY
+
           # pyTestV=$(for i in "${files[@]}"; do echo $i | cut -d "-" -f 3; done)
           # xrTestV=$(for i in "${files[@]}"; do echo $i | cut -d "-" -f 4; done)
-          
-        
+
+
       # Test also alternatives...
       # See https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts#passing-data-between-jobs-in-a-workflow
-      - name: Print results  
+      - name: Print results
         shell: bash
         run: |
           value=`ls`
           echo $value
-      
+
       # Test JUnit test reporter
       # https://github.com/marketplace/actions/test-reporter
 #       - name: Test Report
@@ -124,4 +126,3 @@ jobs:
 #           name: JUnit Report            # Name of the check run which will be created
 #           path: pytest-results-*.xml    # Path to test results
 #           reporter: jest-junit        # Format of test results
-        

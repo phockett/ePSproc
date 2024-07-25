@@ -12,7 +12,8 @@
 # 20/04/21: unversioned requirements testing
 
 numpy_quaternion
-numpy
+# Numpy 1.26 breaks some epsproc.IO code in dumpIdySegsParseX(), related to array size or ordering?
+numpy<1.24
 scipy
 #xarray<=2022.3.0
 pandas

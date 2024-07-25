@@ -477,6 +477,9 @@ def densityFromSphTensor(tensorInput, denDims = None, #['M','Mp'],
     #*** Select & sum (optional)
     if (selDims is not None) or (sumDims is not None):
         print("*** selDims and sumDims not yet implemented.")
+        
+        # TODO: sel and threshold on INPUT, or OUTPUT...?
+        # matEthres = matEleSelector(matE, thres = thres, inds = selDims, dims = thresDims, sq = sqThres, drop = dropThres)
     
     # TODO: use existing selectors here?
     # pmm = w3jMult.sel({'J':J,'Jp':Jp}).sum(['K','Q'])

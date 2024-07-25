@@ -257,7 +257,7 @@ def Ccalc(channel=None, lmax=4, thres=1e-4):
     # May need to revisit this for general case.
     C2 = C1.copy()
     C2.rename(columns={'C1':'C2'}, inplace=True)
-    C2.index.rename({'l':'lp','m':'mp','lam':'lamp','Nt':'Ntp','Mi':'Mip','q':'qp'}, inplace=True)
+    C2.index.rename({'l':'lp','m':'mp','lam':'lamp','Nt':'Ntp','Mt':'Mtp','Mi':'Mip','q':'qp'}, inplace=True)
 
     Cprod = C2.merge(C1, 
              left_index=True, 
@@ -282,7 +282,7 @@ def Ccalc(channel=None, lmax=4, thres=1e-4):
 
 
 def gammaCalc(channel=None,Cterms = None, denMat = None, 
-              sumList = ['q','qp','Mi','Mip','Nt','Ntp','Mc'],
+              sumList = ['q','qp','Mi','Mip','Nt','Ntp','Mc','Mt','Mtp'],
               **kwargs):
     """
     Compute general gamma parameters.
@@ -290,6 +290,7 @@ def gammaCalc(channel=None,Cterms = None, denMat = None,
     TODO:
     - Implement BetaTerm (same as general case?)
     - Implement density matrix multiplication
+        - 25/07/24: implemented pmm multiplication. Note that this currently runs `denMatReformat` for Xarray inputs, and doesn't use `channel` specs currently.
     
     Parameters
     ----------
@@ -398,6 +399,8 @@ def denMatReformat(denMat, dimMap = {'M':'Mi','Mp':'Mip'},
     if sumDims is not None:
         if sumDims == 'default':
             denMat = denMat.sum(['K','Q'])
+        else:
+            denMat = denMat.sum(sumDims)
     
     denMatPD, denMatRestack = multiDimXrToPD(denMat, colDims=colDims)
     

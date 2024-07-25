@@ -154,6 +154,7 @@ def Ccalc(channel=None, lmax=4, thres=1e-4):
     
     NOTE - C2/primed terms currently assumes single 'p', also INCOHERENT over Nc/Mc as per legacy codes.
     But may need to revisit this for general case.
+    See also note on channels and Kt below - may need to add coherence here too.
     
     Parameters
     ----------
@@ -162,6 +163,7 @@ def Ccalc(channel=None, lmax=4, thres=1e-4):
         
         NOTE: set K=None to run for all allowed terms for given N.
         If not set, run for test case Ni=2, N+=1, all K.
+        Note Kt is currently NOT coherently summed, Kt=Ki-K+ only for state-resolved cases.
         
     lmax : optional, int, default = 4
     
@@ -282,7 +284,7 @@ def Ccalc(channel=None, lmax=4, thres=1e-4):
 
 
 def gammaCalc(channel=None,Cterms = None, denMat = None, 
-              sumList = ['q','qp','Mi','Mip','Nt','Ntp','Mc','Mt','Mtp'],
+              sumList = ['q','qp','Mi','Mip','Nt','Ntp','Mt','Mtp','Mc'],
               **kwargs):
     """
     Compute general gamma parameters.
@@ -309,7 +311,7 @@ def gammaCalc(channel=None,Cterms = None, denMat = None,
         Initial state density matrix p(mi,mi').
         If not set, assume all terms are = 1.
         
-    sumList : list, default = ['q','qp','Mi','Mip','Nt','Ntp','Mc']
+    sumList : list, default = ['q','qp','Mi','Mip','Nt','Ntp','Mt','Mtp','Mc']
         QNs to sum over in output.
         Default case matches legacy codes.
         Assumes single (Ni,Nc) state, and selected 'p'.

@@ -17,11 +17,11 @@ from epsproc.geomFunc.geomCalc import w3jTable
 
 
 #**** Basic functions for legacy or new gamma calcs.
-def setTestMatE(gammaDF, rand=False, phase=True):
+def setTestMatE(gammaDF, rand=False, phase=True, cols=['l1','lambda1','matE1'], colsPrime=None):
     """
     Set test matrix elements to Pandas DF.
     
-    Matches (l,m,lam) terms from input gammas.
+    Matches (l,m,lam) terms from input gammas. (Set `cols=['l1','lambda1','matE1']` to change naming schema.)
     
     Default case assigns 0.1*l+0.1
     
@@ -37,8 +37,8 @@ def setTestMatE(gammaDF, rand=False, phase=True):
         # for lam1 in gammaDF.index.levels[3]:
     
     # Use labels instead of numerical index
-    for l1 in gammaDF.index.get_level_values('l1').unique():
-        for lam1 in gammaDF.index.get_level_values('lambda1').unique():
+    for l1 in gammaDF.index.get_level_values(cols[0]).unique():
+        for lam1 in gammaDF.index.get_level_values(cols[1]).unique():
             
             if rand:
                 llamValue = np.random.rand()
@@ -51,21 +51,21 @@ def setTestMatE(gammaDF, rand=False, phase=True):
             matE.append([l1,lam1, llamValue])
             
 
-    matEdf = pd.DataFrame(matE, columns=['l1','lambda1','matE1'])
-    matEdf.set_index(keys=['l1','lambda1'], inplace=True)
+    matEdf = pd.DataFrame(matE, columns=cols)
+    matEdf.set_index(keys=cols[0:2], inplace=True)
     
     return matEdf
     
 
-def setMatEPrime(matE1):
+def setMatEPrime(matE1, cols=['l1','lambda1','matE1'], colsPrime=['l2','lambda2','matE2']):
     """
     Set prime matE from existing DF.
     """
     
     # Set prime terms...
     matEdf2 = matE1.copy()
-    matEdf2.index.rename({'l1':'l2','lambda1':'lambda2'},inplace=True)
-    matEdf2.rename(columns={'matE1':'matE2'}, inplace=True)
+    matEdf2.index.rename({cols[0]:colsPrime[0],cols[1]:colsPrime[1]},inplace=True)
+    matEdf2.rename(columns={cols[2]:colsPrime[2]}, inplace=True)
     
     return matEdf2
     
@@ -84,7 +84,7 @@ def assignMatE(gammaDF, matE=None, **kwargs):
     else:
         matE1=matE
         
-    matE2 = setMatEPrime(matE1)
+    matE2 = setMatEPrime(matE1, **kwargs)
     
     # Assign terms via merge
     # Brief: https://stackoverflow.com/a/55366715
@@ -339,6 +339,15 @@ def gammaCalc(channel=None,Cterms = None, denMat = None,
     - Implement BetaTerm (same as general case?)
     - Implement density matrix multiplication
         - 25/07/24: implemented pmm multiplication. Note that this currently runs `denMatReformat` for Xarray inputs, and doesn't use `channel` specs currently.
+        
+    Formalism:
+    
+    $$
+    \begin{eqnarray}
+    \gamma_{\alpha\alpha_{+}l\lambda ml'\lambda'm'} & = & (2N_{i}+1)(2N_{+}+1)(-i)^{l'-l}\sum_{M_{+}}\sum_{M_{i}M_{i}'}\sum_{N_{t}N_{t}'}\sum_{\mu_{\lambda}\mu_{\lambda}'}{}^{J_{i}K_{i}}\boldsymbol{\rho}_{M_{i}M_{i}'}\nonumber \\
+     & \mathsf{x} & C(lm\lambda N_{t}M_{i}q)C(l'm'\lambda'N_{t}'M_{i}'q')\label{eq:gamma-state}
+    \end{eqnarray}
+    $$
     
     Parameters
     ----------

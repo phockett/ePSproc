@@ -156,6 +156,37 @@ def Ccalc(channel=None, lmax=4, thres=1e-4):
     But may need to revisit this for general case.
     See also note on channels and Kt below - may need to add coherence here too.
     
+    NOTE - spin terms currently NOT implemented. (I.e. J+ == N+)
+    
+    Formalism:
+    
+    $$
+    \begin{eqnarray}
+    C(lm\lambda N_{t}M_{i}\mu_{\lambda}) & = & (2N_{t}+1)(-1)^{M_{+}+q}\left(\begin{array}{ccc}
+    N_{t} & 1 & l\\
+    M_{t} & p & m
+    \end{array}\right)\left(\begin{array}{ccc}
+    N_{+} & N_{i} & N_{t}\\
+    -M_{+} & M_{i} & M_{t}
+    \end{array}\right)\nonumber \\
+     & \mathsf{x} & \left(\begin{array}{ccc}
+    N_{+} & N_{i} & N_{t}\\
+    -K_{+} & K_{i} & K_{t}
+    \end{array}\right)\left(\begin{array}{ccc}
+    N_{t} & 1 & l\\
+    -K_{t} & q & -\lambda
+    \end{array}\right)\nonumber \\
+     & \mathsf{x} & \left(\begin{array}{ccc}
+    N_{+} & J_{+} & S_{+}\\
+    M_{+} & M_{J+} & M_{S+}
+    \end{array}\right)\left(\begin{array}{ccc}
+    N_{+} & J_{+} & S_{+}\\
+    K_{+} & P_{+} & \Sigma_{+}
+    \end{array}\right)\label{eq:geom-params-C}
+    \end{eqnarray}
+    $$
+    
+    
     Parameters
     ----------
     channel : optional, list or array
@@ -171,7 +202,14 @@ def Ccalc(channel=None, lmax=4, thres=1e-4):
     thres : optional, float or None, default = 1e-4
         Apply threshold to abs(C) product terms, and drop.
         If None, skip thresholding.
-        
+    
+    
+    Notes
+    -----
+    07/08/24: tidying up. 
+              - Added missing phase and degen factors.
+              - Updated docs
+    
     """
 
     # Set master table of 3j results
@@ -250,6 +288,14 @@ def Ccalc(channel=None, lmax=4, thres=1e-4):
     # thres=1e-2
     C1 = dfprod['prod'].to_frame()
     C1.rename(columns={'prod':'C1'}, inplace=True)
+    
+    # Degen factor 2Nt+1
+    degen = (2*C1.index.get_level_values(level='Nt').values) + 1
+    C1 =  C1.multiply(degen, axis=0)  # Need to force row-wise multiply here in general.
+    
+    # Phase factors (-1)^(Mc+q) - note force to positive powers only
+    MpqPhase = (-1)**np.abs((C1.index.get_level_values(level='Mc')+C1.index.get_level_values(level='q')).values)
+    C1 =  C1.multiply(MpqPhase, axis=0)  # Need to force row-wise multiply here in general.
     
     if thres is not None:
         C1 = C1[C1.pipe(np.abs) > thres].dropna()

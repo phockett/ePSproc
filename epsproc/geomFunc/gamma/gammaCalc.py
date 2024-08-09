@@ -3,6 +3,8 @@ ePSproc Gamma functions: calculations
 
 - Set test matrix elements.
 - Compute state-resolved betas from legacy Gamma files.
+- Compute C values (python version)
+- Compute state-resolved betas (python version).
 
 17/07/24
 
@@ -13,7 +15,7 @@ import numpy as np
 import xarray as xr
 
 from epsproc import multiDimXrToPD
-from epsproc.geomFunc.geomCalc import w3jTable
+from epsproc.geomFunc.geomCalc import w3jTable, betaTerm
 
 
 #**** Basic functions for legacy or new gamma calcs.
@@ -102,8 +104,86 @@ def assignMatE(gammaDF, matE=None, **kwargs):
     return df2, matE1, matE2
 
 
+def betaCalc(gammaDF, matE=None, betaTerm=None, **kwargs):
+    """
+    Compute betas from gamma values & matrix elements for state-resolved case.
+    
+    For legacy case pass args to betaCalcLegacy().
+    
+    TODO:
+    - Better dim name handling (currently hard-coded).
+    
+    Formalism:
+    
+    $$
+    \begin{eqnarray}
+    \beta_{L,M}(k) & = & \sum_{ll'}\sum_{\lambda\lambda'}\sum_{mm'}(-1)^{m}\sqrt{\frac{(2l+1)(2l'+1)(2L+1)}{4\pi}}\nonumber \\
+     & \mathsf{x} & \left(\begin{array}{ccc}
+    l & l' & L\\
+    m & -m' & M
+    \end{array}\right)\left(\begin{array}{ccc}
+    l & l' & L\\
+    0 & 0 & 0
+    \end{array}\right)\gamma_{\alpha\alpha_{+}l\lambda ml'\lambda'm'}\nonumber \\
+     & \mathsf{x} & \boldsymbol{r}_{kl\lambda}\boldsymbol{r}_{kl'\lambda'}e^{i(\eta_{l\lambda}(k)-\eta_{l'\lambda'}(k))}\label{eq:beta-gamma-general}
+    \end{eqnarray}
+    $$
+    
+    Here use:
+    - gamma values from this code (legacy or python).
+        - Legacy files include betaTerm() values.
+        - Python version per `gammaCalc()`.
+        - Python version uses geomCalc.betaTerm() for additional terms above.
+    - Matrix elements as passed, or assigned as per options to `assignMatE()`.
+    
+    """
 
-def betaCalc(gammaDF, matE=None, **kwargs):
+    #*** For legacy case (from file), use old function
+    if gammaDF.attrs['legacyGamma']:
+        dfSum, dfCalc = betaCalcLegacy(gammaDF, matE=None, **kwargs)
+        return dfSum, dfCalc 
+    
+    
+    #*** For new case (python calcs)
+    # This should handle arb cols in input DF
+    
+    # Assign matE
+    dfCalc, matE1, matE2 = assignMatE(gammaDF,matE, cols=['l','m','matE1'], colsPrime=['lp','mp','matE2'])
+    dfMult = dfCalc.iloc[:, :-2].mul(dfCalc['matE1'],axis=0).mul(dfCalc['matE2'],axis=0)
+    
+    # Compute betaTerm if not precalculated
+    if betaTerm is None:
+        Lmax = gammaDF.index.get_level_values(level='l').max()
+        BLMtable = betaTerm(Lmax = Lmax, form = 'xdaLM') 
+        
+        # Push to DF with new axis - OK if squeeze=False set!
+        # This produces single col, multindex output
+        betaTerm,_ = multiDimXrToPD(BLMtable.expand_dims(['BLM']), colDims='BLM', squeeze=False)
+        
+        betaTerm.rename(columns={0:'betaTerm'}, inplace=True)
+    
+    
+    # Mult by betaTerm
+    # Merge and multiply as per previous cases...
+    BLMprod = dfMult.merge(betaTerm, 
+             left_index=True, 
+             right_index=True,
+             how='left')       # Use index from gamma/dfMult as primary.
+
+    # Multiply & sum
+    sumTerms = BLMprod.iloc[:, :-1].mul(BLMprod['0_y'],axis=0) 
+    betaOut = sumTerms.groupby(by=['L','M']).sum()
+    betaOutNorm = betaOut/betaOut.loc[0,0]
+    
+    if returnType == "full":
+        return locals()
+    
+    else:
+        return betaOut, betaOutNorm
+    
+    
+    
+def betaCalcLegacy(gammaDF, matE=None, **kwargs):
     """
     Compute betas from (legacy) gamma terms and matrix elements.
     
@@ -438,6 +518,13 @@ def gammaCalc(channel=None,Cterms = None, denMat = None,
     
 #     gammaPD.rename(columns={'prod':'gamma'}, inplace=True)
         
+    
+    # Set metadata
+    gammaPD.attrs['dataType']="gamma"
+    gammaPD.attrs['denMat']=True if denMat is not None else False
+    gammaPD.attrs['source']="gammaCalc.gammaCalc()"
+    gammaPD.attrs['legacyGamma']=False  # 09/08/24 Set this to allow quick switch on legacy gamma from file vs. new python calcs in ancillary functions.
+    
     
     return gammaPD, lPhase, Cpmm, Cterms
 

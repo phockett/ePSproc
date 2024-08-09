@@ -106,5 +106,8 @@ def readGamma(fileName, filePath = None,
     df.attrs['file']=fileName
     df.attrs['headerlines']=[lineStart, lineStop]
     df.attrs['lines']=lines
+    df.attrs['dataType']="gamma"
+    df.attrs['source']="file"    # 09/08/24 Set this to allow quick switch on legacy gamma from file vs. new python calcs in ancillary functions.
+    df.attrs['legacyGamma']=True
     
     return df

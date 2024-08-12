@@ -111,3 +111,53 @@ def readGamma(fileName, filePath = None,
     df.attrs['legacyGamma']=True
     
     return df
+
+
+def toePSprocClass(dataIn, dimMap={'L':'l','M':'m','variable':'t'}, 
+                   conformDims = True, dropDims = None,
+                   key = None, dataType = None):
+    """
+    Convert gamma and derivatives from stand-alone PD dataframe to ePSproc class data object.
+    
+    TODO: see PEMtk functionality for additional methods.
+    
+    """
+    
+    # Convert to XR
+    dataXR = dataIn.to_xarray().to_array()
+    
+    # Set dataType for class if not preset.
+    # NOTE this may be missing in some cases, set AFBLM as default
+    if dataType is None:
+        try:
+            dataType = dataXR.attrs['dataType']
+        except KeyError:
+            print(f"*** Warning: dataIn.attrs['dataType'] not found, setting dataType='AFBLM', or pass dataType to override.")
+            dataType = 'AFBLM'
+    
+    # Test conversion with existing functionality...
+    from epsproc.util.conversion import multiDimXrFromDict
+    # multiDimXrFromDict(betaOutNorm.to_dict())  # Needs XR dict format
+
+    if conformDims:
+        # This works with some effort
+        from pemtk.sym._util import toePSproc
+        # coeffs = {'XR':betaXR}
+        dataXRremapped = toePSproc({'XR':dataXR}, dimMap=dimMap, dataType=dataType)
+    
+    else:
+        dataXRremapped = dataXR
+        
+    
+    # Push to ePSproc class
+    from epsproc.classes.multiJob import ePSmultiJob
+    dataOut = ePSmultiJob()
+    
+    if key is None:
+        key = 'gamma'
+    
+    dataOut.data[key] = {dataType: dataXRremapped}  #.drop_vars('Euler')}
+    
+    return dataOut
+
+    # data.BLMplot(xDim='t', backend='hv', hvType='line') #, addADMs=False)  #, col='Eke')

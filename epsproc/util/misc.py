@@ -266,12 +266,13 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
     -------
 
     dictionary
-        Containing:
+        Includes:
 
         - stacked and unstacked dims
         - stacked dim mappings
         - intersection and differences vs. refDims
         - safeStack for use with restack() function even if dims are missing.
+        - safeUnstack for use with data.unstack() in cases where some dims have issues.
 
     Examples
     --------
@@ -285,6 +286,9 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
 
     TODO: check and order dims by size? Otherwise set return is alphebetical
     TODO: tidy up mixed stacked/unstacked dim handling with refDims passed as list.
+    
+    12/08/24 - Added try/except for data.unstack() to avoid cases where some dims are unstackable (e.g. if indexes are not set)
+             - Added vars errUnstackDims, dimsUSsafe to track this
 
     25/07/22 - additional checking on dims and to_index added - this previously failed for "0-dimensional" cases, which can appear after xr.squeeze(drop=False), AND for MultiIndex coords.
                This may be XR/PD version dependent too, tested in XR 0.19, Pandas 1.2.4 only. See notes in code for more details.
@@ -379,9 +383,44 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
 
         # As above, but wrap to tuple - this should work for Dataset case which otherwise returns full frozen maps, and leave dataArray methods unaffected
         dims = tuple(data.dims) # Set dim list - this excludes stacked dims
-        dimsUS = tuple(data.unstack().dims)  # Set unstaked (full) dim list
+        
+        # 12/08/24 - try/except to avoid cases where some dims are unstackable (if indexes are not set)
+        # Added vars errUnstackDims, dimsUSsafe to track this
+        # dimsUS = tuple(data.unstack().dims)  # Set unstaked (full) dim list
+        errUnstackDims = []
+        dimsUSsafe = []
+        
+        try:
+            dimsUS = tuple(data.unstack().dims)  # Set unstaked (full) dim list
+            stackedDims = list(set(dims) - set(dimsUS))
+            dimsUSsafe = stackedDims
+            
+        except IndexError:
+            # Check dims individually in this case...
+            # dimsUS = []
+            
+            for dim in dims:
+                try:
+                    data.unstack(dim)
+                    dimsUSsafe.append(dim)
+                    
+                # IndexError for cases which fail, e.g. if np.nan coord values
+                except IndexError:
+                    errUnstackDims.append(dim)
+                    print(f"*** Unstacking error with dim={dim}, added to 'errUnstackDims' list.")
+                    
+                # ValueError for cases which are not multiindex, just skip these.
+                except ValueError:
+                    # dimsUS.append(dim)
+                    pass
 
-        stackedDims = list(set(dims) - set(dimsUS))
+            dimsUS = tuple(data.unstack(dimsUSsafe).dims)  # Safe unstack only
+            stackedDims = list(set(dims) - set(dimsUS))
+            
+
+        # stackedDims = list(set(dims) - set(dimsUS))
+
+            
 
         stackedDimsMap = {k: list(data.indexes[k].names) for k in stackedDims}  # Get stacked dim mapping from indexes (Xarray/Pandas)
                                                                                 # Note list() wrapper to avoid pandas.core.indexes.frozen.FrozenList type.
@@ -589,6 +628,7 @@ def checkDims(data, refDims = [], method = 'fast', forceStacked = False):
             'stacked':stackedDims, 'stackedMap':stackedDimsMap,
             'stackedShared':sharedDimsStacked, 'stackedExtra':extraDimsStacked,
             'stackedComponents':stackedComponents, 'stackedInvalid':invalidDimsStacked,
+            'safeUnstack':dimsUSsafe, 'errUnstack':errUnstackDims,
             'missing':missingDims, 'safeStack':safeStack, 'stackedRef': stacked,
             'nonDimCoords':nonDimCoords, 'nonDimMap':nonDimMap, 'nonDimStacked':nonDimStacked, 'nonDimDicts':nonDimDicts, 'nonDimDims':nonDimDims}
 

@@ -115,11 +115,39 @@ def readGamma(fileName, filePath = None,
 
 def toePSprocClass(dataIn, dimMap={'L':'l','M':'m','variable':'t'}, 
                    conformDims = True, dropDims = None,
-                   key = None, dataType = None):
+                   key = None, dataType = None, **kwargs):
     """
-    Convert gamma and derivatives from stand-alone PD dataframe to ePSproc class data object.
+    Convert gamma and derivatives from stand-alone PD dataframe to ePSproc class data object (with data in Xarray).
     
     TODO: see PEMtk functionality for additional methods.
+    
+    Parameters
+    ----------
+    dataIn : PD DataFrame
+        Gamma data, or derivatives, as Pandas DataFrame
+        
+    dimMap : dict, optional, default = {'L':'l','M':'m','variable':'t'}
+        Dim remapping for conversion.
+        Default for AFBLM case.
+        
+    conformDims : bool, optional, default = True
+        Force XR dims to match dataType specification if True, via call to :py:func:`pemtk.sym._util.toePSproc`.
+        
+    dropDims : str or list, optional, default = None
+        If passed, run data.drop_vars(dropDims)
+        
+    key : str, optional, default = None
+        Key for output data in ePSproc class.
+        If None, use default key='gamma'
+        
+    dataType : str, optional, default = None
+        dataType to set for output.
+        If None try and use dataXR.attrs['dataType'], or default to 'AFBLM' if not set.
+        
+    Returns
+    -------
+    dataOut : epsproc.classes.multiJob
+        Class with data set as `dataOut.data[key][dataType]`.
     
     """
     
@@ -143,11 +171,13 @@ def toePSprocClass(dataIn, dimMap={'L':'l','M':'m','variable':'t'},
         # This works with some effort
         from pemtk.sym._util import toePSproc
         # coeffs = {'XR':betaXR}
-        dataXRremapped = toePSproc({'XR':dataXR}, dimMap=dimMap, dataType=dataType)
+        dataXRremapped = toePSproc({'XR':dataXR}, dimMap=dimMap, dataType=dataType, **kwargs)
     
     else:
         dataXRremapped = dataXR
         
+    if dropDims is not None:
+        dataXRremapped = dataXRremapped.drop_vars(dropDims)
     
     # Push to ePSproc class
     from epsproc.classes.multiJob import ePSmultiJob

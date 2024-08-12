@@ -67,6 +67,34 @@ def BLMdimList(sType = 'stacked'):
         # unstackedDims
         return ['Eke', 'l', 'm', 'P', 'T', 'C']
 
+def AFBLMdimList(sType = 'stacked'):
+    """
+    Return standard list of dimensions for calculated AFBLM.
+
+    As BLMdimList(), plus time.
+
+    Parameters
+    ----------
+    sType : string, optional, default = 'stacked'
+        Selected 'stacked' or 'unstacked' dimensions.
+        Set 'sDict' to return a dictionary of unstacked <> stacked dims mappings for use with xr.stack({dim mapping}).
+
+    Returns
+    -------
+    list : set of dimension labels.
+
+    """
+    if sType == 'stacked':
+        # stackedDims
+        return ['Euler', 'Eke', 'BLM','t']
+
+    elif sType == 'sDict':
+        return {'BLM':['l','m'],'Euler':['P','T','C']}
+
+    else:
+        # unstackedDims
+        return ['Eke', 'l', 'm', 'P', 'T', 'C','t']
+
 
 # Return list of standard dataArray dims for BLM values
 def YLMdimList(sType = 'stacked'):
@@ -94,13 +122,13 @@ def YLMdimList(sType = 'stacked'):
     else:
         # unstackedDims
         return ['l', 'm', 'Theta','Phi']
-    
-    
+
+
 # Return list of standard dataArray dims for BLM values
 def TKQdimList(sType = 'stacked'):
     """
     Return standard list of dimensions for calculated TKQs (spherical harmonics).
-    
+
     NOTE: identical to YLM case, except L > K, M > Q mapping (upper case terms only).
 
     Parameters
@@ -228,6 +256,13 @@ def dataTypesList():
                     'recordType':'DumpIdy',
                     'dims': BLMdimList(sType = 'sDict'),
                     'def': BLMdimList
+                    },
+                'AFBLM' :
+                    {'source':'epsproc.AFBLM',
+                    'desc':'Calcualted AF beta parameters from epsproc.AFBLM(), based on dipole matrix elements from ePS + ADMs/time-dependence.',
+                    'recordType':'DumpIdy',
+                    'dims': AFBLMdimList(sType = 'sDict'),
+                    'def': AFBLMdimList
                     },
                 'matE' :
                     {'source':'epsproc.IO.readMatEle',

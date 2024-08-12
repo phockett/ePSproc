@@ -25,6 +25,7 @@ from mpl_toolkits.mplot3d import proj3d
 
 # Package functions
 from epsproc.util.listFuncs import BLMdimList
+from epsproc.util.misc import checkDims
 from epsproc.sphPlot import plotTypeSelector
 # from epsproc.util import matEleSelector  # Throws error, due to circular import refs?
 # from epsproc.util.conversion import multiDimXrToPD
@@ -227,6 +228,9 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', selDims = None,
         XR plotter currently uses 'cDims' in some places too.
     - Add XR and HV data return, currently only return objects.
 
+    12/08/24: Implement slightly better dim handling with checkDims().
+                See classes._plotters for better dim handling.
+
     27/01/22: Updated with better selection & basic XR dim handling, but still needs work.
               Added basic HV plotter routines.
 
@@ -237,9 +241,16 @@ def BLMplot(BLM, thres = 1e-2, thresType = 'abs', selDims = None,
 
     # Check dims, and set facet dim
     # TODO: update with newer dim handling routines (dynamic)
-    dims = BLMdimList()
-    dims.remove(xDim)
-    cDims = dims.remove('BLM')
+    # dims = BLMdimList()
+    # dims.remove(xDim)
+    # cDims = dims.remove('BLM')
+    
+    # 12/08/24 - updated dim handling with checkDims()
+    # Note this currently just duplicates above, assumes BLM (stacked) dim.
+    dimDict = checkDims(BLM, BLMdimList())
+    if not isinstance(xDim,list): xDim=[xDim]   # Force to list to ensure set() works for multichar case.
+    dims = list(set(dimDict['dataDims']) - set(xDim))
+    cDims = list(set(dims) - set(['BLM']))
 
     # For %age case
     if thresType == 'pc':

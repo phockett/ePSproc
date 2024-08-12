@@ -15,7 +15,8 @@ import numpy as np
 import xarray as xr
 
 from epsproc import multiDimXrToPD
-from epsproc.geomFunc.geomCalc import w3jTable, betaTerm
+from epsproc.geomFunc.geomCalc import w3jTable
+from epsproc.geomFunc.geomCalc import betaTerm as betaTermCalc
 
 
 #**** Basic functions for legacy or new gamma calcs.
@@ -104,7 +105,7 @@ def assignMatE(gammaDF, matE=None, **kwargs):
     return df2, matE1, matE2
 
 
-def betaCalc(gammaDF, matE=None, betaTerm=None, **kwargs):
+def betaCalc(gammaDF, matE=None, betaTerm=None, returnType = 'beta', **kwargs):
     """
     Compute betas from gamma values & matrix elements for state-resolved case.
     
@@ -133,13 +134,13 @@ def betaCalc(gammaDF, matE=None, betaTerm=None, **kwargs):
     - gamma values from this code (legacy or python).
         - Legacy files include betaTerm() values.
         - Python version per `gammaCalc()`.
-        - Python version uses geomCalc.betaTerm() for additional terms above.
+        - Python version uses `geomCalc.betaTerm()` for additional terms above.
     - Matrix elements as passed, or assigned as per options to `assignMatE()`.
     
     """
 
     #*** For legacy case (from file), use old function
-    if gammaDF.attrs['legacyGamma']:
+    if ('legacyGamma' in gammaDF.attrs.keys()) and gammaDF.attrs['legacyGamma']:
         dfSum, dfCalc = betaCalcLegacy(gammaDF, matE=None, **kwargs)
         return dfSum, dfCalc 
     
@@ -154,7 +155,7 @@ def betaCalc(gammaDF, matE=None, betaTerm=None, **kwargs):
     # Compute betaTerm if not precalculated
     if betaTerm is None:
         Lmax = gammaDF.index.get_level_values(level='l').max()
-        BLMtable = betaTerm(Lmax = Lmax, form = 'xdaLM') 
+        BLMtable = betaTermCalc(Lmax = Lmax, form = 'xdaLM') 
         
         # Push to DF with new axis - OK if squeeze=False set!
         # This produces single col, multindex output
@@ -171,7 +172,7 @@ def betaCalc(gammaDF, matE=None, betaTerm=None, **kwargs):
              how='left')       # Use index from gamma/dfMult as primary.
 
     # Multiply & sum
-    sumTerms = BLMprod.iloc[:, :-1].mul(BLMprod['0_y'],axis=0) 
+    sumTerms = BLMprod.iloc[:, :-1].mul(BLMprod['betaTerm'],axis=0) 
     betaOut = sumTerms.groupby(by=['L','M']).sum()
     betaOutNorm = betaOut/betaOut.loc[0,0]
     

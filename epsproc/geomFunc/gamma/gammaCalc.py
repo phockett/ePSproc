@@ -105,7 +105,7 @@ def assignMatE(gammaDF, matE=None, **kwargs):
     return df2, matE1, matE2
 
 
-def betaCalc(gammaDF, matE=None, betaTerm=None, returnType = 'beta', **kwargs):
+def betaCalc(gammaDF, matE=None, betaTerm=None, returnType = 'beta', dropnan = True, **kwargs):
     """
     Compute betas from gamma values & matrix elements for state-resolved case.
     
@@ -137,6 +137,8 @@ def betaCalc(gammaDF, matE=None, betaTerm=None, returnType = 'beta', **kwargs):
         - Python version uses `geomCalc.betaTerm()` for additional terms above.
     - Matrix elements as passed, or assigned as per options to `assignMatE()`.
     
+    23/08/24 added dropna option here. For cases with NaN matE, skipping this may lead to all-NaN outputs.
+
     """
 
     #*** For legacy case (from file), use old function
@@ -165,6 +167,11 @@ def betaCalc(gammaDF, matE=None, betaTerm=None, returnType = 'beta', **kwargs):
     
     
     # Mult by betaTerm
+    # 23/08/24 added dropna option here. For cases with NaN matE, skipping this may lead to all-NaN outputs.
+    #          TODO: more checks/tests here, haven't carefully verified drop is OK.
+    if dropnan:
+        dfMutl = dfMult.dropna(how='all')
+        
     # Merge and multiply as per previous cases...
     BLMprod = dfMult.merge(betaTerm, 
              left_index=True, 

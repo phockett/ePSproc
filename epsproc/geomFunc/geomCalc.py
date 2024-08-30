@@ -471,7 +471,10 @@ def remapllpL(dataIn, QNs, form = 'dict', method = 'sel', dlist = ['l','lp','L',
 #*************************************************************
 
 # Tabulate Wigner 3j terms for a given problem/set of QNs
-def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False, form = '2d', dlist = ['l','lp','L','m','mp','M'], backend = 'par', verbose = 0):
+def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, halfIntFlag = False,
+                nonzeroFlag = False, form = '2d',
+                dlist = ['l','lp','L','m','mp','M'], backend = 'par',
+                verbose = 0):
     r"""
     Calculate/tabulate all wigner 3j terms for a given problem/set of QNs.
 
@@ -501,6 +504,11 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
 
     mFlag : bool, optional, default = True
         m, mp take all values -l...+l if mFlag=True, or =0 only if mFlag=False
+        NOTE: note used if a QN array is supplied directly.
+
+    halfIntFlag : bool, optional, default = False
+        If True, include 1/2-int terms in QN creation routine.
+        NOTE: note used if a QN array is supplied directly.
 
     nonzeroFlag : bool, optional, default = False
         Drop null terms before returning values if true.
@@ -530,6 +538,8 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
         See Implementation note below.
 
 
+
+
     Returns
     -------
     w3j : np.array, Xarray, dictionary
@@ -553,7 +563,7 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
 
     # Set QNs, if not supplied.
     if QNs is None:
-        QNs = genllL(Lmin = Lmin, Lmax = Lmax, mFlag = mFlag)
+        QNs = genllL(Lmin = Lmin, Lmax = Lmax, mFlag = mFlag, halfIntFlag = halfIntFlag)
 
 
     # Calculate 3js using Numba GUvec version
@@ -640,7 +650,12 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, nonzeroFlag = False,
         # Set to PD from full table, then push to index.
         # Could also set index first, as per Xr case above
         w3jPD = pd.DataFrame(np.c_[QNs, w3j_QNs],columns = [*dlist, '3j'])
-        w3jPD = w3jPD.astype({k:int for k in dlist})
+
+        # 30/08/24: conversion only for int cases, as per XR conversion above.
+        if not (QNs.real%1.0).any():
+            # print('int QNs only')
+            w3jPD = w3jPD.astype({k:int for k in dlist})
+
         w3jPD.set_index(dlist, inplace=True)
 
         w3jPD.attrs['dataType'] = 'Wigner3j'

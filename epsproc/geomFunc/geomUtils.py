@@ -79,7 +79,7 @@ def selQNsRow(QNs, QNmask, fields = None, verbose = 1):
 
 
 # Generate 6D coords for Wigner 3j terms.
-def genllL(Lmin = 0, Lmax = 10, mFlag = True):
+def genllL(Lmin = 0, Lmax = 10, mFlag = True, halfIntFlag = False):
     """
     Generate quantum numbers for angular momentum contractions (l, lp, L)
 
@@ -90,6 +90,10 @@ def genllL(Lmin = 0, Lmax = 10, mFlag = True):
 
     mFlag : bool, optional, default = True
         m, mp take all values -l...+l if mFlag=True, or =0 only if mFlag=False
+
+    halfIntFlag : bool, optional, default = False
+        If true, use 1/2 int steps in setup.
+        If false, use int steps.
 
     Returns
     -------
@@ -107,13 +111,23 @@ def genllL(Lmin = 0, Lmax = 10, mFlag = True):
     To do
     -----
     - Implement output options (see dev. function w3jTable).
-    -
+    - 30/08/24 - added 1/2 int option.
+
     """
+
+    # Set steps
+    # 30/08/24 - added 1/2 int option.
+    lStep = 1
+    if halfIntFlag:
+        lStep = 0.5
+
+    mStep = lStep
+
 
     # Set QNs for calculation, (l,m,mp)
     QNs = []
-    for l in np.arange(Lmin, Lmax+1):
-        for lp in np.arange(Lmin, Lmax+1):
+    for l in np.arange(Lmin, Lmax+lStep, lStep):
+        for lp in np.arange(Lmin, Lmax+lStep, lStep):
 
             if mFlag:
                 mMax = l
@@ -122,9 +136,9 @@ def genllL(Lmin = 0, Lmax = 10, mFlag = True):
                 mMax = 0
                 mpMax = 0
 
-            for m in np.arange(-mMax, mMax+1):
-                for mp in np.arange(-mpMax, mpMax+1):
-                    for L in np.arange(np.abs(l-lp), l+lp+1):
+            for m in np.arange(-mMax, mMax+mStep, mStep):
+                for mp in np.arange(-mpMax, mpMax+mStep, mStep):
+                    for L in np.arange(np.abs(l-lp), l+lp+lStep, lStep):
                         # Set M - note this implies specific phase choice.
                         # M = -(m+mp)
                         # M = (-m+mp)
@@ -132,7 +146,7 @@ def genllL(Lmin = 0, Lmax = 10, mFlag = True):
                         #     QNs.append([l, lp, L, m, mp, M])
 
                         # Run for all possible M
-                        for M in np.arange(-L, L+1):
+                        for M in np.arange(-L, L+lStep, lStep):
                             QNs.append([l, lp, L, m, mp, M])
 
     return np.array(QNs)

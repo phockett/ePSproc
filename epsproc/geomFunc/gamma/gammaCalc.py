@@ -8,6 +8,8 @@ ePSproc Gamma functions: calculations
 
 17/07/24
 
+NOTE: need to check PD NaN propagation. pd.prod(axis=1) may ignore NaN?  But other pd.sum() methods propagate NaNs - need to check carefully, maybe replace with 0 in cases where there are issues.
+
 """
 
 import pandas as pd
@@ -170,7 +172,7 @@ def betaCalc(gammaDF, matE=None, betaTerm=None, returnType = 'beta', dropnan = T
     # 23/08/24 added dropna option here. For cases with NaN matE, skipping this may lead to all-NaN outputs.
     #          TODO: more checks/tests here, haven't carefully verified drop is OK.
     if dropnan:
-        dfMutl = dfMult.dropna(how='all')
+        dfMult = dfMult.dropna(how='all')
         
     # Merge and multiply as per previous cases...
     BLMprod = dfMult.merge(betaTerm, 
@@ -234,7 +236,7 @@ def betaCalcLegacy(gammaDF, matE=None, **kwargs):
 
 #***** Compute gammas (new style)
 
-def Ccalc(channel=None, lmax=4, thres=1e-4):
+def Ccalc(channel=None, lmax=4, halfIntFlag = False, thres=1e-4):
     """
     Compute C-params for given channel and lmax.
     
@@ -286,6 +288,8 @@ def Ccalc(channel=None, lmax=4, thres=1e-4):
         
     lmax : optional, int, default = 4
     
+    halfIntFlag : bool, optional, default = False
+        If True, include 1/2-int terms in QN creation routine.
     
     thres : optional, float or None, default = 1e-4
         Apply threshold to abs(C) product terms, and drop.
@@ -297,11 +301,13 @@ def Ccalc(channel=None, lmax=4, thres=1e-4):
     07/08/24: tidying up. 
               - Added missing phase and degen factors.
               - Updated docs
+              
+    NOTE: need to check PD NaN propagation. pd.prod(axis=1) may ignore NaN?  But other pd.sum() methods propagate NaNs - need to check carefully, maybe replace with 0 in cases where there are issues.
     
     """
 
     # Set master table of 3j results
-    pdmaster = w3jTable(Lmax = lmax, form = 'pd', nonzeroFlag = True)
+    pdmaster = w3jTable(Lmax = lmax, form = 'pd', nonzeroFlag = True, halfIntFlag = halfIntFlag)
     
     # Test case, run for all K.
     if channel is None:

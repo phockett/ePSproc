@@ -581,6 +581,10 @@ def sumPDGroups(dataIn, sumDims = None):
     """
     
     dims = list(dataIn.index.names)
+    
+    # Force list for singleton case, otherwise dimsGroup will not be set correctly.
+    if not isinstance(sumDims, list):
+        sumDims = list(sumDims)
 
     dimsGroup = list({*dims}-{*sumDims})
 

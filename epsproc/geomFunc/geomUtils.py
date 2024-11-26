@@ -79,7 +79,8 @@ def selQNsRow(QNs, QNmask, fields = None, verbose = 1):
 
 
 # Generate 6D coords for Wigner 3j terms.
-def genllL(Lmin = 0, Lmax = 10, mFlag = True, halfIntFlag = False):
+def genllL(Lmin = 0, Lmax = 10, mFlag = True, 
+           halfIntFlag = False, mStep = 1):
     """
     Generate quantum numbers for angular momentum contractions (l, lp, L)
 
@@ -94,6 +95,10 @@ def genllL(Lmin = 0, Lmax = 10, mFlag = True, halfIntFlag = False):
     halfIntFlag : bool, optional, default = False
         If true, use 1/2 int steps in setup.
         If false, use int steps.
+
+    mStep : int or float, default = 1
+        Used to define m-terms set, via np.arange(-l, l+mStep, mStep).
+        Default case should generate all allowed terms, but can be changed to 0.5 to keep all possible combinations. (Note this may generate some unphysical terms.)
 
     Returns
     -------
@@ -121,7 +126,7 @@ def genllL(Lmin = 0, Lmax = 10, mFlag = True, halfIntFlag = False):
     if halfIntFlag:
         lStep = 0.5
 
-    mStep = lStep
+    # mStep = 1  # lStep
 
 
     # Set QNs for calculation, (l,m,mp)

@@ -564,6 +564,12 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, halfIntFlag = False,
     - Move dlist to a utility function.
 
 
+    Examples
+    --------
+    >>> # Generate all terms to lmax and return as Pandas DataFrame
+    >>> lmax = 3
+    >>> w3jTable(Lmax = lmax, form = 'pd', nonzeroFlag = True, halfIntFlag=True
+
 
     """
 

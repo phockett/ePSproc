@@ -489,6 +489,8 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, halfIntFlag = False,
     Where l, l' take values Lmin...Lmax (default 0...10).
     :math:`\l-lp\<=L<=l+lp`
     m, mp take values -l...+l if mFlag=True, or =0 only if mFlag=False
+    
+    NOTE: 1/2-int terms require Sympy backend, this will be set automatically if halfIntFlag=True or 1/2-int terms are passed via QNs parameter.
 
     Parameters
     ----------
@@ -501,6 +503,7 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, halfIntFlag = False,
         (If supplied, values for Lmin, Lmax and mFlag are not used.)
         NOTE: some return types will convert QNs to int when constructing Xarray output, unless half-int values present.
         Functions using :py:func:`epsproc.geomFunc.geomCalc.remapllpL()` support half-int values in Xarray.
+        NOTE: 1/2-int terms require sympy backend.
 
     mFlag : bool, optional, default = True
         m, mp take all values -l...+l if mFlag=True, or =0 only if mFlag=False
@@ -509,6 +512,7 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, halfIntFlag = False,
     halfIntFlag : bool, optional, default = False
         If True, include 1/2-int terms in QN creation routine.
         NOTE: note used if a QN array is supplied directly.
+        NOTE: 1/2-int terms require sympy backend, this will be set if flag is True.
 
     nonzeroFlag : bool, optional, default = False
         Drop null terms before returning values if true.
@@ -551,6 +555,8 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, halfIntFlag = False,
     Currently set to run:
         - 'vec': :py:func:`w3jguVecCPU()`, which uses sf.Wigner3j on the back-end, with additional vectorisation over supplied QNs via Numba's @guvectorize.
         - 'par': :py:func:`w3jprange()`, which uses sf.Wigner3j on the back-end, with parallelization over QNs via Numba's @njit with a prange loop.
+        - 'sympy': :py:func:`w3jSympy()`, uses Sympy wigner_3j, this supports 1/2-int terms. (See https://docs.sympy.org/latest/modules/physics/wigner.html#sympy.physics.wigner.wigner_3j.)
+        - 'base': :py:func:`Wigner3jQNs()`, which uses sf.Wigner3j on the back-end with no additional wrappers.
 
 
     TODO
@@ -564,12 +570,28 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, halfIntFlag = False,
     # Set QNs, if not supplied.
     if QNs is None:
         QNs = genllL(Lmin = Lmin, Lmax = Lmax, mFlag = mFlag, halfIntFlag = halfIntFlag)
+    
+    else:
+        # If passed, check also for 1/2-int case if not explicitly set.
+        if not halfIntFlag:
+            halfIntFlag = (QNs%1).any()
+            
+            if halfIntFlag:
+                print("*** w3jTable: Found 1/2-int QNs in inputs, setting halfIntFlag=True for 1/2-int 3j support.")
+            
+            
 
+    # Additional checks for 1/2-int case
+    if halfIntFlag and backend != 'sympy':
+        print("*** w3jTable: Setting backend='sympy' for 1/2-int 3j support.")
+        backend = 'sympy'
 
+        
     # Calculate 3js using Numba GUvec version
     # w3j_QNs = np.zeros(QNs.shape[0])
     # w3jguVecCPU(QNs, w3j_QNs)
 
+        
     # Calculate with numba prange version (fastest in testing Feb 2020)
     if backend == 'par':
         w3j_QNs = w3jprange(QNs)

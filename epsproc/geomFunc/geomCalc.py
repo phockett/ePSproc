@@ -568,7 +568,11 @@ def w3jTable(Lmin = 0, Lmax = 10, QNs = None, mFlag = True, halfIntFlag = False,
     --------
     >>> # Generate all terms to lmax and return as Pandas DataFrame
     >>> lmax = 3
-    >>> w3jTable(Lmax = lmax, form = 'pd', nonzeroFlag = True, halfIntFlag=True
+    >>> w3jTable(Lmax = lmax, form = 'pd', nonzeroFlag = True, halfIntFlag=True)
+    >>>
+    >>> # For PD case, use xs and query to subselect terms,
+    >>> w3jpd = w3jTable(Lmax = lmax, form = 'pd', nonzeroFlag = True, halfIntFlag=True)
+    >>> w3jpd.query('L%2 == 0').query('M%2 == 0').xs(1,level='l') # Select L,M even terms, and l=1.
 
 
     """

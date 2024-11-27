@@ -590,3 +590,106 @@ def sumPDGroups(dataIn, sumDims = None):
 
     return dataIn.groupby(by=dimsGroup).sum()
     
+    
+    
+def spinWeightings(lmax = 3, Sc = 0.5,
+                  sumTerms = ['sigSc', 'Msc', 'Mjc', 'Pc'],
+                  selectors = None, query = None):
+    """
+    Compute spin-coupling terms for J states, as used in photoionization calculations:
+    
+    $$
+    \begin{eqnarray}
+    \left(\begin{array}{ccc}
+    N_{+} & J_{+} & S_{+}\\
+    M_{+} & M_{J+} & M_{S+}
+    \end{array}\right)\left(\begin{array}{ccc}
+    N_{+} & J_{+} & S_{+}\\
+    K_{+} & P_{+} & \Sigma_{+}
+    \end{array}\right)\label{eq:geom-params-C}
+    \end{eqnarray}
+    $$
+    
+    Where
+    
+    - S = 1/2
+    - N = integer.
+    - J = 1/2-int terms inc. spin.
+    
+    Note params are labelled by prefix 'c'(ore) in output, e.g. $N_{+} = Nc$ etc.
+    Labelling matches main gamma calculation.
+    
+    Parameters
+    ----------
+    
+    lmax : int, optional, default=3
+        Max ang. mom. to use for tabulations.
+        
+    Sc : float, optional, default = 0.5
+        Default case set for spin decoupling, but can be set to other values if required.
+        
+    sumTerms : list, optional, default = ['sigSc', 'Msc', 'Mjc', 'Pc']
+        Terms to sum over.
+        
+    selectors : dict, optional, default = None
+        Dictionary to subselect terms using pd.xs().
+        E.g. {'Nc':1} to select Nc=1 terms.
+        
+    query : list, optional, default = None
+        List of strings to use for pd.query().
+        E.g. ['Nc%2==0'] to select even Nc terms only.
+    
+    
+    Returns
+    -------
+    
+    dict
+        Contains Pandas tabulations of results.
+        - 'full' complete tabulation.
+        - 'sub' subselected terms.
+        - 'sum' summed terms (from subselection).
+    
+    """
+    
+    # Calculate 3j terms
+    # lmax = 3
+    pdmasterSpin = geomCalc.w3jTable(Lmax = lmax, form = 'pd', nonzeroFlag = True, halfIntFlag=True)
+    # pdmasterSpin
+
+    # LF spin coupling
+    tjLFspinTerms = {'l':'Nc','lp':'Jc','L':'Sc','m':'Mc','mp':'Mjc','M':'Msc'}
+    tjLFspin = pdmasterSpin.copy()
+    tjLFspin.index.rename(tjLFspinTerms, inplace=True)
+    tjLFspin = tjLFspin.query('Nc%1 == 0').xs(Sc,level='Sc') #.xs(0.5,level='Sc') #.xs(Jc,level='Jc')
+
+    # MF spin coupling
+    tjMFspinTerms = {'l':'Nc','lp':'Jc','L':'Sc','m':'Kc','mp':'Pc','M':'sigSc'}
+    tjMFspin = pdmasterSpin.copy()
+    tjMFspin.index.rename(tjMFspinTerms, inplace=True)
+    tjMFspin = tjMFspin.query('Nc%1 == 0').xs(Sc,level='Sc') #.xs(0.5,level='Sc') #.xs(Jc,level='Jc')  #.xs(Nc,level='Nc')
+    
+    # Assign terms for products.
+    # This should span all allowed subset of terms
+    # If NaNs appear then it may indicate issues with indexing/assignments above
+    dfprodSpin = tjLFspin.merge(tjMFspin, 
+         left_index=True, 
+         right_index=True,
+         # how='left')      
+         how='right')
+    
+    # Add product term
+    dfprodSpin['prod']=dfprodSpin['3j_x']*dfprodSpin['3j_y']
+    
+    # Subselect if passed
+    # if selectors is None:
+    dfprodSub = dfprodSpin
+    if selectors is not None:
+        for k,v in selectors.items():
+            dfprodSub = dfprodSub.xs(v, level=k)
+        
+    
+    # Sum terms - use existing wrapper for this (need to group then sum)
+    # For sum by multindex group
+    dfprodSum = sumPDGroups(dfprodSub,sumTerms)
+    
+    return {'sum':dfprodSum, 'sub':dfprodSub, 'full':dfprodSpin}

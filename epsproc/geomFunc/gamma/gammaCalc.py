@@ -236,7 +236,7 @@ def betaCalcLegacy(gammaDF, matE=None, **kwargs):
 
 #***** Compute gammas (new style)
 
-def Ccalc(channel=None, lmax=4, halfIntFlag = False, thres=1e-4):
+def Ccalc(channel=None, lmax=4, halfIntFlag = False, thres=1e-4, spinWeightings = None):
     """
     Compute C-params for given channel and lmax.
     
@@ -247,6 +247,7 @@ def Ccalc(channel=None, lmax=4, halfIntFlag = False, thres=1e-4):
     See also note on channels and Kt below - may need to add coherence here too.
     
     NOTE - spin terms currently NOT implemented. (I.e. J+ == N+)
+    UPDATE Nov. 2024: spin terms now implemented via :py:func:`spinWeightings()`, pass result to Ccalc to incorporate spin.
     
     Formalism:
     
@@ -286,6 +287,9 @@ def Ccalc(channel=None, lmax=4, halfIntFlag = False, thres=1e-4):
         If not set, run for test case Ni=2, N+=1, all K.
         Note Kt is currently NOT coherently summed, Kt=Ki-K+ only for state-resolved cases.
         
+        To run all cases to lmax, set channel = 4*[None]
+        Note this might produce large output.
+        
     lmax : optional, int, default = 4
     
     halfIntFlag : bool, optional, default = False
@@ -295,9 +299,15 @@ def Ccalc(channel=None, lmax=4, halfIntFlag = False, thres=1e-4):
         Apply threshold to abs(C) product terms, and drop.
         If None, skip thresholding.
     
+    spinWeightings : optional, default = None
+        Pass outputs from :py:func:`spinWeightings()` to include spin weightings.
+    
     
     Notes
     -----
+    27/11/24: added additional xs handling to allow for all Ni,Nc case
+              added spinWeightings option, note this currently needs to be run separately and passed as a Pandas DataFrame, as output by :py:func:`spinWeightings()`
+    
     07/08/24: tidying up. 
               - Added missing phase and degen factors.
               - Updated docs
@@ -336,20 +346,27 @@ def Ccalc(channel=None, lmax=4, halfIntFlag = False, thres=1e-4):
     tjLFNtTerms = {'l':'Nc','lp':'Ni','L':'Nt','m':'Mc','mp':'Mi','M':'Mt'}
     tjLFNt = pdmaster.copy()
     tjLFNt.index.rename(tjLFNtTerms, inplace=True)
-    tjLFNt = tjLFNt.xs(Ni,level='Ni').xs(Nc,level='Nc')
+    # tjLFNt = tjLFNt.xs(Ni,level='Ni').xs(Nc,level='Nc')
 
     # MF Nt coupling
     tjMFNtTerms = {'l':'Nc','lp':'Ni','L':'Nt','m':'Kc','mp':'Ki','M':'Kt'}
     tjMFNt = pdmaster.copy()
     tjMFNt.index.rename(tjMFNtTerms, inplace=True)
-    tjMFNt = tjMFNt.xs(Ni,level='Ni').xs(Nc,level='Nc')
+    # tjMFNt = tjMFNt.xs(Ni,level='Ni').xs(Nc,level='Nc')
+    
+    # Subselect on Ni, Nc if set
+    if Ni is not None:
+        tjLFNt = tjLFNt.xs(Ni,level='Ni')
+        tjMFNt = tjMFNt.xs(Ni,level='Ni')
+    if Nc is not None:
+        tjLFNt = tjLFNt.xs(Nc,level='Nc')
+        tjMFNt = tjMFNt.xs(Nc,level='Nc')
     
     # Subselect on Ki,Kc if set
     if Ki is not None:
         tjMFNt = tjMFNt.xs(Ki,level='Ki')
     if Kc is not None:
         tjMFNt = tjMFNt.xs(Kc,level='Kc')
-        
         
     
     # Assign terms for products.
@@ -419,7 +436,37 @@ def Ccalc(channel=None, lmax=4, halfIntFlag = False, thres=1e-4):
     if thres is not None:
         Cprod = Cprod[Cprod['prod'].pipe(np.abs) > thres].dropna()
     
-    return Cprod
+    # If spin weightings are passed, run additional product and clean-up steps.
+    if spinWeightings is not None:
+        
+        # If passed as dict, use 'sum' term
+        if isinstance(spinWeightings, dict):
+            spinW = spinWeightings['sum']
+        else:
+            spinW = spinWeightings
+            
+        # Assign to column
+        spinW.rename(columns={'prod':'prodSpin'}, inplace=True)   #.xs(J, level='Nc').rename(columns={'prod':'prodSpin'})
+        dfprodSpin = Cprod.merge(spinW, 
+             left_index=True, 
+             right_index=True,
+             # how='left')      
+             how='right')
+        
+        # Spin weighted product
+        dfprodSpin['spinWeighted'] = dfprodSpin['prod']*dfprodSpin['prodSpin']
+    
+        # Rename coloumns to use 'prod' (maybe assumed in later functions)
+        dfprodSpin.rename(columns={'prod':'prodUnweighted'}, inplace=True) 
+        dfprodSpin.rename(columns={'spinWeighted':'prod'}, inplace=True)
+    
+        if thres is not None:
+            dfprodSpin = dfprodSpin[dfprodSpin['prod'].pipe(np.abs) > thres].dropna()
+        
+        return dfprodSpin
+        
+    else:
+        return Cprod
 
 
 
@@ -510,7 +557,14 @@ def gammaCalc(channel=None,Cterms = None, denMat = None,
     
     # Multiply by degen & phase factors
     gammaPD =  gammaPD.multiply(lPhase, axis=0)  # Need to force row-wise multiply here in general.
-    gammaPD *= (2*Ni+1) * (2*Nc+1)
+
+    # 28/11/24: modified to allow for multiple Ni,Nc terms
+    # TODO: move to pre-sum, and use terms in Pandas index if set
+    if Ni is not None:
+        gammaPD *= (2*Ni+1)
+
+    if Nc is not None:
+        gammaPD *= (2*Nc+1)
     
     # TODO: Renorm...?
     
@@ -532,6 +586,10 @@ def gammaCalc(channel=None,Cterms = None, denMat = None,
     
 #     gammaPD.rename(columns={'prod':'gamma'}, inplace=True)
         
+    
+    # Force to DataFrame for single t case
+    if isinstance(gammaPD, pd.core.series.Series):
+        gammaPD = pd.DataFrame(gammaPD)
     
     # Set metadata
     gammaPD.attrs['dataType']="gamma"
@@ -634,6 +692,10 @@ def spinWeightings(lmax = 3, Sc = 0.5,
     selectors : dict, optional, default = None
         Dictionary to subselect terms using pd.xs().
         E.g. {'Nc':1} to select Nc=1 terms.
+        Note .xs() should support multiple states as tuples, e.g. {'Nc':(1,2)}, but this fails in testing in PD v1.5.3
+        Alternatively, skip selectors here and use mapping on returned dataframe, 
+        e.g. dfprodSpin.loc[map(lambda x: x in [1,2], dfprodSpin.index.get_level_values('Nc'))]
+        (solution from https://stackoverflow.com/a/77176420)
         
     query : list, optional, default = None
         List of strings to use for pd.query().
@@ -653,7 +715,7 @@ def spinWeightings(lmax = 3, Sc = 0.5,
     
     # Calculate 3j terms
     # lmax = 3
-    pdmasterSpin = geomCalc.w3jTable(Lmax = lmax, form = 'pd', nonzeroFlag = True, halfIntFlag=True)
+    pdmasterSpin = w3jTable(Lmax = lmax, form = 'pd', nonzeroFlag = True, halfIntFlag=True)
     # pdmasterSpin
 
     # LF spin coupling
@@ -677,8 +739,11 @@ def spinWeightings(lmax = 3, Sc = 0.5,
          # how='left')      
          how='right')
     
+    dfprodSpin.rename(columns={'3j_x':'LFspin','3j_y':'MFspin'}, inplace=True)
+    
     # Add product term
-    dfprodSpin['prod']=dfprodSpin['3j_x']*dfprodSpin['3j_y']
+    # dfprodSpin['prod']=dfprodSpin['3j_x']*dfprodSpin['3j_y']
+    dfprodSpin['prod']=dfprodSpin.prod(axis=1)
     
     # Subselect if passed
     # if selectors is None:

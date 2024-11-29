@@ -480,6 +480,7 @@ def gammaCalc(channel=None,Cterms = None, denMat = None,
     - Implement BetaTerm (same as general case?)
     - Implement density matrix multiplication
         - 25/07/24: implemented pmm multiplication. Note that this currently runs `denMatReformat` for Xarray inputs, and doesn't use `channel` specs currently.
+    - 29/11/24: updated to handle spin weighted version of Cterms, although currently needs some manual effort.
         
     Formalism:
     
@@ -542,13 +543,32 @@ def gammaCalc(channel=None,Cterms = None, denMat = None,
 
         # For multi-col case, plus return clean DF
         # Per https://stackoverflow.com/a/46779778
-        Cpmm = CtermsRho.iloc[:, 3:].mul(CtermsRho['prod'],axis=0)  #.combine_first(Crho)  # Add this to return original vals too.
+        # 29/11/24: added cases for with/without spin (additional Cterms in with spin case).
+        if 'prodSpin' in Cterms.columns:
+            Cpmm = CtermsRho.iloc[:, 7:].mul(CtermsRho['prod'],axis=0)
+        else:
+            Cpmm = CtermsRho.iloc[:, 3:].mul(CtermsRho['prod'],axis=0)  #.combine_first(Crho)  # Add this to return original vals too.
     
     # For null density matrix, just set product term - this saves additional axis checks etc....?
     # OR may want to keep C1,C1...?
     else:
-        Cpmm = Cterms['prod']
+        Cpmm = pd.DataFrame(Cterms['prod'])
+        # Cpmm = Cterms['prod']
     
+
+    # 28/11/24: modified to allow for multiple Ni,Nc terms
+    # TODO: move to pre-sum, and use terms in Pandas index if set
+    # 29/11/24: moved and set to use index if required.
+    # TODO: seems to be working, but may loose column names here?
+    if Ni is not None:
+        Cpmm *= (2*Ni+1)
+    else:
+        Cpmm = Cpmm.multiply(2*Cpmm.index.get_level_values(level='Ni')+1, axis = 0)
+
+    if Nc is not None:
+        Cpmm *= (2*Nc+1)
+    else:
+        Cpmm = Cpmm.multiply(2*Cpmm.index.get_level_values(level='Nc')+1, axis = 0)
     
     # Sum over some dims
     gammaPD = sumPDGroups(Cpmm, sumDims=sumList)
@@ -558,13 +578,6 @@ def gammaCalc(channel=None,Cterms = None, denMat = None,
     # Multiply by degen & phase factors
     gammaPD =  gammaPD.multiply(lPhase, axis=0)  # Need to force row-wise multiply here in general.
 
-    # 28/11/24: modified to allow for multiple Ni,Nc terms
-    # TODO: move to pre-sum, and use terms in Pandas index if set
-    if Ni is not None:
-        gammaPD *= (2*Ni+1)
-
-    if Nc is not None:
-        gammaPD *= (2*Nc+1)
     
     # TODO: Renorm...?
     

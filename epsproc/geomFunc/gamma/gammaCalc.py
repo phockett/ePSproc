@@ -441,7 +441,8 @@ def Ccalc(channel=None, lmax=4, halfIntFlag = False, thres=1e-4, spinWeightings 
         
         # If passed as dict, use 'sum' term
         if isinstance(spinWeightings, dict):
-            spinW = spinWeightings['sum']
+            # spinW = spinWeightings['sum']
+            spinW = spinWeightings['coherentSqSum']  # UPDATE 02/12/24 - use coherent sq terms.
         else:
             spinW = spinWeightings
             
@@ -724,6 +725,15 @@ def spinWeightings(lmax = 3, Sc = 0.5,
         - 'sub' subselected terms.
         - 'sum' summed terms (from subselection).
     
+    
+    Notes
+    -----
+    
+    02/12/24    Added product terms for coherent square... may need some work here and to decide which terms should be coherent.
+                Currently hard-coded for projection terms only.
+    
+    27/11/24 v1 basic implementation.
+    
     """
     
     # Calculate 3j terms
@@ -764,10 +774,65 @@ def spinWeightings(lmax = 3, Sc = 0.5,
     if selectors is not None:
         for k,v in selectors.items():
             dfprodSub = dfprodSub.xs(v, level=k)
-        
+            
+            
+    #*** 02/12/24 - add also product terms for coherent square! Otherwise phase issues
+    # Follow C1*C2 style here from Ccalc code...
+    # Q: WHICH TERMS REMAIN COHERENT HERE? Currently hard-coded for projection terms only.
+    # MAY WANT TO INCLUDE Nc here too? (And in Cterms if so.)
+    
+    # Set C-terms and multiply
+    thres=1e-4
+    S1 = dfprodSub['prod'].to_frame()
+    S1.rename(columns={'prod':'S1'}, inplace=True)
+    S1 = S1[S1.pipe(np.abs) > thres].dropna()
+
+    # Set C2/prime terms
+    # NOTE - currently assumes single 'p', also INCOHERENT over Nc/Mc?
+    # May need to revisit this for general case.
+    S2 = S1.copy()
+    # C2 = C2.pipe(np.conj)
+    S2 = np.conj(S2)
+    S2.rename(columns={'S1':'S2'}, inplace=True)
+    
+    # C2.index.rename({'l':'lp','m':'mp','lam':'lamp','Nt':'Ntp','Mi':'Mip','q':'qp'}, inplace=True)
+    
+    # S2Names = {item:item+'p' for item in S1.index.names}  # ALL TERMS
+    # sumTerms2 = [item+'p' for item in sumTerms]
+    
+    S2Names = {'Mc':'Mcp','Mjc':'Mjcp','Msc':'Mscp','Kc':'Kcp','Pc':'Pcp','sigSc':'sigScp'} # Projection terms only
+    sumTerms2 = [item+'p' for item in sumTerms]
+    
+    S2.index.rename(S2Names, inplace=True)
+    
+    Sprod = S2.merge(S1, 
+             left_index=True, 
+             right_index=True,
+             how='right')  
+             # how='left') 
+
+    # Quick tests:
+    # thres = 1e-4 >>> 400508 rows
+    # thres = 1e-2 >>> 353 rows
+    # No NaNs.
+    # No change with left or right index merge.
+    # Looks OK.
+
+    Sprod['prod'] = Sprod.prod(axis=1)
+    Sprod = Sprod[Sprod['prod'].pipe(np.abs) > thres].dropna()
     
     # Sum terms - use existing wrapper for this (need to group then sum)
     # For sum by multindex group
     dfprodSum = sumPDGroups(dfprodSub,sumTerms)
+    sumTerms.extend(sumTerms2)
+    SprodSum = sumPDGroups(Sprod,sumTerms)
     
-    return {'sum':dfprodSum, 'sub':dfprodSub, 'full':dfprodSpin}
+    return {'sum':dfprodSum, 'sub':dfprodSub, 'full':dfprodSpin, 
+            'coherentSq':Sprod, 'coherentSqSum':SprodSum,
+            'sumTerms':sumTerms, 'sumTerms2':sumTerms2}        
+    
+#     # Sum terms - use existing wrapper for this (need to group then sum)
+#     # For sum by multindex group
+#     dfprodSum = sumPDGroups(dfprodSub,sumTerms)
+    
+#     return {'sum':dfprodSum, 'sub':dfprodSub, 'full':dfprodSpin}

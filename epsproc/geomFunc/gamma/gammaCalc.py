@@ -666,7 +666,8 @@ def sumPDGroups(dataIn, sumDims = None):
     
 def spinWeightings(lmax = 3, Sc = 0.5,
                   sumTerms = ['sigSc', 'Msc', 'Mjc', 'Pc'],
-                  selectors = None, query = None):
+                  selectors = None, query = None,
+                  applyPhase = True):
     """
     Compute spin-coupling terms for J states, as used in photoionization calculations:
     
@@ -714,6 +715,12 @@ def spinWeightings(lmax = 3, Sc = 0.5,
     query : list, optional, default = None
         List of strings to use for pd.query().
         E.g. ['Nc%2==0'] to select even Nc terms only.
+        
+    applyPhase : bool, optional, default = True
+        Apply additional phase conventions to match Ccalc if True.
+        Specifically relabel indexers, 
+            - Mc > -Mc, 
+            - Kc > -Kc
     
     
     Returns
@@ -767,6 +774,12 @@ def spinWeightings(lmax = 3, Sc = 0.5,
     # Add product term
     # dfprodSpin['prod']=dfprodSpin['3j_x']*dfprodSpin['3j_y']
     dfprodSpin['prod']=dfprodSpin.prod(axis=1)
+    
+    # Apply additional phase conventions if desired - should be set to match rest of Ccalc
+    if applyPhase:
+        for level in ['Mc','Kc']:
+            dfprodSpin.index.set_levels(-1*dfprodSpin.index.levels[dfprodSpin.index.names.index(level)].values, level=level, inplace=True)
+        
     
     # Subselect if passed
     # if selectors is None:

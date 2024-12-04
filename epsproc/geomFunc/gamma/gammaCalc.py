@@ -738,6 +738,7 @@ def spinWeightings(lmax = 3, Sc = 0.5,
     
     02/12/24    Added product terms for coherent square... may need some work here and to decide which terms should be coherent.
                 Currently hard-coded for projection terms only.
+                Also added to output dict, but should pass with DataFrames and implement in Ccalc()/gammaCalc() too.
     
     27/11/24 v1 basic implementation.
     
@@ -844,7 +845,8 @@ def spinWeightings(lmax = 3, Sc = 0.5,
     
     return {'sum':dfprodSum, 'sub':dfprodSub, 'full':dfprodSpin, 
             'coherentSq':Sprod, 'coherentSqSum':SprodSum,
-            'sumTerms':sumTerms, 'sumTerms2':sumTerms2}        
+            'sumTerms':sumTerms, 'sumTerms2':sumTerms2,
+            'LFspinTerms':tjLFspinTerms, 'MFspinTerms':tjMFspinTerms, 'coherentTerms':S2Names}        
     
 #     # Sum terms - use existing wrapper for this (need to group then sum)
 #     # For sum by multindex group

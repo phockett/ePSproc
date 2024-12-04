@@ -813,7 +813,9 @@ def spinWeightings(lmax = 3, Sc = 0.5,
     # S2Names = {item:item+'p' for item in S1.index.names}  # ALL TERMS
     # sumTerms2 = [item+'p' for item in sumTerms]
     
-    S2Names = {'Mc':'Mcp','Mjc':'Mjcp','Msc':'Mscp','Kc':'Kcp','Pc':'Pcp','sigSc':'sigScp'} # Projection terms only
+    # S2Names = {'Mc':'Mcp','Mjc':'Mjcp','Msc':'Mscp','Kc':'Kcp','Pc':'Pcp','sigSc':'sigScp'} # Projection terms only
+    # S2Names = {'Mjc':'Mjcp','Msc':'Mscp','Kc':'Kcp','Pc':'Pcp','sigSc':'sigScp'} # Projection terms only, single Mc only
+    S2Names = {'Mjc':'Mjcp','Msc':'Mscp','Pc':'Pcp','sigSc':'sigScp'} # Projection terms only, single Mc,Kc only
     sumTerms2 = [item+'p' for item in sumTerms]
     
     S2.index.rename(S2Names, inplace=True)

@@ -22,6 +22,8 @@ import numpy as np
 from scipy.io import loadmat
 from pathlib import Path
 
+import re
+
 # Import HV into local namespace if hvPlotters successful (can't access directly)
 from epsproc.plot import hvPlotters
 if hvPlotters.hvFlag:
@@ -63,7 +65,8 @@ class ADM(ePSmultiJob):
     def loadData(self, keyType = 'fileName',
                  fReader=None, fType = 'text',
                  normType = None, renorm = False,
-                 addPop = True, addS = True):
+                 addPop = True, addS = True,
+                 readOpts = None):
         """
         Load ADM data from file(s).
 
@@ -114,6 +117,11 @@ class ADM(ePSmultiJob):
         addS : bool, optional, default = True
             Add S=0 terms?
             Default=False.
+            
+        readOpts : dict, optional, default = None
+            Additional options for file reader.
+            If None, defaults will be set.
+            - For pd.read_csv, set 'headers=None'
 
         TODO:
         - More general searching and file handling.
@@ -130,9 +138,13 @@ class ADM(ePSmultiJob):
             if self.jobs['ext'] in ['.txt','.csv']:
                 fReader = pd.read_csv
                 fType = 'text'
+                opts = {'header':None}
+                
             elif self.jobs['ext'] in ['.mat','.dat']:
                 fReader = loadmat
                 fType = 'matlab'
+                opts = {}
+                
             else:
                 print(f"*** File type {self.jobs['ext']} not recognised.")
                 print("Skipping file reading. To force, pass fReader=<file read function>. E.g. `fReader=pd.read_csv` for default case.")
@@ -158,7 +170,7 @@ class ADM(ePSmultiJob):
         # Scan data files with fReader - loop over subdirs and files
         # TODO: add file name as XR attrs.
         if keyType == 'fileName':
-            dataDict = {k:{Path(f).name:fReader(f) for f in item} for k,item in self.fileDict.items()}
+            dataDict = {k:{Path(f).name:fReader(f,**opts) for f in item} for k,item in self.fileDict.items()}
 
             # Try assigning ADMs per dir...
             for k,item in dataDict.items():
@@ -195,6 +207,57 @@ class ADM(ePSmultiJob):
                     # self.data[k] = {'ADM':self.xr}
                     self.data[k] = {'ADM':xrDA.assign_coords({"file":fNames})}  # Set again here as above will be overriden!
 
+                    
+                # 17/02/25 - trying to set for general text file IO...
+                elif fType == 'text':
+                    print("*** Attempting to sort text files assuming one file per ADM...")
+                    
+                    for k2,item2 in item.items():
+                        # Set PD headers from filenames, then stack
+                        
+                        # Force transpose if column-wise data
+                        if item2.columns.size != 1:
+                            item2 = item2.T
+                            # print(v)
+
+
+                        # Set name
+                        numerals = re.findall(r'\d+', k2)
+                        if numerals and len(numerals) == 1:
+                            item2.columns = [int(numerals[0])]
+
+                        else:
+                            item2.columns = [k2.rstrip(self.jobs['ext'])]
+
+
+                        # UPDATE main dict
+                        dataDict[k][k2] = item2
+                    
+                    # Stack dataframes
+                    pdCon = pd.concat([v for k,v in dataDict[k].items()], axis=1).set_index('time').sort_index(axis=1)
+                    # print(pdCon)
+                    dataDict[k]['pd'] = pdCon
+                        
+                    # Set ADMs from dataframe
+                    ADMs = pdCon.to_numpy().T
+                    ADMLabels = pdCon.columns.to_numpy()
+                    
+                    print(ADMs.shape)
+                    print(ADMLabels)
+                    
+                    if addPop and hasattr(self,'norm'):
+                        ADMs = np.r_[np.ones((1,ADMs.shape[1])) * self.norm['K0'], ADMs]
+                        # ADMLabels.append([0,0,0])
+                        # ADMLabels = np.r_[np.zeros(ADMLabels.shape[1]), ADMLabels]
+                        ADMLabels = np.r_[0, ADMLabels]
+                        print(ADMLabels)
+                        print(ADMs)
+                    
+                    self.data[k] = {'ADM' : setADMs(ADMs = ADMs, t = pdCon.index.to_numpy(), addQ = True, 
+                                                           KQSLabels = ADMLabels)}
+                    # ADMs = {'ADM':setADMs(ADMs = item2['ADM'], t=item2['time'].squeeze(),
+                    #                             KQSLabels = item2['ADMlist'], addS = addS)  }
+                
                 else:
                     print(f"No data formatting implemented for fType '{fType}' from dir '{k}'. Please run ep.setADMs manually to reformat")
 

@@ -251,7 +251,8 @@ def setPolGeoms(eulerAngs = None, quat = None, labels = None, vFlag = 2,
 
 
 # Create Xarray from set of ADMs - adapted from existing blmXarray()
-def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False, name = None, tUnits = 'ps'):
+def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, 
+            addQ = False, addS = False, name = None, tUnits = 'ps'):
     """
     Create Xarray from ADMs, or create default case ADM(K,Q,S) = [0,0,0,1].
 
@@ -267,6 +268,11 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False, name = N
     t : list or np.array, optional, default = None
         If passed, use for dimension defining ADM sets (usually time).
         Defaults to numerical label if not passed, t = np.arange(0,ADMs.shape[1])
+    
+    addQ : bool, default = False
+        If set, append Q = 0 to ADMs.
+        This allows for passing of [K,ADM] type values (e.g. for Q,S=0 case)
+        (Note addQ takes priority over addS.)
 
     addS : bool, default = False
         If set, append S = 0 to ADMs.
@@ -311,7 +317,11 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False, name = N
 
     # Set lables explicitly if not passed, and resize ADMs
     if KQSLabels is None:
-        if addS:
+        if addQ:
+            KQSLabels = ADMs[:,0:1]
+            KQSLabels = np.c_[KQSLabels, np.zeros((KQSLabels.shape[0],2))]
+            ADMs = ADMs[:,1:]
+        elif addS:
             KQSLabels = ADMs[:,0:2]
             KQSLabels = np.c_[KQSLabels, np.zeros(KQSLabels.shape[0])]
             ADMs = ADMs[:,2:]
@@ -319,9 +329,15 @@ def setADMs(ADMs = [0,0,0,1], KQSLabels = None, t = None, addS = False, name = N
             KQSLabels = ADMs[:,0:3]
             ADMs = ADMs[:,3:]
     else:
-        if addS:
+        # Force to array, otherwise conversions below may fail.
+        if isinstance(KQSLabels, list):
+            KQSLabels = np.array(KQSLabels)
+            
+        if addQ:
+            KQSLabels = np.c_[KQSLabels, np.zeros((KQSLabels.shape[0],2))]
+        elif addS:
             KQSLabels = np.c_[KQSLabels, np.zeros(KQSLabels.shape[0])]  # Add S for labels passed case
-
+        
 
     # Set indexing, default to numerical
     if t is None:

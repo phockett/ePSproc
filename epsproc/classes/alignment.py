@@ -65,8 +65,8 @@ class ADM(ePSmultiJob):
     def loadData(self, keyType = 'fileName',
                  fReader=None, fType = 'text',
                  normType = None, renorm = False,
-                 addPop = True, addS = True,
-                 readOpts = None):
+                 addPop = True, addS = True, addQ = False,
+                 readOpts = None, matFileKey = None):
         """
         Load ADM data from file(s).
 
@@ -114,14 +114,23 @@ class ADM(ePSmultiJob):
             Add K=0 population term?
             Only applied if normType is set.
 
+        addQ : bool, optional, default = False
+            Add Q=0 terms?
+
         addS : bool, optional, default = True
             Add S=0 terms?
-            Default=False.
+
             
         readOpts : dict, optional, default = None
             Additional options for file reader.
             If None, defaults will be set.
             - For pd.read_csv, set 'headers=None'
+
+        matFileKey : str, optional, default = None
+            Default key for Matlab file reader.
+            If None, will try a couple of typical file reads.
+            Otherwise try 'ADM', 'adms' or 'Atemp' for most cases.
+            NOTE: in this case, KQS and t values are NOT set.
 
         TODO:
         - More general searching and file handling.
@@ -130,17 +139,21 @@ class ADM(ePSmultiJob):
                 Should test further, see other libs for alternative data structures...?
                 Currently stack per dir, files labelled as dict items or in xr.Dataset.
         - Automate addS, currently setADMs throws errors if not correct dims set.
+        - 17/02/25
+            - Added basic handling for text files case, one file per ADM.
+            - May need some more work.
+            - Also added "addQ", as with addS should automate this!
 
         """
 
         # Set file reader by type
         if fReader is None:
-            if self.jobs['ext'] in ['.txt','.csv']:
+            if self.jobs['ext'] in ['.txt','.csv','.dat']:
                 fReader = pd.read_csv
                 fType = 'text'
                 opts = {'header':None}
                 
-            elif self.jobs['ext'] in ['.mat','.dat']:
+            elif self.jobs['ext'] in ['.mat',]:
                 fReader = loadmat
                 fType = 'matlab'
                 opts = {}
@@ -157,10 +170,15 @@ class ADM(ePSmultiJob):
         # Try loading t-data from root dir
         # Assume only one file?
         # NOTE - currently only used for setADMs style IO method.
+        # 16/03/26: added basic error tests here to avoid issues with glob dirs etc.
         tFiles = list(self.job['fileBase'].parent.glob('t*'))
-        if tFiles:
+        if tFiles and tFiles[0].is_file():
             print(f"Found t-index {tFiles[0]}")
-            tIndex = pd.read_csv(tFiles[0], header=None).to_numpy().squeeze()
+            try:
+                tIndex = pd.read_csv(tFiles[0], header=None).to_numpy().squeeze()
+            except:
+                print(f"Failed to read t-index {tFiles[0]}, setting tIndex=None.")
+                tIndex = None
 #             print(tIndex)
         else:
             tIndex = None
@@ -180,11 +198,32 @@ class ADM(ePSmultiJob):
                     # xrData = {k2:setADMs(ADMs = item2['ADM'], t=item2['time'].squeeze(),
                     #             KQSLabels = item2['ADMlist'], addS = addS) for k2,item2 in item.items() if 'time' in item2.keys()}
 
-                    for k2,item2 in item.items():
-                        if 'time' in item2.keys():
-                            xrData[k2] = {'ADM':setADMs(ADMs = item2['ADM'], t=item2['time'].squeeze(),
-                                                KQSLabels = item2['ADMlist'], addS = addS)  }
+                    try:
+                        for k2,item2 in item.items():
+                            if 'time' in item2.keys():
+                                xrData[k2] = {'ADM':setADMs(ADMs = item2['ADM'], t=item2['time'].squeeze(),
+                                                    KQSLabels = item2['ADMlist'], addS = addS)  }
+                                print("*** Loaded Matlab file with time info.")
 
+                             
+                            else:
+                                # Case for some older ADM dumps missing t-axis.   Use this as default
+                                if matFileKey is None:
+                                    xrData[k2] = {'ADM':setADMs(ADMs = item2['adms'][:,2:],  # t=item2['time'].squeeze(),
+                                            KQSLabels = item2['adms'][:,0:2], addS = addS)  }
+                                    print("*** Loaded Matlab file without time info.")
+                                else:
+                                    xrData[k2] = {'ADM':setADMs(ADMs = item2[matFileKey], addS = addS)  }
+                                    print("*** Loaded Matlab file without time or KQS info, testing maybe required - see self.dataDict for raw data return.")
+                    
+                    except Exception as e:
+                        print("*** Failed to process Matlab file, are the keys set?")
+                        print(f"Error msg: {type(e).__name__} : {e}.")
+                        print("Returning raw data for inspection...\n\n")
+
+                        return dataDict, e
+
+                    
                     # Set also to standard self.data[key][dataType] style
                     # This is used by existing core functionality
                     # TODO: fix to use something like xrDA, xrDS, dataDict = datasetStack(ADMin.data['alignment']['ADM'], dataType='ADM', stackDim = 'file', keys = ADMin.data['alignment']['ADM'].keys())
@@ -195,7 +234,7 @@ class ADM(ePSmultiJob):
                     # Use existing function, but note need to set coords curently
                     fKeys = list(xrData.keys())
                     fNames = [item.rstrip(self.jobs['ext']) for item in fKeys]
-                    xrDA, xrDS, dataDict = datasetStack(xrData, dataType='ADM', stackDim = 'file', keys = xrData.keys())
+                    xrDA, xrDS, dataDictStack = datasetStack(xrData, dataType='ADM', stackDim = 'file', keys = xrData.keys())
 
                     # TODO - store XR per dir too...?
                     self.xr = xrDA.assign_coords({"file":fNames})
@@ -233,28 +272,33 @@ class ADM(ePSmultiJob):
                         # UPDATE main dict
                         dataDict[k][k2] = item2
                     
-                    # Stack dataframes
-                    pdCon = pd.concat([v for k,v in dataDict[k].items()], axis=1).set_index('time').sort_index(axis=1)
-                    # print(pdCon)
-                    dataDict[k]['pd'] = pdCon
+                    try:
+                        # Stack dataframes
+                        pdCon = pd.concat([v for k,v in dataDict[k].items()], axis=1).set_index('time').sort_index(axis=1)
+                        # print(pdCon)
+                        dataDict[k]['pd'] = pdCon
+                    except Exception as e:
+                        print("Failed to stack files in dataframe, returning data for inspection.")
+                        return dataDict, pd.concat([v for k,v in dataDict[k].items()], axis=1), e
                         
                     # Set ADMs from dataframe
                     ADMs = pdCon.to_numpy().T
                     ADMLabels = pdCon.columns.to_numpy()
                     
-                    print(ADMs.shape)
-                    print(ADMLabels)
+                    # print(ADMs.shape)
+                    # print(ADMLabels)
                     
                     if addPop and hasattr(self,'norm'):
                         ADMs = np.r_[np.ones((1,ADMs.shape[1])) * self.norm['K0'], ADMs]
                         # ADMLabels.append([0,0,0])
                         # ADMLabels = np.r_[np.zeros(ADMLabels.shape[1]), ADMLabels]
                         ADMLabels = np.r_[0, ADMLabels]
-                        print(ADMLabels)
-                        print(ADMs)
+                        # print(ADMLabels)
+                        # print(ADMs)
                     
-                    self.data[k] = {'ADM' : setADMs(ADMs = ADMs, t = pdCon.index.to_numpy(), addQ = True, 
-                                                           KQSLabels = ADMLabels)}
+                    self.data[k] = {'ADM' : setADMs(ADMs = ADMs, t = pdCon.index.to_numpy(), 
+                                                    addQ = addQ, addS = addS, 
+                                                    KQSLabels = ADMLabels)}
                     # ADMs = {'ADM':setADMs(ADMs = item2['ADM'], t=item2['time'].squeeze(),
                     #                             KQSLabels = item2['ADMlist'], addS = addS)  }
                 

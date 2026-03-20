@@ -7,12 +7,16 @@ ePSproc classes IO function wrappers
 from pathlib import Path
 import pprint
 
+import xarray as xr
+import numpy as np
+
 # Local functions
 from epsproc import readMatEle, headerFileParse, molInfoParse, multiDimXrToPD, plotTypeSelector, matEleSelector
 from epsproc.util.summary import getOrbInfo, molPlot
 from epsproc.util.env import isnotebook
 
-def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'orb', verbose = True, **kwargs):
+def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'orb', 
+              verbose = True, debug = False, **kwargs):
     """
     Scan ePS output files from a dir for multiple data types. Sort data, and set to list/dict/Xarray structures.
 
@@ -52,6 +56,10 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
     verbose : bool or int, optional, default = True
         Additional config for printing self.jobSummary results.
         This evaluates self.verbose and verbose settings, set verbose=False to skip printing.
+        
+    debug : bool, optional, default = False
+        Skip processing to Xarray and return raw outputs for debugging IO issues.
+        This will automatically happen in cases where dumpIdySegsParseX() fails.
 
     **kwags : optional
         Additional args passed to base ep.readMatEle() routine.
@@ -105,7 +113,7 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
         # - a multi-element list for a dir with multiple jobs.
         # - Note cross-over with multiJob class in latter case.
         dataSetXS = readMatEle(fileBase = dataPath, fileIn = fileIn,  fType = fType, recordType = 'CrossSection', verbose = self.verbose['sub'])  # Set for XS + betas only
-        dataSetMatE = readMatEle(fileBase = dataPath, fileIn = fileIn,  fType = fType, recordType = 'DumpIdy', verbose = self.verbose['sub'])
+        dataSetMatE = readMatEle(fileBase = dataPath, fileIn = fileIn,  fType = fType, recordType = 'DumpIdy', verbose = self.verbose['sub'], **kwargs)
 
 
     # Log some details - currently not passed directly from readMatEle()
@@ -129,15 +137,51 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
     jobNotes = []
     fNTotal = 0  # Count total files
 
+    # 20/03/25 - also skip processing for debug or if dict passed
+#     if isinstance(dataSetMatE,dict):
+#         print("*** readMatEle() returned dict datatype, setting for debug = True case.")
+#         debug = True
+    
     # 12/04/23 Added basic error case - check some files were found
-    if dataSetXS:
+    if dataSetXS and not debug:
         # Set other attribs from source files
         for m, item in enumerate(dataSetXS):
+            
             # Set job info from first datafile of each set (orbital)
             # For Eke stated cases, this will use single file only, and assume identical props.
             dataFile = Path(item.attrs['fileBase'], item.attrs['file'])
             dataSetXS[m].attrs['jobInfo'] = headerFileParse(dataFile, verbose = self.verbose['sub'])
             dataSetXS[m].attrs['molInfo'] = molInfoParse(dataFile, verbose = self.verbose['sub'])
+            
+#             if isinstance(dataSetMatE[m], (dict,list)):
+            # 20/03/25: added logic to skip processing for dict or list return.
+            # May introduce more issues later, but should at least allow raw data inspection for debug.
+            # 09/04/25: added skip also for empty return case (for empty/invalid files)
+            procCurrent = False
+        
+            if not dataSetMatE:
+                print(f"*** Warning: dataSetMatE returned empty for {dataFile}, skipping processing.")
+                procCurrent = True
+                
+                break
+                
+            if not isinstance(dataSetMatE[m], xr.DataArray):
+                print(f"*** Warning: dataSetMatE[{m}] not Xarray datatype, skipping processing.")
+                procCurrent = True
+                
+                print(dataSetXS[m].jobInfo)
+                print(type(dataSetXS[m]))
+                jobNotes.append({ 'batch': dataSetXS[m].jobInfo['comments'][0].strip('#').strip(),
+                                'event': dataSetXS[m].jobInfo['comments'][1].split(',', maxsplit=1)[-1].strip('#'),
+                                'orbLabel': dataSetXS[m].jobInfo['comments'][1].split('(', maxsplit=1)[-1].split(')')[0],
+#                                 'orbE': dataSetXS[m].orbX['E'].data[0]
+                                 'orbE': np.nan    # Seem to be missing this in bad data cases?
+                                })
+                
+                break
+            
+#             if procCurrent:
+
 
             # Set orb info
             dataSetXS[m].attrs['orbX'], dataSetXS[m].attrs['orbInfo'] = getOrbInfo(item.attrs['jobInfo'], item.attrs['molInfo'])
@@ -149,10 +193,10 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
                 try:
                     dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
                     dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1].split('(', maxsplit=1)[1].split(')')[0]
+                    
                 except IndexError:
                     dataSetXS[m].attrs['jobLabel'] = item.jobInfo['comments'][1]
                     dataSetMatE[m].attrs['jobLabel'] = item.jobInfo['comments'][1]
-
 
             # 07/10/22 - skip for missing IPot case
             if 'IPot' in dataSetXS[m].attrs['jobInfo'].keys():
@@ -229,7 +273,7 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
 
 
     # 07/10/22 - case for no XS data (e.g. different file type)
-    if (not dataSetXS) and dataSetMatE:
+    if (not dataSetXS) and dataSetMatE and not debug:
         # Set other attribs from source files
         for m, item in enumerate(dataSetMatE):
             # Set job info from first datafile of each set (orbital)
@@ -285,18 +329,18 @@ def scanFiles(self, dataPath = None, fileIn = None, reset = False, keyType = 'or
 
 
 
+    if not debug:
+        # Set self
+        self.data.update(dsSet)
+        self.jobNotes.append(jobNotes)
 
-    # Set self
-    self.data.update(dsSet)
-    self.jobNotes.append(jobNotes)
-
-    # Meta data - NOW MAINLY MOVED TO data['job']
-    # Just use this for some aggregate stuff (per dir)
-    # NOTE - this is not persistent over multiple IO cycles, may want to modify?
-#         self.job['files'] = fList
-    self.job['fN'] = fNTotal
-#         self.job['jobN'] = jobN
-#         self.job['files']
+        # Meta data - NOW MAINLY MOVED TO data['job']
+        # Just use this for some aggregate stuff (per dir)
+        # NOTE - this is not persistent over multiple IO cycles, may want to modify?
+    #         self.job['files'] = fList
+        self.job['fN'] = fNTotal
+    #         self.job['jobN'] = jobN
+    #         self.job['files']
 
     # Propagate raw data for testing only.
     # Note this is currently only set for single IO cycle, so will overwrite any existing data

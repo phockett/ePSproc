@@ -66,7 +66,9 @@ class ADM(ePSmultiJob):
                  fReader=None, fType = 'text',
                  normType = None, renorm = False,
                  addPop = True, addS = True, addQ = False,
-                 readOpts = None, matFileKey = None):
+                 readOpts = None, matFileKey = None,
+                 sumJ = True, tAxisInFile = True, useFilenameQ = True,
+                 Kmax = 10):
         """
         Load ADM data from file(s).
 
@@ -132,6 +134,22 @@ class ADM(ePSmultiJob):
             Otherwise try 'ADM', 'adms' or 'Atemp' for most cases.
             NOTE: in this case, KQS and t values are NOT set.
 
+        sumJ : str, optional, default = None
+            If True, will sum rows in data file if (a) one file per AKQ and (b) it has multiple rows.
+            Pass False to skip.
+
+        tAxisInFile : bool, optional, default = True
+            Only applies to text file case.
+            If True, use D200 file first row as t-axis (as per 2026 dat file format).
+
+        useFilenameQ : bool, optional, default = False
+            If True, try and parse filename for [K,Q] values.
+
+        Kmax : int, optional, default = 10
+            Value of Kmax, used for text file case and KQ value parsing from filename.
+            May need to set to Kmax+1 if incorrect K values pulled.
+            
+
         TODO:
         - More general searching and file handling.
             - Not all methods use norm or renorm.
@@ -143,6 +161,10 @@ class ADM(ePSmultiJob):
             - Added basic handling for text files case, one file per ADM.
             - May need some more work.
             - Also added "addQ", as with addS should automate this!
+        - March 2026
+            - Adding case for new data file formats. In this case have ALL J per DKQ.
+            - Note that this also only has t-axis in D20 file, so use only that.
+            - May break old dat file case...? Those had cols [time, DXX] I think.
 
         """
 
@@ -151,7 +173,7 @@ class ADM(ePSmultiJob):
             if self.jobs['ext'] in ['.txt','.csv','.dat']:
                 fReader = pd.read_csv
                 fType = 'text'
-                opts = {'header':None}
+                opts = {'header':None, 'index_col':False, 'sep':'\t'}
                 
             elif self.jobs['ext'] in ['.mat',]:
                 fReader = loadmat
@@ -251,26 +273,97 @@ class ADM(ePSmultiJob):
                 elif fType == 'text':
                     print("*** Attempting to sort text files assuming one file per ADM...")
                     
+                    fileIndex = 0
                     for k2,item2 in item.items():
                         # Set PD headers from filenames, then stack
                         
-                        # Force transpose if column-wise data
-                        if item2.columns.size != 1:
-                            item2 = item2.T
-                            # print(v)
-
-
-                        # Set name
+                        # Get KQS
                         numerals = re.findall(r'\d+', k2)
                         if numerals and len(numerals) == 1:
-                            item2.columns = [int(numerals[0])]
-
+                            KQS = int(numerals[0])
                         else:
-                            item2.columns = [k2.rstrip(self.jobs['ext'])]
+                            # Ugh, this is ugly - just check for DXXX label instead, and clean up.
+                            # Must be a nicer way to do this...?
+                            numerals = re.findall(r'.[D]\d+', k2)
+
+                            if len(numerals) == 1:
+                                KQS = int(re.findall(r'\d+', numerals[0])[0])  # Tidy up.
+                            else:
+                                print(f"*** Warning: failed to get KQS index from filename, setting file {k2} to index {fileIndex}")
+                                KQS = fileIndex
+
+                        # # Test for Kmax - in some cases have single K labels on files, in others K,Q labels.
+                        # # Easiest way to check is set Kmax....? Or just assume single int values < 10?
+                        # # Quick digit split code by remainders, from https://pythonguides.com/split-a-number-into-digits-in-python/
+                        # if KQS > Kmax:
+                        #     # Remainder method - will fail for many cases...?
+                        #     # digits = []
+                        #     # while number > 0:
+                        #     #     digit = number % Kmax
+                        #     #     digits.insert(0, digit)
+                        #     #     number //= Kmax
+                        #     # KQS = digits
+
+                        #     # Just split to list, OK for single digit cases
+                        #     KQS = [int(digit) for digit in str(KQS)]
+
+
+
+                        # TODO: check for t-axis... # TODO: extract time, only for first file?
+                        # 20/03/26: adding basic case for new file format - may break older IO case?
+                        if tAxisInFile:   # == 'single':
+                            if KQS == 20:
+                                print(f"Getting t-axis from file {k2}. Set `tAxisInFile=False` to bypass.")
+                                tIndex = item2.iloc[0].reset_index().dropna()
+                                item2 = item2.drop(0, axis = 0)  #.dropna().reset_index()   #, inplace=True)
+                                # item2.dropna(axis = 1, inplace=True)
+                                print(f"Got {len(tIndex)} time points.")
+                                # print(tIndex)
+
+                        # elif tAxisInFile == 'single':
+
+                        if sumJ:
+                            # print("SUMMING J")
+                            item2 = item2.sum(axis = 0).to_frame()  # Assume rows per J as 2026 file format.
+                            # print(f"{item2.shape}")
+
+                        # Force transpose if column-wise data
+                        # if item2.columns.size != 1:
+                        #     # Also check for longest dim, and assume this should be rows (per J state)
+                        #     if item2.columns.size > item2.index.size:
+                        #         item2 = item2.T
+                        #     # print(v)
+
+                        # Set name
+                        # numerals = re.findall(r'\d+', k2)
+                        # if numerals and len(numerals) == 1:
+                        #     item2.columns = [int(numerals[0])]
+                        # else:
+                        #     # Ugh, this is ugly - just check for DXXX label instead, and clean up.
+                        #     # Must be a nicer way to do this...?
+                        #     numerals = re.findall(r'.[D]\d+', k2)
+
+                        #     if len(numerals) == 1:
+                        #         item2.columns = [int(re.findall(r'\d+', numerals[0])[0])]  # Tidy up.
+                        #     else:
+                        #         # Fallback to full item name, at least useful for debugging.
+                        #         item2.columns = [k2.rstrip(self.jobs['ext'])]
+
+                        item2.columns = [KQS]
+                        # print(item2)
+                        # Set tIndex if missing
+                        if not 'time' in item2.columns:
+                            item2['time'] = tIndex[0]
+                            item2 = item2.dropna(axis = 0).set_index('time')  #, inplace=True)
+                            # item2.reset_index().dropna(axis = 0, inplace=True).
+                            # print(item2)
 
 
                         # UPDATE main dict
                         dataDict[k][k2] = item2
+
+                        fileIndex += 1
+                       
                     
                     try:
                         # Stack dataframes
@@ -278,24 +371,42 @@ class ADM(ePSmultiJob):
                         # print(pdCon)
                         dataDict[k]['pd'] = pdCon
                     except Exception as e:
-                        print("Failed to stack files in dataframe, returning data for inspection.")
-                        return dataDict, pd.concat([v for k,v in dataDict[k].items()], axis=1), e
+                        try:
+                             # Stack dataframes - case for t per frame (2026 data format)
+                            pdCon = pd.concat([v for k,v in dataDict[k].items()], axis=1).sort_index(axis=1)
+                            # print(pdCon)
+                            dataDict[k]['pd'] = pdCon
+
+                        except Exception as e:
+                            print("Failed to stack files in dataframe, returning data for inspection.")
+
+                            # return dataDict, pd.concat([v for k,v in dataDict[k].items()], axis=1), e, tIndex
+                            return dataDict, e, tIndex
                         
+                    
                     # Set ADMs from dataframe
                     ADMs = pdCon.to_numpy().T
                     ADMLabels = pdCon.columns.to_numpy()
+
+                    # Set Q from filename? Another annoying fix 23/03/26
+                    if useFilenameQ:
+                        ADMLabels = np.array([[int(digit) for digit in str(KQ)] for KQ in ADMLabels])
                     
                     # print(ADMs.shape)
-                    # print(ADMLabels)
-                    
+                    print(ADMLabels)
+
                     if addPop and hasattr(self,'norm'):
                         ADMs = np.r_[np.ones((1,ADMs.shape[1])) * self.norm['K0'], ADMs]
                         # ADMLabels.append([0,0,0])
-                        # ADMLabels = np.r_[np.zeros(ADMLabels.shape[1]), ADMLabels]
-                        ADMLabels = np.r_[0, ADMLabels]
+                        ADMLabels = np.r_[np.zeros((1,ADMLabels.shape[1])), ADMLabels]
+                        # ADMLabels = np.r_[0, ADMLabels]
                         # print(ADMLabels)
                         # print(ADMs)
+
+                    print(f"Setting ADMs using index {ADMLabels}.")
                     
+                    # return ADMs, ADMLabels, pdCon
+
                     self.data[k] = {'ADM' : setADMs(ADMs = ADMs, t = pdCon.index.to_numpy(), 
                                                     addQ = addQ, addS = addS, 
                                                     KQSLabels = ADMLabels)}

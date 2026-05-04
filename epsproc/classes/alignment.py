@@ -42,7 +42,7 @@ class ADM(ePSmultiJob):
     # Basic dir + subdir scanner
     # NOTE ep.getFiles has no subdir support!
 
-    def scanDirs(self):
+    def scanDirs(self, sortFlag = True):
 
         # Quick subdir scan
         super().scanDirs()
@@ -53,6 +53,13 @@ class ADM(ePSmultiJob):
         for item in self.jobs['jobDirs']:
             # Basic list
             subFiles = getFiles(fileBase =  item, fType=self.jobs['ext'])
+            
+            # 17/04/26 - add sorting to avoid arb file ordering later?
+            # TODO: add this to getFiles()
+            # May want to use natsort here?
+            if sortFlag:
+                subFiles = sorted(subFiles)
+                
             fileList.append(subFiles)
             # Set dict by item names...
             fileDict[item.name] = subFiles
@@ -285,9 +292,11 @@ class ADM(ePSmultiJob):
                             # Ugh, this is ugly - just check for DXXX label instead, and clean up.
                             # Must be a nicer way to do this...?
                             numerals = re.findall(r'.[D]\d+', k2)
+                            # print(numerals)
 
                             if len(numerals) == 1:
                                 KQS = int(re.findall(r'\d+', numerals[0])[0])  # Tidy up.
+                                # print(KQS)
                             else:
                                 print(f"*** Warning: failed to get KQS index from filename, setting file {k2} to index {fileIndex}")
                                 KQS = fileIndex
@@ -353,10 +362,13 @@ class ADM(ePSmultiJob):
                         # print(item2)
                         # Set tIndex if missing
                         if not 'time' in item2.columns:
-                            item2['time'] = tIndex[0]
-                            item2 = item2.dropna(axis = 0).set_index('time')  #, inplace=True)
+                            # FFS THIS IS SHIT - ONLY USE IF NOT NONE
+                            if tIndex is not None:
+                                item2['time'] = tIndex[0]
+                                item2 = item2.dropna(axis = 0).set_index('time')  #, inplace=True)
                             # item2.reset_index().dropna(axis = 0, inplace=True).
                             # print(item2)
+                            
 
 
                         # UPDATE main dict

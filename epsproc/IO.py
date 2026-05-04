@@ -685,7 +685,15 @@ def dumpIdySegParse(dumpSeg):
     attribs.append(['E', np.float(parseLineDigits(dumpSeg[3][2])[0]), 'eV'])
     attribs.append(['Ehv', np.float(parseLineDigits(dumpSeg[4][2])[0]), 'eV'])
     SF = np.genfromtxt(parseLineDigits(dumpSeg[5][2]))
-    SF = SF[0] + SF[1]*1j
+
+    #     SF = SF[0] + SF[1]*1j
+    # 20/03/25: quick hack for NaN case. May want to set to unity here instead?
+    if SF.any():
+       SF = SF[0] + SF[1]*1j
+    else:
+       SF = np.nan + np.nan*1j  
+
+
     attribs.append(['SF', SF, 'sqrt(MB)'])
     attribs.append(['Lmax', np.int(parseLineDigits(dumpSeg[10][2])[0]), ''])
 
@@ -705,7 +713,7 @@ def dumpIdySegParse(dumpSeg):
 
 
 # Functional form for parsing full set of mat elements and putting in xarray
-def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
+def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1, debug = False):
     """
     Extract data from ePS dumpIdy segments into usable form.
 
@@ -746,6 +754,7 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
 
     blankMatE = 0
     blankSymList = []
+    blankEList = []
 
     # Loop over DumpIdy segments, extract data & reformat
     # If blank, skip parser and append blankSegs.
@@ -769,6 +778,7 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
                 blankMatE += 1
                 # ekeList.append(attribs[0][1])
                 blankSymList.append(attribs[4][1])
+                blankEList.append(attribs[0][1])
 
                 # ekeList.append(np.nan)  # This adds multiple np.nan entries which propagate through np.unique() later.
 
@@ -788,11 +798,14 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
 
         else:
             blankSegs += 1
-            ekeList.append(np.nan)
+#             ekeList.append(np.nan)  # Setting np.nan may give issue later when stacking Xarrays...?
+#             ekeList.append(attribs[0][1])  # keep Eke?
 
     # Check energies vs. input list, and number of symmetries
     ekeTest = np.unique(ekeList)
-    if ekeTest.size != ekeListUn.size:
+#     if ekeTest.size != ekeListUn.size:
+#     if ekeTest.size != np.unique(blankEList).size:
+    if np.unique(blankEList).size > 1:
         print("*** Warning: Found {0} energies, expected {1}".format(ekeTest.size,ekeListUn.size))
 
     # Check here according to expected input, but should also be logged in blankSegs above.
@@ -800,7 +813,7 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
         print("*** Warning: Missing records, expected {0}, found {1}.".format(ekeTest.size * len(symSegs),len(ekeList)))
 
     if blankMatE > 0:
-        print("*** Warning: Found {0} blank sets of matrix elements, symmetries {1}".format(blankMatE, np.unique(blankSymList)))
+        print("*** Warning: Found {0} blank sets of matrix elements, symmetries {1}, energies {2}".format(blankMatE, np.unique(blankSymList), np.unique(blankEList)))
 
     #**** Convert to xarray - ugly loop version, probably a better way to do this!
     #TODO Should:
@@ -909,7 +922,9 @@ def dumpIdySegsParseX(dumpSegs, ekeListUn, symSegs, verbose = 1):
 
 
         # Now with loop on known energy list.
-        if eLoop == ekeListUn.size-1:
+        # 24/03/25 - debugged case for missing Eke entries, now skipped from output.
+#         if eLoop == ekeListUn.size-1:
+        if eLoop == ekeTest.size-1:
             dataSym.append(xr.combine_nested(dataArrays, concat_dim=['Eke']))
             dataArrays = []
             eLoop = 0
@@ -1295,6 +1310,9 @@ def getCroSegsParseX(dumpSegs, symSegs, ekeList):
         else:
             blankSegs += 1
             #ekeList.append(np.nan)
+            
+    if blankSegs > 0:
+        print("*** Warning: Found {0} blank sets of cross sections.".format(blankSegs))
 
     # Stack lists by symmetry - this is currently assumed from symSegs
     # if len(dumpSegs) == len(symSegs):
@@ -1302,29 +1320,35 @@ def getCroSegsParseX(dumpSegs, symSegs, ekeList):
 
     daOut.attrs['dataType'] = 'XSect'    # Set dataType for use later.
 
-    # Set units - should set from file ideally.
-    # daOut.Ehv.attrs['units'] = 'eV'
-    daOut.coords['Ehv'].attrs['units'] = 'eV'
-    daOut.attrs['units'] = 'Mb'
-    daOut.attrs['normType'] = 'lg'  # NOTE GetCro expanded in Legendre polynomials
-                                    # See util.comversion.conv_BL_BLM() for conversion.
-                                    # TODO: implement conversion, need to set L terms first.
+    # 24/03/25: quick hack for case of missing cross section segments, just skip some tidy-up
+    try:
+        # Set units - should set from file ideally.
+        # daOut.Ehv.attrs['units'] = 'eV'
+        daOut.coords['Ehv'].attrs['units'] = 'eV'
+        daOut.attrs['units'] = 'Mb'
+        daOut.attrs['normType'] = 'lg'  # NOTE GetCro expanded in Legendre polynomials
+                                        # See util.comversion.conv_BL_BLM() for conversion.
+                                        # TODO: implement conversion, need to set L terms first.
 
-    # Reset energies to Eke, and shift key dim - might be a simpler/shorter way to do this...?
-    # This fails for singleton Ehv/Eke?
-    # daOut['EhvOrig'] = daOut['Ehv']
-    # daOut['Ehv'] = ekeList
-    # daOut = daOut.rename({'Ehv':'Eke', 'EhvOrig':'Ehv'})
+        # Reset energies to Eke, and shift key dim - might be a simpler/shorter way to do this...?
+        # This fails for singleton Ehv/Eke?
+        # daOut['EhvOrig'] = daOut['Ehv']
+        # daOut['Ehv'] = ekeList
+        # daOut = daOut.rename({'Ehv':'Eke', 'EhvOrig':'Ehv'})
 
-    # Try a different approach... assign as new dim then swap.
-    if daOut.Ehv.size == 1:
-        daOut['Eke'] = ('Ehv', [ekeList])  # Fix for singleton dim - this fails otherwise for scalar or np.ndarray case.
-    else:
-        daOut['Eke'] = ('Ehv', ekeList)
+        # Try a different approach... assign as new dim then swap.
+        if daOut.Ehv.size == 1:
+            daOut['Eke'] = ('Ehv', [ekeList])  # Fix for singleton dim - this fails otherwise for scalar or np.ndarray case.
+        else:
+            daOut['Eke'] = ('Ehv', ekeList)
 
-    daOut = daOut.swap_dims({'Ehv':'Eke'})
-    daOut.coords['Eke'].attrs['units'] = 'eV'  # May not propagate from Ehv?
-    daOut.coords['Ehv'].attrs['units'] = 'eV'  # May not propagate from Ehv?
+        daOut = daOut.swap_dims({'Ehv':'Eke'})
+        daOut.coords['Eke'].attrs['units'] = 'eV'  # May not propagate from Ehv?
+        daOut.coords['Ehv'].attrs['units'] = 'eV'  # May not propagate from Ehv?
+    
+    except:
+        print("*** Warning: Missing some cross sections segments, returning unsorted Xarray data.")
+        daOut.attrs['note'] = 'Missing some cross sections segments, Xarray unformatted.'
 
     return daOut, blankSegs
 
@@ -1681,6 +1705,9 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
     - Change to pathlib paths.
     - Implement outputType options...?
 
+    27/03/25    Added basic file check based on header info.
+                Skip file IO for invalid files.
+
     20/07/22    Added dict return for dumpIdy methods for troubleshooting if getCroSegsParseX fails.
                 Note this only returns if stackE = False is also set.
 
@@ -1719,6 +1746,42 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
         print(f'*** No file(s) found matching fileIn={fileIn}, fileBase={fileBase}.')
         return None
 
+    # 27/03/25 - Basic error checking and skip invalid files.
+    # TODO: test failure modes here, either exception or returns blank.
+    # TODO: move to separate function? Integrate with getFiles?
+    # NOTE: currently prints message twice for class case, since this function is called multiple times.
+    # NOTE: moved here from main loop, easier to scan files here and change list prior to main read loop.
+    fListChecked = []
+    fListInvalid = []
+    for file in fList:
+        skipFile = False
+        try:
+            jobInfo = headerFileParse(file, verbose = False)
+    #                 print(jobInfo)
+            if not jobInfo['comments']:
+                skipFile = True
+                emsg = "Couldn't find ePS file header info is it a valid ePS output?"
+
+        # Skip file on other errors? May want to raise?
+        except Exception as e:
+            skipFile = True
+            emsg = e
+            if hasattr(e, 'message'):
+                emsg = e.message
+                    
+
+        # Keep file if OK.
+        if not skipFile:
+            fListChecked.append(file)
+        else:
+            fListInvalid.append(file)
+            if verbose:
+                print('\n*** Warning: skipping file: ', file)
+                print(f"      {emsg}")
+    
+    # Update main list
+    fList = fListChecked
+    
     # Check if job is multipart, and stack files if so, based on filename prefix
     # 03/10/22: this currently fails for Rmat format files, since name format is not covered in fileListSort/sortGroupFn - should generalise.
     if stackE:
@@ -1763,6 +1826,29 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
             if verbose:
                 print('\n*** Reading ePS output file: ', file)
 
+#             # 27/03/25 - Basic error checking and skip invalid files.
+#             # TODO: test failure modes here, either exception or returns blank.
+#             # NOTE: currently prints message twice for class case, since this function is called multiple times.
+#             skipFile = False
+#             try:
+#                 jobInfo = headerFileParse(file, verbose = False)
+# #                 print(jobInfo)
+                
+#                 if not jobInfo['comments']:
+#                     print('\n*** Warning: skipping file: ', file)
+#                     print("      Couldn't find ePS file header info is it a valid ePS output?")
+#                     skipFile = True
+
+#             except:
+#                 print('\n*** Warning: skipping file: ', file)
+#                 print("      Couldn't find ePS file header info is it a valid ePS output?")
+#                 skipFile = True
+                
+#             # Skip loop for invalid file
+#             if skipFile:
+#                 continue
+                
+                
             # Scan the file and parse segments
             #lines, dumpSegs = dumpIdyFileParse(os.path.join(fileBase, file))
 
@@ -1830,7 +1916,8 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
                 data['file'] = fName[1]
                 data['fileBase'] = fName[0]
             else:
-                data.name = fName[1]
+#                 data.name = fName[1]   # . format fails for XR DataSets
+                data['name'] = fName[1]  # Dict style OK for both XR sets and arrays.
                 data.attrs['file'] = fName[1]
                 data.attrs['fileBase'] = fName[0]
 
@@ -1852,19 +1939,27 @@ def readMatEle(fileIn = None, fileBase = None, fType = '.out', recordType = 'Dum
 
         else:
             if stackFlag:
-                dataSet.append(xr.combine_nested(dataStack, concat_dim = [stackDim]))
+                try:
+                    dataSet.append(xr.combine_nested(dataStack, concat_dim = [stackDim]))
 
-                # 03/10/22 - sort separately to allow for more stacking flexibility - this fails with labelled dims for instance.
-                if stackDim == 'Eke':
-                    dataSet[-1] = dataSet[-1].sortby(stackDim)
+                    # 03/10/22 - sort separately to allow for more stacking flexibility - this fails with labelled dims for instance.
+                    if stackDim == 'Eke':
+                        dataSet[-1] = dataSet[-1].sortby(stackDim)
 
-                # Propagate attribs for stacked case
-                dataSet[-1].attrs = dataStack[0].attrs
-                dataSet[-1].attrs['fileList'] = fList
-                dataSet[-1].name = os.path.split(dataSet[-1].attrs['fileBase'])[1]   # Rename by dir?
+                    # Propagate attribs for stacked case
+                    dataSet[-1].attrs = dataStack[0].attrs
+                    dataSet[-1].attrs['fileList'] = fList
+                    dataSet[-1].name = os.path.split(dataSet[-1].attrs['fileBase'])[1]   # Rename by dir?
 
-                if verbose:
-                    print(f"\n*** Stacked {len(fList)} files, prefix {prefixStr}, by {stackDim} ({dataSet[-1][stackDim].size} points).")
+                    if verbose:
+                        print(f"\n*** Stacked {len(fList)} files, prefix {prefixStr}, by {stackDim} ({dataSet[-1][stackDim].size} points).")
+                
+                except Exception as e: 
+#                     can only concatenate xarray Dataset and DataArray objects, got <class 'dict'>
+                    print("*** Warning: failed to stack Xarrays, returning raw output to dataSet. This likely indicates missing data entries, check return dict to debug.")
+                    print(f"Error: {e}")
+                    
+                    dataSet.append(dataStack)  # Just set raw data in this case
 
             else:
                 dataSet[-1].attrs['fileList'] = dataSet[-1].attrs['file']  # Set also for single file case

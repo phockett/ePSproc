@@ -443,23 +443,38 @@ def renormL0(data):
     Renormalise passed data (Xarray) by (L,M) = (0,0) term.
 
     Requires input Xarray to have dims (L,M) or (l,m), should be robust over all other dims.
+    
+    # 26/02/25 - mod to check dims first then add if required.
+    # TODO: should use checkDims or conformDims here... just quick hack for now
 
     """
     dataOut = data.copy()
+    
+    # 26/02/25 - mod to check dims first then add if required.
+    # TODO: should use checkDims or conformDims here... just quick hack for now
+    mFlag = False
+    if hasattr(dataOut,'M') or hasattr(dataOut,'m'):
+        mFlag = True
+    
 
     # Note - this currently assumes m dim is present, and forces it to be dropped after selection.
-    if hasattr(dataOut,'L'):
+    if hasattr(dataOut,'L') and mFlag:
         # dataOut /= dataOut.sel({'L':0}).drop('BLM')
         # dataOut /= dataOut.sel({'L':0}).drop('M').squeeze()
         # dataOut = dataOut/dataOut.sel({'L':0}).drop('M').squeeze()  # Non-in-place version, more robust
         dataOut = dataOut/dataOut.sel({'L':0}).sel({'M':0}).drop('M').squeeze()  # Force m=0, issues with spurious m presisting in some cases otherwise
 
-    elif hasattr(dataOut,'l'):
+    elif hasattr(dataOut,'l') and mFlag:
         # dataOut /= dataOut.sel({'l':0}).drop('BLM')
         # dataOut /= dataOut.sel({'l':0}).drop('m').squeeze()
         # dataOut = dataOut/dataOut.sel({'l':0}).drop('m').squeeze()  # Non-in-place version, more robust
         dataOut = dataOut/dataOut.sel({'l':0}).sel({'m':0}).drop('m').squeeze()  # Force m=0, issues with spurious m presisting in some cases otherwise
 
+    elif not mFlag:
+        # Quick case for missing l,m=0 for expt. datasets, but NOT GENERAL
+        norm = np.sqrt(1/(4*np.pi))
+        dataOut = dataOut*norm
+        
     else:
         print("***Warning, L/l not present in dataset.")
         return None
